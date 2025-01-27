@@ -1,0 +1,7 @@
+Flask
+Werkzeug
+ecdsa
+fastapi
+uvicorn
+pydantic
+zoidbergCoin  # Placeholder for your blockchain module

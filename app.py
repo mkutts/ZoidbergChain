@@ -30,14 +30,21 @@ async def add_transaction(sender: str, recipient: str, amount: float, private_ke
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/wallets")
+@app.get("/get_wallets")
 async def get_wallets():
-    """Retrieve the keys of initialized wallets."""
-    return {
-        "wallet1": wallet1.get_keys(),
-        "wallet2": wallet2.get_keys(),
-        "meme_creator": meme_creator.get_keys(),
-    }
+    """
+    Retrieve all registered wallets.
+    """
+    try:
+        return {
+            "message": "Registered wallets retrieved successfully.",
+            "wallets": [
+                {"public_key": key, "private_key": wallet.private_key}
+                for key, wallet in blockchain.wallets.items()
+            ]
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/transaction_pool")
 async def transaction_pool():
@@ -128,3 +135,70 @@ async def add_block(image: UploadFile, miner: str = Form(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.post("/generate_wallet")
+async def generate_wallet():
+    """
+    Generate a new wallet, register it in the blockchain, and return its public and private keys.
+    """
+    try:
+        # Create a new wallet
+        wallet = Wallet()
+
+        # Register the wallet in the blockchain
+        blockchain.wallets[wallet.public_key] = wallet
+
+        # Return the wallet's keys
+        return {
+            "message": "Wallet generated and registered successfully.",
+            "wallet": wallet.get_keys()
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/get_balance")
+async def get_balance(public_key: str):
+    """
+    Retrieve the balance for a specific wallet.
+    
+    Args:
+        public_key (str): The public key of the wallet.
+
+    Returns:
+        dict: The wallet's balance or an error message.
+    """
+    try:
+        # Ensure the public key is valid
+        if public_key not in blockchain.wallets:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Public key {public_key} is not registered in the blockchain."}
+            )
+
+        # Calculate the wallet balance
+        balance = blockchain.get_balance(public_key)
+
+        return {
+            "message": f"Balance retrieved successfully for wallet {public_key}.",
+            "balance": balance
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/get_reward_pool_balance")
+async def get_reward_pool_balance():
+    """
+    Retrieve the balance of the reward pool.
+    
+    Returns:
+        dict: The current balance of the reward pool.
+    """
+    try:
+        # Get the reward pool balance
+        balance = blockchain.reward_pool
+
+        return {
+            "message": "Reward pool balance retrieved successfully.",
+            "reward_pool_balance": balance
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})

@@ -158,13 +158,15 @@ class Block:
 
 class Blockchain:
     def __init__(self, wallet1=None, wallet2=None, meme_creator=None):
-        self.chain = []
-        self.pending_transactions = []
-        self.wallets = {}
+        self.chain = []  # The blockchain
+        self.pending_transactions = []  # Transaction pool
+        self.wallets = {}  # Registered wallets
         self.text_validation_cache = {}  # Cache for validated texts
         self.image_validation_cache = {}  # Cache for validated images
-        self.texts = []  # List of all texts for uniqueness checks
+        self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
+        self.reward_pool = 100000  # Initial reward pool
+        self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
         self.initial_reward_pool = 100000  # Example value, can be adjusted
         self.reward_pool = self.initial_reward_pool  # Set initial reward pool balance
@@ -339,21 +341,15 @@ class Blockchain:
         return True
 
     def is_meme_original(self, image_path, text_content):
-        """Validate meme originality based on image and text."""
+        """Validate meme originality without caching."""
         print(f"Debug: Validating meme originality for image: {image_path} and text: '{text_content}'")
-        
-        # Validate image hash uniqueness
-        if image_path in self.image_validation_cache:
-            image_hash = self.image_validation_cache[image_path]
-        else:
-            image_hash = self.hash_image(image_path)
-            self.image_validation_cache[image_path] = image_hash
 
+        # Validate image hash uniqueness
+        image_hash = self.hash_image(image_path)
         print(f"Debug: Image hash: {image_hash}")
         if image_hash in self.image_hashes:
             print("Debug: Image is not unique.")
             return False
-        self.image_hashes.add(image_hash)
 
         # Validate text uniqueness
         if not self.is_text_unique(text_content):
@@ -364,9 +360,13 @@ class Blockchain:
         return True
 
     def add_block(self, image_path, text_content, miner, max_block_size_kb=10, propagation_delay=0, validate_meme=True):
-        """Add a block with transaction fee and tip distribution and include encoded meme."""
+        """Add a block with transaction fee and tip distribution, enforce block size limit, and cache memes after validation."""
         if not os.path.isfile(image_path):
             raise ValueError("Invalid image path provided for the meme.")
+
+        # Validate the miner's public key
+        if not self.is_valid_public_key(miner):
+            raise ValueError(f"Invalid public key provided for the miner: {miner}")
 
         # Encode the image as base64
         meme_encoded = self.encode_image(image_path)
@@ -379,7 +379,6 @@ class Blockchain:
         # Validate transactions and calculate total fees/tips
         valid_transactions = []
         total_size = 0
-        total_simulated_delay = 0
         total_miner_fees = 0
 
         print("Debug: Validating transactions concurrently...")
@@ -392,7 +391,7 @@ class Blockchain:
                         tx_fee = tx.calculate_fee()
                         tip = tx.tip
 
-                        # Check Reward Pool Threshold for Dynamic Split
+                        # Reward pool split
                         if self.reward_pool < (self.initial_reward_pool * 0.25):
                             fee_split = {"miner": 0.5, "reward_pool": 0.5}
                             tip_split = {"miner": 0.25, "reward_pool": 0.75}
@@ -400,35 +399,25 @@ class Blockchain:
                             fee_split = {"miner": 0.7, "reward_pool": 0.3}
                             tip_split = {"miner": 0.5, "reward_pool": 0.5}
 
-                        # Distribute fees and tips
                         miner_share = (tx_fee * fee_split["miner"]) + (tip * tip_split["miner"])
                         reward_pool_share = (tx_fee * fee_split["reward_pool"]) + (tip * tip_split["reward_pool"])
 
                         self.reward_pool += reward_pool_share
                         total_miner_fees += miner_share
 
-                        tx_size = len(str(tx))  # Approximate size in bytes
-                        if (total_size + tx_size) > (max_block_size_kb * 1024):
-                            break
+                        tx_size = len(str(tx))
                         valid_transactions.append(tx)
                         total_size += tx_size
-
-                        if propagation_delay > 0:
-                            simulated_delay = random.uniform(0, propagation_delay)
-                            total_simulated_delay += simulated_delay
-                            print(f"Debug: Simulating propagation delay of {simulated_delay:.2f} seconds.")
-                            time.sleep(simulated_delay)
                 except Exception as e:
                     print(f"Debug: Transaction validation error: {e}")
 
-        print(f"Debug: Total simulated propagation delay: {total_simulated_delay:.2f} seconds")
-        print(f"Debug: Valid transactions selected: {len(valid_transactions)}")
-        print(f"Debug: Calculated block size: {total_size / 1024:.2f} KB")
-        print(f"Debug: Total miner fees for block: {total_miner_fees:.4f} ZoidbergCoins")
+        # Enforce block size limit
+        while total_size > (max_block_size_kb * 1024):
+            removed_tx = valid_transactions.pop()
+            total_size -= len(str(removed_tx))
+            print(f"Debug: Removed transaction to reduce size. New total size: {total_size / 1024:.2f} KB")
 
-        if total_size > (max_block_size_kb * 1024):
-            print(f"Error: Block size exceeds {max_block_size_kb} KB.")
-            return False
+        print(f"Debug: Final block size: {total_size / 1024:.2f} KB")
 
         # Add mining reward
         mining_reward = 10
@@ -439,6 +428,7 @@ class Blockchain:
         reward_transaction = Transaction("REWARD_POOL", miner, mining_reward)
         self.reward_pool -= mining_reward
 
+        # Create the new block
         latest_block = self.get_latest_block()
         new_block = Block(
             index=latest_block.index + 1,
@@ -451,7 +441,12 @@ class Blockchain:
         self.chain.append(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
 
-        print(f"Block {new_block.index} added with meme: {text_content}. Size: {total_size / 1024:.2f} KB.")
+        # Cache meme data after block is added
+        image_hash = self.hash_image(image_path)
+        self.image_hashes.add(image_hash)
+        self.text_validation_cache[text_content] = True
+
+        print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_size / 1024:.2f} KB.")
         print(f"Miner earned: {total_miner_fees:.4f} ZoidbergCoins.")
         return True
 
@@ -539,3 +534,11 @@ class Blockchain:
         )
         block_string = f"{block_dict['index']}{block_dict['previous_hash']}{block_dict['timestamp']}{transaction_data}{block_dict['meme']}{block_dict['miner']}"
         return hashlib.sha256(block_string.encode()).hexdigest()
+    
+    def is_valid_public_key(self, public_key):
+        """Check if the given public key is valid."""
+        if public_key in self.wallets:
+            return True
+        print(f"Debug: Invalid public key: {public_key}")
+        return False
+

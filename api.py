@@ -1,10 +1,12 @@
 import os
-from fastapi import FastAPI, UploadFile, Form
+from fastapi import FastAPI, UploadFile, Form, HTTPException
 from blockchain import Blockchain
 from wallet import Wallet
 from transaction import Transaction
 from fastapi.responses import JSONResponse
 from utils import extract_text
+from validators import is_valid_public_key, is_valid_amount
+from validators import is_valid_image, is_valid_public_key
 
 app = FastAPI()
 
@@ -21,17 +23,35 @@ async def get_chain():
 
 @app.post("/add_transaction")
 async def add_transaction(sender: str, recipient: str, amount: float, private_key: str):
-    """Add a transaction to the blockchain."""
-    tx = Transaction(sender, recipient, amount)
-    try:
-        # Sign the transaction
-        tx.sign_transaction(private_key)
+    # Debug: Print all registered wallets
+    print(f"Debug: Wallets in blockchain: {list(blockchain.wallets.keys())}")
 
-        # Add to blockchain
-        blockchain.add_transaction(tx)
-        return {"message": "Transaction added successfully"}
+    # Validate sender's public key
+    print(f"Debug: Sender key provided: {sender}")
+    if sender not in blockchain.wallets:
+        print(f"Debug: Sender key {sender} not found in wallets.")
+        raise HTTPException(status_code=400, detail="Invalid sender public key.")
+
+    # Validate recipient's public key
+    print(f"Debug: Recipient key provided: {recipient}")
+    if recipient not in blockchain.wallets:
+        print(f"Debug: Recipient key {recipient} not found in wallets.")
+        raise HTTPException(status_code=400, detail="Invalid recipient public key.")
+
+    # Validate amount
+    if not is_valid_amount(amount):
+        raise HTTPException(status_code=400, detail="Invalid amount. Must be greater than 0.")
+
+    # Create and sign the transaction
+    transaction = Transaction(sender, recipient, amount)
+    try:
+        transaction.sign_transaction(private_key)
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=400, detail=f"Transaction signing failed: {e}")
+
+    # Add the transaction to the blockchain
+    blockchain.add_transaction(transaction)
+    return {"message": "Transaction added successfully."}
 
 @app.get("/get_wallets")
 async def get_wallets():
@@ -59,6 +79,15 @@ async def add_block(image: UploadFile, miner: str = Form(...)):
     """
     Add a new block to the blockchain with the given meme image and transactions.
     """
+
+    # Validate miner's public key
+    if not is_valid_public_key(miner, blockchain.wallets):
+        raise HTTPException(status_code=400, detail="Invalid miner public key.")
+
+    # Validate image format
+    if not is_valid_image(image):
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png.")
+
     try:
         # Create the temp directory if it doesn't exist
         os.makedirs("temp", exist_ok=True)
@@ -99,23 +128,13 @@ async def add_block(image: UploadFile, miner: str = Form(...)):
 
 @app.post("/generate_wallet")
 async def generate_wallet():
-    """
-    Generate a new wallet, register it in the blockchain, and return its public and private keys.
-    """
-    try:
-        # Create a new wallet
-        wallet = Wallet()
+    wallet = Wallet()
+    blockchain.wallets[wallet.public_key] = wallet  # Register the wallet in the blockchain
 
-        # Register the wallet in the blockchain
-        blockchain.wallets[wallet.public_key] = wallet
+    # Debug: Confirm wallet registration
+    print(f"Debug: Wallet registered with public key: {wallet.public_key}")
 
-        # Return the wallet's keys
-        return {
-            "message": "Wallet generated and registered successfully.",
-            "wallet": wallet.get_keys()
-        }
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return {"message": "Wallet generated successfully.", "wallet": wallet.get_keys()}
 
 @app.get("/get_balance")
 async def get_balance(public_key: str):

@@ -191,6 +191,10 @@ class Blockchain:
             print(f"Debug: Image path {image_path} does not exist.")
             raise ValueError("Invalid image path provided for the meme.")
 
+        if not self.is_valid_public_key(miner):
+            print(f"Debug: Invalid miner public key: {miner}")
+            raise ValueError(f"Invalid public key provided for the miner.")
+
         # Extract text content if not provided
         if not text_content:
             print("Debug: Extracting text content from the image.")

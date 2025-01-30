@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, UploadFile, Form, HTTPException
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends
 from blockchain import Blockchain
 from wallet import Wallet
 from transaction import Transaction
@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from utils import extract_text
 from validators import is_valid_public_key, is_valid_amount
 from validators import is_valid_image, is_valid_public_key
+from auth import validate_api_key  # ✅ Import API authentication
 
 app = FastAPI()
 
@@ -22,7 +23,11 @@ async def get_chain():
     return {"chain": blockchain.get_chain()}
 
 @app.post("/add_transaction")
-async def add_transaction(sender: str, recipient: str, amount: float, private_key: str):
+async def add_transaction(
+    sender: str, recipient: str, amount: float, private_key: str,
+    user_role: str = Depends(validate_api_key)  # ✅ Require API key
+):
+    """Add a transaction to the blockchain."""
     # Debug: Print all registered wallets
     print(f"Debug: Wallets in blockchain: {list(blockchain.wallets.keys())}")
 
@@ -75,7 +80,10 @@ async def transaction_pool():
     return {"pending_transactions": blockchain.get_transaction_pool()}
 
 @app.post("/add_block")
-async def add_block(image: UploadFile, miner: str = Form(...)):
+async def add_block(
+    image: UploadFile, miner: str = Form(...),
+    user_role: str = Depends(validate_api_key)  # ✅ Require API key
+):
     """
     Add a new block to the blockchain with the given meme image and transactions.
     """
@@ -126,8 +134,11 @@ async def add_block(image: UploadFile, miner: str = Form(...)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@app.post("/generate_wallet")
-async def generate_wallet():
+@app.post("/generate_wallet", summary="Generate a new wallet", description="Requires an API key.")
+async def generate_wallet(user_role: str = Depends(validate_api_key)):  # ✅ Require API key
+    """
+    Generate a new wallet.
+    """
     wallet = Wallet()
     blockchain.wallets[wallet.public_key] = wallet  # Register the wallet in the blockchain
 

@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request
 from blockchain import Blockchain
 from wallet import Wallet
 from transaction import Transaction
@@ -8,8 +8,26 @@ from utils import extract_text
 from validators import is_valid_public_key, is_valid_amount
 from validators import is_valid_image, is_valid_public_key
 from auth import validate_api_key  # ✅ Import API authentication
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.middleware import SlowAPIMiddleware
 
 app = FastAPI()
+
+# ✅ Initialize the rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.add_middleware(SlowAPIMiddleware)
+
+# ✅ Exclude FastAPI Docs from rate limiting
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+@app.middleware("http")
+async def exclude_docs_from_rate_limit(request: Request, call_next):
+    """Allow unlimited access to FastAPI Swagger UI."""
+    if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+        return await call_next(request)  # ✅ Do not apply rate limiting to these paths
+    return await call_next(request)  # ✅ Let SlowAPI handle rate limiting automatically
 
 # Initialize blockchain
 wallet1 = Wallet()
@@ -23,7 +41,9 @@ async def get_chain():
     return {"chain": blockchain.get_chain()}
 
 @app.post("/add_transaction")
+@limiter.limit("5/minute")  # ✅ Limit to 5 requests per minute
 async def add_transaction(
+    request: Request,  # ✅ Required for rate limiter
     sender: str, recipient: str, amount: float, private_key: str,
     user_role: str = Depends(validate_api_key)  # ✅ Require API key
 ):
@@ -80,7 +100,9 @@ async def transaction_pool():
     return {"pending_transactions": blockchain.get_transaction_pool()}
 
 @app.post("/add_block")
+@limiter.limit("3/minute")  # ✅ Limit to 3 requests per minute
 async def add_block(
+    request: Request,  # ✅ Required for rate limite
     image: UploadFile, miner: str = Form(...),
     user_role: str = Depends(validate_api_key)  # ✅ Require API key
 ):
@@ -135,7 +157,11 @@ async def add_block(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/generate_wallet", summary="Generate a new wallet", description="Requires an API key.")
-async def generate_wallet(user_role: str = Depends(validate_api_key)):  # ✅ Require API key
+@limiter.limit("2/minute")  # ✅ Limit to 2 requests per minute
+async def generate_wallet(
+    request: Request,  # ✅ Required for rate limiter
+    user_role: str = Depends(validate_api_key)  # ✅ Require API key
+):
     """
     Generate a new wallet.
     """

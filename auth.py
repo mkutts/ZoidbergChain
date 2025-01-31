@@ -1,16 +1,19 @@
 from fastapi import Security, HTTPException, Depends
 from fastapi.security.api_key import APIKeyHeader
+from starlette.status import HTTP_403_FORBIDDEN
+import os
 
-# Example API keys (In production, store securely in a database)
+# Define the API key header field (this makes it visible in FastAPI docs)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+# ✅ Load API keys securely from environment variables
 API_KEYS = {
-    "admin_key_123": "admin",  # Admin-level access
-    "user_key_456": "user",    # Regular user access
+    os.getenv("ADMIN_API_KEY"): "admin",
+    os.getenv("USER_API_KEY"): "user",
 }
 
-api_key_header = APIKeyHeader(name="X-API-Key")
-
 async def validate_api_key(api_key: str = Security(api_key_header)):
-    """Validate the API key from the request header."""
-    if api_key not in API_KEYS:
-        raise HTTPException(status_code=403, detail="Invalid API Key")
-    return API_KEYS[api_key]  # Return the user role (admin/user)
+    """Validate API Key from request headers."""
+    if not api_key or api_key not in API_KEYS:
+        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Invalid API Key")
+    return API_KEYS[api_key]  # Return user role (admin/user)

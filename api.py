@@ -11,6 +11,13 @@ from auth import validate_api_key  # ✅ Import API authentication
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
+import logging
+
+logging.basicConfig(
+    filename="api.log",  # Save logs to a file
+    level=logging.INFO,  # Set log level to INFO
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 app = FastAPI()
 
@@ -23,11 +30,20 @@ app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
 @app.middleware("http")
-async def exclude_docs_from_rate_limit(request: Request, call_next):
-    """Allow unlimited access to FastAPI Swagger UI."""
-    if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
-        return await call_next(request)  # ✅ Do not apply rate limiting to these paths
-    return await call_next(request)  # ✅ Let SlowAPI handle rate limiting automatically
+async def log_requests(request: Request, call_next):
+    """Middleware to log API requests."""
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    log_message = f"{request.client.host} - {request.method} {request.url} - {response.status_code} ({process_time:.2f}s)"
+    logging.info(log_message)
+    return response
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global error handler to log unexpected errors."""
+    logging.error(f"Exception: {str(exc)} - {request.method} {request.url}")
+    return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 # Initialize blockchain
 wallet1 = Wallet()

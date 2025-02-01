@@ -1,18 +1,19 @@
 import os
+import time
+import logging
 from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request
-from blockchain import Blockchain
-from wallet import Wallet
-from transaction import Transaction
-from fastapi.responses import JSONResponse
-from utils import extract_text
-from validators import is_valid_public_key, is_valid_amount
-from validators import is_valid_image, is_valid_public_key
-from auth import validate_api_key  # ✅ Import API authentication
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
-import logging
-import time
+
+from blockchain import Blockchain
+from wallet import Wallet
+from transaction import Transaction
+from utils import extract_text
+from validators import is_valid_public_key, is_valid_amount, is_valid_image
+from auth import validate_api_key  # ✅ API authentication
 
 logging.basicConfig(
     filename="api.log",  # Save logs to a file
@@ -45,6 +46,23 @@ async def global_exception_handler(request: Request, exc: Exception):
     """Global error handler to log unexpected errors."""
     logging.error(f"Exception: {str(exc)} - {request.method} {request.url}")
     return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+# ✅ Serve the Home Page (Splash Page)
+@app.get("/")
+async def home():
+    """Serve the splash page (index.html)."""
+    index_path = os.path.join("static", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse(status_code=404, content={"error": "Home page not found."})
+
+@app.get("/about")
+async def about():
+    """Serve the About Us page (White Paper)."""
+    about_path = os.path.join("static", "about.html")
+    if os.path.exists(about_path):
+        return FileResponse(about_path)
+    return JSONResponse(status_code=404, content={"error": "About page not found."})
 
 # Initialize blockchain
 wallet1 = Wallet()

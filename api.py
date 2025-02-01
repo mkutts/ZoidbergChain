@@ -64,6 +64,15 @@ async def about():
         return FileResponse(about_path)
     return JSONResponse(status_code=404, content={"error": "About page not found."})
 
+@app.get("/download_whitepaper")
+async def download_whitepaper():
+    """Serve the White Paper PDF for download."""
+    pdf_path = os.path.join("static", "ZoidbergCoin_WhitePaper.pdf")
+    if os.path.exists(pdf_path):
+        return FileResponse(pdf_path, filename="ZoidbergCoin_WhitePaper.pdf", media_type="application/pdf")
+    return JSONResponse(status_code=404, content={"error": "White paper not found."})
+
+
 # Initialize blockchain
 wallet1 = Wallet()
 wallet2 = Wallet()

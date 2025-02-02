@@ -1,11 +1,11 @@
 import requests
 
-MAIN_NODE = "http://67.205.160.23:8000"
+MAIN_NODE = "https://zoidbergcoin.com"  # Use HTTPS instead of HTTP
 
 def fetch_latest_chain():
     """Fetch the latest blockchain state from the main node."""
     try:
-        response = requests.get(f"{MAIN_NODE}/sync")
+        response = requests.get(f"{MAIN_NODE}/sync", verify=True)  # Enforce HTTPS
         if response.status_code == 200:
             blockchain_data = response.json()
             print("Blockchain synced successfully.")

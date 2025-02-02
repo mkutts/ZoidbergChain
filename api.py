@@ -79,6 +79,11 @@ wallet2 = Wallet()
 meme_creator = Wallet()
 blockchain = Blockchain(wallet1=wallet1, wallet2=wallet2, meme_creator=meme_creator)
 
+@app.get("/sync")
+async def sync_blockchain():
+    """Returns the latest blockchain state for syncing with other nodes."""
+    return {"chain": blockchain.get_chain()}
+
 @app.get("/chain")
 async def get_chain():
     """Retrieve the blockchain."""

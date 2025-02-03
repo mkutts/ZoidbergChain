@@ -29,6 +29,9 @@
       <router-link to="/blockchain">
         <button class="btn secondary">View Blockchain</button>
       </router-link>
+
+      <!-- Home Button -->
+      <button @click="goToHome" class="btn secondary">Home</button>
     </div>
   </div>
 </template>
@@ -82,6 +85,9 @@ export default {
         console.error("Error submitting meme:", error);
         alert("Failed to submit meme. Check your wallet ID, private key, or API key.");
       }
+    },
+    goToHome() {
+      this.$router.push('/');
     }
   }
 };

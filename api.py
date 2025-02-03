@@ -161,8 +161,10 @@ async def transaction_pool():
 @app.post("/add_block")
 @limiter.limit("3/minute")  # ✅ Limit to 3 requests per minute
 async def add_block(
-    request: Request,  # ✅ Required for rate limite
-    image: UploadFile, miner: str = Form(...),
+    request: Request,  # ✅ Required for rate limiting
+    image: UploadFile,
+    miner: str = Form(...),
+    private_key: str = Form(...),  # ✅ Add private key for validation
     user_role: str = Depends(validate_api_key)  # ✅ Require API key
 ):
     """
@@ -172,6 +174,11 @@ async def add_block(
     # Validate miner's public key
     if not is_valid_public_key(miner, blockchain.wallets):
         raise HTTPException(status_code=400, detail="Invalid miner public key.")
+
+    # Validate the private key matches the public key
+    wallet = blockchain.wallets.get(miner)
+    if not wallet or not wallet.validate_private_key(private_key, wallet.public_key):
+        raise HTTPException(status_code=400, detail="Private key does not match the wallet ID.")
 
     # Validate image format
     if not is_valid_image(image):

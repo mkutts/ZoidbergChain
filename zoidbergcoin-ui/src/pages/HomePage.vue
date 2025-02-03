@@ -12,6 +12,7 @@
     <div class="form-container">
       <button @click="goToDashboard" class="btn secondary">Welcome</button>
       <button @click="generateWallet" class="btn primary">Register & Generate Wallet</button>
+      <button @click="goToWhyPage" class="btn secondary why-btn">Why ZoidbergCoin? ... Why not ZoidbergCoin</button>
     </div>
 
     <div v-if="walletDetails" class="wallet-details">
@@ -55,7 +56,10 @@ export default {
     },
     goToDashboard() {
       this.$router.push('/dashboard');
-    }
+    },
+    goToWhyPage() {
+    this.$router.push('/why-zoidbergcoin');
+  }
   }
 };
 </script>

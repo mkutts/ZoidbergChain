@@ -6,7 +6,7 @@
     <!-- Quote Section -->
         <blockquote class="quote">
         "The remedy to be applied is more speech, not enforced silence."
-        <span class="author">— Louis Brandeis</span>
+        <span class="author"> Louis Brandeis</span>
         </blockquote>
 
     <div class="form-container">

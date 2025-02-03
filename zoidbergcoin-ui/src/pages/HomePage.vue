@@ -4,15 +4,20 @@
     <p class="subtitle">The Meme-Centric Blockchain</p>
 
     <!-- Quote Section -->
-        <blockquote class="quote">
-        "The remedy to be applied is more speech, not enforced silence."
-        <span class="author"> Louis Brandeis</span>
-        </blockquote>
+    <blockquote class="quote">
+      "The remedy to be applied is more speech, not enforced silence."
+      <span class="author"> - Louis Brandeis</span>
+    </blockquote>
 
     <div class="form-container">
       <button @click="goToDashboard" class="btn secondary">Welcome</button>
       <button @click="generateWallet" class="btn primary">Register & Generate Wallet</button>
+      
+      <!-- Why ZoidbergCoin Button -->
       <button @click="goToWhyPage" class="btn secondary why-btn">Why ZoidbergCoin? ... Why not ZoidbergCoin</button>
+
+      <!-- Download White Paper Button -->
+      <a :href="whitePaperURL" download class="btn primary">Download White Paper</a>
     </div>
 
     <div v-if="walletDetails" class="wallet-details">
@@ -30,6 +35,7 @@ export default {
   data() {
     return {
       walletDetails: null, // Store wallet details (publicKey, privateKey)
+      whitePaperURL: "/ZoidbergCoin_WhitePaper.pdf" // ✅ Path to the white paper in public folder
     };
   },
   methods: {
@@ -58,8 +64,8 @@ export default {
       this.$router.push('/dashboard');
     },
     goToWhyPage() {
-    this.$router.push('/why-zoidbergcoin');
-  }
+      this.$router.push('/why-zoidbergcoin');
+    }
   }
 };
 </script>
@@ -92,6 +98,16 @@ h1 {
   color: #bbb;
 }
 
+/* Quote */
+.quote {
+  font-size: 1rem;
+  font-style: italic;
+  color: #ddd;
+  max-width: 500px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
 /* Form Container */
 .form-container {
   background: rgba(30, 30, 30, 0.9);
@@ -101,7 +117,8 @@ h1 {
   width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  margin-top: 20px;
 }
 
 /* Wallet Details */
@@ -136,6 +153,7 @@ h1 {
   cursor: pointer;
   transition: 0.3s ease-in-out;
   font-weight: bold;
+  text-align: center;
 }
 
 /* Primary Button */
@@ -159,28 +177,4 @@ h1 {
 .secondary:hover {
   background: linear-gradient(135deg, #2455a5 0%, #123a70 100%);
 }
-
-/* Adjust spacing for the quote */
-.quote {
-  font-size: 1rem;
-  font-style: italic;
-  color: #ddd;
-  max-width: 500px;
-  margin-top: 20px; /* Increased margin for more spacing */
-  margin-bottom: 30px; /* Added space between quote and buttons */
-}
-
-/* Form Container */
-.form-container {
-  background: rgba(30, 30, 30, 0.9);
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.5);
-  width: 340px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px; /* Added more spacing between buttons */
-  margin-top: 20px; /* Added more space from the quote */
-}
-
 </style>

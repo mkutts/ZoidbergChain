@@ -10,6 +10,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
@@ -17,28 +19,20 @@ export default {
     };
   },
   methods: {
-    generateWallet() {
-      alert("Generating a new wallet... (Functionality Coming Soon)");
-    },
-    signIn() {
-      if (this.wallet) {
-        alert("Signing in... (Functionality Coming Soon)");
-        this.$router.push('/dashboard');
-      } else {
-        alert('Please enter a wallet ID.');
+    async generateWallet() {
+  try {
+    const response = await axios.post("http://127.0.0.1:8000/generate_wallet", {}, {
+      headers: {
+        "X-API-Key": "admin_key_123"  // Replace with your actual API key
       }
-    }
+    });
+    this.wallet = response.data.wallet.public_key;
+    alert("Wallet Created! Your Wallet ID: " + this.wallet);
+  } catch (error) {
+    console.error("Error generating wallet:", error);
+    alert("Failed to generate wallet. Check API key.");
+  }
+}
   }
 };
 </script>
-
-<style scoped>
-.home-container {
-  text-align: center;
-  margin-top: 50px;
-}
-input {
-  margin: 10px;
-  padding: 8px;
-}
-</style>

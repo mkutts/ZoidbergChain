@@ -22,12 +22,6 @@ class Transaction:
             "payload_size_kb": self.payload_size_kb,
         }
 
-    def calculate_fee(self):
-        """Calculate the total transaction fee based on payload size."""
-        base_fee = 0.01  # Base fee
-        additional_fee = 0.001 * self.payload_size_kb  # 0.001 ZoidbergCoins per KB
-        return base_fee + additional_fee
-
     def sign_transaction(self, private_key):
         if self.sender == "GENESIS" or self.sender == "REWARD_POOL":
             print("Debug: Skipping signing for GENESIS or REWARD_POOL transaction.")
@@ -59,7 +53,7 @@ class Transaction:
             if not self.signature:
                 raise Exception("Transaction signature is missing.")
 
-            # Validate transaction data against the signature
+            # Validate transaction data against the signature (NO FEES)
             transaction_data = f"{self.sender}{self.recipient}{self.amount}{self.tip}"
             print(f"Debug: Validating transaction data: {transaction_data}")
             print(f"Debug: Signature: {self.signature}")
@@ -69,10 +63,8 @@ class Transaction:
             print("Debug: Transaction is valid.")
             return True
         except ecdsa.BadSignatureError:
-            # Specific handling for invalid signature
             print("Debug: Invalid signature detected.")
             return False
         except Exception as e:
-            # General exception handling
             print(f"Debug: Transaction is not valid - {e}")
             return False

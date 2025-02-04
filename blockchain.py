@@ -17,7 +17,7 @@ from utils import extract_text
 
 
 class Blockchain:
-    def __init__(self, wallet1=None, wallet2=None, meme_creator=None):
+    def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=1000000000):
         self.chain = []  # The blockchain
         self.pending_transactions = []  # Transaction pool
         self.wallets = {}  # Registered wallets
@@ -25,40 +25,47 @@ class Blockchain:
         self.image_validation_cache = {}  # Cache for validated images
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
-        self.reward_pool = 100000  # Initial reward pool
+        self.reward_pool = initial_supply * 0.1  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
-        self.initial_reward_pool = 100000  # Example value, can be adjusted
-        self.reward_pool = self.initial_reward_pool  # Set initial reward pool balance
+        if project_owner_wallet:
+            self.wallets[project_owner_wallet.public_key] = project_owner_wallet  # ✅ Store like other wallets
 
-        # Save wallets if provided
-        if wallet1:
-            self.wallets[wallet1.public_key] = wallet1
-        if wallet2:
-            self.wallets[wallet2.public_key] = wallet2
-        if meme_creator:
-            self.wallets[meme_creator.public_key] = meme_creator
+        # ✅ Set Contributor Wallets
+        if Contributor_one:
+            self.wallets[Contributor_one.public_key] = Contributor_one
+        if Contributor_two:
+            self.wallets[Contributor_two.public_key] = Contributor_two
 
-        # Create the Genesis block
-        self.create_genesis_block(wallet1, wallet2, meme_creator)
+        # ✅ Create the Genesis Block
+        self.create_genesis_block(project_owner_wallet, Contributor_one, Contributor_two)
 
-    def create_genesis_block(self, wallet1, wallet2, meme_creator):
+    def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=1000000000):
         """Create the Genesis block with initial transactions and optional encoded meme."""
         genesis_transactions = []
 
         # Create initial transactions to fund wallets
-        if wallet1:
+        if project_owner_wallet:
             genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=wallet1.public_key, amount=100)
+                Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
             )
-        if wallet2:
+
+        if Contributor_one:
             genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=wallet2.public_key, amount=100)
+                Transaction(sender="GENESIS", recipient=Contributor_one.public_key, amount=initial_supply * 0.10)
             )
-        if meme_creator:
+
+        if Contributor_two:
             genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=meme_creator.public_key, amount=100)
+                Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
             )
+
+            # Encode the provided genesis image
+        try:
+            with open("./zoidberg.jpg", "rb") as image_file:
+                encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
+        except Exception as e:
+            raise ValueError(f"Failed to encode genesis image: {e}")
 
         # Create the genesis block with transactions
         genesis_block = Block(
@@ -67,9 +74,20 @@ class Blockchain:
             timestamp=time.time(),
             transactions=genesis_transactions,
             miner="GENESIS",
-            meme={"encoded_image": "default"}  # Default meme for Genesis block
+            meme={"encoded_image": encoded_image, "text": "LOOKING FOR A NEW MEME COIN? WHY NOT ZOIDBERGCOIN"}
         )
         self.chain.append(genesis_block)
+
+        # ✅ Securely print the wallet details ONCE (store securely)
+        print("\n🔐 **Genesis Wallets (Store These Securely!)** 🔐")
+        if project_owner_wallet:
+            print(f"📌 Project Owner Wallet:\n   - Public Key: {project_owner_wallet.public_key}\n   - Private Key: {project_owner_wallet.private_key}")
+        if Contributor_one:
+            print(f"📌 Contributor One:\n   - Public Key: {Contributor_one.public_key}\n   - Private Key: {Contributor_one.private_key}")
+        if Contributor_two:
+            print(f"📌 Contributor Two:\n   - Public Key: {Contributor_two.public_key}\n   - Private Key: {Contributor_two.private_key}")
+        print("\n🚨 **Secure these keys immediately! They will NOT be shown again.** 🚨\n")
+
 
     def encode_image(self, image_path):
         """Encode an image as a base64 string."""
@@ -101,27 +119,6 @@ class Blockchain:
         print(f"Debug: Retrieving wallet for public key {public_key}")
         print(f"Debug: Current wallets: {list(self.wallets.keys())}")  # Log all available public keys
         return self.wallets.get(public_key)
-
-    def calculate_transaction_fee(self, payload_size_kb):
-        """Calculate the transaction fee based on payload size."""
-        base_fee = 0.01  # Base fee for up to 1 KB
-        scaling_factor = 0.01  # Fee per additional KB
-        return base_fee + (scaling_factor * max(0, payload_size_kb - 1))
-    
-    def distribute_transaction_fee(self, transaction, miner):
-        """Distribute the transaction fee between the miner and reward pool."""
-        payload_size_kb = len(str(transaction)) / 1024  # Approximate payload size in KB
-        total_fee = self.calculate_transaction_fee(payload_size_kb)
-
-        miner_share = total_fee * 0.7
-        reward_pool_share = total_fee * 0.3
-
-        self.reward_pool += reward_pool_share
-
-        print(f"Debug: Transaction Fee Distribution - Total Fee: {total_fee:.4f}, "
-              f"Miner Share: {miner_share:.4f}, Reward Pool Share: {reward_pool_share:.4f}")
-
-        return miner_share
 
     def is_image_unique(self, image_path):
         """Check if the image is unique with caching."""
@@ -182,9 +179,9 @@ class Blockchain:
         print("Debug: Meme is original.")
         return True
 
-    def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=10, validate_meme=True):
+    def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=500, validate_meme=True):
         """
-        Add a block with transaction fee and tip distribution, enforce block size limit, and validate memes.
+        Add a block with tip distribution, enforce block size limit, and validate memes.
         """
         # Check if the image path is valid and the file exists
         if not os.path.isfile(image_path):
@@ -203,24 +200,18 @@ class Blockchain:
                 print(f"Debug: No text extracted from image {image_path}.")
                 raise ValueError("No text content could be extracted from the image.")
 
-        # Validate the miner's public key
-        if not self.is_valid_public_key(miner):
-            print(f"Debug: Invalid public key provided for the miner: {miner}")
-            raise ValueError(f"Invalid public key provided for the miner: {miner}")
-
         # Encode the image as base64
         print(f"Debug: Encoding image at path {image_path}.")
         meme_encoded = self.encode_image(image_path)
 
-        # Validate the meme if required
-        if validate_meme and not self.is_meme_original(image_path, text_content):
-            print(f"Debug: Meme validation failed for image {image_path}.")
-            return False
+        # ✅ Calculate meme size (base64 encoding increases size)
+        meme_size_kb = len(meme_encoded) / 1024
+        text_size_kb = len(text_content.encode()) / 1024  # Convert text content size to KB
 
-        # Validate transactions and calculate total fees/tips
+        # Validate transactions and calculate total tips
         valid_transactions = []
-        total_size = 0
-        total_miner_fees = 0
+        total_tx_size_kb = 0  # ✅ Track total transaction size
+        total_miner_tips = 0  # ✅ Only track miner’s tip earnings
 
         print("Debug: Validating transactions concurrently...")
         with ThreadPoolExecutor() as executor:
@@ -229,39 +220,65 @@ class Blockchain:
                 tx = future_to_tx[future]
                 try:
                     if future.result():
-                        tx_fee = tx.calculate_fee()
-                        tip = tx.tip
+                        tip = tx.tip  # ✅ Keep tip logic
 
-                        # Reward pool split
+                        # ✅ Tip Distribution (Existing Model)
                         if self.reward_pool < (self.initial_reward_pool * 0.25):
-                            fee_split = {"miner": 0.5, "reward_pool": 0.5}
                             tip_split = {"miner": 0.25, "reward_pool": 0.75}
                         else:
-                            fee_split = {"miner": 0.7, "reward_pool": 0.3}
                             tip_split = {"miner": 0.5, "reward_pool": 0.5}
 
-                        miner_share = (tx_fee * fee_split["miner"]) + (tip * tip_split["miner"])
-                        reward_pool_share = (tx_fee * fee_split["reward_pool"]) + (tip * tip_split["reward_pool"])
+                        miner_tip_share = tip * tip_split["miner"]
+                        reward_pool_tip_share = tip * tip_split["reward_pool"]
 
-                        self.reward_pool += reward_pool_share
-                        total_miner_fees += miner_share
+                        # ✅ Add to balances
+                        self.reward_pool += reward_pool_tip_share  # ✅ Only tips go to reward pool
+                        total_miner_tips += miner_tip_share  # ✅ Miner gets tip only
 
-                        tx_size = len(str(tx))
+                        # ✅ Debugging Output
+                        print(f"Debug: Transaction Distribution - Tip Total: {tip:.4f}")
+                        print(f"Debug: - Miner gets: {miner_tip_share:.4f}")
+                        print(f"Debug: - Reward Pool gets: {reward_pool_tip_share:.4f}")
+
+                        tx_size_kb = len(str(tx)) / 1024  # ✅ Convert transaction size to KB
+                        total_tx_size_kb += tx_size_kb
                         valid_transactions.append(tx)
-                        total_size += tx_size
                 except Exception as e:
                     print(f"Debug: Transaction validation error: {e}")
 
-        # Enforce block size limit
-        while total_size > (max_block_size_kb * 1024):
-            removed_tx = valid_transactions.pop()
-            total_size -= len(str(removed_tx))
-            print(f"Debug: Removed transaction to reduce size. New total size: {total_size / 1024:.2f} KB")
+        # ✅ Calculate total block size
+        total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb
 
-        print(f"Debug: Final block size: {total_size / 1024:.2f} KB")
+        # ✅ Enforce block size limit
+        if total_block_size_kb > max_block_size_kb:
+            print(f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of {max_block_size_kb} KB. Rejecting block.")
+            return False
+
+        print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
+
+        # ✅ Ensure miner’s balance is updated
+        if miner in self.wallets:
+            current_balance = self.get_balance(miner)  # ✅ Get miner's balance
+            updated_balance = current_balance + total_miner_tips  # ✅ Add miner's earnings
+            print(f"Debug: Before crediting miner {miner}: {current_balance:.4f} ZoidbergCoins")
+            print(f"Debug: Miner earned: {total_miner_tips:.4f} ZoidbergCoins")
+
+            # ✅ Store the updated balance at the blockchain level
+            self.wallets[miner].stored_balance = updated_balance  # ✅ Store updated balance
+
+            print(f"Debug: After crediting miner {miner}: {self.wallets[miner].stored_balance:.4f} ZoidbergCoins")
+        else:
+            print(f"Debug: WARNING! Miner {miner} not found in registered wallets. Initializing new wallet.")
+
+            # ✅ Initialize the miner's wallet with the earned balance
+            self.wallets[miner] = Wallet()
+            self.wallets[miner].public_key = miner
+            self.wallets[miner].private_key = None  # Miner’s private key is unknown
+            self.wallets[miner].stored_balance = total_miner_tips  # ✅ Store the initial balance
+            print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} ZoidbergCoins")
 
         # Add mining reward
-        mining_reward = 10
+        mining_reward = 5
         if self.reward_pool < mining_reward:
             print("Error: Insufficient funds in the reward pool.")
             return False
@@ -282,14 +299,15 @@ class Blockchain:
         self.chain.append(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
 
-        # Cache meme data after block is added
+        # ✅ Cache meme data after block is added
         print(f"Debug: Caching meme data for image {image_path}.")
         image_hash = hash_image(image_path)
         self.image_hashes.add(image_hash)
         self.text_validation_cache[text_content] = True
 
-        print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_size / 1024:.2f} KB.")
-        print(f"Miner earned: {total_miner_fees:.4f} ZoidbergCoins.")
+        print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_block_size_kb:.2f} KB.")
+        print(f"Miner earned: {total_miner_tips:.4f} ZoidbergCoins.")
+        
         return True
 
     def get_latest_block(self):
@@ -314,27 +332,30 @@ class Blockchain:
         return True
 
     def get_balance(self, public_key):
+        """Calculate balance based on transaction history and tips (NO FEES)."""
         balance = 0
         for block in self.chain:
             for transaction in block.transactions:
                 if transaction.sender == public_key:
-                    balance -= transaction.amount + transaction.tip
+                    balance -= transaction.amount + transaction.tip  # ✅ Deduct amount + tip (NO FEE)
                 if transaction.recipient == public_key:
                     balance += transaction.amount + transaction.tip
         return balance
 
-    def add_transaction(self, transaction, fee=1):
+    def add_transaction(self, transaction):
         try:
-            print(f"Debug: Validating transaction from {transaction.sender} to {transaction.recipient} for {transaction.amount} + tip {transaction.tip} + fee {fee}")
+            print(f"Debug: Validating transaction from {transaction.sender} to {transaction.recipient} "
+                f"for {transaction.amount} + tip {transaction.tip}")
+
             if not transaction.is_valid():
                 raise Exception("Invalid transaction: Signature is not valid.")
 
             sender_balance = self.get_balance(transaction.sender)
-            total_deduction = transaction.amount + transaction.tip + fee
+            total_deduction = transaction.amount + transaction.tip  # ✅ Only deduct amount + tip (NO FEE)
             print(f"Debug: Sender balance: {sender_balance}, Total Deduction: {total_deduction}")
 
             if sender_balance < total_deduction:
-                raise Exception("Insufficient balance to cover the transaction, tip, and fee.")
+                raise Exception("Insufficient balance to cover the transaction and tip.")
 
             # Add to pending transactions
             self.pending_transactions.append(transaction)
@@ -342,20 +363,30 @@ class Blockchain:
         except Exception as e:
             print(f"Debug: Transaction validation error: {e}")
             raise
-    
+
     def get_transaction_pool(self):
         """Retrieve the current transaction pool."""
         return [tx.to_dict() for tx in self.pending_transactions]
 
     def validate_transaction(self, transaction):
-        """Validates a single transaction."""
+        """Validates a single transaction, including checking sender balance."""
         try:
-            if transaction.is_valid():
-                return True
+            if not transaction.is_valid():
+                return False
+
+            sender_balance = self.get_balance(transaction.sender)
+            total_deduction = transaction.amount + transaction.tip  # ✅ Only deduct amount + tip (NO FEE)
+            print(f"Debug: Validating Transaction - Sender Balance: {sender_balance}, Required: {total_deduction}")
+
+            if sender_balance < total_deduction:
+                print("Debug: Insufficient balance to cover the transaction and tip.")
+                return False
+
+            return True
         except Exception as e:
             print(f"Debug: Transaction validation failed - {e}")
-        return False
-    
+            return False
+
     def get_chain_as_dict(self):
         """Return the blockchain as a list of dictionaries."""
         return [block.__dict__ for block in self.chain]

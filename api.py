@@ -24,9 +24,10 @@ logging.basicConfig(
 
 app = FastAPI()
 
+# ✅ CORS: Allow both Local and Live Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Allow Vue frontend
+    allow_origins=["http://localhost:5173", "https://zoidbergcoin.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -250,7 +251,6 @@ async def add_block(
     except Exception as e:
         print(f"Debug: Unexpected Error in add_block: {e}")  # ✅ Print error for debugging
         return JSONResponse(status_code=500, content={"error": str(e)})
-
 
 @app.post("/generate_wallet", summary="Generate a new wallet", description="Creates a new wallet.")
 @limiter.limit("2/minute")  # ✅ Keep rate limiting (2 requests per minute)

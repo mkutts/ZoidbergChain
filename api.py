@@ -207,7 +207,7 @@ async def add_block(
 
     # Validate image format
     if not is_valid_image(image):
-        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png.")
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg")
 
     try:
         # Create the temp directory if it doesn't exist
@@ -240,9 +240,6 @@ async def add_block(
             miner=miner,
             validate_meme=False  # ✅ Skip validation in add_block since it was done here
         )
-
-        # ✅ Debug owner balance after block addition
-        print(f"Debug: Owner balance after block: {getattr(blockchain, 'owner_balance', 'NOT SET')}")
 
         # Remove the temporary image file
         os.remove(image_path)

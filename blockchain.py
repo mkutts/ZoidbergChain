@@ -60,6 +60,13 @@ class Blockchain:
                 Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
             )
 
+            # Encode the provided genesis image
+        try:
+            with open("./zoidberg.jpg", "rb") as image_file:
+                encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
+        except Exception as e:
+            raise ValueError(f"Failed to encode genesis image: {e}")
+
         # Create the genesis block with transactions
         genesis_block = Block(
             index=0,
@@ -67,7 +74,7 @@ class Blockchain:
             timestamp=time.time(),
             transactions=genesis_transactions,
             miner="GENESIS",
-            meme={"encoded_image": "default"}
+            meme={"encoded_image": encoded_image, "text": "LOOKING FOR A NEW MEME COIN? WHY NOT ZOIDBERGCOIN"}
         )
         self.chain.append(genesis_block)
 
@@ -172,7 +179,7 @@ class Blockchain:
         print("Debug: Meme is original.")
         return True
 
-    def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=10, validate_meme=True):
+    def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=500, validate_meme=True):
         """
         Add a block with tip distribution, enforce block size limit, and validate memes.
         """
@@ -197,14 +204,13 @@ class Blockchain:
         print(f"Debug: Encoding image at path {image_path}.")
         meme_encoded = self.encode_image(image_path)
 
-        # Validate the meme if required
-        if validate_meme and not self.is_meme_original(image_path, text_content):
-            print(f"Debug: Meme validation failed for image {image_path}.")
-            return False
+        # ✅ Calculate meme size (base64 encoding increases size)
+        meme_size_kb = len(meme_encoded) / 1024
+        text_size_kb = len(text_content.encode()) / 1024  # Convert text content size to KB
 
         # Validate transactions and calculate total tips
         valid_transactions = []
-        total_size = 0
+        total_tx_size_kb = 0  # ✅ Track total transaction size
         total_miner_tips = 0  # ✅ Only track miner’s tip earnings
 
         print("Debug: Validating transactions concurrently...")
@@ -234,11 +240,21 @@ class Blockchain:
                         print(f"Debug: - Miner gets: {miner_tip_share:.4f}")
                         print(f"Debug: - Reward Pool gets: {reward_pool_tip_share:.4f}")
 
-                        tx_size = len(str(tx))
+                        tx_size_kb = len(str(tx)) / 1024  # ✅ Convert transaction size to KB
+                        total_tx_size_kb += tx_size_kb
                         valid_transactions.append(tx)
-                        total_size += tx_size
                 except Exception as e:
                     print(f"Debug: Transaction validation error: {e}")
+
+        # ✅ Calculate total block size
+        total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb
+
+        # ✅ Enforce block size limit
+        if total_block_size_kb > max_block_size_kb:
+            print(f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of {max_block_size_kb} KB. Rejecting block.")
+            return False
+
+        print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
 
         # ✅ Ensure miner’s balance is updated
         if miner in self.wallets:
@@ -260,14 +276,6 @@ class Blockchain:
             self.wallets[miner].private_key = None  # Miner’s private key is unknown
             self.wallets[miner].stored_balance = total_miner_tips  # ✅ Store the initial balance
             print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} ZoidbergCoins")
-
-        # Enforce block size limit
-        while total_size > (max_block_size_kb * 1024):
-            removed_tx = valid_transactions.pop()
-            total_size -= len(str(removed_tx))
-            print(f"Debug: Removed transaction to reduce size. New total size: {total_size / 1024:.2f} KB")
-
-        print(f"Debug: Final block size: {total_size / 1024:.2f} KB")
 
         # Add mining reward
         mining_reward = 5
@@ -291,14 +299,15 @@ class Blockchain:
         self.chain.append(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
 
-        # Cache meme data after block is added
+        # ✅ Cache meme data after block is added
         print(f"Debug: Caching meme data for image {image_path}.")
         image_hash = hash_image(image_path)
         self.image_hashes.add(image_hash)
         self.text_validation_cache[text_content] = True
 
-        print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_size / 1024:.2f} KB.")
+        print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_block_size_kb:.2f} KB.")
         print(f"Miner earned: {total_miner_tips:.4f} ZoidbergCoins.")
+        
         return True
 
     def get_latest_block(self):

@@ -105,14 +105,16 @@ async def get_chain():
     """Retrieve the blockchain."""
     return {"chain": blockchain.get_chain()}
 
+from fastapi import Depends
+
 @app.post("/add_transaction")
-@limiter.limit("5/minute")  # ✅ Limit to 5 requests per minute
+@limiter.limit("5/minute")  # ✅ Keep rate limiting
 async def add_transaction(
     request: Request,  # ✅ Required for rate limiter
-    sender: str, recipient: str, amount: float, private_key: str,
-    user_role: str = Depends(validate_api_key)  # ✅ Require API key
+    sender: str, recipient: str, amount: float, private_key: str
 ):
-    """Add a transaction to the blockchain."""
+    """Add a transaction to the blockchain using wallet validation (no API key)."""
+
     # Debug: Print all registered wallets
     print(f"Debug: Wallets in blockchain: {list(blockchain.wallets.keys())}")
 
@@ -128,6 +130,14 @@ async def add_transaction(
         print(f"Debug: Recipient key {recipient} not found in wallets.")
         raise HTTPException(status_code=400, detail="Invalid recipient public key.")
 
+    # Validate sender's private key matches their public key
+    sender_wallet = blockchain.get_wallet(sender)
+    if not sender_wallet:
+        raise HTTPException(status_code=400, detail="Sender wallet not found.")
+
+    if not sender_wallet.validate_private_key(private_key, sender):
+        raise HTTPException(status_code=400, detail="Invalid private key for sender's wallet.")
+
     # Validate amount
     if not is_valid_amount(amount):
         raise HTTPException(status_code=400, detail="Invalid amount. Must be greater than 0.")
@@ -141,6 +151,7 @@ async def add_transaction(
 
     # Add the transaction to the blockchain
     blockchain.add_transaction(transaction)
+
     return {"message": "Transaction added successfully."}
 
 @app.get("/get_wallets")
@@ -165,13 +176,12 @@ async def transaction_pool():
     return {"pending_transactions": blockchain.get_transaction_pool()}
 
 @app.post("/add_block")
-@limiter.limit("3/minute")  # ✅ Limit to 3 requests per minute
+@limiter.limit("3/minute")  # ✅ Keep rate limiting
 async def add_block(
     request: Request,  # ✅ Required for rate limiting
     image: UploadFile,
     miner: str = Form(...),
-    private_key: str = Form(...),  # ✅ Add private key for validation
-    user_role: str = Depends(validate_api_key)  # ✅ Require API key
+    private_key: str = Form(...)  # ✅ Validate miner via wallet key
 ):
     """
     Add a new block to the blockchain with the given meme image and transactions.
@@ -183,7 +193,7 @@ async def add_block(
 
     # Validate the private key matches the public key
     wallet = blockchain.wallets.get(miner)
-    if not wallet or not wallet.validate_private_key(private_key, wallet.public_key):
+    if not wallet or not wallet.validate_private_key(private_key, miner):
         raise HTTPException(status_code=400, detail="Private key does not match the wallet ID.")
 
     # Validate image format
@@ -216,7 +226,7 @@ async def add_block(
             image_path=image_path,
             text_content=text_content,
             miner=miner,
-            validate_meme=False  # Skip validation in add_block since it was done here
+            validate_meme=False  # ✅ Skip validation in add_block since it was done here
         )
 
         # Remove the temporary image file
@@ -228,12 +238,9 @@ async def add_block(
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@app.post("/generate_wallet", summary="Generate a new wallet", description="Requires an API key.")
-@limiter.limit("2/minute")  # ✅ Limit to 2 requests per minute
-async def generate_wallet(
-    request: Request,  # ✅ Required for rate limiter
-    user_role: str = Depends(validate_api_key)  # ✅ Require API key
-):
+@app.post("/generate_wallet", summary="Generate a new wallet", description="Creates a new wallet.")
+@limiter.limit("2/minute")  # ✅ Keep rate limiting (2 requests per minute)
+async def generate_wallet(request: Request):  # ✅ No more API key validation
     """
     Generate a new wallet.
     """

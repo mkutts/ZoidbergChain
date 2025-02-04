@@ -24,7 +24,7 @@ class Transaction:
 
     def calculate_fee(self):
         """Calculate the total transaction fee based on payload size."""
-        base_fee = 0.01  # Base fee
+        base_fee = 0.005  # ✅ Updated to match blockchain.py (minimum 0.005 ZoidbergCoin)
         additional_fee = 0.001 * self.payload_size_kb  # 0.001 ZoidbergCoins per KB
         return base_fee + additional_fee
 

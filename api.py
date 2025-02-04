@@ -4,6 +4,7 @@ import logging
 from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
@@ -22,6 +23,15 @@ logging.basicConfig(
 )
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Allow Vue frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # ✅ Initialize the rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -73,11 +83,17 @@ async def download_whitepaper():
     return JSONResponse(status_code=404, content={"error": "White paper not found."})
 
 
-# Initialize blockchain
-wallet1 = Wallet()
-wallet2 = Wallet()
-meme_creator = Wallet()
-blockchain = Blockchain(wallet1=wallet1, wallet2=wallet2, meme_creator=meme_creator)
+# Initialize blockchain (UPDATED VERSION)
+project_owner = Wallet()  # ✅ Project owner (holds 90% of the supply)
+contributor1 = Wallet()  # ✅ First contributor (receives 10%)
+contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
+
+blockchain = Blockchain(
+    project_owner_wallet=project_owner,
+    Contributor_one=contributor1,
+    Contributor_two=contributor2
+)
+
 
 @app.get("/sync")
 async def sync_blockchain():
@@ -151,8 +167,10 @@ async def transaction_pool():
 @app.post("/add_block")
 @limiter.limit("3/minute")  # ✅ Limit to 3 requests per minute
 async def add_block(
-    request: Request,  # ✅ Required for rate limite
-    image: UploadFile, miner: str = Form(...),
+    request: Request,  # ✅ Required for rate limiting
+    image: UploadFile,
+    miner: str = Form(...),
+    private_key: str = Form(...),  # ✅ Add private key for validation
     user_role: str = Depends(validate_api_key)  # ✅ Require API key
 ):
     """
@@ -162,6 +180,11 @@ async def add_block(
     # Validate miner's public key
     if not is_valid_public_key(miner, blockchain.wallets):
         raise HTTPException(status_code=400, detail="Invalid miner public key.")
+
+    # Validate the private key matches the public key
+    wallet = blockchain.wallets.get(miner)
+    if not wallet or not wallet.validate_private_key(private_key, wallet.public_key):
+        raise HTTPException(status_code=400, detail="Private key does not match the wallet ID.")
 
     # Validate image format
     if not is_valid_image(image):

@@ -17,7 +17,7 @@ from utils import extract_text
 
 
 class Blockchain:
-    def __init__(self, wallet1=None, wallet2=None, meme_creator=None):
+    def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=1000000000):
         self.chain = []  # The blockchain
         self.pending_transactions = []  # Transaction pool
         self.wallets = {}  # Registered wallets
@@ -25,39 +25,36 @@ class Blockchain:
         self.image_validation_cache = {}  # Cache for validated images
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
-        self.reward_pool = 100000  # Initial reward pool
+        self.reward_pool = initial_supply * 0.1  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
-        self.initial_reward_pool = 100000  # Example value, can be adjusted
-        self.reward_pool = self.initial_reward_pool  # Set initial reward pool balance
-
         # Save wallets if provided
-        if wallet1:
-            self.wallets[wallet1.public_key] = wallet1
-        if wallet2:
-            self.wallets[wallet2.public_key] = wallet2
-        if meme_creator:
-            self.wallets[meme_creator.public_key] = meme_creator
+        if project_owner_wallet:
+            self.wallets[project_owner_wallet.public_key] = project_owner_wallet
+        if Contributor_one:
+            self.wallets[Contributor_one.public_key] = Contributor_one
+        if Contributor_two:
+            self.wallets[Contributor_two.public_key] = Contributor_two
 
         # Create the Genesis block
-        self.create_genesis_block(wallet1, wallet2, meme_creator)
+        self.create_genesis_block(project_owner_wallet, Contributor_one, Contributor_two)
 
-    def create_genesis_block(self, wallet1, wallet2, meme_creator):
+    def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=1000000000):
         """Create the Genesis block with initial transactions and optional encoded meme."""
         genesis_transactions = []
 
         # Create initial transactions to fund wallets
-        if wallet1:
+        if project_owner_wallet:
             genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=wallet1.public_key, amount=100)
+                Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
             )
-        if wallet2:
+        if Contributor_one:
             genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=wallet2.public_key, amount=100)
+                Transaction(sender="GENESIS", recipient=Contributor_one.public_key, amount=initial_supply * 0.10)
             )
-        if meme_creator:
+        if Contributor_two:
             genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=meme_creator.public_key, amount=100)
+                Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
             )
 
         # Create the genesis block with transactions
@@ -109,19 +106,22 @@ class Blockchain:
         return base_fee + (scaling_factor * max(0, payload_size_kb - 1))
     
     def distribute_transaction_fee(self, transaction, miner):
-        """Distribute the transaction fee between the miner and reward pool."""
+        """Distribute the transaction fee between the miner, reward pool, and project owner."""
         payload_size_kb = len(str(transaction)) / 1024  # Approximate payload size in KB
         total_fee = self.calculate_transaction_fee(payload_size_kb)
 
-        miner_share = total_fee * 0.7
-        reward_pool_share = total_fee * 0.3
+        miner_share = total_fee * 0.3  # ✅ 30% to miner
+        reward_pool_share = total_fee * 0.2  # ✅ 20% to reward pool
+        owner_share = total_fee * 0.5  # ✅ 50% to project owner
 
-        self.reward_pool += reward_pool_share
+        self.reward_pool += reward_pool_share  # ✅ Add to reward pool
 
         print(f"Debug: Transaction Fee Distribution - Total Fee: {total_fee:.4f}, "
-              f"Miner Share: {miner_share:.4f}, Reward Pool Share: {reward_pool_share:.4f}")
+            f"Miner Share: {miner_share:.4f}, Reward Pool Share: {reward_pool_share:.4f}, "
+            f"Owner Share: {owner_share:.4f}")
 
-        return miner_share
+        return miner_share, owner_share  # Return both shares
+
 
     def is_image_unique(self, image_path):
         """Check if the image is unique with caching."""
@@ -232,25 +232,36 @@ class Blockchain:
                         tx_fee = tx.calculate_fee()
                         tip = tx.tip
 
-                        # Reward pool split
+                        # ✅ Transaction Fee Distribution (New Model)
+                        miner_fee_share = tx_fee * 0.3  # ✅ 30% to miner
+                        reward_pool_fee_share = tx_fee * 0.2  # ✅ 20% to reward pool
+                        owner_fee_share = tx_fee * 0.5  # ✅ 50% to project owner
+
+                        # ✅ Tip Distribution (Existing Model)
                         if self.reward_pool < (self.initial_reward_pool * 0.25):
-                            fee_split = {"miner": 0.5, "reward_pool": 0.5}
                             tip_split = {"miner": 0.25, "reward_pool": 0.75}
                         else:
-                            fee_split = {"miner": 0.7, "reward_pool": 0.3}
                             tip_split = {"miner": 0.5, "reward_pool": 0.5}
 
-                        miner_share = (tx_fee * fee_split["miner"]) + (tip * tip_split["miner"])
-                        reward_pool_share = (tx_fee * fee_split["reward_pool"]) + (tip * tip_split["reward_pool"])
+                        miner_tip_share = tip * tip_split["miner"]
+                        reward_pool_tip_share = tip * tip_split["reward_pool"]
 
-                        self.reward_pool += reward_pool_share
-                        total_miner_fees += miner_share
+                        # ✅ Add to balances
+                        self.reward_pool += reward_pool_fee_share + reward_pool_tip_share
+                        total_miner_fees += miner_fee_share + miner_tip_share  # Miner gets both fee and tip share
+
+                        # ✅ Debugging Output
+                        print(f"Debug: Transaction Distribution - Fee Total: {tx_fee:.4f}, Tip Total: {tip:.4f}")
+                        print(f"Debug: - Miner gets: {miner_fee_share + miner_tip_share:.4f}")
+                        print(f"Debug: - Reward Pool gets: {reward_pool_fee_share + reward_pool_tip_share:.4f}")
+                        print(f"Debug: - Owner gets: {owner_fee_share:.4f}")
 
                         tx_size = len(str(tx))
                         valid_transactions.append(tx)
                         total_size += tx_size
                 except Exception as e:
                     print(f"Debug: Transaction validation error: {e}")
+
 
         # Enforce block size limit
         while total_size > (max_block_size_kb * 1024):
@@ -261,7 +272,7 @@ class Blockchain:
         print(f"Debug: Final block size: {total_size / 1024:.2f} KB")
 
         # Add mining reward
-        mining_reward = 10
+        mining_reward = 5
         if self.reward_pool < mining_reward:
             print("Error: Insufficient funds in the reward pool.")
             return False
@@ -323,18 +334,26 @@ class Blockchain:
                     balance += transaction.amount + transaction.tip
         return balance
 
-    def add_transaction(self, transaction, fee=1):
+    def add_transaction(self, transaction):
         try:
-            print(f"Debug: Validating transaction from {transaction.sender} to {transaction.recipient} for {transaction.amount} + tip {transaction.tip} + fee {fee}")
+            payload_size_kb = len(str(transaction)) / 1024  # Calculate transaction size in KB
+            transaction_fee = max(0.005, 0.001 * payload_size_kb)  # ✅ Dynamic fee: min 0.005, otherwise 0.001 per KB
+
+            print(f"Debug: Validating transaction from {transaction.sender} to {transaction.recipient} "
+                f"for {transaction.amount} + tip {transaction.tip} + fee {transaction_fee}")
+
             if not transaction.is_valid():
                 raise Exception("Invalid transaction: Signature is not valid.")
 
             sender_balance = self.get_balance(transaction.sender)
-            total_deduction = transaction.amount + transaction.tip + fee
+            total_deduction = transaction.amount + transaction.tip + transaction_fee  # ✅ Fee dynamically calculated
             print(f"Debug: Sender balance: {sender_balance}, Total Deduction: {total_deduction}")
 
             if sender_balance < total_deduction:
                 raise Exception("Insufficient balance to cover the transaction, tip, and fee.")
+
+            # Attach calculated fee to the transaction
+            transaction.fee = transaction_fee  # ✅ Ensure fee is stored in the transaction object
 
             # Add to pending transactions
             self.pending_transactions.append(transaction)
@@ -342,6 +361,7 @@ class Blockchain:
         except Exception as e:
             print(f"Debug: Transaction validation error: {e}")
             raise
+
     
     def get_transaction_pool(self):
         """Retrieve the current transaction pool."""

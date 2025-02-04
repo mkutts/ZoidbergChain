@@ -94,7 +94,6 @@ blockchain = Blockchain(
     Contributor_two=contributor2
 )
 
-
 @app.get("/sync")
 async def sync_blockchain():
     """Returns the latest blockchain state for syncing with other nodes."""
@@ -104,8 +103,6 @@ async def sync_blockchain():
 async def get_chain():
     """Retrieve the blockchain."""
     return {"chain": blockchain.get_chain()}
-
-from fastapi import Depends
 
 @app.post("/add_transaction")
 @limiter.limit("5/minute")  # ✅ Keep rate limiting
@@ -157,14 +154,14 @@ async def add_transaction(
 @app.get("/get_wallets")
 async def get_wallets():
     """
-    Retrieve all registered wallets.
+    Retrieve all registered wallets (public keys only).
     """
     try:
         return {
             "message": "Registered wallets retrieved successfully.",
             "wallets": [
-                {"public_key": key, "private_key": wallet.private_key}
-                for key, wallet in blockchain.wallets.items()
+                {"public_key": key}  # ✅ Only return public key (NO private key)
+                for key in blockchain.wallets.keys()
             ]
         }
     except Exception as e:
@@ -187,14 +184,26 @@ async def add_block(
     Add a new block to the blockchain with the given meme image and transactions.
     """
 
+    print(f"Debug: Received add_block request - Miner: {miner}")
+
     # Validate miner's public key
     if not is_valid_public_key(miner, blockchain.wallets):
+        print(f"Debug: Invalid miner public key {miner}")
         raise HTTPException(status_code=400, detail="Invalid miner public key.")
 
     # Validate the private key matches the public key
     wallet = blockchain.wallets.get(miner)
-    if not wallet or not wallet.validate_private_key(private_key, miner):
+    if not wallet:
+        print(f"Debug: Wallet for miner {miner} not found!")
+        raise HTTPException(status_code=400, detail="Wallet not found.")
+
+    if not wallet.validate_private_key(private_key, miner):
+        print(f"Debug: Private key does not match public key {miner}")
         raise HTTPException(status_code=400, detail="Private key does not match the wallet ID.")
+
+    # ✅ Print blockchain owner info (debugging `self.owner_wallet`)
+    print(f"Debug: Checking blockchain owner wallet... {getattr(blockchain, 'owner_wallet', 'NOT SET')}")
+    print(f"Debug: Owner balance before block: {getattr(blockchain, 'owner_balance', 'NOT SET')}")
 
     # Validate image format
     if not is_valid_image(image):
@@ -221,6 +230,9 @@ async def add_block(
             os.remove(image_path)
             return JSONResponse(status_code=400, content={"error": "No text found in the image."})
 
+        # ✅ Debug before calling `add_block`
+        print(f"Debug: Calling blockchain.add_block() with Miner: {miner}")
+
         # Add a new block
         new_block = blockchain.add_block(
             image_path=image_path,
@@ -229,6 +241,9 @@ async def add_block(
             validate_meme=False  # ✅ Skip validation in add_block since it was done here
         )
 
+        # ✅ Debug owner balance after block addition
+        print(f"Debug: Owner balance after block: {getattr(blockchain, 'owner_balance', 'NOT SET')}")
+
         # Remove the temporary image file
         os.remove(image_path)
 
@@ -236,7 +251,9 @@ async def add_block(
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception as e:
+        print(f"Debug: Unexpected Error in add_block: {e}")  # ✅ Print error for debugging
         return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 @app.post("/generate_wallet", summary="Generate a new wallet", description="Creates a new wallet.")
 @limiter.limit("2/minute")  # ✅ Keep rate limiting (2 requests per minute)
@@ -256,29 +273,17 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
 async def get_balance(public_key: str):
     """
     Retrieve the balance for a specific wallet.
-    
-    Args:
-        public_key (str): The public key of the wallet.
-
-    Returns:
-        dict: The wallet's balance or an error message.
     """
     try:
-        # Ensure the public key is valid
         if public_key not in blockchain.wallets:
-            return JSONResponse(
-                status_code=400,
-                content={"error": f"Public key {public_key} is not registered in the blockchain."}
-            )
+            return JSONResponse(status_code=400, content={"error": f"Public key {public_key} is not registered in the blockchain."})
 
-        # Calculate the wallet balance
         balance = blockchain.get_balance(public_key)
+        print(f"Debug: Returning balance for {public_key}: {balance}")
 
-        return {
-            "message": f"Balance retrieved successfully for wallet {public_key}.",
-            "balance": balance
-        }
+        return {"message": "Balance retrieved successfully.", "balance": balance}
     except Exception as e:
+        print(f"Debug: ERROR retrieving balance - {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/get_reward_pool_balance")

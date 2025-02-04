@@ -21,6 +21,7 @@ class Transaction:
             "signature": self.signature,
             "payload_size_kb": self.payload_size_kb,
         }
+<<<<<<< HEAD
     
     @classmethod
     def from_dict(cls, data):
@@ -31,6 +32,8 @@ class Transaction:
             amount=data["amount"],
             signature=data.get("signature")  # Ensure compatibility if signature is missing
         )
+=======
+>>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
 
     def sign_transaction(self, private_key):
         if self.sender == "GENESIS" or self.sender == "REWARD_POOL":

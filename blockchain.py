@@ -28,6 +28,7 @@ class Blockchain:
         self.reward_pool = initial_supply * 0.1  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
+<<<<<<< HEAD
         # ✅ Store wallets immediately before loading blockchain
         self.project_owner_wallet = project_owner_wallet
         self.Contributor_one = Contributor_one
@@ -121,6 +122,19 @@ class Blockchain:
         # ✅ Debug - Print blockchain length
         print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
         print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
+=======
+        if project_owner_wallet:
+            self.wallets[project_owner_wallet.public_key] = project_owner_wallet  # ✅ Store like other wallets
+
+        # ✅ Set Contributor Wallets
+        if Contributor_one:
+            self.wallets[Contributor_one.public_key] = Contributor_one
+        if Contributor_two:
+            self.wallets[Contributor_two.public_key] = Contributor_two
+
+        # ✅ Create the Genesis Block
+        self.create_genesis_block(project_owner_wallet, Contributor_one, Contributor_two)
+>>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
 
     def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=1000000000):
         """Create the Genesis block with initial transactions and optional encoded meme."""
@@ -128,6 +142,7 @@ class Blockchain:
 
         # Create initial transactions to fund wallets
         if project_owner_wallet:
+<<<<<<< HEAD
             tx = Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
             genesis_transactions.append(tx)
 
@@ -148,6 +163,28 @@ class Blockchain:
                 encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
         except Exception as e:
             raise ValueError(f"Failed to encode genesis image: {e}")
+=======
+            genesis_transactions.append(
+                Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
+            )
+
+        if Contributor_one:
+            genesis_transactions.append(
+                Transaction(sender="GENESIS", recipient=Contributor_one.public_key, amount=initial_supply * 0.10)
+            )
+
+        if Contributor_two:
+            genesis_transactions.append(
+                Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
+            )
+>>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
+
+            # Encode the provided genesis image
+        try:
+            with open("./zoidberg.jpg", "rb") as image_file:
+                encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
+        except Exception as e:
+            raise ValueError(f"Failed to encode genesis image: {e}")
 
         # Create the genesis block with transactions
         genesis_block = Block(
@@ -160,9 +197,12 @@ class Blockchain:
         )
         self.chain.append(genesis_block)
 
+<<<<<<< HEAD
         # ✅ Debugging to verify genesis block transactions
         print("\n🔍 Genesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
 
+=======
+>>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
         # ✅ Securely print the wallet details ONCE (store securely)
         print("\n🔐 **Genesis Wallets (Store These Securely!)** 🔐")
         if project_owner_wallet:
@@ -333,6 +373,7 @@ class Blockchain:
 
         # ✅ Calculate total block size
         total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb
+<<<<<<< HEAD
 
         # ✅ Enforce block size limit
         if total_block_size_kb > max_block_size_kb:
@@ -341,6 +382,16 @@ class Blockchain:
 
         print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
 
+=======
+
+        # ✅ Enforce block size limit
+        if total_block_size_kb > max_block_size_kb:
+            print(f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of {max_block_size_kb} KB. Rejecting block.")
+            return False
+
+        print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
+
+>>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
         # ✅ Ensure miner’s balance is updated
         if miner in self.wallets:
             current_balance = self.get_balance(miner)  # ✅ Get miner's balance
@@ -393,8 +444,11 @@ class Blockchain:
         print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_block_size_kb:.2f} KB.")
         print(f"Miner earned: {total_miner_tips:.4f} ZoidbergCoins.")
         
+<<<<<<< HEAD
         self.save_blockchain()
 
+=======
+>>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
         return True
 
     def get_latest_block(self):

@@ -16,13 +16,13 @@ from utils import extract_text
 from validators import is_valid_public_key, is_valid_amount, is_valid_image
 from auth import validate_api_key  # ✅ API authentication
 
-# test code
-
 logging.basicConfig(
     filename="api.log",  # Save logs to a file
     level=logging.INFO,  # Set log level to INFO
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
+# code? 
 
 app = FastAPI()
 
@@ -34,7 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ✅ Initialize the rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -85,23 +84,38 @@ async def download_whitepaper():
         return FileResponse(pdf_path, filename="ZoidbergCoin_WhitePaper.pdf", media_type="application/pdf")
     return JSONResponse(status_code=404, content={"error": "White paper not found."})
 
-
-# Initialize blockchain (UPDATED VERSION)
-project_owner = Wallet()  # ✅ Project owner (holds 90% of the supply)
+project_owner = Wallet()  # ✅ Project owner (holds 79% of the supply)
 contributor1 = Wallet()  # ✅ First contributor (receives 10%)
 contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
 
-blockchain = Blockchain()  # ✅ Load from saved state instead of creating a new one
+# ✅ Load blockchain properly when FastAPI starts
+if os.path.exists("blockchain.json"):
+    print("✅ Debug: Loading existing blockchain from blockchain.json...")
+    blockchain = Blockchain()  # ✅ Ensures it loads correctly
+else:
+    print("⚠️ Debug: No blockchain file found. Creating new blockchain...")
+    blockchain = Blockchain(project_owner, contributor1, contributor2)  # ✅ Only creates new if no file exists
 
 @app.post("/reset_blockchain")
 async def reset_blockchain():
     """Reset blockchain to Genesis state."""
     try:
         if os.path.exists("blockchain.json"):
-            os.remove("blockchain.json")  # ✅ Only delete if the file exists
+            os.remove("blockchain.json")  # ✅ Delete previous blockchain state
 
-        global blockchain
-        blockchain = Blockchain()  # ✅ Reinitialize from Genesis
+        global project_owner, contributor1, contributor2, blockchain
+        
+        # ✅ RECREATE wallets
+        project_owner = Wallet()
+        contributor1 = Wallet()
+        contributor2 = Wallet()
+
+        # ✅ PASS wallets to Blockchain constructor
+        blockchain = Blockchain(
+            project_owner_wallet=project_owner,
+            Contributor_one=contributor1,
+            Contributor_two=contributor2
+        )
 
         return {"message": "Blockchain reset to Genesis state."}
     except Exception as e:

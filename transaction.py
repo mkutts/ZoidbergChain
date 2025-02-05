@@ -3,13 +3,13 @@ import ecdsa
 import base64
 
 class Transaction:
-    def __init__(self, sender, recipient, amount, tip=0, payload_size_kb=0):
+    def __init__(self, sender, recipient, amount, tip=0, payload_size_kb=0, signature=None):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
         self.tip = tip
         self.payload_size_kb = payload_size_kb
-        self.signature = None
+        self.signature = signature
 
     def to_dict(self):
         """Convert transaction to a dictionary."""
@@ -21,6 +21,16 @@ class Transaction:
             "signature": self.signature,
             "payload_size_kb": self.payload_size_kb,
         }
+    
+    @classmethod
+    def from_dict(cls, data):
+        """Convert a dictionary back to a Transaction object"""
+        return cls(
+            sender=data["sender"],
+            recipient=data["recipient"],
+            amount=data["amount"],
+            signature=data.get("signature")  # Ensure compatibility if signature is missing
+        )
 
     def sign_transaction(self, private_key):
         if self.sender == "GENESIS" or self.sender == "REWARD_POOL":

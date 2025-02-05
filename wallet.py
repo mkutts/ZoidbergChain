@@ -111,6 +111,21 @@ class Wallet:
         except Exception as e:
             print(f"Verification failed: {e}")
             return False
+        
+    def to_dict(self):
+        """Convert the Wallet object into a dictionary."""
+        return {
+            "public_key": self.public_key,
+            "private_key": self.private_key,  # ✅ Save private key for later recovery
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Convert a dictionary back to a Wallet object."""
+        wallet = cls()
+        wallet.public_key = data["public_key"]
+        wallet.private_key = data["private_key"]
+        return wallet  # ✅ Ensures wallet object is correctly reconstructed
 
     def __str__(self):
         return f"Wallet(Public Key: {self.public_key}, Private Key: {self.private_key})"

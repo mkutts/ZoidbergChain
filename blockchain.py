@@ -14,7 +14,7 @@ from transaction import Transaction
 from wallet import Wallet
 from utils import hash_image
 from utils import extract_text
-
+import json
 
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=1000000000):
@@ -28,35 +28,99 @@ class Blockchain:
         self.reward_pool = initial_supply * 0.1  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
-        if project_owner_wallet:
-            self.wallets[project_owner_wallet.public_key] = project_owner_wallet  # ✅ Store like other wallets
+        # ✅ Store wallets immediately before loading blockchain
+        self.project_owner_wallet = project_owner_wallet
+        self.Contributor_one = Contributor_one
+        self.Contributor_two = Contributor_two
 
-        # ✅ Set Contributor Wallets
-        if Contributor_one:
-            self.wallets[Contributor_one.public_key] = Contributor_one
-        if Contributor_two:
-            self.wallets[Contributor_two.public_key] = Contributor_two
+        # ✅ Load blockchain from file, ensuring wallets persist
+        if os.path.exists("blockchain.json"):
+            print("Debug: Attempting to load existing blockchain...")
+            self.load_blockchain()
+        else:
+            print("Debug: No blockchain file found. Creating Genesis blockchain...")
+            self.create_genesis_block(self.project_owner_wallet, self.Contributor_one, self.Contributor_two)
 
-        # ✅ Create the Genesis Block
-        self.create_genesis_block(project_owner_wallet, Contributor_one, Contributor_two)
+        # ✅ Ensure wallets are always assigned even after loading blockchain
+        if self.project_owner_wallet and self.project_owner_wallet.public_key not in self.wallets:
+            self.wallets[self.project_owner_wallet.public_key] = self.project_owner_wallet
+        if self.Contributor_one and self.Contributor_one.public_key not in self.wallets:
+            self.wallets[self.Contributor_one.public_key] = self.Contributor_one
+        if self.Contributor_two and self.Contributor_two.public_key not in self.wallets:
+            self.wallets[self.Contributor_two.public_key] = self.Contributor_two
+
+        # ✅ Debugging - Print wallet storage
+        print("Debug: Registered Wallets -", {k: v.__dict__ for k, v in self.wallets.items()})
 
     def save_blockchain(self):
-        """Save blockchain state to disk."""
+        """Save blockchain state to disk, including wallets and transactions."""
         with open("blockchain.json", "w") as f:
-            json.dump([block.__dict__ for block in self.chain], f, indent=4)
-        print("Debug: Blockchain saved successfully.")
+            json.dump({
+                "chain": [
+                    {
+                        "index": block.index,
+                        "previous_hash": block.previous_hash,
+                        "timestamp": block.timestamp,
+                        "transactions": [tx.to_dict() for tx in block.transactions],  # ✅ Convert transactions to dicts
+                        "miner": block.miner,
+                        "meme": block.meme
+                    }
+                    for block in self.chain
+                ],
+                "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()}  # ✅ Convert wallets to dicts
+            }, f, indent=4)
+        print("✅ Debug: Blockchain and wallets saved successfully.")
 
     def load_blockchain(self):
-        """Load blockchain state from disk if it exists."""
+        """Load blockchain state from disk if it exists, ensuring wallets persist."""
         try:
             with open("blockchain.json", "r") as f:
-                loaded_chain = json.load(f)
-                self.chain = [Block(**block_data) for block_data in loaded_chain]
-                print("Debug: Blockchain loaded successfully.")
+                loaded_data = json.load(f)
+
+                # ✅ Ensure data structure is valid
+                if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
+                    self.chain = [
+                        Block(
+                            index=block_data["index"],
+                            previous_hash=block_data["previous_hash"],
+                            timestamp=block_data["timestamp"],
+                            transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],  # ✅ Convert transactions
+                            miner=block_data["miner"],
+                            meme=block_data.get("meme", {})
+                        )
+                        for block_data in loaded_data["chain"]
+                    ]
+
+                    self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}  # ✅ Load wallets correctly
+
+                    print("✅ Debug: Blockchain and wallets loaded successfully from blockchain.json.")
+
+                else:
+                    print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
+                    self.chain = []
+                    self.wallets = {}
+
         except FileNotFoundError:
-            print("Debug: No saved blockchain found. Creating new blockchain.")
+            print("⚠️ Debug: No saved blockchain found. Creating new blockchain.")
+            self.chain = []
+            self.wallets = {}
+        except json.JSONDecodeError:
+            print("⚠️ Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
+            self.chain = []
+            self.wallets = {}
         except Exception as e:
-            print(f"Debug: Failed to load blockchain - {e}")
+            print(f"⚠️ Debug: Unexpected error loading blockchain - {e}")
+            self.chain = []
+            self.wallets = {}
+
+        # ✅ If blockchain is empty, create Genesis block
+        if not self.chain:
+            print("⚠️ Debug: No valid blockchain found. Creating Genesis block.")
+            self.create_genesis_block(self.project_owner_wallet, self.Contributor_one, self.Contributor_two)
+
+        # ✅ Debug - Print blockchain length
+        print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
+        print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
 
     def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=1000000000):
         """Create the Genesis block with initial transactions and optional encoded meme."""
@@ -64,21 +128,21 @@ class Blockchain:
 
         # Create initial transactions to fund wallets
         if project_owner_wallet:
-            genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
-            )
+            tx = Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
+            genesis_transactions.append(tx)
 
         if Contributor_one:
-            genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=Contributor_one.public_key, amount=initial_supply * 0.10)
-            )
+            tx = Transaction(sender="GENESIS", recipient=Contributor_one.public_key, amount=initial_supply * 0.10)
+            genesis_transactions.append(tx)
 
         if Contributor_two:
-            genesis_transactions.append(
-                Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
-            )
+            tx = Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
+            genesis_transactions.append(tx)
 
-            # Encode the provided genesis image
+        # Ensure the transactions are correctly formatted
+        print("Debug: Genesis Transactions -", [tx.__dict__ for tx in genesis_transactions])
+
+        # Encode the provided genesis image
         try:
             with open("./zoidberg.jpg", "rb") as image_file:
                 encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
@@ -90,11 +154,14 @@ class Blockchain:
             index=0,
             previous_hash="0",
             timestamp=time.time(),
-            transactions=genesis_transactions,
+            transactions=genesis_transactions,  # ✅ Assign transactions explicitly
             miner="GENESIS",
             meme={"encoded_image": encoded_image, "text": "LOOKING FOR A NEW MEME COIN? WHY NOT ZOIDBERGCOIN"}
         )
         self.chain.append(genesis_block)
+
+        # ✅ Debugging to verify genesis block transactions
+        print("\n🔍 Genesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
 
         # ✅ Securely print the wallet details ONCE (store securely)
         print("\n🔐 **Genesis Wallets (Store These Securely!)** 🔐")

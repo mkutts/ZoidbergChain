@@ -97,9 +97,12 @@ blockchain = Blockchain()  # ✅ Load from saved state instead of creating a new
 async def reset_blockchain():
     """Reset blockchain to Genesis state."""
     try:
-        os.remove("blockchain.json")  # Delete saved blockchain file
+        if os.path.exists("blockchain.json"):
+            os.remove("blockchain.json")  # ✅ Only delete if the file exists
+
         global blockchain
-        blockchain = Blockchain()  # Reinitialize from Genesis
+        blockchain = Blockchain()  # ✅ Reinitialize from Genesis
+
         return {"message": "Blockchain reset to Genesis state."}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})

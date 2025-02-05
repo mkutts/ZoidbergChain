@@ -65,7 +65,7 @@ export default {
         return;
       }
 
-      const API_URL = 'http://127.0.0.1:8000';
+      const API_URL = 'https://zoidbergcoin.com';
       const API_KEY = 'admin_key_123';
 
       let formData = new FormData();

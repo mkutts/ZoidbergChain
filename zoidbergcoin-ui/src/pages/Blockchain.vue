@@ -10,7 +10,7 @@
       <div v-if="chain.length === 0" class="loading-message">Loading blockchain data...</div>
 
       <div v-else class="blocks">
-        <div v-for="block in chain" :key="block.index" class="block">
+        <div v-for="(block, index) in chain" :key="index" class="block">
           <h3>Block #{{ block.index }}</h3>
           <p><strong>Mined by:</strong> {{ block.miner }}</p>
 
@@ -35,9 +35,11 @@ export default {
   },
   async created() {
     try {
-      const API_URL = "http://127.0.0.1:8000"; // Update with backend URL
+      const API_URL = "https://zoidbergcoin.com"; // ✅ Update with backend URL
       const response = await axios.get(`${API_URL}/chain`);
-      this.chain = response.data.chain.reverse(); // Display latest blocks first
+      
+      // ✅ Create a NEW array to prevent Vue reactivity issues
+      this.chain = [...response.data.chain].reverse(); 
     } catch (error) {
       console.error("Error fetching blockchain data:", error);
     }
@@ -86,7 +88,7 @@ h1 {
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
-  margin-bottom: 30px; /* Space between button and blockchain data */
+  margin-bottom: 30px;
   transition: 0.3s ease-in-out;
   font-weight: bold;
 }

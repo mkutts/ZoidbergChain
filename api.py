@@ -26,7 +26,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Allow Vue frontend
+    allow_origins=["http://localhost:5173", "https://zoidbergcoin.com"],  # Allow Vue frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

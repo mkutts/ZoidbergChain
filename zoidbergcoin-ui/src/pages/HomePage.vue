@@ -41,7 +41,7 @@ export default {
   methods: {
     async generateWallet() {
       try {
-        const API_URL = 'http://127.0.0.1:8000'; // Update with your backend URL
+        const API_URL = 'https://zoidbergcoin.com'; // Update with your backend URL
         const API_KEY = 'admin_key_123';
 
         const response = await axios.post(`${API_URL}/generate_wallet`, {}, {

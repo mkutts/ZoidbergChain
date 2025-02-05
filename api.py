@@ -16,6 +16,8 @@ from utils import extract_text
 from validators import is_valid_public_key, is_valid_amount, is_valid_image
 from auth import validate_api_key  # ✅ API authentication
 
+# test code
+
 logging.basicConfig(
     filename="api.log",  # Save logs to a file
     level=logging.INFO,  # Set log level to INFO

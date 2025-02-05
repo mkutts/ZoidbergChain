@@ -40,6 +40,24 @@ class Blockchain:
         # ✅ Create the Genesis Block
         self.create_genesis_block(project_owner_wallet, Contributor_one, Contributor_two)
 
+    def save_blockchain(self):
+        """Save blockchain state to disk."""
+        with open("blockchain.json", "w") as f:
+            json.dump([block.__dict__ for block in self.chain], f, indent=4)
+        print("Debug: Blockchain saved successfully.")
+
+    def load_blockchain(self):
+        """Load blockchain state from disk if it exists."""
+        try:
+            with open("blockchain.json", "r") as f:
+                loaded_chain = json.load(f)
+                self.chain = [Block(**block_data) for block_data in loaded_chain]
+                print("Debug: Blockchain loaded successfully.")
+        except FileNotFoundError:
+            print("Debug: No saved blockchain found. Creating new blockchain.")
+        except Exception as e:
+            print(f"Debug: Failed to load blockchain - {e}")
+
     def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=1000000000):
         """Create the Genesis block with initial transactions and optional encoded meme."""
         genesis_transactions = []
@@ -308,6 +326,8 @@ class Blockchain:
         print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_block_size_kb:.2f} KB.")
         print(f"Miner earned: {total_miner_tips:.4f} ZoidbergCoins.")
         
+        self.save_blockchain()
+
         return True
 
     def get_latest_block(self):

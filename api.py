@@ -91,11 +91,18 @@ project_owner = Wallet()  # ✅ Project owner (holds 90% of the supply)
 contributor1 = Wallet()  # ✅ First contributor (receives 10%)
 contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
 
-blockchain = Blockchain(
-    project_owner_wallet=project_owner,
-    Contributor_one=contributor1,
-    Contributor_two=contributor2
-)
+blockchain = Blockchain()  # ✅ Load from saved state instead of creating a new one
+
+@app.post("/reset_blockchain")
+async def reset_blockchain():
+    """Reset blockchain to Genesis state."""
+    try:
+        os.remove("blockchain.json")  # Delete saved blockchain file
+        global blockchain
+        blockchain = Blockchain()  # Reinitialize from Genesis
+        return {"message": "Blockchain reset to Genesis state."}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/sync")
 async def sync_blockchain():

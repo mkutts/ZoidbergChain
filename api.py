@@ -178,21 +178,42 @@ async def add_transaction(
 
     return {"message": "Transaction added successfully."}
 
+# @app.get("/get_wallets")
+# async def get_wallets():
+#     """
+#     Retrieve all registered wallets (public keys only).
+#     """
+#     try:
+#         return {
+#             "message": "Registered wallets retrieved successfully.",
+#             "wallets": [
+#                 {"public_key": key}  # ✅ Only return public key (NO private key)
+#                 for key in blockchain.wallets.keys()
+#             ]
+#         }
+#     except Exception as e:
+#         return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.get("/get_wallets")
 async def get_wallets():
     """
-    Retrieve all registered wallets (public keys only).
+    Retrieve all registered wallets (public & private keys for setup only).
+    REMOVE PRIVATE KEYS BEFORE GOING LIVE.
     """
     try:
         return {
             "message": "Registered wallets retrieved successfully.",
             "wallets": [
-                {"public_key": key}  # ✅ Only return public key (NO private key)
+                {
+                    "public_key": key,
+                    "private_key": blockchain.wallets[key].private_key  # ✅ TEMPORARILY include private keys
+                }
                 for key in blockchain.wallets.keys()
             ]
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
 
 @app.get("/transaction_pool")
 async def transaction_pool():

@@ -112,6 +112,7 @@ class Wallet:
             print(f"Verification failed: {e}")
             return False
 <<<<<<< HEAD
+<<<<<<< HEAD
         
     def to_dict(self):
         """Convert the Wallet object into a dictionary."""
@@ -129,6 +130,8 @@ class Wallet:
         return wallet  # ✅ Ensures wallet object is correctly reconstructed
 =======
 >>>>>>> a96e1ef (added style to the dashboard page, updated teh api and wallet code to take in private key for mining a block.)
+=======
+>>>>>>> bab82ecf639fc69a6ecc3c8383dd893d7135fe0f
 
     def __str__(self):
         return f"Wallet(Public Key: {self.public_key}, Private Key: {self.private_key})"

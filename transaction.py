@@ -22,6 +22,7 @@ class Transaction:
             "payload_size_kb": self.payload_size_kb,
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
     
     @classmethod
     def from_dict(cls, data):
@@ -34,6 +35,8 @@ class Transaction:
         )
 =======
 >>>>>>> 02f436c (Resolved merge conflict by keeping main's version of api.py)
+=======
+>>>>>>> bab82ecf639fc69a6ecc3c8383dd893d7135fe0f
 
     def sign_transaction(self, private_key):
         if self.sender == "GENESIS" or self.sender == "REWARD_POOL":

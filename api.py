@@ -22,16 +22,18 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
+# code? 
+
 app = FastAPI()
 
+# ✅ CORS: Allow both Local and Live Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://zoidbergcoin.com"],  # Allow Vue frontend
+    allow_origins=["http://localhost:5173", "https://zoidbergcoin.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ✅ Initialize the rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -82,17 +84,42 @@ async def download_whitepaper():
         return FileResponse(pdf_path, filename="ZoidbergCoin_WhitePaper.pdf", media_type="application/pdf")
     return JSONResponse(status_code=404, content={"error": "White paper not found."})
 
-
-# Initialize blockchain (UPDATED VERSION)
-project_owner = Wallet()  # ✅ Project owner (holds 90% of the supply)
+project_owner = Wallet()  # ✅ Project owner (holds 79% of the supply)
 contributor1 = Wallet()  # ✅ First contributor (receives 10%)
 contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
 
-blockchain = Blockchain(
-    project_owner_wallet=project_owner,
-    Contributor_one=contributor1,
-    Contributor_two=contributor2
-)
+# ✅ Load blockchain properly when FastAPI starts
+if os.path.exists("blockchain.json"):
+    print("✅ Debug: Loading existing blockchain from blockchain.json...")
+    blockchain = Blockchain()  # ✅ Ensures it loads correctly
+else:
+    print("⚠️ Debug: No blockchain file found. Creating new blockchain...")
+    blockchain = Blockchain(project_owner, contributor1, contributor2)  # ✅ Only creates new if no file exists
+
+@app.post("/reset_blockchain")
+async def reset_blockchain():
+    """Reset blockchain to Genesis state."""
+    try:
+        if os.path.exists("blockchain.json"):
+            os.remove("blockchain.json")  # ✅ Delete previous blockchain state
+
+        global project_owner, contributor1, contributor2, blockchain
+        
+        # ✅ RECREATE wallets
+        project_owner = Wallet()
+        contributor1 = Wallet()
+        contributor2 = Wallet()
+
+        # ✅ PASS wallets to Blockchain constructor
+        blockchain = Blockchain(
+            project_owner_wallet=project_owner,
+            Contributor_one=contributor1,
+            Contributor_two=contributor2
+        )
+
+        return {"message": "Blockchain reset to Genesis state."}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/sync")
 async def sync_blockchain():
@@ -151,16 +178,36 @@ async def add_transaction(
 
     return {"message": "Transaction added successfully."}
 
+# @app.get("/get_wallets")
+# async def get_wallets():
+#     """
+#     Retrieve all registered wallets (public keys only).
+#     """
+#     try:
+#         return {
+#             "message": "Registered wallets retrieved successfully.",
+#             "wallets": [
+#                 {"public_key": key}  # ✅ Only return public key (NO private key)
+#                 for key in blockchain.wallets.keys()
+#             ]
+#         }
+#     except Exception as e:
+#         return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.get("/get_wallets")
 async def get_wallets():
     """
-    Retrieve all registered wallets (public keys only).
+    Retrieve all registered wallets (public & private keys for setup only).
+    REMOVE PRIVATE KEYS BEFORE GOING LIVE.
     """
     try:
         return {
             "message": "Registered wallets retrieved successfully.",
             "wallets": [
-                {"public_key": key}  # ✅ Only return public key (NO private key)
+                {
+                    "public_key": key,
+                    "private_key": blockchain.wallets[key].private_key  # ✅ TEMPORARILY include private keys
+                }
                 for key in blockchain.wallets.keys()
             ]
         }
@@ -238,7 +285,7 @@ async def add_block(
             image_path=image_path,
             text_content=text_content,
             miner=miner,
-            validate_meme=False  # ✅ Skip validation in add_block since it was done here
+            validate_meme=True  # ✅ Skip validation in add_block since it was done here
         )
 
         # Remove the temporary image file
@@ -250,7 +297,6 @@ async def add_block(
     except Exception as e:
         print(f"Debug: Unexpected Error in add_block: {e}")  # ✅ Print error for debugging
         return JSONResponse(status_code=500, content={"error": str(e)})
-
 
 @app.post("/generate_wallet", summary="Generate a new wallet", description="Creates a new wallet.")
 @limiter.limit("2/minute")  # ✅ Keep rate limiting (2 requests per minute)

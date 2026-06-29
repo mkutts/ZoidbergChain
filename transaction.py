@@ -1,15 +1,17 @@
 # Import statements
 import ecdsa
 import base64
+import time
 
 class Transaction:
-    def __init__(self, sender, recipient, amount, tip=0, payload_size_kb=0, signature=None):
+    def __init__(self, sender, recipient, amount, tip=0, payload_size_kb=0, signature=None, created_at=None):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
         self.tip = tip
         self.payload_size_kb = payload_size_kb
         self.signature = signature
+        self.created_at = created_at if created_at is not None else time.time()
 
     def to_dict(self):
         """Convert transaction to a dictionary."""
@@ -20,6 +22,7 @@ class Transaction:
             "tip": self.tip,
             "signature": self.signature,
             "payload_size_kb": self.payload_size_kb,
+            "created_at": self.created_at,
         }
     
     @classmethod
@@ -29,7 +32,10 @@ class Transaction:
             sender=data["sender"],
             recipient=data["recipient"],
             amount=data["amount"],
-            signature=data.get("signature")  # Ensure compatibility if signature is missing
+            tip=data.get("tip", 0),
+            payload_size_kb=data.get("payload_size_kb", 0),
+            signature=data.get("signature"),
+            created_at=data.get("created_at", 0),
         )
 
     def sign_transaction(self, private_key):

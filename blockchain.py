@@ -15,7 +15,7 @@ from wallet import Wallet
 from utils import hash_image
 from utils import extract_text
 import json
-from config import COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY, TOTAL_SUPPLY
+from config import ACTIVE_USER_LOOKBACK_DAYS, COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY, TOTAL_SUPPLY
 from submission import APPROVED, MINTED, PENDING, Submission
 
 class Blockchain:
@@ -28,6 +28,7 @@ class Blockchain:
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
         self.submissions = []  # Submitted content waiting for review or minting
+        self.votes = []  # Recorded content votes
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
@@ -71,6 +72,7 @@ class Blockchain:
                     for block in self.chain
                 ],
                 "submissions": [submission.to_dict() for submission in self.submissions],
+                "votes": self.votes,
                 "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()}  # ✅ Convert wallets to dicts
             }, f, indent=4)
         print("✅ Debug: Blockchain and wallets saved successfully.")
@@ -103,6 +105,7 @@ class Blockchain:
                         Submission.from_dict(submission_data)
                         for submission_data in loaded_data.get("submissions", [])
                     ]
+                    self.votes = loaded_data.get("votes", [])
 
                 else:
                     print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
@@ -299,6 +302,39 @@ class Blockchain:
             raise ValueError(f"Submission not found: {submission_id}")
 
         return submission.transition_to(new_status)
+
+    def record_vote(self, voter, submission_id=None, created_at=None):
+        vote = {
+            "voter": voter,
+            "submission_id": submission_id,
+            "created_at": created_at if created_at is not None else time.time(),
+        }
+        self.votes.append(vote)
+        return vote
+
+    def get_active_users(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
+        now = now if now is not None else time.time()
+        cutoff = now - (lookback_days * 24 * 60 * 60)
+        active_wallets = set()
+
+        for submission in self.submissions:
+            if submission.created_at >= cutoff and submission.submitter:
+                active_wallets.add(submission.submitter)
+
+        for vote in self.votes:
+            if vote.get("created_at", 0) >= cutoff and vote.get("voter"):
+                active_wallets.add(vote["voter"])
+
+        for transaction in self.pending_transactions:
+            if transaction.created_at >= cutoff and transaction.sender not in {"GENESIS", "REWARD_POOL"}:
+                active_wallets.add(transaction.sender)
+
+        for block in self.chain:
+            for transaction in block.transactions:
+                if transaction.created_at >= cutoff and transaction.sender not in {"GENESIS", "REWARD_POOL"}:
+                    active_wallets.add(transaction.sender)
+
+        return len(active_wallets)
 
     def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
         submission = self.get_submission(submission_id)

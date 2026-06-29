@@ -14,7 +14,7 @@ from wallet import Wallet
 from transaction import Transaction
 from utils import extract_text
 from validators import is_valid_public_key, is_valid_amount, is_valid_image
-from config import COIN_NAME
+from config import ACTIVE_USER_LOOKBACK_DAYS, COIN_NAME
 from auth import validate_api_key  # ✅ API authentication
 
 logging.basicConfig(
@@ -384,3 +384,10 @@ async def get_reward_pool_balance():
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/active-users")
+async def active_users():
+    return {
+        "active_users": blockchain.get_active_users(),
+        "lookback_days": ACTIVE_USER_LOOKBACK_DAYS,
+    }

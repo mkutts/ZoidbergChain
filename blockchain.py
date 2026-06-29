@@ -1,6 +1,7 @@
 # Import statements
 import os
 import hashlib
+import math
 import time
 import base64
 import re
@@ -15,7 +16,15 @@ from wallet import Wallet
 from utils import hash_image
 from utils import extract_text
 import json
-from config import ACTIVE_USER_LOOKBACK_DAYS, COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY, TOTAL_SUPPLY
+from config import (
+    ACTIVE_USER_LOOKBACK_DAYS,
+    ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
+    COIN_NAME,
+    MEME_BLOCK_REWARD,
+    MIN_VOTE_FLOOR,
+    REWARD_POOL_SUPPLY,
+    TOTAL_SUPPLY,
+)
 from submission import APPROVED, MINTED, PENDING, Submission
 
 class Blockchain:
@@ -335,6 +344,21 @@ class Blockchain:
                     active_wallets.add(transaction.sender)
 
         return len(active_wallets)
+
+    def calculate_minimum_votes_required(self, active_users):
+        return max(
+            MIN_VOTE_FLOOR,
+            math.ceil(active_users * ACTIVE_USER_PERCENT_FOR_MIN_VOTES),
+        )
+
+    def get_voting_threshold(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
+        active_users = self.get_active_users(lookback_days=lookback_days, now=now)
+        return {
+            "active_users": active_users,
+            "minimum_votes": self.calculate_minimum_votes_required(active_users),
+            "vote_floor": MIN_VOTE_FLOOR,
+            "active_percentage": ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
+        }
 
     def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
         submission = self.get_submission(submission_id)

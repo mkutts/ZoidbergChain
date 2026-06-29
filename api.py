@@ -391,3 +391,7 @@ async def active_users():
         "active_users": blockchain.get_active_users(),
         "lookback_days": ACTIVE_USER_LOOKBACK_DAYS,
     }
+
+@app.get("/voting-threshold")
+async def voting_threshold():
+    return blockchain.get_voting_threshold()

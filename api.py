@@ -256,6 +256,38 @@ async def submit_content(
 
     return {"message": "Content submitted successfully.", "submission": submission.to_dict()}
 
+@app.post("/submissions/{submission_id}/vote")
+@limiter.limit("10/minute")
+async def vote_on_submission(
+    request: Request,
+    submission_id: str,
+    voter: str = Form(...),
+    vote_type: str = Form(...),
+):
+    if not is_valid_public_key(voter, blockchain.wallets):
+        raise HTTPException(status_code=400, detail="Invalid voter public key.")
+
+    try:
+        vote = blockchain.cast_submission_vote(
+            submission_id=submission_id,
+            voter=voter,
+            vote_type=vote_type,
+        )
+    except ValueError as e:
+        message = str(e)
+        if message.startswith("Submission not found"):
+            raise HTTPException(status_code=404, detail=message)
+        raise HTTPException(status_code=400, detail=message)
+
+    return {"message": "Vote recorded successfully.", "vote": vote}
+
+@app.get("/submissions/{submission_id}/votes")
+async def get_submission_votes(submission_id: str):
+    try:
+        return blockchain.get_submission_votes(submission_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 @app.post("/add_block")
 @limiter.limit("3/minute")  # ✅ Keep rate limiting
 async def add_block(

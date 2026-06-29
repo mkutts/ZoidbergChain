@@ -25,7 +25,7 @@ from config import (
     REWARD_POOL_SUPPLY,
     TOTAL_SUPPLY,
 )
-from submission import APPROVED, MINTED, PENDING, Submission
+from submission import APPROVED, MINTED, PENDING, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
@@ -316,10 +316,56 @@ class Blockchain:
         vote = {
             "voter": voter,
             "submission_id": submission_id,
+            "vote_type": None,
             "created_at": created_at if created_at is not None else time.time(),
         }
         self.votes.append(vote)
         return vote
+
+    def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        if vote_type not in VOTE_TYPES:
+            raise ValueError(f"Invalid vote type: {vote_type}")
+
+        if voter == submission.submitter:
+            raise ValueError("Submission creator cannot vote on their own submission.")
+
+        if any(vote.get("submission_id") == submission_id and vote.get("voter") == voter for vote in self.votes):
+            raise ValueError("Wallet has already voted on this submission.")
+
+        vote = {
+            "voter": voter,
+            "submission_id": submission_id,
+            "vote_type": vote_type,
+            "created_at": created_at if created_at is not None else time.time(),
+        }
+        self.votes.append(vote)
+        return vote
+
+    def get_submission_votes(self, submission_id):
+        if not self.get_submission(submission_id):
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        votes = [vote for vote in self.votes if vote.get("submission_id") == submission_id]
+        original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_ORIGINAL)
+        not_original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_NOT_ORIGINAL)
+        unsure_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_UNSURE)
+        decisive_votes = original_votes + not_original_votes
+        approval_percentage = original_votes / decisive_votes if decisive_votes else 0
+
+        return {
+            "submission_id": submission_id,
+            "votes": votes,
+            "counts": {
+                VOTE_ORIGINAL: original_votes,
+                VOTE_NOT_ORIGINAL: not_original_votes,
+                VOTE_UNSURE: unsure_votes,
+            },
+            "approval_percentage": approval_percentage,
+        }
 
     def get_active_users(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
         now = now if now is not None else time.time()

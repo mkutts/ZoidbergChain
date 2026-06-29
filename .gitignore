@@ -1,0 +1,43 @@
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Logs and runtime output
+*.log
+logs/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Node / Vite frontend output
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

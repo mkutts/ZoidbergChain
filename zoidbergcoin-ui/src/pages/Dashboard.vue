@@ -38,6 +38,7 @@
 
 <script>
 import axios from 'axios';
+import { API_BASE_URL, API_KEY } from '../config/api';
 
 export default {
   data() {
@@ -65,16 +66,13 @@ export default {
         return;
       }
 
-      const API_URL = 'https://zoidbergcoin.com';
-      const API_KEY = 'admin_key_123';
-
       let formData = new FormData();
       formData.append("image", this.memeFile);
       formData.append("miner", this.wallet); // Wallet ID
       formData.append("private_key", this.privateKey); // Private Key
 
       try {
-        const response = await axios.post(`${API_URL}/add_block`, formData, {
+        const response = await axios.post(`${API_BASE_URL}/add_block`, formData, {
           headers: {
             "X-API-Key": API_KEY,
             "Content-Type": "multipart/form-data"

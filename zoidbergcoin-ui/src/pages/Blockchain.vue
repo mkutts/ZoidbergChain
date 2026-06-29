@@ -26,6 +26,7 @@
 
 <script>
 import axios from "axios";
+import { API_BASE_URL } from "../config/api";
 
 export default {
   data() {
@@ -35,10 +36,9 @@ export default {
   },
   async created() {
     try {
-      const API_URL = "https://zoidbergcoin.com"; // ✅ Update with backend URL
-      const response = await axios.get(`${API_URL}/chain`);
+      const response = await axios.get(`${API_BASE_URL}/chain`);
       
-      // ✅ Create a NEW array to prevent Vue reactivity issues
+      // Create a NEW array to prevent Vue reactivity issues
       this.chain = [...response.data.chain].reverse(); 
     } catch (error) {
       console.error("Error fetching blockchain data:", error);

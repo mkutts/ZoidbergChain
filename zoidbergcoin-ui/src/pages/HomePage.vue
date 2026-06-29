@@ -30,6 +30,7 @@
 
 <script>
 import axios from 'axios';
+import { API_BASE_URL, API_KEY } from '../config/api';
 
 export default {
   data() {
@@ -41,10 +42,7 @@ export default {
   methods: {
     async generateWallet() {
       try {
-        const API_URL = 'https://zoidbergcoin.com'; // Update with your backend URL
-        const API_KEY = 'admin_key_123';
-
-        const response = await axios.post(`${API_URL}/generate_wallet`, {}, {
+        const response = await axios.post(`${API_BASE_URL}/generate_wallet`, {}, {
           headers: { "X-API-Key": API_KEY }
         });
 

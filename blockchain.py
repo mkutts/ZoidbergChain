@@ -16,6 +16,7 @@ from utils import hash_image
 from utils import extract_text
 import json
 from config import COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY, TOTAL_SUPPLY
+from submission import APPROVED, MINTED, PENDING, Submission
 
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
@@ -26,6 +27,7 @@ class Blockchain:
         self.image_validation_cache = {}  # Cache for validated images
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
+        self.submissions = []  # Submitted content waiting for review or minting
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
@@ -68,6 +70,7 @@ class Blockchain:
                     }
                     for block in self.chain
                 ],
+                "submissions": [submission.to_dict() for submission in self.submissions],
                 "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()}  # ✅ Convert wallets to dicts
             }, f, indent=4)
         print("✅ Debug: Blockchain and wallets saved successfully.")
@@ -95,6 +98,11 @@ class Blockchain:
                     self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}  # ✅ Load wallets correctly
 
                     print("✅ Debug: Blockchain and wallets loaded successfully from blockchain.json.")
+
+                    self.submissions = [
+                        Submission.from_dict(submission_data)
+                        for submission_data in loaded_data.get("submissions", [])
+                    ]
 
                 else:
                     print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
@@ -264,6 +272,53 @@ class Blockchain:
 
         print("Debug: Meme is original.")
         return True
+
+    def submit_content(self, image_path, text_content, submitter):
+        """Create a pending content submission without minting a block."""
+        if not os.path.isfile(image_path):
+            raise ValueError("Invalid image path provided for the submission.")
+
+        submission = Submission(
+            image_path=image_path,
+            text_content=text_content,
+            submitter=submitter,
+            status=PENDING,
+        )
+        self.submissions.append(submission)
+        return submission
+
+    def get_submission(self, submission_id):
+        for submission in self.submissions:
+            if submission.submission_id == submission_id:
+                return submission
+        return None
+
+    def update_submission_status(self, submission_id, new_status):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        return submission.transition_to(new_status)
+
+    def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        if submission.status != APPROVED:
+            raise ValueError("Only approved submissions can be minted.")
+
+        block_added = self.add_block(
+            image_path=submission.image_path,
+            text_content=submission.text_content,
+            miner=miner or submission.submitter,
+            max_block_size_kb=max_block_size_kb,
+            validate_meme=validate_meme,
+        )
+        if block_added:
+            submission.transition_to(MINTED)
+
+        return block_added
 
     def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=500, validate_meme=True):
         """

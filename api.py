@@ -220,6 +220,42 @@ async def transaction_pool():
     """Retrieve the current transaction pool."""
     return {"pending_transactions": blockchain.get_transaction_pool()}
 
+@app.post("/submit_content")
+@limiter.limit("5/minute")
+async def submit_content(
+    request: Request,
+    image: UploadFile,
+    submitter: str = Form(...),
+    text_content: str = Form(None),
+):
+    """Submit meme content for review without minting a blockchain block."""
+    if not is_valid_public_key(submitter, blockchain.wallets):
+        raise HTTPException(status_code=400, detail="Invalid submitter public key.")
+
+    if not is_valid_image(image):
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg")
+
+    os.makedirs("temp/submissions", exist_ok=True)
+    image_path = f"temp/submissions/{image.filename}"
+    with open(image_path, "wb") as buffer:
+        buffer.write(await image.read())
+
+    if not os.path.isfile(image_path):
+        return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
+
+    if not text_content:
+        text_content = extract_text(image_path)
+    if not text_content:
+        return JSONResponse(status_code=400, content={"error": "No text found in the image."})
+
+    submission = blockchain.submit_content(
+        image_path=image_path,
+        text_content=text_content,
+        submitter=submitter,
+    )
+
+    return {"message": "Content submitted successfully.", "submission": submission.to_dict()}
+
 @app.post("/add_block")
 @limiter.limit("3/minute")  # ✅ Keep rate limiting
 async def add_block(

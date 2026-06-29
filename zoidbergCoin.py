@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer
 from concurrent.futures import ThreadPoolExecutor
 import random
 import pytesseract
+from config import COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY
 
 # Load the pre-trained model for text similarity
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -74,7 +75,7 @@ class Transaction:
     def calculate_fee(self):
         """Calculate the total transaction fee based on payload size."""
         base_fee = 0.01  # Base fee
-        additional_fee = 0.001 * self.payload_size_kb  # 0.001 ZoidbergCoins per KB
+        additional_fee = 0.001 * self.payload_size_kb  # 0.001 coin per KB
         return base_fee + additional_fee
 
     def sign_transaction(self, private_key):
@@ -165,10 +166,10 @@ class Blockchain:
         self.image_validation_cache = {}  # Cache for validated images
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
-        self.reward_pool = 100000  # Initial reward pool
+        self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
-        self.initial_reward_pool = 100000  # Example value, can be adjusted
+        self.initial_reward_pool = REWARD_POOL_SUPPLY
         self.reward_pool = self.initial_reward_pool  # Set initial reward pool balance
 
         # Save wallets if provided
@@ -420,7 +421,7 @@ class Blockchain:
         print(f"Debug: Final block size: {total_size / 1024:.2f} KB")
 
         # Add mining reward
-        mining_reward = 10
+        mining_reward = MEME_BLOCK_REWARD
         if self.reward_pool < mining_reward:
             print("Error: Insufficient funds in the reward pool.")
             return False
@@ -447,7 +448,7 @@ class Blockchain:
         self.text_validation_cache[text_content] = True
 
         print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_size / 1024:.2f} KB.")
-        print(f"Miner earned: {total_miner_fees:.4f} ZoidbergCoins.")
+        print(f"Miner earned: {total_miner_fees:.4f} {COIN_NAME}.")
         return True
 
     def get_latest_block(self):

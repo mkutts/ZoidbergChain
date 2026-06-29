@@ -1,5 +1,6 @@
 import shutil
 import sys
+import uuid
 from pathlib import Path
 
 import pytest
@@ -11,12 +12,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 @pytest.fixture
-def isolated_data_dir(tmp_path, monkeypatch):
+def isolated_data_dir(monkeypatch):
     """Run file-backed blockchain code away from production data files."""
     assert Path.cwd() == PROJECT_ROOT
-    shutil.copy(PROJECT_ROOT / "zoidberg.jpg", tmp_path / "zoidberg.jpg")
-    monkeypatch.chdir(tmp_path)
-    return tmp_path
+    test_data_dir = PROJECT_ROOT / "temp" / "test-data" / uuid.uuid4().hex
+    test_data_dir.mkdir(parents=True, exist_ok=False)
+    shutil.copy(PROJECT_ROOT / "zoidberg.jpg", test_data_dir / "zoidberg.jpg")
+    monkeypatch.chdir(test_data_dir)
+    return test_data_dir
 
 
 @pytest.fixture

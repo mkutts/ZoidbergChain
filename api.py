@@ -14,6 +14,7 @@ from wallet import Wallet
 from transaction import Transaction
 from utils import extract_text
 from validators import is_valid_public_key, is_valid_amount, is_valid_image
+from config import COIN_NAME
 from auth import validate_api_key  # ✅ API authentication
 
 logging.basicConfig(
@@ -79,9 +80,9 @@ async def about():
 @app.get("/download_whitepaper")
 async def download_whitepaper():
     """Serve the White Paper PDF for download."""
-    pdf_path = os.path.join("static", "ZoidbergCoin_WhitePaper.pdf")
+    pdf_path = os.path.join("static", f"{COIN_NAME}_WhitePaper.pdf")
     if os.path.exists(pdf_path):
-        return FileResponse(pdf_path, filename="ZoidbergCoin_WhitePaper.pdf", media_type="application/pdf")
+        return FileResponse(pdf_path, filename=f"{COIN_NAME}_WhitePaper.pdf", media_type="application/pdf")
     return JSONResponse(status_code=404, content={"error": "White paper not found."})
 
 project_owner = Wallet()  # ✅ Project owner (holds 79% of the supply)

@@ -15,9 +15,10 @@ from wallet import Wallet
 from utils import hash_image
 from utils import extract_text
 import json
+from config import COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY, TOTAL_SUPPLY
 
 class Blockchain:
-    def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=1000000000):
+    def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
         self.chain = []  # The blockchain
         self.pending_transactions = []  # Transaction pool
         self.wallets = {}  # Registered wallets
@@ -25,7 +26,7 @@ class Blockchain:
         self.image_validation_cache = {}  # Cache for validated images
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
-        self.reward_pool = initial_supply * 0.1  # Initial reward pool
+        self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
         # ✅ Store wallets immediately before loading blockchain
@@ -122,7 +123,7 @@ class Blockchain:
         print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
         print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
 
-    def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=1000000000):
+    def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=TOTAL_SUPPLY):
         """Create the Genesis block with initial transactions and optional encoded meme."""
         genesis_transactions = []
 
@@ -354,13 +355,13 @@ class Blockchain:
         if miner in self.wallets:
             current_balance = self.get_balance(miner)  # ✅ Get miner's balance
             updated_balance = current_balance + total_miner_tips  # ✅ Add miner's earnings
-            print(f"Debug: Before crediting miner {miner}: {current_balance:.4f} ZoidbergCoins")
-            print(f"Debug: Miner earned: {total_miner_tips:.4f} ZoidbergCoins")
+            print(f"Debug: Before crediting miner {miner}: {current_balance:.4f} {COIN_NAME}")
+            print(f"Debug: Miner earned: {total_miner_tips:.4f} {COIN_NAME}")
 
             # ✅ Store the updated balance at the blockchain level
             self.wallets[miner].stored_balance = updated_balance  # ✅ Store updated balance
 
-            print(f"Debug: After crediting miner {miner}: {self.wallets[miner].stored_balance:.4f} ZoidbergCoins")
+            print(f"Debug: After crediting miner {miner}: {self.wallets[miner].stored_balance:.4f} {COIN_NAME}")
         else:
             print(f"Debug: WARNING! Miner {miner} not found in registered wallets. Initializing new wallet.")
 
@@ -369,10 +370,10 @@ class Blockchain:
             self.wallets[miner].public_key = miner
             self.wallets[miner].private_key = None  # Miner’s private key is unknown
             self.wallets[miner].stored_balance = total_miner_tips  # ✅ Store the initial balance
-            print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} ZoidbergCoins")
+            print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} {COIN_NAME}")
 
         # Add mining reward
-        mining_reward = 5
+        mining_reward = MEME_BLOCK_REWARD
         if self.reward_pool < mining_reward:
             print("Error: Insufficient funds in the reward pool.")
             return False
@@ -399,7 +400,7 @@ class Blockchain:
         self.texts.append(normalized_text)
 
         print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_block_size_kb:.2f} KB.")
-        print(f"Miner earned: {total_miner_tips:.4f} ZoidbergCoins.")
+        print(f"Miner earned: {total_miner_tips:.4f} {COIN_NAME}.")
 
         self.save_blockchain()
 

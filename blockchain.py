@@ -22,10 +22,12 @@ from config import (
     COIN_NAME,
     MEME_BLOCK_REWARD,
     MIN_VOTE_FLOOR,
+    ORIGINALITY_APPROVAL_THRESHOLD,
     REWARD_POOL_SUPPLY,
     TOTAL_SUPPLY,
+    VOTING_WINDOW_HOURS,
 )
-from submission import APPROVED, MINTED, PENDING, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from submission import APPROVED, MINTED, PENDING, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
@@ -366,6 +368,59 @@ class Blockchain:
             },
             "approval_percentage": approval_percentage,
         }
+
+    def evaluate_submission(self, submission_id, automated_originality_passed=None, now=None):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        vote_summary = self.get_submission_votes(submission_id)
+        now = now if now is not None else time.time()
+        voting_window_expired = now >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
+        minimum_votes = self.get_voting_threshold(now=now)["minimum_votes"]
+        minimum_votes_reached = len(vote_summary["votes"]) >= minimum_votes
+
+        result = {
+            "submission_id": submission_id,
+            "status": submission.status,
+            "minimum_votes": minimum_votes,
+            "votes_cast": len(vote_summary["votes"]),
+            "approval_percentage": vote_summary["approval_percentage"],
+            "voting_window_expired": voting_window_expired,
+            "minimum_votes_reached": minimum_votes_reached,
+        }
+
+        if submission.status != PENDING:
+            result["reason"] = "already_finalized"
+            return result
+
+        if automated_originality_passed is None:
+            automated_originality_passed = self.is_meme_original(
+                submission.image_path,
+                submission.text_content,
+            )
+
+        result["automated_originality_passed"] = automated_originality_passed
+
+        if not automated_originality_passed:
+            submission.transition_to(REJECTED)
+            result["status"] = submission.status
+            result["reason"] = "automated_originality_rejected"
+            return result
+
+        if not (voting_window_expired or minimum_votes_reached):
+            result["reason"] = "awaiting_votes_or_window"
+            return result
+
+        if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
+            submission.transition_to(APPROVED)
+            result["reason"] = "approved_by_vote"
+        else:
+            submission.transition_to(REJECTED)
+            result["reason"] = "rejected_by_vote"
+
+        result["status"] = submission.status
+        return result
 
     def get_active_users(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
         now = now if now is not None else time.time()

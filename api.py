@@ -22,12 +22,14 @@ from validators import is_valid_public_key, is_valid_amount, is_valid_image
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ADD_BLOCK_RATE_LIMIT,
+    BLOCKCHAIN_FILE,
     COIN_NAME,
     NETWORK_NAME,
     NODE_ID,
     PUBLIC_NODE_URL,
     RATE_LIMIT_ENABLED,
     SUBMISSION_RATE_LIMIT,
+    SUBMISSIONS_DIR,
     TRANSACTION_RATE_LIMIT,
     VOTE_RATE_LIMIT,
     WALLET_GENERATION_RATE_LIMIT,
@@ -189,8 +191,8 @@ contributor1 = Wallet()  # ✅ First contributor (receives 10%)
 contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
 
 # ✅ Load blockchain properly when FastAPI starts
-if os.path.exists("blockchain.json"):
-    print("✅ Debug: Loading existing blockchain from blockchain.json...")
+if os.path.exists(BLOCKCHAIN_FILE):
+    print(f"✅ Debug: Loading existing blockchain from {BLOCKCHAIN_FILE}...")
     blockchain = Blockchain()  # ✅ Ensures it loads correctly
 else:
     print("⚠️ Debug: No blockchain file found. Creating new blockchain...")
@@ -200,8 +202,8 @@ else:
 async def reset_blockchain():
     """Reset blockchain to Genesis state."""
     try:
-        if os.path.exists("blockchain.json"):
-            os.remove("blockchain.json")  # ✅ Delete previous blockchain state
+        if os.path.exists(BLOCKCHAIN_FILE):
+            os.remove(BLOCKCHAIN_FILE)  # ✅ Delete previous blockchain state
 
         global project_owner, contributor1, contributor2, blockchain
         
@@ -503,8 +505,8 @@ async def submit_content(
     if not is_valid_image(image):
         raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
 
-    os.makedirs("temp/submissions", exist_ok=True)
-    image_path = f"temp/submissions/{image.filename}"
+    os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
+    image_path = os.path.join(SUBMISSIONS_DIR, image.filename)
     with open(image_path, "wb") as buffer:
         buffer.write(await image.read())
 

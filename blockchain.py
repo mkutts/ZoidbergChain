@@ -19,6 +19,7 @@ import json
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
+    BLOCKCHAIN_FILE,
     COIN_NAME,
     MEME_BLOCK_REWARD,
     MIN_VOTE_FLOOR,
@@ -50,7 +51,7 @@ class Blockchain:
         self.Contributor_two = Contributor_two
 
         # ✅ Load blockchain from file, ensuring wallets persist
-        if os.path.exists("blockchain.json"):
+        if os.path.exists(BLOCKCHAIN_FILE):
             print("Debug: Attempting to load existing blockchain...")
             self.load_blockchain()
         else:
@@ -70,7 +71,8 @@ class Blockchain:
 
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
-        with open("blockchain.json", "w") as f:
+        os.makedirs(os.path.dirname(BLOCKCHAIN_FILE) or ".", exist_ok=True)
+        with open(BLOCKCHAIN_FILE, "w") as f:
             json.dump({
                 "chain": [
                     {
@@ -94,7 +96,7 @@ class Blockchain:
     def load_blockchain(self):
         """Load blockchain state from disk if it exists, ensuring wallets persist."""
         try:
-            with open("blockchain.json", "r") as f:
+            with open(BLOCKCHAIN_FILE, "r") as f:
                 loaded_data = json.load(f)
 
                 # ✅ Ensure data structure is valid

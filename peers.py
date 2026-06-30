@@ -3,8 +3,8 @@ import os
 import time
 from urllib.parse import urlparse
 
+from config import PEERS_FILE
 
-PEERS_FILE = "peers.json"
 ACTIVE = "active"
 INACTIVE = "inactive"
 VALID_PEER_STATUSES = {ACTIVE, INACTIVE}
@@ -104,5 +104,6 @@ class PeerStore:
         ]
 
     def _save_peers(self, peers):
+        os.makedirs(os.path.dirname(self.file_path) or ".", exist_ok=True)
         with open(self.file_path, "w") as peer_file:
             json.dump(peers, peer_file, indent=4)

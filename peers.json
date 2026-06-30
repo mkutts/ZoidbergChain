@@ -1,0 +1,9 @@
+[
+    {
+        "node_id": "node-b",
+        "url": "http://127.0.0.1:8001",
+        "network_name": "zoidberg-testnet",
+        "last_seen": 1782855317.4693098,
+        "status": "active"
+    }
+]

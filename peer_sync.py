@@ -3,6 +3,7 @@ import math
 
 import requests
 
+from block import Block
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -15,6 +16,7 @@ from submission import (
     VOTE_TYPES,
     calculate_submission_content_hash,
 )
+from transaction import Transaction
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
@@ -52,6 +54,18 @@ class ConflictingVoteError(PeerSyncError):
     pass
 
 
+class MalformedBlockError(PeerSyncError):
+    pass
+
+
+class DuplicateBlockError(PeerSyncError):
+    pass
+
+
+class ChainExtensionError(PeerSyncError):
+    pass
+
+
 def should_update_submission_status(existing_status, incoming_status=PENDING):
     if existing_status is None:
         return True
@@ -62,6 +76,57 @@ def should_update_submission_status(existing_status, incoming_status=PENDING):
 
 def is_duplicate_submission(blockchain, submission_payload):
     return _find_duplicate_submission(blockchain, submission_payload) is not None
+
+
+def receive_peer_block(
+    blockchain,
+    peer_store,
+    origin_node_id,
+    network_name,
+    block_payload,
+    related_submission_id,
+    local_network_name,
+):
+    if network_name != local_network_name:
+        raise WrongNetworkError("Peer block belongs to a different network.")
+
+    peer = peer_store.get_active_peer(origin_node_id)
+    if not peer:
+        raise UnauthorizedPeerError("Peer is not registered or active.")
+    if peer.get("network_name") != local_network_name:
+        raise WrongNetworkError("Registered peer belongs to a different network.")
+
+    block = _normalize_block_payload(block_payload)
+    for existing_block in blockchain.chain:
+        if existing_block.hash == block.hash or existing_block.index == block.index:
+            raise DuplicateBlockError("Block already exists.")
+
+    latest_block = blockchain.get_latest_block()
+    if block.previous_hash != latest_block.hash:
+        raise ChainExtensionError(
+            "Block does not extend the local chain tip. Fork resolution is not implemented yet."
+        )
+    if block.index != latest_block.index + 1:
+        raise MalformedBlockError("Block index must extend the local chain by one.")
+
+    _validate_block_hash(blockchain, block)
+    _validate_block_transactions(blockchain, block)
+
+    candidate_chain = [existing_block.to_dict() for existing_block in blockchain.chain] + [block.to_dict()]
+    if not blockchain.is_chain_valid(candidate_chain):
+        raise MalformedBlockError("Block failed chain validation.")
+
+    blockchain.chain.append(block)
+    _remove_confirmed_pending_transactions(blockchain, block.transactions)
+    minted_submission = _mark_related_submission_minted(blockchain, related_submission_id)
+    blockchain.save_blockchain()
+
+    return {
+        "accepted": True,
+        "action": "appended",
+        "block": block.to_dict(),
+        "submission": minted_submission.to_dict() if minted_submission else None,
+    }
 
 
 def receive_peer_vote(
@@ -300,6 +365,62 @@ def broadcast_votes_to_peers(
     }
 
 
+def broadcast_block_to_peers(
+    block,
+    peer_store,
+    origin_node_id,
+    network_name,
+    related_submission_id=None,
+    timeout_seconds=3,
+):
+    payload = {
+        "origin_node_id": origin_node_id,
+        "network_name": network_name,
+        "block": block.to_dict(),
+        "related_submission_id": related_submission_id,
+    }
+    results = []
+
+    for peer in peer_store.list_active_peers(network_name=network_name):
+        receive_url = f"{peer['url'].rstrip('/')}/peers/blocks/receive"
+        try:
+            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            status_code = getattr(response, "status_code", None)
+            if status_code is None or status_code >= 400:
+                raise requests.RequestException(
+                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
+                )
+
+            results.append({
+                "node_id": peer["node_id"],
+                "url": peer["url"],
+                "status": "sent",
+            })
+        except requests.RequestException as exc:
+            logging.warning(
+                "Failed to broadcast block %s to peer %s at %s: %s",
+                block.hash,
+                peer.get("node_id"),
+                receive_url,
+                exc,
+            )
+            results.append({
+                "node_id": peer.get("node_id"),
+                "url": peer.get("url"),
+                "status": "failed",
+                "error": str(exc),
+            })
+
+    succeeded = sum(1 for result in results if result["status"] == "sent")
+    failed = sum(1 for result in results if result["status"] == "failed")
+    return {
+        "attempted": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+        "results": results,
+    }
+
+
 def _find_duplicate_submission(blockchain, submission_payload):
     submission_id = submission_payload.get("submission_id")
     content_hash = submission_payload.get("content_hash")
@@ -311,6 +432,146 @@ def _find_duplicate_submission(blockchain, submission_payload):
             return submission
 
     return None
+
+
+def _normalize_block_payload(block_payload):
+    if not isinstance(block_payload, dict):
+        raise MalformedBlockError("Block payload must be an object.")
+
+    required_fields = ["index", "previous_hash", "timestamp", "transactions", "miner", "meme", "hash"]
+    for field_name in required_fields:
+        if field_name not in block_payload:
+            raise MalformedBlockError(f"Block {field_name} is required.")
+
+    index = block_payload["index"]
+    if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+        raise MalformedBlockError("Block index must be a non-negative integer.")
+
+    previous_hash = block_payload["previous_hash"]
+    if not isinstance(previous_hash, str) or not previous_hash.strip():
+        raise MalformedBlockError("Block previous_hash is required.")
+
+    miner = block_payload["miner"]
+    if not isinstance(miner, str) or not miner.strip():
+        raise MalformedBlockError("Block miner is required.")
+
+    block_hash = block_payload["hash"]
+    if not isinstance(block_hash, str) or not block_hash.strip():
+        raise MalformedBlockError("Block hash is required.")
+
+    try:
+        timestamp = float(block_payload["timestamp"])
+    except (TypeError, ValueError):
+        raise MalformedBlockError("Block timestamp must be a valid timestamp.")
+    if not math.isfinite(timestamp) or timestamp < 0:
+        raise MalformedBlockError("Block timestamp must be a valid timestamp.")
+
+    transactions_payload = block_payload["transactions"]
+    if not isinstance(transactions_payload, list):
+        raise MalformedBlockError("Block transactions must be a list.")
+
+    transactions = [
+        _normalize_transaction_payload(transaction_payload)
+        for transaction_payload in transactions_payload
+    ]
+
+    return Block(
+        index=index,
+        previous_hash=previous_hash.strip(),
+        timestamp=timestamp,
+        transactions=transactions,
+        miner=miner.strip(),
+        meme=block_payload["meme"],
+        hash=block_hash.strip(),
+    )
+
+
+def _normalize_transaction_payload(transaction_payload):
+    if not isinstance(transaction_payload, dict):
+        raise MalformedBlockError("Block transaction payload must be an object.")
+
+    for field_name in ["sender", "recipient", "amount"]:
+        if field_name not in transaction_payload:
+            raise MalformedBlockError(f"Block transaction {field_name} is required.")
+
+    if not isinstance(transaction_payload["sender"], str) or not transaction_payload["sender"].strip():
+        raise MalformedBlockError("Block transaction sender is required.")
+    if not isinstance(transaction_payload["recipient"], str) or not transaction_payload["recipient"].strip():
+        raise MalformedBlockError("Block transaction recipient is required.")
+
+    amount_value = transaction_payload["amount"]
+    tip_value = transaction_payload.get("tip", 0)
+    payload_size_kb_value = transaction_payload.get("payload_size_kb", 0)
+    try:
+        amount = float(amount_value)
+        tip = float(tip_value)
+        payload_size_kb = float(payload_size_kb_value)
+    except (TypeError, ValueError):
+        raise MalformedBlockError("Block transaction amount, tip, and payload size must be numeric.")
+
+    if not math.isfinite(amount) or amount < 0:
+        raise MalformedBlockError("Block transaction amount must be non-negative.")
+    if not math.isfinite(tip) or tip < 0:
+        raise MalformedBlockError("Block transaction tip must be non-negative.")
+    if not math.isfinite(payload_size_kb) or payload_size_kb < 0:
+        raise MalformedBlockError("Block transaction payload size must be non-negative.")
+
+    return Transaction.from_dict({
+        **transaction_payload,
+        "sender": transaction_payload["sender"].strip(),
+        "recipient": transaction_payload["recipient"].strip(),
+        "amount": amount_value,
+        "tip": tip_value,
+        "payload_size_kb": payload_size_kb_value,
+    })
+
+
+def _validate_block_hash(blockchain, block):
+    calculated_hash = block.calculate_hash()
+    if block.hash != calculated_hash:
+        raise MalformedBlockError("Block hash does not match block contents.")
+
+    block_dict = block.to_dict()
+    if block.hash != blockchain.calculate_hash_from_dict(block_dict):
+        raise MalformedBlockError("Block hash does not match existing block validation.")
+
+
+def _validate_block_transactions(blockchain, block):
+    for transaction in block.transactions:
+        if not transaction.is_valid():
+            raise MalformedBlockError("Block contains an invalid transaction.")
+        if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not blockchain.validate_transaction(transaction):
+            raise MalformedBlockError("Block contains an invalid transaction.")
+
+
+def _remove_confirmed_pending_transactions(blockchain, confirmed_transactions):
+    blockchain.pending_transactions = [
+        pending_transaction
+        for pending_transaction in blockchain.pending_transactions
+        if not any(
+            pending_transaction.to_dict() == confirmed_transaction.to_dict()
+            for confirmed_transaction in confirmed_transactions
+        )
+    ]
+
+
+def _mark_related_submission_minted(blockchain, related_submission_id):
+    if not related_submission_id:
+        return None
+    if not isinstance(related_submission_id, str) or not related_submission_id.strip():
+        raise MalformedBlockError("Related submission_id must be a non-empty string when provided.")
+
+    submission = blockchain.get_submission(related_submission_id.strip())
+    if not submission:
+        return None
+
+    submission.status = MINTED
+    blockchain.mint_queue = [
+        queued_submission_id
+        for queued_submission_id in blockchain.mint_queue
+        if queued_submission_id != submission.submission_id
+    ]
+    return submission
 
 
 def _find_existing_vote(blockchain, submission_id, voter):

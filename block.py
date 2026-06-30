@@ -21,6 +21,7 @@ class Block:
             "miner": self.miner,
             "meme": self.meme,
             "timestamp": self.timestamp,
+            "hash": self.hash,
         }
 
     def calculate_hash(self):

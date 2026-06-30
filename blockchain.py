@@ -79,7 +79,8 @@ class Blockchain:
                         "timestamp": block.timestamp,
                         "transactions": [tx.to_dict() for tx in block.transactions],  # ✅ Convert transactions to dicts
                         "miner": block.miner,
-                        "meme": block.meme
+                        "meme": block.meme,
+                        "hash": block.hash,
                     }
                     for block in self.chain
                 ],
@@ -105,7 +106,8 @@ class Blockchain:
                             timestamp=block_data["timestamp"],
                             transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],  # ✅ Convert transactions
                             miner=block_data["miner"],
-                            meme=block_data.get("meme", {})
+                            meme=block_data.get("meme", {}),
+                            hash=block_data.get("hash"),
                         )
                         for block_data in loaded_data["chain"]
                     ]

@@ -36,16 +36,21 @@ from auth import validate_api_key  # ✅ API authentication
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
+    ChainExtensionError,
     ConflictingVoteError,
+    DuplicateBlockError,
     DuplicateSubmissionError,
+    MalformedBlockError,
     MalformedSubmissionError,
     MalformedVoteError,
     UnauthorizedPeerError,
     UnknownSubmissionError,
     WrongNetworkError,
+    broadcast_block_to_peers,
     broadcast_submission_to_peers,
     broadcast_vote_to_peers,
     broadcast_votes_to_peers,
+    receive_peer_block,
     receive_peer_submission,
     receive_peer_vote,
 )
@@ -107,6 +112,13 @@ class PeerVoteReceive(BaseModel):
     vote_value: str | None = None
     created_at: float | None = None
     vote_timestamp: float | None = None
+
+
+class PeerBlockReceive(BaseModel):
+    origin_node_id: str | None = None
+    network_name: str | None = None
+    block: dict | None = None
+    related_submission_id: str | None = None
 
 
 peer_store = PeerStore()
@@ -303,10 +315,53 @@ async def receive_vote_from_peer(receive_request: PeerVoteReceive):
     except ConflictingVoteError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
+
+@app.post("/peers/blocks/receive")
+async def receive_block_from_peer(receive_request: PeerBlockReceive):
+    try:
+        return receive_peer_block(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=receive_request.origin_node_id,
+            network_name=receive_request.network_name,
+            block_payload=receive_request.block,
+            related_submission_id=receive_request.related_submission_id,
+            local_network_name=NETWORK_NAME,
+        )
+    except UnauthorizedPeerError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except WrongNetworkError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except MalformedBlockError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except DuplicateBlockError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ChainExtensionError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
 @app.get("/chain")
 async def get_chain():
     """Retrieve the blockchain."""
     return {"chain": blockchain.get_chain()}
+
+
+@app.post("/blocks/{block_hash}/broadcast")
+async def broadcast_block(block_hash: str):
+    block = next((block for block in blockchain.chain if block.hash == block_hash), None)
+    if not block:
+        raise HTTPException(status_code=404, detail=f"Block not found: {block_hash}")
+
+    broadcast_result = broadcast_block_to_peers(
+        block=block,
+        peer_store=peer_store,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
+    return {
+        "message": "Block broadcast attempted.",
+        "block": block.to_dict(),
+        "broadcast": broadcast_result,
+    }
 
 @app.post("/add_transaction")
 @api_limit(TRANSACTION_RATE_LIMIT)  # ✅ Keep rate limiting
@@ -643,7 +698,7 @@ async def add_block(
         print(f"Debug: Calling blockchain.add_block() with Miner: {miner}")
 
         # Add a new block
-        new_block = blockchain.add_block(
+        block_added = blockchain.add_block(
             image_path=image_path,
             text_content=text_content,
             miner=miner,
@@ -653,7 +708,23 @@ async def add_block(
         # Remove the temporary image file
         os.remove(image_path)
 
-        return {"message": "Block added successfully.", "block": new_block}
+        latest_block = blockchain.get_latest_block() if block_added else None
+        broadcast_result = (
+            broadcast_block_to_peers(
+                block=latest_block,
+                peer_store=peer_store,
+                origin_node_id=NODE_ID,
+                network_name=NETWORK_NAME,
+            )
+            if latest_block
+            else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}
+        )
+
+        return {
+            "message": "Block added successfully.",
+            "block": latest_block.to_dict() if latest_block else False,
+            "broadcast": broadcast_result,
+        }
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception as e:
@@ -762,9 +833,23 @@ async def mint_queued_submission(
             raise HTTPException(status_code=404, detail=message)
         raise HTTPException(status_code=400, detail=message)
 
+    latest_block = blockchain.get_latest_block()
+    broadcast_result = (
+        broadcast_block_to_peers(
+            block=latest_block,
+            peer_store=peer_store,
+            origin_node_id=NODE_ID,
+            network_name=NETWORK_NAME,
+            related_submission_id=submission_id,
+        )
+        if minted
+        else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}
+    )
+
     return {
         "message": "Submission minted successfully.",
         "minted": minted,
         "submission": submission.to_dict(),
-        "block": blockchain.get_latest_block().to_dict(),
+        "block": latest_block.to_dict(),
+        "broadcast": broadcast_result,
     }

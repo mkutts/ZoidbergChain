@@ -53,6 +53,7 @@ from peer_sync import (
     receive_peer_block,
     receive_peer_submission,
     receive_peer_vote,
+    sync_chain_from_peers,
 )
 
 logging.basicConfig(
@@ -343,6 +344,42 @@ async def receive_block_from_peer(receive_request: PeerBlockReceive):
 async def get_chain():
     """Retrieve the blockchain."""
     return {"chain": blockchain.get_chain()}
+
+
+@app.get("/chain/summary")
+async def chain_summary():
+    latest_block = blockchain.get_latest_block()
+    return {
+        "network_name": NETWORK_NAME,
+        "node_id": NODE_ID,
+        "chain_height": latest_block.index,
+        "latest_block_hash": latest_block.hash,
+        "genesis_hash": blockchain.chain[0].hash,
+        "cumulative_work": None,
+    }
+
+
+@app.get("/chain/blocks")
+async def chain_blocks(from_height: int = 0):
+    if from_height < 0:
+        raise HTTPException(status_code=400, detail="from_height must be non-negative.")
+
+    return {
+        "blocks": [
+            block.to_dict()
+            for block in blockchain.chain
+            if block.index >= from_height
+        ]
+    }
+
+
+@app.post("/chain/sync")
+async def sync_chain():
+    return sync_chain_from_peers(
+        blockchain=blockchain,
+        peer_store=peer_store,
+        network_name=NETWORK_NAME,
+    )
 
 
 @app.post("/blocks/{block_hash}/broadcast")

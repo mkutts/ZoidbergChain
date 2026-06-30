@@ -66,6 +66,10 @@ class ChainExtensionError(PeerSyncError):
     pass
 
 
+class ChainSyncError(PeerSyncError):
+    pass
+
+
 def should_update_submission_status(existing_status, incoming_status=PENDING):
     if existing_status is None:
         return True
@@ -76,6 +80,47 @@ def should_update_submission_status(existing_status, incoming_status=PENDING):
 
 def is_duplicate_submission(blockchain, submission_payload):
     return _find_duplicate_submission(blockchain, submission_payload) is not None
+
+
+def sync_chain_from_peers(
+    blockchain,
+    peer_store,
+    network_name,
+    timeout_seconds=5,
+):
+    results = []
+    active_peers = peer_store.list_active_peers(network_name=network_name)
+
+    for peer in active_peers:
+        try:
+            result = _sync_chain_from_peer(
+                blockchain=blockchain,
+                peer=peer,
+                network_name=network_name,
+                timeout_seconds=timeout_seconds,
+            )
+        except Exception as exc:
+            logging.warning(
+                "Failed to sync chain from peer %s at %s: %s",
+                peer.get("node_id"),
+                peer.get("url"),
+                exc,
+            )
+            result = {
+                "node_id": peer.get("node_id"),
+                "url": peer.get("url"),
+                "status": "failed",
+                "reason": str(exc),
+            }
+        results.append(result)
+
+    return {
+        "attempted": len(results),
+        "synced": sum(1 for result in results if result["status"] == "synced"),
+        "skipped": sum(1 for result in results if result["status"] == "skipped"),
+        "failed": sum(1 for result in results if result["status"] == "failed"),
+        "results": results,
+    }
 
 
 def receive_peer_block(
@@ -101,20 +146,7 @@ def receive_peer_block(
         if existing_block.hash == block.hash or existing_block.index == block.index:
             raise DuplicateBlockError("Block already exists.")
 
-    latest_block = blockchain.get_latest_block()
-    if block.previous_hash != latest_block.hash:
-        raise ChainExtensionError(
-            "Block does not extend the local chain tip. Fork resolution is not implemented yet."
-        )
-    if block.index != latest_block.index + 1:
-        raise MalformedBlockError("Block index must extend the local chain by one.")
-
-    _validate_block_hash(blockchain, block)
-    _validate_block_transactions(blockchain, block)
-
-    candidate_chain = [existing_block.to_dict() for existing_block in blockchain.chain] + [block.to_dict()]
-    if not blockchain.is_chain_valid(candidate_chain):
-        raise MalformedBlockError("Block failed chain validation.")
+    _validate_block_extends_chain(blockchain, block, blockchain.chain)
 
     blockchain.chain.append(block)
     _remove_confirmed_pending_transactions(blockchain, block.transactions)
@@ -421,6 +453,172 @@ def broadcast_block_to_peers(
     }
 
 
+def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
+    local_height = blockchain.get_latest_block().index
+    local_latest_hash = blockchain.get_latest_block().hash
+    local_genesis_hash = blockchain.chain[0].hash
+
+    summary = _fetch_peer_chain_summary(peer, timeout_seconds)
+    if summary["network_name"] != network_name:
+        return _chain_sync_result(
+            peer,
+            "skipped",
+            "wrong_network",
+            local_height=local_height,
+            peer_height=summary["chain_height"],
+        )
+    if summary["genesis_hash"] != local_genesis_hash:
+        return _chain_sync_result(
+            peer,
+            "skipped",
+            "different_genesis_hash",
+            local_height=local_height,
+            peer_height=summary["chain_height"],
+        )
+    if summary["chain_height"] < local_height:
+        return _chain_sync_result(
+            peer,
+            "skipped",
+            "peer_chain_shorter",
+            local_height=local_height,
+            peer_height=summary["chain_height"],
+        )
+    if summary["chain_height"] == local_height:
+        reason = (
+            "already_in_sync"
+            if summary["latest_block_hash"] == local_latest_hash
+            else "equal_height_fork_not_resolved"
+        )
+        return _chain_sync_result(
+            peer,
+            "skipped",
+            reason,
+            local_height=local_height,
+            peer_height=summary["chain_height"],
+        )
+
+    missing_blocks_payload = _fetch_peer_blocks(
+        peer,
+        from_height=local_height + 1,
+        timeout_seconds=timeout_seconds,
+    )
+    missing_blocks = _validate_missing_blocks(
+        blockchain,
+        missing_blocks_payload,
+        expected_latest_hash=summary["latest_block_hash"],
+    )
+
+    for block in missing_blocks:
+        blockchain.chain.append(block)
+        _remove_confirmed_pending_transactions(blockchain, block.transactions)
+    blockchain.save_blockchain()
+
+    return _chain_sync_result(
+        peer,
+        "synced",
+        "appended_longer_chain",
+        local_height=local_height,
+        peer_height=summary["chain_height"],
+        appended=len(missing_blocks),
+        latest_block_hash=blockchain.get_latest_block().hash,
+    )
+
+
+def _fetch_peer_chain_summary(peer, timeout_seconds):
+    summary_url = f"{peer['url'].rstrip('/')}/chain/summary"
+    response = requests.get(summary_url, timeout=timeout_seconds)
+    status_code = getattr(response, "status_code", None)
+    if status_code is None or status_code >= 400:
+        raise ChainSyncError(f"Peer summary returned status {status_code}.")
+    return _normalize_chain_summary(response.json())
+
+
+def _fetch_peer_blocks(peer, from_height, timeout_seconds):
+    blocks_url = f"{peer['url'].rstrip('/')}/chain/blocks"
+    response = requests.get(
+        blocks_url,
+        params={"from_height": from_height},
+        timeout=timeout_seconds,
+    )
+    status_code = getattr(response, "status_code", None)
+    if status_code is None or status_code >= 400:
+        raise ChainSyncError(f"Peer blocks returned status {status_code}.")
+
+    payload = response.json()
+    if isinstance(payload, dict):
+        blocks = payload.get("blocks")
+    else:
+        blocks = payload
+    if not isinstance(blocks, list):
+        raise ChainSyncError("Peer blocks response must include a blocks list.")
+    return blocks
+
+
+def _normalize_chain_summary(summary):
+    if not isinstance(summary, dict):
+        raise ChainSyncError("Peer chain summary must be an object.")
+
+    for field_name in ["network_name", "node_id", "chain_height", "latest_block_hash", "genesis_hash"]:
+        if field_name not in summary:
+            raise ChainSyncError(f"Peer chain summary missing {field_name}.")
+
+    if not isinstance(summary["network_name"], str) or not summary["network_name"].strip():
+        raise ChainSyncError("Peer chain summary network_name is required.")
+    if not isinstance(summary["node_id"], str) or not summary["node_id"].strip():
+        raise ChainSyncError("Peer chain summary node_id is required.")
+    if not isinstance(summary["chain_height"], int) or summary["chain_height"] < 0:
+        raise ChainSyncError("Peer chain summary chain_height must be a non-negative integer.")
+    if not isinstance(summary["latest_block_hash"], str) or not summary["latest_block_hash"].strip():
+        raise ChainSyncError("Peer chain summary latest_block_hash is required.")
+    if not isinstance(summary["genesis_hash"], str) or not summary["genesis_hash"].strip():
+        raise ChainSyncError("Peer chain summary genesis_hash is required.")
+
+    return {
+        **summary,
+        "network_name": summary["network_name"].strip(),
+        "node_id": summary["node_id"].strip(),
+        "latest_block_hash": summary["latest_block_hash"].strip(),
+        "genesis_hash": summary["genesis_hash"].strip(),
+    }
+
+
+def _validate_missing_blocks(blockchain, blocks_payload, expected_latest_hash):
+    working_chain = list(blockchain.chain)
+    validated_blocks = []
+
+    for block_payload in blocks_payload:
+        block = _normalize_block_payload(block_payload)
+        if any(existing_block.hash == block.hash or existing_block.index == block.index for existing_block in working_chain):
+            raise ChainSyncError("Fetched block already exists locally.")
+        _validate_block_extends_chain(blockchain, block, working_chain)
+        working_chain.append(block)
+        validated_blocks.append(block)
+
+    if not validated_blocks:
+        raise ChainSyncError("Peer reported a longer chain but returned no missing blocks.")
+    if working_chain[-1].hash != expected_latest_hash:
+        raise ChainSyncError("Fetched blocks did not reach peer latest block hash.")
+
+    return validated_blocks
+
+
+def _chain_sync_result(peer, status, reason, local_height=None, peer_height=None, appended=0, latest_block_hash=None):
+    result = {
+        "node_id": peer.get("node_id"),
+        "url": peer.get("url"),
+        "status": status,
+        "reason": reason,
+        "appended": appended,
+    }
+    if local_height is not None:
+        result["local_height"] = local_height
+    if peer_height is not None:
+        result["peer_height"] = peer_height
+    if latest_block_hash is not None:
+        result["latest_block_hash"] = latest_block_hash
+    return result
+
+
 def _find_duplicate_submission(blockchain, submission_payload):
     submission_id = submission_payload.get("submission_id")
     content_hash = submission_payload.get("content_hash")
@@ -459,8 +657,9 @@ def _normalize_block_payload(block_payload):
     if not isinstance(block_hash, str) or not block_hash.strip():
         raise MalformedBlockError("Block hash is required.")
 
+    timestamp_value = block_payload["timestamp"]
     try:
-        timestamp = float(block_payload["timestamp"])
+        timestamp = float(timestamp_value)
     except (TypeError, ValueError):
         raise MalformedBlockError("Block timestamp must be a valid timestamp.")
     if not math.isfinite(timestamp) or timestamp < 0:
@@ -478,7 +677,7 @@ def _normalize_block_payload(block_payload):
     return Block(
         index=index,
         previous_hash=previous_hash.strip(),
-        timestamp=timestamp,
+        timestamp=timestamp_value,
         transactions=transactions,
         miner=miner.strip(),
         meme=block_payload["meme"],
@@ -534,6 +733,23 @@ def _validate_block_hash(blockchain, block):
     block_dict = block.to_dict()
     if block.hash != blockchain.calculate_hash_from_dict(block_dict):
         raise MalformedBlockError("Block hash does not match existing block validation.")
+
+
+def _validate_block_extends_chain(blockchain, block, current_chain):
+    latest_block = current_chain[-1]
+    if block.previous_hash != latest_block.hash:
+        raise ChainExtensionError(
+            "Block does not extend the local chain tip. Fork resolution is not implemented yet."
+        )
+    if block.index != latest_block.index + 1:
+        raise MalformedBlockError("Block index must extend the local chain by one.")
+
+    _validate_block_hash(blockchain, block)
+    _validate_block_transactions(blockchain, block)
+
+    candidate_chain = [existing_block.to_dict() for existing_block in current_chain] + [block.to_dict()]
+    if not blockchain.is_chain_valid(candidate_chain):
+        raise MalformedBlockError("Block failed chain validation.")
 
 
 def _validate_block_transactions(blockchain, block):

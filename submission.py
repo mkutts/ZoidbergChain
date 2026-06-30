@@ -7,6 +7,7 @@ PENDING = "pending"
 APPROVED = "approved"
 QUEUED = "queued"
 REJECTED = "rejected"
+HARD_REJECTED = "hard_rejected"
 MINTED = "minted"
 
 VOTE_ORIGINAL = "original"
@@ -14,12 +15,13 @@ VOTE_NOT_ORIGINAL = "not_original"
 VOTE_UNSURE = "unsure"
 VOTE_TYPES = {VOTE_ORIGINAL, VOTE_NOT_ORIGINAL, VOTE_UNSURE}
 
-SUBMISSION_STATUSES = {PENDING, APPROVED, QUEUED, REJECTED, MINTED}
+SUBMISSION_STATUSES = {PENDING, APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
 VALID_STATUS_TRANSITIONS = {
-    PENDING: {APPROVED, REJECTED},
-    APPROVED: {QUEUED},
-    QUEUED: {MINTED},
+    PENDING: {APPROVED, REJECTED, HARD_REJECTED},
+    APPROVED: {QUEUED, HARD_REJECTED},
+    QUEUED: {MINTED, HARD_REJECTED},
     REJECTED: set(),
+    HARD_REJECTED: set(),
     MINTED: set(),
 }
 
@@ -32,6 +34,7 @@ class Submission:
     status: str = PENDING
     submission_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: float = field(default_factory=time.time)
+    hard_reject_reason: str | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
@@ -54,6 +57,7 @@ class Submission:
             "submitter": self.submitter,
             "status": self.status,
             "created_at": self.created_at,
+            "hard_reject_reason": self.hard_reject_reason,
         }
 
     @classmethod
@@ -65,4 +69,5 @@ class Submission:
             submitter=data.get("submitter") or data.get("miner") or "",
             status=data.get("status", PENDING),
             created_at=data.get("created_at", time.time()),
+            hard_reject_reason=data.get("hard_reject_reason"),
         )

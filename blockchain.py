@@ -27,7 +27,7 @@ from config import (
     TOTAL_SUPPLY,
     VOTING_WINDOW_HOURS,
 )
-from submission import APPROVED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
@@ -317,6 +317,22 @@ class Blockchain:
 
         return submission.transition_to(new_status)
 
+    def hard_reject_submission(self, submission_id, reason):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+        if not reason:
+            raise ValueError("Hard reject reason is required.")
+
+        submission.hard_reject_reason = reason
+        submission.transition_to(HARD_REJECTED)
+        self.mint_queue = [
+            queued_submission_id
+            for queued_submission_id in self.mint_queue
+            if queued_submission_id != submission_id
+        ]
+        return submission
+
     def record_vote(self, voter, submission_id=None, created_at=None):
         vote = {
             "voter": voter,
@@ -331,6 +347,9 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
+
+        if submission.status == HARD_REJECTED:
+            raise ValueError("Hard rejected submissions cannot receive votes.")
 
         if vote_type not in VOTE_TYPES:
             raise ValueError(f"Invalid vote type: {vote_type}")
@@ -468,6 +487,8 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
+        if submission.status == HARD_REJECTED:
+            raise ValueError("Hard rejected submissions cannot enter the mint queue.")
         if submission.status != APPROVED:
             raise ValueError("Only approved submissions can be added to the mint queue.")
         if submission_id in self.mint_queue:
@@ -492,6 +513,8 @@ class Blockchain:
 
         submission_id = self.mint_queue[0]
         submission = self.get_submission(submission_id)
+        if submission and submission.status == HARD_REJECTED:
+            raise ValueError("Hard rejected submissions cannot become blocks.")
         if not submission or submission.status != QUEUED:
             raise ValueError(f"Invalid mint queue entry: {submission_id}")
 

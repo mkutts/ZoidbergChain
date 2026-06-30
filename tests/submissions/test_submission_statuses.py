@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from submission import APPROVED, MINTED, PENDING, REJECTED, Submission
+from submission import APPROVED, MINTED, PENDING, QUEUED, REJECTED, Submission
 
 
 def test_new_submissions_begin_pending(blockchain, submission_image, wallets):
@@ -32,6 +32,7 @@ def test_valid_state_transitions(blockchain, submission_image, wallets):
     )
 
     blockchain.update_submission_status(approved_submission.submission_id, APPROVED)
+    blockchain.update_submission_status(approved_submission.submission_id, QUEUED)
     blockchain.update_submission_status(approved_submission.submission_id, MINTED)
     blockchain.update_submission_status(rejected_submission.submission_id, REJECTED)
 
@@ -44,6 +45,9 @@ def test_valid_state_transitions(blockchain, submission_image, wallets):
     [
         (PENDING, MINTED),
         (APPROVED, REJECTED),
+        (APPROVED, MINTED),
+        (QUEUED, APPROVED),
+        (QUEUED, REJECTED),
         (REJECTED, APPROVED),
         (MINTED, APPROVED),
     ],

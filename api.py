@@ -427,3 +427,7 @@ async def active_users():
 @app.get("/voting-threshold")
 async def voting_threshold():
     return blockchain.get_voting_threshold()
+
+@app.get("/mint-queue")
+async def mint_queue():
+    return {"mint_queue": blockchain.get_mint_queue()}

@@ -27,7 +27,7 @@ from config import (
     TOTAL_SUPPLY,
     VOTING_WINDOW_HOURS,
 )
-from submission import APPROVED, MINTED, PENDING, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from submission import APPROVED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
@@ -39,6 +39,7 @@ class Blockchain:
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
         self.submissions = []  # Submitted content waiting for review or minting
+        self.mint_queue = []  # Approved submissions waiting to be minted
         self.votes = []  # Recorded content votes
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -83,6 +84,7 @@ class Blockchain:
                     for block in self.chain
                 ],
                 "submissions": [submission.to_dict() for submission in self.submissions],
+                "mint_queue": self.mint_queue,
                 "votes": self.votes,
                 "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()}  # ✅ Convert wallets to dicts
             }, f, indent=4)
@@ -116,6 +118,7 @@ class Blockchain:
                         Submission.from_dict(submission_data)
                         for submission_data in loaded_data.get("submissions", [])
                     ]
+                    self.mint_queue = loaded_data.get("mint_queue", [])
                     self.votes = loaded_data.get("votes", [])
 
                 else:
@@ -461,13 +464,36 @@ class Blockchain:
             "active_percentage": ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
         }
 
-    def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
+    def add_to_mint_queue(self, submission_id):
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
-
         if submission.status != APPROVED:
-            raise ValueError("Only approved submissions can be minted.")
+            raise ValueError("Only approved submissions can be added to the mint queue.")
+        if submission_id in self.mint_queue:
+            raise ValueError("Submission is already in the mint queue.")
+
+        self.mint_queue.append(submission_id)
+        submission.transition_to(QUEUED)
+        return submission
+
+    def get_mint_queue(self):
+        queued_submissions = []
+        for submission_id in self.mint_queue:
+            submission = self.get_submission(submission_id)
+            if submission and submission.status == QUEUED:
+                queued_submissions.append(submission.to_dict())
+
+        return queued_submissions
+
+    def mint_next_queued_submission(self, miner=None, max_block_size_kb=500, validate_meme=True):
+        if not self.mint_queue:
+            raise ValueError("Mint queue is empty.")
+
+        submission_id = self.mint_queue[0]
+        submission = self.get_submission(submission_id)
+        if not submission or submission.status != QUEUED:
+            raise ValueError(f"Invalid mint queue entry: {submission_id}")
 
         block_added = self.add_block(
             image_path=submission.image_path,
@@ -477,9 +503,33 @@ class Blockchain:
             validate_meme=validate_meme,
         )
         if block_added:
+            self.mint_queue.pop(0)
             submission.transition_to(MINTED)
 
         return block_added
+
+    def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
+        if not self.mint_queue or self.mint_queue[0] != submission_id:
+            raise ValueError("Submissions must be minted from the front of the mint queue.")
+
+        return self.mint_next_queued_submission(
+            miner=miner,
+            max_block_size_kb=max_block_size_kb,
+            validate_meme=validate_meme,
+        )
+
+    def remove_invalid_mint_queue_entries(self):
+        valid_queue = []
+        removed_entries = []
+        for submission_id in self.mint_queue:
+            submission = self.get_submission(submission_id)
+            if submission and submission.status == QUEUED:
+                valid_queue.append(submission_id)
+            else:
+                removed_entries.append(submission_id)
+
+        self.mint_queue = valid_queue
+        return removed_entries
 
     def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=500, validate_meme=True):
         """

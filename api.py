@@ -36,12 +36,18 @@ from auth import validate_api_key  # ✅ API authentication
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
+    ConflictingVoteError,
     DuplicateSubmissionError,
     MalformedSubmissionError,
+    MalformedVoteError,
     UnauthorizedPeerError,
+    UnknownSubmissionError,
     WrongNetworkError,
     broadcast_submission_to_peers,
+    broadcast_vote_to_peers,
+    broadcast_votes_to_peers,
     receive_peer_submission,
+    receive_peer_vote,
 )
 
 logging.basicConfig(
@@ -90,6 +96,17 @@ class PeerSubmissionReceive(BaseModel):
     origin_node_id: str
     network_name: str
     submission: dict
+
+
+class PeerVoteReceive(BaseModel):
+    origin_node_id: str | None = None
+    network_name: str | None = None
+    submission_id: str | None = None
+    voter: str | None = None
+    vote_type: str | None = None
+    vote_value: str | None = None
+    created_at: float | None = None
+    vote_timestamp: float | None = None
 
 
 peer_store = PeerStore()
@@ -254,6 +271,36 @@ async def receive_submission_from_peer(receive_request: PeerSubmissionReceive):
     except MalformedSubmissionError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except DuplicateSubmissionError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
+@app.post("/peers/votes/receive")
+async def receive_vote_from_peer(receive_request: PeerVoteReceive):
+    try:
+        return receive_peer_vote(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=receive_request.origin_node_id,
+            network_name=receive_request.network_name,
+            vote_payload={
+                "submission_id": receive_request.submission_id,
+                "voter": receive_request.voter,
+                "vote_type": receive_request.vote_type,
+                "vote_value": receive_request.vote_value,
+                "created_at": receive_request.created_at,
+                "vote_timestamp": receive_request.vote_timestamp,
+            },
+            local_network_name=NETWORK_NAME,
+        )
+    except UnauthorizedPeerError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except WrongNetworkError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except MalformedVoteError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except UnknownSubmissionError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConflictingVoteError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
 @app.get("/chain")
@@ -460,7 +507,17 @@ async def vote_on_submission(
         raise HTTPException(status_code=400, detail=message)
 
     blockchain.save_blockchain()
-    return {"message": "Vote recorded successfully.", "vote": vote}
+    broadcast_result = broadcast_vote_to_peers(
+        vote=vote,
+        peer_store=peer_store,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
+    return {
+        "message": "Vote recorded successfully.",
+        "vote": vote,
+        "broadcast": broadcast_result,
+    }
 
 @app.get("/submissions/{submission_id}/votes")
 async def get_submission_votes(submission_id: str):
@@ -468,6 +525,26 @@ async def get_submission_votes(submission_id: str):
         return blockchain.get_submission_votes(submission_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/submissions/{submission_id}/votes/broadcast")
+async def broadcast_submission_votes(submission_id: str):
+    try:
+        vote_summary = blockchain.get_submission_votes(submission_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    broadcast_result = broadcast_votes_to_peers(
+        votes=vote_summary["votes"],
+        peer_store=peer_store,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
+    return {
+        "message": "Submission vote broadcast attempted.",
+        "submission_id": submission_id,
+        "broadcast": broadcast_result,
+    }
 
 
 @app.post("/submissions/{submission_id}/evaluate")

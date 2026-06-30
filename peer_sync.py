@@ -12,6 +12,7 @@ from submission import (
     REJECTED,
     SUBMISSION_STATUSES,
     Submission,
+    VOTE_TYPES,
     calculate_submission_content_hash,
 )
 
@@ -39,6 +40,18 @@ class DuplicateSubmissionError(PeerSyncError):
     pass
 
 
+class MalformedVoteError(PeerSyncError):
+    pass
+
+
+class UnknownSubmissionError(PeerSyncError):
+    pass
+
+
+class ConflictingVoteError(PeerSyncError):
+    pass
+
+
 def should_update_submission_status(existing_status, incoming_status=PENDING):
     if existing_status is None:
         return True
@@ -49,6 +62,59 @@ def should_update_submission_status(existing_status, incoming_status=PENDING):
 
 def is_duplicate_submission(blockchain, submission_payload):
     return _find_duplicate_submission(blockchain, submission_payload) is not None
+
+
+def receive_peer_vote(
+    blockchain,
+    peer_store,
+    origin_node_id,
+    network_name,
+    vote_payload,
+    local_network_name,
+):
+    if network_name != local_network_name:
+        raise WrongNetworkError("Peer vote belongs to a different network.")
+
+    peer = peer_store.get_active_peer(origin_node_id)
+    if not peer:
+        raise UnauthorizedPeerError("Peer is not registered or active.")
+    if peer.get("network_name") != local_network_name:
+        raise WrongNetworkError("Registered peer belongs to a different network.")
+
+    normalized_vote = _normalize_vote_payload(vote_payload)
+    if not blockchain.get_submission(normalized_vote["submission_id"]):
+        raise UnknownSubmissionError(f"Submission not found: {normalized_vote['submission_id']}")
+
+    existing_vote = _find_existing_vote(
+        blockchain,
+        normalized_vote["submission_id"],
+        normalized_vote["voter"],
+    )
+    if existing_vote:
+        if existing_vote.get("vote_type") == normalized_vote["vote_type"]:
+            return {
+                "accepted": True,
+                "action": "duplicate",
+                "vote": existing_vote,
+            }
+        raise ConflictingVoteError("Wallet has already voted differently on this submission.")
+
+    try:
+        vote = blockchain.cast_submission_vote(
+            submission_id=normalized_vote["submission_id"],
+            voter=normalized_vote["voter"],
+            vote_type=normalized_vote["vote_type"],
+            created_at=normalized_vote["created_at"],
+        )
+    except ValueError as e:
+        raise MalformedVoteError(str(e))
+
+    blockchain.save_blockchain()
+    return {
+        "accepted": True,
+        "action": "created",
+        "vote": vote,
+    }
 
 
 def receive_peer_submission(
@@ -147,6 +213,93 @@ def broadcast_submission_to_peers(
     }
 
 
+def broadcast_vote_to_peers(
+    vote,
+    peer_store,
+    origin_node_id,
+    network_name,
+    timeout_seconds=3,
+):
+    payload = {
+        "origin_node_id": origin_node_id,
+        "network_name": network_name,
+        "submission_id": vote.get("submission_id"),
+        "voter": vote.get("voter"),
+        "vote_type": vote.get("vote_type"),
+        "created_at": vote.get("created_at"),
+    }
+    results = []
+
+    for peer in peer_store.list_active_peers(network_name=network_name):
+        receive_url = f"{peer['url'].rstrip('/')}/peers/votes/receive"
+        try:
+            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            status_code = getattr(response, "status_code", None)
+            if status_code is None or status_code >= 400:
+                raise requests.RequestException(
+                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
+                )
+
+            results.append({
+                "node_id": peer["node_id"],
+                "url": peer["url"],
+                "status": "sent",
+            })
+        except requests.RequestException as exc:
+            logging.warning(
+                "Failed to broadcast vote for submission %s to peer %s at %s: %s",
+                vote.get("submission_id"),
+                peer.get("node_id"),
+                receive_url,
+                exc,
+            )
+            results.append({
+                "node_id": peer.get("node_id"),
+                "url": peer.get("url"),
+                "status": "failed",
+                "error": str(exc),
+            })
+
+    succeeded = sum(1 for result in results if result["status"] == "sent")
+    failed = sum(1 for result in results if result["status"] == "failed")
+    return {
+        "attempted": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+        "results": results,
+    }
+
+
+def broadcast_votes_to_peers(
+    votes,
+    peer_store,
+    origin_node_id,
+    network_name,
+    timeout_seconds=3,
+):
+    vote_results = [
+        {
+            "vote": vote,
+            "broadcast": broadcast_vote_to_peers(
+                vote=vote,
+                peer_store=peer_store,
+                origin_node_id=origin_node_id,
+                network_name=network_name,
+                timeout_seconds=timeout_seconds,
+            ),
+        }
+        for vote in votes
+    ]
+
+    return {
+        "vote_count": len(votes),
+        "attempted": sum(result["broadcast"]["attempted"] for result in vote_results),
+        "succeeded": sum(result["broadcast"]["succeeded"] for result in vote_results),
+        "failed": sum(result["broadcast"]["failed"] for result in vote_results),
+        "results": vote_results,
+    }
+
+
 def _find_duplicate_submission(blockchain, submission_payload):
     submission_id = submission_payload.get("submission_id")
     content_hash = submission_payload.get("content_hash")
@@ -158,6 +311,44 @@ def _find_duplicate_submission(blockchain, submission_payload):
             return submission
 
     return None
+
+
+def _find_existing_vote(blockchain, submission_id, voter):
+    for vote in blockchain.votes:
+        if vote.get("submission_id") == submission_id and vote.get("voter") == voter:
+            return vote
+    return None
+
+
+def _normalize_vote_payload(vote_payload):
+    if not isinstance(vote_payload, dict):
+        raise MalformedVoteError("Vote payload must be an object.")
+
+    normalized = {}
+    for field_name in ["submission_id", "voter"]:
+        value = vote_payload.get(field_name)
+        if not isinstance(value, str) or not value.strip():
+            raise MalformedVoteError(f"Vote {field_name} is required.")
+        normalized[field_name] = value.strip()
+
+    vote_type = vote_payload.get("vote_type", vote_payload.get("vote_value"))
+    if not isinstance(vote_type, str) or not vote_type.strip():
+        raise MalformedVoteError("Vote vote_type is required.")
+    vote_type = vote_type.strip()
+    if vote_type not in VOTE_TYPES:
+        raise MalformedVoteError(f"Invalid vote type: {vote_type}")
+    normalized["vote_type"] = vote_type
+
+    created_at = vote_payload.get("created_at", vote_payload.get("vote_timestamp"))
+    try:
+        created_at = float(created_at)
+    except (TypeError, ValueError):
+        raise MalformedVoteError("Vote created_at must be a valid timestamp.")
+
+    if not math.isfinite(created_at) or created_at < 0:
+        raise MalformedVoteError("Vote created_at must be a valid timestamp.")
+    normalized["created_at"] = created_at
+    return normalized
 
 
 def _normalize_submission_payload(submission_payload):

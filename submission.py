@@ -1,3 +1,5 @@
+import hashlib
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -26,6 +28,23 @@ VALID_STATUS_TRANSITIONS = {
 }
 
 
+def calculate_submission_content_hash(image_path="", text_content="", submitter=""):
+    content_hash = hashlib.sha256()
+
+    if image_path and os.path.isfile(image_path):
+        with open(image_path, "rb") as image_file:
+            for chunk in iter(lambda: image_file.read(8192), b""):
+                content_hash.update(chunk)
+    else:
+        content_hash.update((image_path or "").encode("utf-8"))
+
+    content_hash.update(b"\0")
+    content_hash.update((text_content or "").strip().encode("utf-8"))
+    content_hash.update(b"\0")
+    content_hash.update((submitter or "").strip().encode("utf-8"))
+    return content_hash.hexdigest()
+
+
 @dataclass
 class Submission:
     image_path: str
@@ -35,10 +54,17 @@ class Submission:
     submission_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     created_at: float = field(default_factory=time.time)
     hard_reject_reason: str | None = None
+    content_hash: str | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
             raise ValueError(f"Invalid submission status: {self.status}")
+        if not self.content_hash:
+            self.content_hash = calculate_submission_content_hash(
+                self.image_path,
+                self.text_content,
+                self.submitter,
+            )
 
     def transition_to(self, new_status):
         if new_status not in SUBMISSION_STATUSES:
@@ -58,6 +84,7 @@ class Submission:
             "status": self.status,
             "created_at": self.created_at,
             "hard_reject_reason": self.hard_reject_reason,
+            "content_hash": self.content_hash,
         }
 
     @classmethod
@@ -70,4 +97,5 @@ class Submission:
             status=data.get("status", PENDING),
             created_at=data.get("created_at", time.time()),
             hard_reject_reason=data.get("hard_reject_reason"),
+            content_hash=data.get("content_hash"),
         )

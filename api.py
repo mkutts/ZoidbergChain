@@ -35,6 +35,14 @@ from config import (
 from auth import validate_api_key  # ✅ API authentication
 
 from peers import PeerStore, normalize_peer_url
+from peer_sync import (
+    DuplicateSubmissionError,
+    MalformedSubmissionError,
+    UnauthorizedPeerError,
+    WrongNetworkError,
+    broadcast_submission_to_peers,
+    receive_peer_submission,
+)
 
 logging.basicConfig(
     filename="api.log",  # Save logs to a file
@@ -76,6 +84,12 @@ class PeerRegistration(BaseModel):
     node_id: str
     url: str
     network_name: str
+
+
+class PeerSubmissionReceive(BaseModel):
+    origin_node_id: str
+    network_name: str
+    submission: dict
 
 
 peer_store = PeerStore()
@@ -221,6 +235,27 @@ async def register_peer(registration: PeerRegistration):
 async def get_peers():
     return {"peers": peer_store.list_peers()}
 
+
+@app.post("/peers/submissions/receive")
+async def receive_submission_from_peer(receive_request: PeerSubmissionReceive):
+    try:
+        return receive_peer_submission(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=receive_request.origin_node_id,
+            network_name=receive_request.network_name,
+            submission_payload=receive_request.submission,
+            local_network_name=NETWORK_NAME,
+        )
+    except UnauthorizedPeerError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except WrongNetworkError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except MalformedSubmissionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except DuplicateSubmissionError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
 @app.get("/chain")
 async def get_chain():
     """Retrieve the blockchain."""
@@ -348,8 +383,18 @@ async def submit_content(
         submitter=submitter,
     )
     blockchain.save_blockchain()
+    broadcast_result = broadcast_submission_to_peers(
+        submission=submission,
+        peer_store=peer_store,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
 
-    return {"message": "Content submitted successfully.", "submission": submission.to_dict()}
+    return {
+        "message": "Content submitted successfully.",
+        "submission": submission.to_dict(),
+        "broadcast": broadcast_result,
+    }
 
 
 @app.get("/submissions")
@@ -371,6 +416,25 @@ async def get_submission(submission_id: str):
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
     return {"submission": submission.to_dict()}
+
+
+@app.post("/submissions/{submission_id}/broadcast")
+async def broadcast_submission(submission_id: str):
+    submission = blockchain.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
+
+    broadcast_result = broadcast_submission_to_peers(
+        submission=submission,
+        peer_store=peer_store,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
+    return {
+        "message": "Submission broadcast attempted.",
+        "submission": submission.to_dict(),
+        "broadcast": broadcast_result,
+    }
 
 @app.post("/submissions/{submission_id}/vote")
 @api_limit(VOTE_RATE_LIMIT)

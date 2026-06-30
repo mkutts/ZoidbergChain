@@ -29,6 +29,29 @@ class PeerStore:
     def list_peers(self):
         return self._load_peers()
 
+    def list_active_peers(self, network_name=None):
+        peers = [
+            peer
+            for peer in self._load_peers()
+            if peer.get("status") == ACTIVE
+        ]
+        if network_name:
+            peers = [
+                peer
+                for peer in peers
+                if peer.get("network_name") == network_name
+            ]
+        return peers
+
+    def get_active_peer(self, node_id):
+        if not isinstance(node_id, str) or not node_id.strip():
+            return None
+
+        for peer in self.list_active_peers():
+            if peer.get("node_id") == node_id.strip():
+                return peer
+        return None
+
     def register_peer(self, node_id, url, network_name, now=None):
         if not isinstance(node_id, str) or not node_id.strip():
             raise ValueError("Peer node_id is required.")

@@ -121,6 +121,15 @@
             "status": "minted",
             "created_at": 1782789717.0715106,
             "hard_reject_reason": null
+        },
+        {
+            "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
+            "image_path": "temp/submissions/images.jpg",
+            "text_content": "hey now",
+            "submitter": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
+            "status": "rejected",
+            "created_at": 1782837483.1216776,
+            "hard_reject_reason": null
         }
     ],
     "mint_queue": [],
@@ -154,6 +163,36 @@
             "submission_id": "82913769332c458abee824172ec68c0a",
             "vote_type": "original",
             "created_at": 1782837330.8065555
+        },
+        {
+            "voter": "03b0732da916125c9610977e3dae596485b3c98d738f12b2a5fd342014ec036354",
+            "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
+            "vote_type": "original",
+            "created_at": 1782837496.2401724
+        },
+        {
+            "voter": "0223077d596965bc6ae9a4bb9ac8178d48b821844265e0002ea30685591d5e6817",
+            "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
+            "vote_type": "original",
+            "created_at": 1782837516.5138462
+        },
+        {
+            "voter": "036725dd21d8b645f4caeb7f35e2711657b1b5449ef2bc2b3042cd90ff6408f0e8",
+            "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
+            "vote_type": "not_original",
+            "created_at": 1782837533.0635824
+        },
+        {
+            "voter": "03c56d9b4efc151e55126a201038e46981b46c55fb3c5f1d6e2ba14f12dc8aa97e",
+            "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
+            "vote_type": "original",
+            "created_at": 1782837545.4320314
+        },
+        {
+            "voter": "03fd20c58131ec1d3484adcf8f52dcda90f852ff6e95b7ef02027436caf2d364fb",
+            "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
+            "vote_type": "not_original",
+            "created_at": 1782837628.1532996
         }
     ],
     "wallets": {

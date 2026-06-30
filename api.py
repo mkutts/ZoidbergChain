@@ -5,6 +5,7 @@ from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -22,6 +23,9 @@ from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ADD_BLOCK_RATE_LIMIT,
     COIN_NAME,
+    NETWORK_NAME,
+    NODE_ID,
+    PUBLIC_NODE_URL,
     RATE_LIMIT_ENABLED,
     SUBMISSION_RATE_LIMIT,
     TRANSACTION_RATE_LIMIT,
@@ -29,6 +33,8 @@ from config import (
     WALLET_GENERATION_RATE_LIMIT,
 )
 from auth import validate_api_key  # ✅ API authentication
+
+from peers import PeerStore, normalize_peer_url
 
 logging.basicConfig(
     filename="api.log",  # Save logs to a file
@@ -64,6 +70,15 @@ app.add_middleware(SlowAPIMiddleware)
 
 def api_limit(rate):
     return limiter.limit(rate)
+
+
+class PeerRegistration(BaseModel):
+    node_id: str
+    url: str
+    network_name: str
+
+
+peer_store = PeerStore()
 
 
 def sync_approved_submissions_to_mint_queue():
@@ -166,6 +181,45 @@ async def reset_blockchain():
 async def sync_blockchain():
     """Returns the latest blockchain state for syncing with other nodes."""
     return {"chain": blockchain.get_chain()}
+
+
+@app.get("/node-info")
+async def node_info():
+    latest_block = blockchain.get_latest_block()
+    return {
+        "node_id": NODE_ID,
+        "public_node_url": PUBLIC_NODE_URL,
+        "network_name": NETWORK_NAME,
+        "chain_height": latest_block.index,
+        "latest_block_hash": latest_block.hash,
+    }
+
+
+@app.post("/peers/register")
+async def register_peer(registration: PeerRegistration):
+    if registration.network_name.strip() != NETWORK_NAME:
+        raise HTTPException(status_code=400, detail="Peer belongs to a different network.")
+
+    try:
+        peer_url = normalize_peer_url(registration.url)
+        public_node_url = normalize_peer_url(PUBLIC_NODE_URL)
+        if registration.node_id.strip() == NODE_ID or peer_url == public_node_url:
+            raise HTTPException(status_code=400, detail="Cannot register this node as a peer.")
+
+        peer = peer_store.register_peer(
+            node_id=registration.node_id,
+            url=peer_url,
+            network_name=registration.network_name,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return {"message": "Peer registered successfully.", "peer": peer}
+
+
+@app.get("/peers")
+async def get_peers():
+    return {"peers": peer_store.list_peers()}
 
 @app.get("/chain")
 async def get_chain():

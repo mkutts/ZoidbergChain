@@ -4,3 +4,16 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-ra -p no:cacheprovider"
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    ".venv/*",
+    "venv/*",
+    "tests/*",
+    "temp/*",
+    "zoidbergcoin-ui/*",
+]
+
+[tool.coverage.report]
+show_missing = true

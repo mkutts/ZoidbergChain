@@ -800,7 +800,3 @@ class Blockchain:
         print(f"Debug: Invalid public key: {public_key}")
         return False
     
-    def add_wallet(self, wallet):
-        """Add a new wallet to the blockchain's wallet list."""
-        self.wallets[wallet.public_key] = wallet
-        print(f"Debug: Wallet added to blockchain - Public Key: {wallet.public_key}")

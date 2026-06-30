@@ -1,7 +1,7 @@
 import re
 from fastapi import UploadFile
 
-ALLOWED_EXTENSIONS = {"jpg"}
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
 def is_valid_public_key(public_key: str, wallets: dict) -> bool:
     """Validate that the public key is a hexadecimal string and exists in the wallets."""

@@ -5,6 +5,7 @@
 
     <!-- Back to Dashboard Button -->
     <button @click="goToDashboard" class="btn secondary">Back to Dashboard</button>
+    <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
     <div class="chain-container">
       <div v-if="chain.length === 0" class="loading-message">Loading blockchain data...</div>
@@ -25,23 +26,24 @@
 </template>
 
 <script>
-import axios from "axios";
-import { API_BASE_URL } from "../config/api";
+import { apiClient, getApiErrorMessage } from "../config/api";
 
 export default {
   data() {
     return {
       chain: [],
+      errorMessage: '',
     };
   },
   async created() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/chain`);
+      const response = await apiClient.get('/chain');
       
       // Create a NEW array to prevent Vue reactivity issues
       this.chain = [...response.data.chain].reverse(); 
     } catch (error) {
       console.error("Error fetching blockchain data:", error);
+      this.errorMessage = getApiErrorMessage(error, 'Failed to load blockchain data.');
     }
   },
   methods: {
@@ -118,6 +120,12 @@ h1 {
 .loading-message {
   font-size: 1.2rem;
   color: #ff4747;
+}
+
+.error-message {
+  color: #ff8c8c;
+  margin-bottom: 20px;
+  max-width: 560px;
 }
 
 /* Blocks */

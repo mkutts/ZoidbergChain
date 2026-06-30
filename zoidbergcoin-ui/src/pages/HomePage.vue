@@ -20,6 +20,9 @@
       <a :href="whitePaperURL" download class="btn primary">Download White Paper</a>
     </div>
 
+    <p v-if="successMessage" class="status-message success">{{ successMessage }}</p>
+    <p v-if="errorMessage" class="status-message error">{{ errorMessage }}</p>
+
     <div v-if="walletDetails" class="wallet-details">
       <p class="warning"><strong>Important:</strong> Save the following information. This is the only time you will be able to see your private key and public key!</p>
       <p><strong>Public Key:</strong> {{ walletDetails.publicKey }}</p>
@@ -29,22 +32,23 @@
 </template>
 
 <script>
-import axios from 'axios';
-import { API_BASE_URL, API_KEY } from '../config/api';
+import { apiClient, getApiErrorMessage } from '../config/api';
 
 export default {
   data() {
     return {
       walletDetails: null, // Store wallet details (publicKey, privateKey)
+      successMessage: '',
+      errorMessage: '',
       whitePaperURL: "/ZoidbergCoin_WhitePaper.pdf" // ✅ Path to the white paper in public folder
     };
   },
   methods: {
     async generateWallet() {
+      this.successMessage = '';
+      this.errorMessage = '';
       try {
-        const response = await axios.post(`${API_BASE_URL}/generate_wallet`, {}, {
-          headers: { "X-API-Key": API_KEY }
-        });
+        const response = await apiClient.post('/generate_wallet');
 
         const { public_key, private_key } = response.data.wallet;
 
@@ -53,9 +57,10 @@ export default {
           publicKey: public_key,
           privateKey: private_key,
         };
+        this.successMessage = response.data.message || 'Wallet generated successfully.';
       } catch (error) {
         console.error("Error generating wallet:", error);
-        alert("Failed to generate wallet. Check API key or server status.");
+        this.errorMessage = getApiErrorMessage(error, 'Failed to generate wallet.');
       }
     },
     goToDashboard() {
@@ -139,6 +144,20 @@ h1 {
   color: #ff4747;
   margin-bottom: 10px;
   font-weight: bold;
+}
+
+.status-message {
+  margin-top: 18px;
+  max-width: 520px;
+  line-height: 1.4;
+}
+
+.success {
+  color: #8df5a6;
+}
+
+.error {
+  color: #ff8c8c;
 }
 
 /* Buttons */

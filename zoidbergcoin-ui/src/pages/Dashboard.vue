@@ -1,162 +1,282 @@
 <template>
   <div class="dashboard-container">
     <h1>Dashboard</h1>
-    <p class="subtitle">Manage your wallet and submit memes to the blockchain</p>
+    <p class="subtitle">Submit content for Task 1 community review</p>
 
-    <div class="form-container">
-      <!-- Wallet ID Input -->
-      <div class="wallet-input">
-        <label for="wallet" class="label">Enter Wallet ID:</label>
-        <input type="text" v-model="wallet" placeholder="Enter your wallet ID" class="input-field">
-      </div>
+    <div class="content-grid">
+      <section class="panel">
+        <h2>Submit Meme/Content</h2>
 
-      <!-- Private Key Input -->
-      <div class="private-key-input">
-        <label for="private-key" class="label">Enter Private Key:</label>
-        <input type="text" v-model="privateKey" placeholder="Enter your private key" class="input-field">
-      </div>
+        <label for="wallet" class="label">Submitter Wallet ID</label>
+        <input id="wallet" type="text" v-model.trim="wallet" placeholder="Enter your public wallet key" class="input-field">
 
-      <!-- File Upload -->
-      <div class="file-upload">
-        <label for="meme-upload" class="label">Upload a Meme:</label>
-        <input type="file" id="meme-upload" @change="uploadMeme" class="file-input">
-      </div>
+        <label for="content-text" class="label">Content Text</label>
+        <textarea id="content-text" v-model.trim="textContent" placeholder="Enter the meme text or caption" class="input-field text-area"></textarea>
 
-      <!-- Submit Meme Button -->
-      <button @click="submitMeme" class="btn primary">Submit Meme</button>
+        <label for="meme-upload" class="label">Upload Meme Image</label>
+        <input type="file" id="meme-upload" accept=".jpg,.jpeg,.png,.webp" @change="uploadMeme" class="file-input">
 
-      <!-- View Blockchain Button -->
-      <router-link to="/blockchain">
-        <button class="btn secondary">View Blockchain</button>
-      </router-link>
+        <button @click="submitMeme" class="btn primary" :disabled="isSubmitting">
+          {{ isSubmitting ? 'Submitting...' : 'Submit for Review' }}
+        </button>
 
-      <!-- Home Button -->
-      <button @click="goToHome" class="btn secondary">Home</button>
+        <p v-if="submitMessage" class="status-message success">{{ submitMessage }}</p>
+        <p v-if="errorMessage" class="status-message error">{{ errorMessage }}</p>
+
+        <div v-if="lastSubmission" class="submission-result">
+          <p><strong>Submission ID:</strong> {{ lastSubmission.submission_id }}</p>
+          <p><strong>Status:</strong> <span class="status-pill">{{ formatStatus(lastSubmission.status) }}</span></p>
+          <p class="hint">Submitted content is pending community voting and is not minted automatically.</p>
+        </div>
+
+        <router-link to="/blockchain" class="btn secondary">View Blockchain</router-link>
+        <button @click="goToHome" class="btn secondary">Home</button>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <h2>Community Voting</h2>
+          <button @click="fetchSubmissions" class="btn small" :disabled="isLoading">
+            {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+          </button>
+        </div>
+
+        <label for="voter-wallet" class="label">Voter Wallet ID</label>
+        <input id="voter-wallet" type="text" v-model.trim="voterWallet" placeholder="Enter voter public wallet key" class="input-field">
+
+        <p v-if="voteMessage" class="status-message success">{{ voteMessage }}</p>
+        <p v-if="voteError" class="status-message error">{{ voteError }}</p>
+
+        <div v-if="submissions.length === 0" class="empty-state">
+          No submissions found yet.
+        </div>
+
+        <article v-for="submission in submissions" :key="submission.submission_id" class="submission-item">
+          <div class="submission-header">
+            <strong>{{ formatStatus(submission.status) }}</strong>
+            <span>{{ formatDate(submission.created_at) }}</span>
+          </div>
+          <p>{{ submission.text_content }}</p>
+          <p class="meta">Submitted by {{ shortenKey(submission.submitter) }}</p>
+          <div class="vote-actions" v-if="submission.status === 'pending'">
+            <button @click="vote(submission.submission_id, 'original')" class="btn vote">Original</button>
+            <button @click="vote(submission.submission_id, 'not_original')" class="btn vote">Not Original</button>
+            <button @click="vote(submission.submission_id, 'unsure')" class="btn vote">Unsure</button>
+          </div>
+        </article>
+      </section>
     </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-import { API_BASE_URL, API_KEY } from '../config/api';
+import { apiClient, getApiErrorMessage } from '../config/api';
 
 export default {
   data() {
     return {
       memeFile: null,
-      wallet: '', // User-entered wallet ID
-      privateKey: '' // User-entered private key
+      wallet: '',
+      voterWallet: '',
+      textContent: '',
+      submissions: [],
+      lastSubmission: null,
+      submitMessage: '',
+      errorMessage: '',
+      voteMessage: '',
+      voteError: '',
+      isSubmitting: false,
+      isLoading: false,
     };
+  },
+  async created() {
+    await this.fetchSubmissions();
   },
   methods: {
     uploadMeme(event) {
-      this.memeFile = event.target.files[0];
+      this.memeFile = event.target.files[0] || null;
     },
     async submitMeme() {
+      this.submitMessage = '';
+      this.errorMessage = '';
+      this.lastSubmission = null;
+
       if (!this.wallet) {
-        alert("Please enter your wallet ID.");
+        this.errorMessage = 'Please enter your submitter wallet ID.';
         return;
       }
-      if (!this.privateKey) {
-        alert("Please enter your private key.");
+      if (!this.textContent) {
+        this.errorMessage = 'Please enter the meme text or caption.';
         return;
       }
       if (!this.memeFile) {
-        alert("Please upload a meme.");
+        this.errorMessage = 'Please upload a meme image.';
         return;
       }
 
-      let formData = new FormData();
-      formData.append("image", this.memeFile);
-      formData.append("miner", this.wallet); // Wallet ID
-      formData.append("private_key", this.privateKey); // Private Key
+      const formData = new FormData();
+      formData.append('image', this.memeFile);
+      formData.append('submitter', this.wallet);
+      formData.append('text_content', this.textContent);
+
+      this.isSubmitting = true;
+      try {
+        const response = await apiClient.post('/submit_content', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        this.lastSubmission = response.data.submission;
+        this.submitMessage = response.data.message || 'Content submitted successfully.';
+        this.textContent = '';
+        this.memeFile = null;
+        const fileInput = document.getElementById('meme-upload');
+        if (fileInput) {
+          fileInput.value = '';
+        }
+        await this.fetchSubmissions();
+      } catch (error) {
+        console.error('Error submitting meme:', error);
+        this.errorMessage = getApiErrorMessage(error, 'Failed to submit meme.');
+      } finally {
+        this.isSubmitting = false;
+      }
+    },
+    async fetchSubmissions() {
+      this.isLoading = true;
+      try {
+        const response = await apiClient.get('/submissions');
+        this.submissions = response.data.submissions || [];
+      } catch (error) {
+        console.error('Error fetching submissions:', error);
+        this.voteError = getApiErrorMessage(error, 'Failed to load submissions.');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async vote(submissionId, voteType) {
+      this.voteMessage = '';
+      this.voteError = '';
+
+      if (!this.voterWallet) {
+        this.voteError = 'Please enter your voter wallet ID.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('voter', this.voterWallet);
+      formData.append('vote_type', voteType);
 
       try {
-        const response = await axios.post(`${API_BASE_URL}/add_block`, formData, {
-          headers: {
-            "X-API-Key": API_KEY,
-            "Content-Type": "multipart/form-data"
-          }
+        const response = await apiClient.post(`/submissions/${submissionId}/vote`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        alert("Meme Submitted Successfully!");
+        this.voteMessage = response.data.message || 'Vote recorded successfully.';
+        await this.fetchSubmissions();
       } catch (error) {
-        console.error("Error submitting meme:", error);
-        alert("Failed to submit meme. Check your wallet ID, private key, or API key.");
+        console.error('Error recording vote:', error);
+        this.voteError = getApiErrorMessage(error, 'Failed to record vote.');
       }
+    },
+    formatStatus(status) {
+      return (status || '').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    },
+    formatDate(timestamp) {
+      if (!timestamp) {
+        return '';
+      }
+      return new Date(timestamp * 1000).toLocaleString();
+    },
+    shortenKey(key) {
+      if (!key || key.length <= 18) {
+        return key;
+      }
+      return `${key.slice(0, 10)}...${key.slice(-8)}`;
     },
     goToHome() {
       this.$router.push('/');
-    }
-  }
+    },
+  },
 };
 </script>
 
 <style scoped>
-/* General Layout */
 .dashboard-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
+  padding: 40px 20px;
   text-align: center;
   background: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
   color: #fff;
-  font-family: 'Arial', sans-serif;
+  font-family: Arial, sans-serif;
 }
 
-/* Title & Subtitle */
 h1 {
   font-size: 3rem;
   margin-bottom: 10px;
   text-shadow: 3px 3px 6px rgba(255, 0, 0, 0.5);
 }
 
+h2 {
+  font-size: 1.35rem;
+  margin-bottom: 16px;
+}
+
 .subtitle {
   font-size: 1.2rem;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   font-weight: 300;
   color: #bbb;
 }
 
-/* Form Container */
-.form-container {
-  background: rgba(30, 30, 30, 0.9);
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.5);
-  width: 360px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(300px, 520px));
+  justify-content: center;
+  gap: 24px;
 }
 
-/* Input Fields */
+.panel {
+  background: rgba(30, 30, 30, 0.92);
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: left;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.label {
+  font-size: 0.95rem;
+  color: #ddd;
+}
+
 .input-field,
 .file-input {
+  width: 100%;
   padding: 12px;
   font-size: 1rem;
-  border: none;
   border-radius: 8px;
-  text-align: center;
+  text-align: left;
   background: #222;
   color: #fff;
   border: 1px solid #ff4747;
+}
+
+.text-area {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .file-input {
   cursor: pointer;
 }
 
-/* Labels */
-.label {
-  font-size: 1rem;
-  color: #ddd;
-  text-align: left;
-  margin-bottom: 5px;
-}
-
-/* Buttons */
 .btn {
   width: 100%;
   padding: 12px;
@@ -164,30 +284,112 @@ h1 {
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
-  margin-top: 10px;
-  transition: 0.3s ease-in-out;
+  transition: 0.2s ease-in-out;
   font-weight: bold;
+  text-align: center;
+  text-decoration: none;
 }
 
-/* Primary Button */
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .primary {
   background: linear-gradient(135deg, #ff4747 0%, #ff1616 100%);
   color: white;
-  box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.6);
+  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.6);
 }
 
-.primary:hover {
-  background: linear-gradient(135deg, #ff1616 0%, #cc0000 100%);
-}
-
-/* Secondary Button */
-.secondary {
+.secondary,
+.small {
   background: linear-gradient(135deg, #4a90e2 0%, #2455a5 100%);
   color: white;
-  box-shadow: 0px 4px 10px rgba(74, 144, 226, 0.5);
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.5);
 }
 
-.secondary:hover {
-  background: linear-gradient(135deg, #2455a5 0%, #123a70 100%);
+.small {
+  width: auto;
+  min-width: 110px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+
+.vote {
+  background: #2f2f2f;
+  color: white;
+  border: 1px solid #666;
+  box-shadow: none;
+}
+
+.status-message {
+  line-height: 1.4;
+  text-align: left;
+}
+
+.success {
+  color: #8df5a6;
+}
+
+.error {
+  color: #ff8c8c;
+}
+
+.submission-result,
+.submission-item,
+.empty-state {
+  background: rgba(12, 12, 12, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.submission-result p,
+.submission-item p {
+  margin: 6px 0;
+  word-break: break-word;
+}
+
+.status-pill {
+  color: #8df5a6;
+}
+
+.hint,
+.meta {
+  color: #bbb;
+  font-size: 0.92rem;
+}
+
+.submission-header,
+.vote-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.submission-header {
+  color: #ffb0b0;
+}
+
+.vote-actions {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .content-grid {
+    grid-template-columns: minmax(280px, 520px);
+  }
+
+  .submission-header,
+  .vote-actions,
+  .section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .small {
+    width: 100%;
+  }
 }
 </style>

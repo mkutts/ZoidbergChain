@@ -45,7 +45,33 @@ def test_evaluate_approved_submission_enters_mint_queue(blockchain, submission_i
     body = response.json()
     assert body["evaluation"]["status"] == APPROVED
     assert body["submission"]["status"] == "queued"
+    assert body["certificate"]["submission_id"] == submission.submission_id
+    assert blockchain.get_originality_certificate_for_submission(submission.submission_id) is not None
     assert client.get("/mint-queue").json()["mint_queue"][0]["submission_id"] == submission.submission_id
+
+
+def test_repeated_evaluation_does_not_create_duplicate_certificate(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+    )
+
+    first_response = client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+    second_response = client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 400
+    assert second_response.json()["detail"] == "Only pending submissions can be evaluated."
+    assert len(blockchain.originality_certificates) == 1
 
 
 def test_evaluate_rejected_submission_stays_out_of_mint_queue(blockchain, submission_image, wallets):
@@ -64,6 +90,8 @@ def test_evaluate_rejected_submission_stays_out_of_mint_queue(blockchain, submis
 
     assert response.status_code == 200
     assert response.json()["submission"]["status"] == REJECTED
+    assert response.json()["certificate"] is None
+    assert blockchain.get_originality_certificate_for_submission(submission.submission_id) is None
     assert client.get("/mint-queue").json() == {"mint_queue": []}
 
 
@@ -95,6 +123,71 @@ def test_hard_rejected_submission_cannot_be_evaluated_or_minted(blockchain, subm
     assert mint_response.status_code == 400
     assert mint_response.json()["detail"] == "Hard rejected submissions cannot be minted."
     assert submission.status == HARD_REJECTED
+    assert blockchain.get_originality_certificate_for_submission(submission.submission_id) is None
+
+
+def test_certificate_lookup_by_submission_id_works(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+    )
+    evaluate_response = client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    response = client.get(f"/submissions/{submission.submission_id}/certificate")
+
+    assert response.status_code == 200
+    assert response.json()["certificate"] == evaluate_response.json()["certificate"]
+
+
+def test_certificate_lookup_by_certificate_id_works(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+    )
+    evaluate_response = client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+    certificate_id = evaluate_response.json()["certificate"]["certificate_id"]
+
+    response = client.get(f"/certificates/{certificate_id}")
+
+    assert response.status_code == 200
+    assert response.json()["certificate"]["certificate_id"] == certificate_id
+
+
+def test_pending_submission_certificate_lookup_returns_clear_404(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+
+    response = client.get(f"/submissions/{submission.submission_id}/certificate")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        f"Originality certificate not found for submission: {submission.submission_id}"
+    )
+
+
+def test_missing_certificate_id_returns_clear_404(blockchain):
+    client = _client(blockchain)
+
+    response = client.get("/certificates/missing-certificate")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Originality certificate not found: missing-certificate"
 
 
 def test_mint_queued_submission_creates_block_and_marks_minted(blockchain, submission_image, wallets):

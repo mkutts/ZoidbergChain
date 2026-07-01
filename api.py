@@ -559,6 +559,32 @@ async def get_submission(submission_id: str):
     return {"submission": submission.to_dict()}
 
 
+@app.get("/submissions/{submission_id}/certificate")
+async def get_submission_certificate(submission_id: str):
+    submission = blockchain.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
+
+    certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+    if not certificate:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Originality certificate not found for submission: {submission_id}",
+        )
+    return {"certificate": certificate.to_dict()}
+
+
+@app.get("/certificates/{certificate_id}")
+async def get_certificate(certificate_id: str):
+    certificate = blockchain.get_originality_certificate(certificate_id)
+    if not certificate:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Originality certificate not found: {certificate_id}",
+        )
+    return {"certificate": certificate.to_dict()}
+
+
 @app.post("/submissions/{submission_id}/broadcast")
 async def broadcast_submission(submission_id: str):
     submission = blockchain.get_submission(submission_id)
@@ -663,6 +689,7 @@ async def evaluate_submission(
         if submission.status == APPROVED:
             queued_submission = blockchain.add_to_mint_queue(submission_id)
         blockchain.save_blockchain()
+        certificate = blockchain.get_originality_certificate_for_submission(submission_id)
     except ValueError as e:
         message = str(e)
         if message.startswith("Submission not found"):
@@ -673,6 +700,7 @@ async def evaluate_submission(
         "message": "Submission evaluated successfully.",
         "evaluation": evaluation,
         "submission": (queued_submission or submission).to_dict(),
+        "certificate": certificate.to_dict() if certificate else None,
     }
 
 @app.post("/add_block")

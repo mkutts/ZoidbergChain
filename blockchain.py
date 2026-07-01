@@ -23,11 +23,14 @@ from config import (
     COIN_NAME,
     MEME_BLOCK_REWARD,
     MIN_VOTE_FLOOR,
+    NETWORK_NAME,
+    NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     REWARD_POOL_SUPPLY,
     TOTAL_SUPPLY,
     VOTING_WINDOW_HOURS,
 )
+from originality_certificate import OriginalityCertificate
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 class Blockchain:
@@ -42,6 +45,7 @@ class Blockchain:
         self.submissions = []  # Submitted content waiting for review or minting
         self.mint_queue = []  # Approved submissions waiting to be minted
         self.votes = []  # Recorded content votes
+        self.originality_certificates = []  # Community approval certificates
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
 
@@ -89,6 +93,10 @@ class Blockchain:
                 "submissions": [submission.to_dict() for submission in self.submissions],
                 "mint_queue": self.mint_queue,
                 "votes": self.votes,
+                "originality_certificates": [
+                    certificate.to_dict()
+                    for certificate in self.originality_certificates
+                ],
                 "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()}  # ✅ Convert wallets to dicts
             }, f, indent=4)
         print("✅ Debug: Blockchain and wallets saved successfully.")
@@ -124,6 +132,10 @@ class Blockchain:
                     ]
                     self.mint_queue = loaded_data.get("mint_queue", [])
                     self.votes = loaded_data.get("votes", [])
+                    self.originality_certificates = [
+                        OriginalityCertificate.from_dict(certificate_data)
+                        for certificate_data in loaded_data.get("originality_certificates", [])
+                    ]
 
                 else:
                     print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
@@ -352,9 +364,6 @@ class Blockchain:
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
 
-        if submission.status == HARD_REJECTED:
-            raise ValueError("Hard rejected submissions cannot receive votes.")
-
         if vote_type not in VOTE_TYPES:
             raise ValueError(f"Invalid vote type: {vote_type}")
 
@@ -363,6 +372,9 @@ class Blockchain:
 
         if any(vote.get("submission_id") == submission_id and vote.get("voter") == voter for vote in self.votes):
             raise ValueError("Wallet has already voted on this submission.")
+
+        if self.is_submission_voting_locked(submission):
+            raise ValueError("Finalized or certified submissions cannot receive votes.")
 
         vote = {
             "voter": voter,
@@ -394,6 +406,55 @@ class Blockchain:
             },
             "approval_percentage": approval_percentage,
         }
+
+    def is_submission_voting_locked(self, submission):
+        return (
+            submission.status in {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
+            or self.get_originality_certificate_for_submission(submission.submission_id) is not None
+        )
+
+    def get_originality_certificate(self, certificate_id):
+        for certificate in self.originality_certificates:
+            if certificate.certificate_id == certificate_id:
+                return certificate
+        return None
+
+    def get_originality_certificate_for_submission(self, submission_id):
+        for certificate in self.originality_certificates:
+            if certificate.submission_id == submission_id:
+                return certificate
+        return None
+
+    def create_originality_certificate(
+        self,
+        submission_id,
+        approved_at=None,
+        network_name=NETWORK_NAME,
+        issuing_node_id=NODE_ID,
+    ):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+        if submission.status not in {APPROVED, QUEUED}:
+            raise ValueError("Only approved unminted submissions can receive originality certificates.")
+
+        existing_certificate = self.get_originality_certificate_for_submission(submission_id)
+        if existing_certificate:
+            return existing_certificate
+
+        vote_summary = self.get_submission_votes(submission_id)
+        approved_at = approved_at if approved_at is not None else time.time()
+        certificate = OriginalityCertificate.from_approved_submission(
+            submission=submission,
+            votes=vote_summary["votes"],
+            minimum_votes_required=self.get_voting_threshold(now=approved_at)["minimum_votes"],
+            approved_at=approved_at,
+            network_name=network_name,
+            issuing_node_id=issuing_node_id,
+        )
+        self.originality_certificates.append(certificate)
+        self.save_blockchain()
+        return certificate
 
     def evaluate_submission(self, submission_id, automated_originality_passed=None, now=None):
         submission = self.get_submission(submission_id)
@@ -440,6 +501,8 @@ class Blockchain:
 
         if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
             submission.transition_to(APPROVED)
+            certificate = self.create_originality_certificate(submission_id, approved_at=now)
+            result["certificate_id"] = certificate.certificate_id
             result["reason"] = "approved_by_vote"
         else:
             submission.transition_to(REJECTED)

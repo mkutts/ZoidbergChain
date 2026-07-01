@@ -21,6 +21,15 @@ def test_duplicate_votes_fail(blockchain, submission, wallets):
         blockchain.cast_submission_vote(submission.submission_id, voter, VOTE_NOT_ORIGINAL)
 
 
+def test_matching_duplicate_vote_cannot_be_recast(blockchain, submission, wallets):
+    voter = wallets["contributor_one"].public_key
+
+    blockchain.cast_submission_vote(submission.submission_id, voter, VOTE_ORIGINAL)
+
+    with pytest.raises(ValueError, match="already voted"):
+        blockchain.cast_submission_vote(submission.submission_id, voter, VOTE_ORIGINAL)
+
+
 def test_creator_cannot_vote(blockchain, submission, wallets):
     with pytest.raises(ValueError, match="creator cannot vote"):
         blockchain.cast_submission_vote(
@@ -79,3 +88,32 @@ def test_vote_storage(blockchain, submission, wallets):
 
     vote_summary = blockchain.get_submission_votes(submission.submission_id)
     assert vote_summary["votes"] == [vote]
+
+
+def test_no_votes_allowed_after_approval(blockchain, submission, wallets):
+    submission.transition_to("approved")
+
+    with pytest.raises(ValueError, match="cannot receive votes"):
+        blockchain.cast_submission_vote(
+            submission.submission_id,
+            wallets["contributor_one"].public_key,
+            VOTE_ORIGINAL,
+        )
+
+
+def test_no_votes_allowed_after_certificate_exists(blockchain, submission, wallets):
+    blockchain.cast_submission_vote(
+        submission.submission_id,
+        wallets["contributor_one"].public_key,
+        VOTE_ORIGINAL,
+    )
+    submission.transition_to("approved")
+    blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
+    submission.status = "pending"
+
+    with pytest.raises(ValueError, match="cannot receive votes"):
+        blockchain.cast_submission_vote(
+            submission.submission_id,
+            wallets["contributor_two"].public_key,
+            VOTE_NOT_ORIGINAL,
+        )

@@ -2,7 +2,7 @@ import requests
 from fastapi.testclient import TestClient
 
 from peers import PeerStore
-from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
+from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
 
 
 def _client(blockchain):
@@ -167,6 +167,38 @@ def test_duplicate_matching_peer_vote_is_idempotent(blockchain, submission_image
     assert blockchain.votes == [existing_vote]
 
 
+def test_duplicate_matching_peer_vote_after_certificate_is_idempotent(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    existing_vote = blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=wallets["contributor_one"].public_key,
+        vote_type=VOTE_ORIGINAL,
+        created_at=100.0,
+    )
+    submission.transition_to(APPROVED)
+    blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
+
+    response = client.post(
+        "/peers/votes/receive",
+        json=_vote_payload(
+            submission.submission_id,
+            wallets["contributor_one"].public_key,
+            vote_type=VOTE_ORIGINAL,
+            created_at=200.0,
+        ),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["action"] == "duplicate"
+    assert blockchain.votes == [existing_vote]
+
+
 def test_duplicate_conflicting_peer_vote_is_rejected(blockchain, submission_image, wallets):
     client = _client(blockchain)
     _register_peer()
@@ -190,6 +222,32 @@ def test_duplicate_conflicting_peer_vote_is_rejected(blockchain, submission_imag
     assert response.json()["detail"] == "Wallet has already voted differently on this submission."
     assert len(blockchain.votes) == 1
     assert blockchain.votes[0]["vote_type"] == VOTE_ORIGINAL
+
+
+def test_peer_vote_rejected_after_certificate_exists(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    _register_peer()
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=wallets["contributor_one"].public_key,
+        vote_type=VOTE_ORIGINAL,
+    )
+    submission.transition_to(APPROVED)
+    blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
+
+    response = client.post(
+        "/peers/votes/receive",
+        json=_vote_payload(
+            submission.submission_id,
+            wallets["contributor_two"].public_key,
+            vote_type=VOTE_NOT_ORIGINAL,
+        ),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Finalized or certified submissions cannot receive votes."
+    assert len(blockchain.votes) == 1
 
 
 def test_creator_cannot_vote_through_peer_endpoint(blockchain, submission_image, wallets):

@@ -1,0 +1,163 @@
+import hashlib
+import json
+import time
+from dataclasses import dataclass, field
+
+from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
+
+
+def _canonical_json(data):
+    return json.dumps(data, sort_keys=True, separators=(",", ":"))
+
+
+def _canonical_vote(vote):
+    return {
+        "created_at": vote.get("created_at"),
+        "submission_id": vote.get("submission_id"),
+        "vote_type": vote.get("vote_type"),
+        "voter": vote.get("voter"),
+    }
+
+
+def calculate_vote_hash(votes):
+    canonical_votes = sorted(
+        (_canonical_vote(vote) for vote in votes),
+        key=lambda vote: (
+            str(vote.get("submission_id")),
+            str(vote.get("voter")),
+            str(vote.get("vote_type")),
+            str(vote.get("created_at")),
+        ),
+    )
+    return hashlib.sha256(_canonical_json(canonical_votes).encode("utf-8")).hexdigest()
+
+
+def calculate_certificate_id(certificate_fields):
+    core_fields = {
+        "approval_percentage": certificate_fields["approval_percentage"],
+        "content_hash": certificate_fields["content_hash"],
+        "creator_wallet": certificate_fields["creator_wallet"],
+        "decisive_vote_total": certificate_fields["decisive_vote_total"],
+        "issuing_node_id": certificate_fields["issuing_node_id"],
+        "minimum_votes_required": certificate_fields["minimum_votes_required"],
+        "network_name": certificate_fields["network_name"],
+        "not_original_votes": certificate_fields["not_original_votes"],
+        "original_votes": certificate_fields["original_votes"],
+        "submission_id": certificate_fields["submission_id"],
+        "unsure_votes": certificate_fields["unsure_votes"],
+        "vote_hash": certificate_fields["vote_hash"],
+        "vote_total": certificate_fields["vote_total"],
+    }
+    return hashlib.sha256(_canonical_json(core_fields).encode("utf-8")).hexdigest()
+
+
+@dataclass
+class OriginalityCertificate:
+    submission_id: str
+    content_hash: str
+    creator_wallet: str
+    vote_total: int
+    decisive_vote_total: int
+    original_votes: int
+    not_original_votes: int
+    unsure_votes: int
+    approval_percentage: float
+    minimum_votes_required: int
+    approved_at: float
+    network_name: str
+    issuing_node_id: str
+    vote_hash: str
+    certificate_id: str = field(default="")
+
+    def __post_init__(self):
+        if not self.certificate_id:
+            self.certificate_id = calculate_certificate_id(self.to_core_dict())
+
+    @classmethod
+    def from_approved_submission(
+        cls,
+        submission,
+        votes,
+        minimum_votes_required,
+        network_name,
+        issuing_node_id,
+        approved_at=None,
+    ):
+        original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_ORIGINAL)
+        not_original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_NOT_ORIGINAL)
+        unsure_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_UNSURE)
+        decisive_vote_total = original_votes + not_original_votes
+        approval_percentage = original_votes / decisive_vote_total if decisive_vote_total else 0
+
+        return cls(
+            submission_id=submission.submission_id,
+            content_hash=submission.content_hash,
+            creator_wallet=submission.submitter,
+            vote_total=len(votes),
+            decisive_vote_total=decisive_vote_total,
+            original_votes=original_votes,
+            not_original_votes=not_original_votes,
+            unsure_votes=unsure_votes,
+            approval_percentage=approval_percentage,
+            minimum_votes_required=minimum_votes_required,
+            approved_at=approved_at if approved_at is not None else time.time(),
+            network_name=network_name,
+            issuing_node_id=issuing_node_id,
+            vote_hash=calculate_vote_hash(votes),
+        )
+
+    def to_core_dict(self):
+        return {
+            "submission_id": self.submission_id,
+            "content_hash": self.content_hash,
+            "creator_wallet": self.creator_wallet,
+            "vote_total": self.vote_total,
+            "decisive_vote_total": self.decisive_vote_total,
+            "original_votes": self.original_votes,
+            "not_original_votes": self.not_original_votes,
+            "unsure_votes": self.unsure_votes,
+            "approval_percentage": self.approval_percentage,
+            "minimum_votes_required": self.minimum_votes_required,
+            "network_name": self.network_name,
+            "issuing_node_id": self.issuing_node_id,
+            "vote_hash": self.vote_hash,
+        }
+
+    def to_dict(self):
+        return {
+            "certificate_id": self.certificate_id,
+            "submission_id": self.submission_id,
+            "content_hash": self.content_hash,
+            "creator_wallet": self.creator_wallet,
+            "vote_total": self.vote_total,
+            "decisive_vote_total": self.decisive_vote_total,
+            "original_votes": self.original_votes,
+            "not_original_votes": self.not_original_votes,
+            "unsure_votes": self.unsure_votes,
+            "approval_percentage": self.approval_percentage,
+            "minimum_votes_required": self.minimum_votes_required,
+            "approved_at": self.approved_at,
+            "network_name": self.network_name,
+            "issuing_node_id": self.issuing_node_id,
+            "vote_hash": self.vote_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            certificate_id=data.get("certificate_id", ""),
+            submission_id=data["submission_id"],
+            content_hash=data["content_hash"],
+            creator_wallet=data["creator_wallet"],
+            vote_total=data["vote_total"],
+            decisive_vote_total=data["decisive_vote_total"],
+            original_votes=data["original_votes"],
+            not_original_votes=data["not_original_votes"],
+            unsure_votes=data["unsure_votes"],
+            approval_percentage=data["approval_percentage"],
+            minimum_votes_required=data["minimum_votes_required"],
+            approved_at=data["approved_at"],
+            network_name=data["network_name"],
+            issuing_node_id=data["issuing_node_id"],
+            vote_hash=data["vote_hash"],
+        )

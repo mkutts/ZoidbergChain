@@ -3,6 +3,18 @@ import pytest
 from submission import APPROVED, MINTED, QUEUED
 
 
+def _certify_submission(blockchain, submission):
+    for vote_index in range(5):
+        blockchain.cast_submission_vote(
+            submission_id=submission.submission_id,
+            voter=f"mint-voter-{submission.submission_id}-{vote_index}",
+            vote_type="original",
+            created_at=1_000_000 + vote_index,
+        )
+    submission.transition_to(APPROVED)
+    blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_100)
+
+
 @pytest.fixture
 def approved_submissions(blockchain, submission_image, wallets):
     submissions = []
@@ -12,7 +24,7 @@ def approved_submissions(blockchain, submission_image, wallets):
             text_content=f"Mint queue content {index}",
             submitter=wallets["owner"].public_key,
         )
-        submission.transition_to(APPROVED)
+        _certify_submission(blockchain, submission)
         submissions.append(submission)
     return submissions
 

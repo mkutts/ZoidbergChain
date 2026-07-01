@@ -27,6 +27,16 @@ def _cast_votes(blockchain, submission_id, vote_types):
         )
 
 
+def _certify_submission(blockchain, submission):
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+    )
+    submission.transition_to(APPROVED)
+    return blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
+
+
 def test_evaluate_approved_submission_enters_mint_queue(blockchain, submission_image, wallets):
     client = _client(blockchain)
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
@@ -98,7 +108,7 @@ def test_evaluate_rejected_submission_stays_out_of_mint_queue(blockchain, submis
 def test_approved_unminted_submission_appears_in_mint_queue(blockchain, submission_image, wallets):
     client = _client(blockchain)
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
-    submission.transition_to(APPROVED)
+    _certify_submission(blockchain, submission)
 
     response = client.get("/mint-queue")
 
@@ -193,7 +203,7 @@ def test_missing_certificate_id_returns_clear_404(blockchain):
 def test_mint_queued_submission_creates_block_and_marks_minted(blockchain, submission_image, wallets):
     client = _client(blockchain)
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
-    submission.transition_to(APPROVED)
+    certificate = _certify_submission(blockchain, submission)
     blockchain.add_to_mint_queue(submission.submission_id)
     starting_chain_length = len(blockchain.chain)
 
@@ -205,7 +215,23 @@ def test_mint_queued_submission_creates_block_and_marks_minted(blockchain, submi
     assert body["submission"]["status"] == MINTED
     assert len(blockchain.chain) == starting_chain_length + 1
     assert body["block"]["meme"]["text"] == submission.text_content
+    assert body["block"]["certificate_id"] == certificate.certificate_id
+    assert body["block"]["submission_id"] == submission.submission_id
+    assert body["block"]["content_hash"] == submission.content_hash
     assert client.get("/mint-queue").json() == {"mint_queue": []}
+
+
+def test_approved_submission_without_certificate_cannot_mint(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    submission.transition_to(APPROVED)
+
+    response = client.post(f"/mint-queue/{submission.submission_id}/mint")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Originality certificate is required before minting."
+    assert submission.status == APPROVED
+    assert len(blockchain.chain) == 1
 
 
 def test_mint_rejects_pending_rejected_and_already_minted_submissions(blockchain, submission_image, wallets):
@@ -214,7 +240,7 @@ def test_mint_rejects_pending_rejected_and_already_minted_submissions(blockchain
     rejected = _submission(blockchain, submission_image, wallets["owner"].public_key, "Rejected")
     rejected.transition_to(REJECTED)
     minted = _submission(blockchain, submission_image, wallets["owner"].public_key, "Minted")
-    minted.transition_to(APPROVED)
+    _certify_submission(blockchain, minted)
     blockchain.add_to_mint_queue(minted.submission_id)
     assert client.post(f"/mint-queue/{minted.submission_id}/mint").status_code == 200
 

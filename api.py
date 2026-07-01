@@ -131,8 +131,12 @@ def sync_approved_submissions_to_mint_queue():
     queued_any = False
     for submission in blockchain.submissions:
         if submission.status == APPROVED and submission.submission_id not in blockchain.mint_queue:
-            blockchain.add_to_mint_queue(submission.submission_id)
-            queued_any = True
+            try:
+                blockchain.add_to_mint_queue(submission.submission_id)
+                queued_any = True
+            except ValueError as e:
+                if "certificate" not in str(e).lower():
+                    raise
     return queued_any
 
 

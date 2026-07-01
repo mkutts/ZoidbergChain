@@ -682,6 +682,15 @@ def _normalize_block_payload(block_payload):
         miner=miner.strip(),
         meme=block_payload["meme"],
         hash=block_hash.strip(),
+        submission_id=block_payload.get("submission_id"),
+        certificate_id=block_payload.get("certificate_id"),
+        content_hash=block_payload.get("content_hash"),
+        creator_wallet=block_payload.get("creator_wallet"),
+        vote_hash=block_payload.get("vote_hash"),
+        approval_percentage=block_payload.get("approval_percentage"),
+        decisive_vote_total=block_payload.get("decisive_vote_total"),
+        minimum_votes_required=block_payload.get("minimum_votes_required"),
+        approved_at=block_payload.get("approved_at"),
     )
 
 

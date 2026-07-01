@@ -1,6 +1,6 @@
 import pytest
 
-from submission import APPROVED, HARD_REJECTED, QUEUED, VOTE_ORIGINAL
+from submission import APPROVED, HARD_REJECTED, QUEUED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 
 
 @pytest.fixture
@@ -59,15 +59,23 @@ def test_hard_reject_reason_storage(blockchain, submission):
 
 
 def test_normal_submissions_unaffected(blockchain, submission, wallets):
-    blockchain.cast_submission_vote(
-        submission.submission_id,
-        wallets["contributor_one"].public_key,
+    for index, vote_type in enumerate([
         VOTE_ORIGINAL,
-    )
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_NOT_ORIGINAL,
+    ]):
+        blockchain.cast_submission_vote(
+            submission.submission_id,
+            f"hard-rejection-voter-{index}",
+            vote_type,
+        )
     submission.transition_to(APPROVED)
+    blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
 
     queued_submission = blockchain.add_to_mint_queue(submission.submission_id)
 
-    assert len(blockchain.votes) == 1
+    assert len(blockchain.votes) == 5
     assert queued_submission.status == QUEUED
     assert blockchain.mint_queue == [submission.submission_id]

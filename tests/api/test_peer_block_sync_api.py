@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from block import Block
 from peers import PeerStore
-from submission import APPROVED, MINTED
+from submission import APPROVED, MINTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 
 
@@ -55,6 +55,24 @@ def _submission(blockchain, submission_image, submitter):
         text_content="Peer block submission",
         submitter=submitter,
     )
+
+
+def _certify_submission(blockchain, submission):
+    for index, vote_type in enumerate([
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_NOT_ORIGINAL,
+    ]):
+        blockchain.cast_submission_vote(
+            submission_id=submission.submission_id,
+            voter=f"peer-block-voter-{index}",
+            vote_type=vote_type,
+            created_at=1_000_000 + index,
+        )
+    submission.transition_to(APPROVED)
+    return blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_100)
 
 
 def test_receiving_valid_peer_block_extends_chain(blockchain, wallets):
@@ -180,7 +198,7 @@ def test_local_mint_broadcasts_block_without_failing_if_one_peer_is_down(
     _register_peer("peer-up", "http://peer-up.test")
     _register_peer("peer-down", "http://peer-down.test")
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
-    submission.transition_to(APPROVED)
+    _certify_submission(blockchain, submission)
     blockchain.add_to_mint_queue(submission.submission_id)
     calls = []
 

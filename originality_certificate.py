@@ -1,9 +1,11 @@
 import hashlib
 import json
+import math
 import time
 from dataclasses import dataclass, field
 
-from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
+from config import NETWORK_NAME, ORIGINALITY_APPROVAL_THRESHOLD
+from submission import APPROVED, MINTED, QUEUED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
 
 
 def _canonical_json(data):
@@ -49,6 +51,60 @@ def calculate_certificate_id(certificate_fields):
         "vote_total": certificate_fields["vote_total"],
     }
     return hashlib.sha256(_canonical_json(core_fields).encode("utf-8")).hexdigest()
+
+
+def validate_certificate_for_submission(
+    certificate,
+    submission,
+    network_name=NETWORK_NAME,
+    approval_threshold=ORIGINALITY_APPROVAL_THRESHOLD,
+):
+    if certificate is None:
+        raise ValueError("Originality certificate is required before minting.")
+    if submission is None:
+        raise ValueError("Submission is required to validate an originality certificate.")
+    if certificate.submission_id != submission.submission_id:
+        raise ValueError("Originality certificate submission_id does not match submission.")
+    if certificate.content_hash != submission.content_hash:
+        raise ValueError("Originality certificate content_hash does not match submission.")
+    if certificate.creator_wallet != submission.submitter:
+        raise ValueError("Originality certificate creator_wallet does not match submission.")
+    if certificate.network_name != network_name:
+        raise ValueError("Originality certificate belongs to a different network.")
+    if not certificate.vote_hash:
+        raise ValueError("Originality certificate vote_hash is required.")
+    if submission.status not in {APPROVED, QUEUED, MINTED}:
+        raise ValueError("Originality certificate must reference an approved submission.")
+    if certificate.approval_percentage < approval_threshold:
+        raise ValueError("Originality certificate approval percentage is below the required threshold.")
+
+    vote_counts = [
+        certificate.original_votes,
+        certificate.not_original_votes,
+        certificate.unsure_votes,
+        certificate.vote_total,
+        certificate.decisive_vote_total,
+        certificate.minimum_votes_required,
+    ]
+    if any(not isinstance(count, int) or count < 0 for count in vote_counts):
+        raise ValueError("Originality certificate vote totals must be non-negative integers.")
+    if certificate.vote_total != (
+        certificate.original_votes
+        + certificate.not_original_votes
+        + certificate.unsure_votes
+    ):
+        raise ValueError("Originality certificate vote_total is inconsistent.")
+    if certificate.decisive_vote_total != certificate.original_votes + certificate.not_original_votes:
+        raise ValueError("Originality certificate decisive_vote_total is inconsistent.")
+    if certificate.decisive_vote_total <= 0:
+        raise ValueError("Originality certificate must include decisive votes.")
+    expected_approval = certificate.original_votes / certificate.decisive_vote_total
+    if not math.isclose(certificate.approval_percentage, expected_approval):
+        raise ValueError("Originality certificate approval percentage is inconsistent.")
+    if certificate.certificate_id != calculate_certificate_id(certificate.to_core_dict()):
+        raise ValueError("Originality certificate_id does not match certificate contents.")
+
+    return True
 
 
 @dataclass

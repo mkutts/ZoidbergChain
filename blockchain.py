@@ -30,7 +30,7 @@ from config import (
     TOTAL_SUPPLY,
     VOTING_WINDOW_HOURS,
 )
-from originality_certificate import OriginalityCertificate
+from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 class Blockchain:
@@ -87,6 +87,7 @@ class Blockchain:
                         "miner": block.miner,
                         "meme": block.meme,
                         "hash": block.hash,
+                        **block.certificate_metadata(),
                     }
                     for block in self.chain
                 ],
@@ -118,6 +119,15 @@ class Blockchain:
                             miner=block_data["miner"],
                             meme=block_data.get("meme", {}),
                             hash=block_data.get("hash"),
+                            submission_id=block_data.get("submission_id"),
+                            certificate_id=block_data.get("certificate_id"),
+                            content_hash=block_data.get("content_hash"),
+                            creator_wallet=block_data.get("creator_wallet"),
+                            vote_hash=block_data.get("vote_hash"),
+                            approval_percentage=block_data.get("approval_percentage"),
+                            decisive_vote_total=block_data.get("decisive_vote_total"),
+                            minimum_votes_required=block_data.get("minimum_votes_required"),
+                            approved_at=block_data.get("approved_at"),
                         )
                         for block_data in loaded_data["chain"]
                     ]
@@ -425,6 +435,24 @@ class Blockchain:
                 return certificate
         return None
 
+    def certificate_block_metadata(self, certificate):
+        return {
+            "submission_id": certificate.submission_id,
+            "certificate_id": certificate.certificate_id,
+            "content_hash": certificate.content_hash,
+            "creator_wallet": certificate.creator_wallet,
+            "vote_hash": certificate.vote_hash,
+            "approval_percentage": certificate.approval_percentage,
+            "decisive_vote_total": certificate.decisive_vote_total,
+            "minimum_votes_required": certificate.minimum_votes_required,
+            "approved_at": certificate.approved_at,
+        }
+
+    def require_valid_certificate_for_submission(self, submission):
+        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
+        validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        return certificate
+
     def create_originality_certificate(
         self,
         submission_id,
@@ -558,6 +586,7 @@ class Blockchain:
             raise ValueError("Hard rejected submissions cannot enter the mint queue.")
         if submission.status != APPROVED:
             raise ValueError("Only approved submissions can be added to the mint queue.")
+        self.require_valid_certificate_for_submission(submission)
         if submission_id in self.mint_queue:
             raise ValueError("Submission is already in the mint queue.")
 
@@ -570,7 +599,11 @@ class Blockchain:
         for submission_id in self.mint_queue:
             submission = self.get_submission(submission_id)
             if submission and submission.status == QUEUED:
-                queued_submissions.append(submission.to_dict())
+                try:
+                    self.require_valid_certificate_for_submission(submission)
+                    queued_submissions.append(submission.to_dict())
+                except ValueError:
+                    continue
 
         return queued_submissions
 
@@ -584,6 +617,7 @@ class Blockchain:
             raise ValueError("Hard rejected submissions cannot become blocks.")
         if not submission or submission.status != QUEUED:
             raise ValueError(f"Invalid mint queue entry: {submission_id}")
+        certificate = self.require_valid_certificate_for_submission(submission)
 
         block_added = self.add_block(
             image_path=submission.image_path,
@@ -591,6 +625,7 @@ class Blockchain:
             miner=miner or submission.submitter,
             max_block_size_kb=max_block_size_kb,
             validate_meme=validate_meme,
+            certificate=certificate,
         )
         if block_added:
             self.mint_queue.pop(0)
@@ -613,7 +648,16 @@ class Blockchain:
         removed_entries = []
         for submission_id in self.mint_queue:
             submission = self.get_submission(submission_id)
-            if submission and submission.status == QUEUED:
+            try:
+                certificate_ready = (
+                    submission
+                    and submission.status == QUEUED
+                    and self.require_valid_certificate_for_submission(submission)
+                )
+            except ValueError:
+                certificate_ready = False
+
+            if certificate_ready:
                 valid_queue.append(submission_id)
             else:
                 removed_entries.append(submission_id)
@@ -621,7 +665,15 @@ class Blockchain:
         self.mint_queue = valid_queue
         return removed_entries
 
-    def add_block(self, image_path, text_content=None, miner=None, max_block_size_kb=500, validate_meme=True):
+    def add_block(
+        self,
+        image_path,
+        text_content=None,
+        miner=None,
+        max_block_size_kb=500,
+        validate_meme=True,
+        certificate=None,
+    ):
         """
         Add a block with tip distribution, enforce block size limit, and validate memes.
         """
@@ -746,6 +798,7 @@ class Blockchain:
             transactions=[reward_transaction] + valid_transactions,
             meme={"encoded_image": meme_encoded, "text": text_content},
             miner=miner,
+            **(self.certificate_block_metadata(certificate) if certificate else {}),
         )
         self.chain.append(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
@@ -765,6 +818,71 @@ class Blockchain:
     def get_latest_block(self):
         return self.chain[-1]
 
+    def extract_block_certificate_metadata(self, block_dict):
+        fields = [
+            "submission_id",
+            "certificate_id",
+            "content_hash",
+            "creator_wallet",
+            "vote_hash",
+            "approval_percentage",
+            "decisive_vote_total",
+            "minimum_votes_required",
+            "approved_at",
+        ]
+        meme = block_dict.get("meme") if isinstance(block_dict.get("meme"), dict) else {}
+        metadata = {}
+        for field_name in fields:
+            if block_dict.get(field_name) is not None:
+                metadata[field_name] = block_dict.get(field_name)
+            elif meme.get(field_name) is not None:
+                metadata[field_name] = meme.get(field_name)
+        return metadata
+
+    def validate_block_certificate_metadata(self, block_dict):
+        if block_dict.get("index") == 0:
+            return True
+
+        metadata = self.extract_block_certificate_metadata(block_dict)
+        if not metadata:
+            return True
+
+        required_fields = [
+            "submission_id",
+            "certificate_id",
+            "content_hash",
+            "creator_wallet",
+            "vote_hash",
+            "approval_percentage",
+            "decisive_vote_total",
+            "minimum_votes_required",
+            "approved_at",
+        ]
+        for field_name in required_fields:
+            if field_name not in metadata:
+                raise ValueError(f"Block certificate metadata missing {field_name}.")
+
+        certificate = self.get_originality_certificate(metadata["certificate_id"])
+        if not certificate:
+            raise ValueError("Block references unknown originality certificate.")
+
+        if certificate.submission_id != metadata["submission_id"]:
+            raise ValueError("Block certificate_id does not match block submission_id.")
+        if certificate.content_hash != metadata["content_hash"]:
+            raise ValueError("Block certificate content_hash does not match block content_hash.")
+
+        submission = self.get_submission(metadata["submission_id"])
+        if not submission:
+            raise ValueError("Block references a certificate-backed submission that is not known locally.")
+        validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+
+        for field_name in required_fields:
+            certificate_value = getattr(certificate, field_name)
+            if metadata[field_name] != certificate_value:
+                raise ValueError(f"Block certificate metadata {field_name} does not match certificate.")
+
+        return True
+
     def is_chain_valid(self, chain):
         """Validate a given chain."""
         for i in range(1, len(chain)):
@@ -779,6 +897,12 @@ class Blockchain:
             # Validate the previous hash link
             if current_block["previous_hash"] != previous_block["hash"]:
                 print(f"Debug: Block {current_block['index']} previous hash does not match!")
+                return False
+
+            try:
+                self.validate_block_certificate_metadata(current_block)
+            except ValueError as e:
+                print(f"Debug: Block {current_block['index']} certificate metadata is invalid: {e}")
                 return False
 
         return True
@@ -857,7 +981,15 @@ class Blockchain:
         transaction_data = "".join(
             [f"{tx['sender']}{tx['recipient']}{tx['amount']}{tx['tip']}{tx['payload_size_kb']}{tx['signature']}" for tx in block_dict["transactions"]]
         )
-        block_string = f"{block_dict['index']}{block_dict['previous_hash']}{block_dict['timestamp']}{transaction_data}{block_dict['meme']}{block_dict['miner']}"
+        certificate_data = ""
+        certificate_metadata = self.extract_block_certificate_metadata(block_dict)
+        if certificate_metadata:
+            certificate_data = json.dumps(
+                certificate_metadata,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        block_string = f"{block_dict['index']}{block_dict['previous_hash']}{block_dict['timestamp']}{transaction_data}{block_dict['meme']}{block_dict['miner']}{certificate_data}"
         return hashlib.sha256(block_string.encode()).hexdigest()
     
     def is_valid_public_key(self, public_key):

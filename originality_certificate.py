@@ -4,7 +4,14 @@ import math
 import time
 from dataclasses import dataclass, field
 
-from config import NETWORK_NAME, ORIGINALITY_APPROVAL_THRESHOLD
+from config import (
+    APPROVAL_PERCENTAGE_WEIGHT,
+    BASE_ORIGINALITY_SCORE,
+    DECISIVE_VOTE_WEIGHT,
+    NETWORK_NAME,
+    ORIGINALITY_APPROVAL_THRESHOLD,
+    UNSURE_VOTE_WEIGHT,
+)
 from submission import APPROVED, MINTED, QUEUED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
 
 
@@ -53,6 +60,16 @@ def calculate_certificate_id(certificate_fields):
     return hashlib.sha256(_canonical_json(core_fields).encode("utf-8")).hexdigest()
 
 
+def calculate_originality_score(certificate):
+    score = (
+        BASE_ORIGINALITY_SCORE
+        + (certificate.decisive_vote_total * DECISIVE_VOTE_WEIGHT)
+        + (certificate.approval_percentage * APPROVAL_PERCENTAGE_WEIGHT)
+        + (certificate.unsure_votes * UNSURE_VOTE_WEIGHT)
+    )
+    return round(score, 8)
+
+
 def validate_certificate_for_submission(
     certificate,
     submission,
@@ -77,6 +94,10 @@ def validate_certificate_for_submission(
         raise ValueError("Originality certificate must reference an approved submission.")
     if certificate.approval_percentage < approval_threshold:
         raise ValueError("Originality certificate approval percentage is below the required threshold.")
+    if certificate.originality_score is None:
+        raise ValueError("Originality certificate originality_score is required.")
+    if certificate.originality_score != calculate_originality_score(certificate):
+        raise ValueError("Originality certificate originality_score is inconsistent.")
 
     vote_counts = [
         certificate.original_votes,
@@ -123,9 +144,12 @@ class OriginalityCertificate:
     network_name: str
     issuing_node_id: str
     vote_hash: str
+    originality_score: float | None = None
     certificate_id: str = field(default="")
 
     def __post_init__(self):
+        if self.originality_score is None:
+            self.originality_score = calculate_originality_score(self)
         if not self.certificate_id:
             self.certificate_id = calculate_certificate_id(self.to_core_dict())
 
@@ -196,6 +220,7 @@ class OriginalityCertificate:
             "network_name": self.network_name,
             "issuing_node_id": self.issuing_node_id,
             "vote_hash": self.vote_hash,
+            "originality_score": self.originality_score,
         }
 
     @classmethod
@@ -216,4 +241,5 @@ class OriginalityCertificate:
             network_name=data["network_name"],
             issuing_node_id=data["issuing_node_id"],
             vote_hash=data["vote_hash"],
+            originality_score=data.get("originality_score"),
         )

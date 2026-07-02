@@ -1,13 +1,17 @@
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
+    APPROVAL_PERCENTAGE_WEIGHT,
+    BASE_ORIGINALITY_SCORE,
     COIN_NAME,
+    DECISIVE_VOTE_WEIGHT,
     MEME_BLOCK_REWARD,
     MIN_VOTE_FLOOR,
     ORIGINALITY_APPROVAL_THRESHOLD,
     REWARD_POOL_SUPPLY,
     TICKER,
     TOTAL_SUPPLY,
+    UNSURE_VOTE_WEIGHT,
     VOTING_WINDOW_HOURS,
 )
 
@@ -47,3 +51,10 @@ def test_approval_threshold():
 
 def test_active_user_lookback():
     assert ACTIVE_USER_LOOKBACK_DAYS == 7
+
+
+def test_originality_scoring_weights():
+    assert BASE_ORIGINALITY_SCORE == 1.0
+    assert DECISIVE_VOTE_WEIGHT == 0.10
+    assert APPROVAL_PERCENTAGE_WEIGHT == 1.0
+    assert UNSURE_VOTE_WEIGHT == 0.0

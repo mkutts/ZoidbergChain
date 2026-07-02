@@ -20,6 +20,7 @@ class Block:
         decisive_vote_total=None,
         minimum_votes_required=None,
         approved_at=None,
+        originality_score=None,
     ):
         self.index = index
         self.previous_hash = previous_hash
@@ -36,6 +37,7 @@ class Block:
         self.decisive_vote_total = decisive_vote_total
         self.minimum_votes_required = minimum_votes_required
         self.approved_at = approved_at
+        self.originality_score = originality_score
         self.hash = hash or self.calculate_hash()
 
     def to_dict(self):
@@ -63,6 +65,7 @@ class Block:
             "decisive_vote_total": self.decisive_vote_total,
             "minimum_votes_required": self.minimum_votes_required,
             "approved_at": self.approved_at,
+            "originality_score": self.originality_score,
         }
         return {
             key: value

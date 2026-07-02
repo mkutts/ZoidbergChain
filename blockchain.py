@@ -128,6 +128,7 @@ class Blockchain:
                             decisive_vote_total=block_data.get("decisive_vote_total"),
                             minimum_votes_required=block_data.get("minimum_votes_required"),
                             approved_at=block_data.get("approved_at"),
+                            originality_score=block_data.get("originality_score"),
                         )
                         for block_data in loaded_data["chain"]
                     ]
@@ -446,6 +447,7 @@ class Blockchain:
             "decisive_vote_total": certificate.decisive_vote_total,
             "minimum_votes_required": certificate.minimum_votes_required,
             "approved_at": certificate.approved_at,
+            "originality_score": certificate.originality_score,
         }
 
     def require_valid_certificate_for_submission(self, submission):
@@ -829,6 +831,7 @@ class Blockchain:
             "decisive_vote_total",
             "minimum_votes_required",
             "approved_at",
+            "originality_score",
         ]
         meme = block_dict.get("meme") if isinstance(block_dict.get("meme"), dict) else {}
         metadata = {}
@@ -857,6 +860,7 @@ class Blockchain:
             "decisive_vote_total",
             "minimum_votes_required",
             "approved_at",
+            "originality_score",
         ]
         for field_name in required_fields:
             if field_name not in metadata:

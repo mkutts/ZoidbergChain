@@ -1,4 +1,4 @@
-from originality_certificate import OriginalityCertificate
+from originality_certificate import OriginalityCertificate, calculate_originality_score
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 
 
@@ -50,8 +50,14 @@ def test_block_validation_accepts_valid_certificate_backed_block(
     submission_image,
     wallets,
 ):
-    _mint_certificate_backed_block(blockchain, submission_image, wallets)
+    _submission, certificate, block = _mint_certificate_backed_block(
+        blockchain,
+        submission_image,
+        wallets,
+    )
 
+    assert block.originality_score == certificate.originality_score
+    assert block.originality_score == calculate_originality_score(certificate)
     assert blockchain.is_chain_valid([block.to_dict() for block in blockchain.chain]) is True
 
 
@@ -132,6 +138,42 @@ def test_block_validation_rejects_wrong_network_certificate(
     certificate.network_name = "wrong-network"
 
     assert blockchain.is_chain_valid([block.to_dict() for block in blockchain.chain]) is False
+
+
+def test_block_validation_rejects_missing_originality_score(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    _submission, _certificate, block = _mint_certificate_backed_block(
+        blockchain,
+        submission_image,
+        wallets,
+    )
+    block_dict = block.to_dict()
+    block_dict.pop("originality_score")
+
+    chain = [blockchain.chain[0].to_dict(), _rehash(blockchain, block_dict)]
+
+    assert blockchain.is_chain_valid(chain) is False
+
+
+def test_block_validation_rejects_mismatched_originality_score(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    _submission, _certificate, block = _mint_certificate_backed_block(
+        blockchain,
+        submission_image,
+        wallets,
+    )
+    block_dict = block.to_dict()
+    block_dict["originality_score"] = block_dict["originality_score"] + 1
+
+    chain = [blockchain.chain[0].to_dict(), _rehash(blockchain, block_dict)]
+
+    assert blockchain.is_chain_valid(chain) is False
 
 
 def test_genesis_block_validates_without_certificate(blockchain):

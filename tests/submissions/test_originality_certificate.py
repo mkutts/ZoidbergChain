@@ -2,6 +2,7 @@ import pytest
 
 from originality_certificate import (
     OriginalityCertificate,
+    calculate_originality_score,
     calculate_vote_hash,
 )
 from submission import (
@@ -62,6 +63,61 @@ def _pending_submission_with_votes(blockchain, submission_image, wallets, vote_t
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
     _cast_votes(blockchain, submission.submission_id, vote_types)
     return submission
+
+
+def _certificate_with_counts(
+    original_votes,
+    not_original_votes,
+    unsure_votes=0,
+):
+    decisive_vote_total = original_votes + not_original_votes
+    return OriginalityCertificate(
+        submission_id="score-submission",
+        content_hash="score-content-hash",
+        creator_wallet="score-creator",
+        vote_total=decisive_vote_total + unsure_votes,
+        decisive_vote_total=decisive_vote_total,
+        original_votes=original_votes,
+        not_original_votes=not_original_votes,
+        unsure_votes=unsure_votes,
+        approval_percentage=original_votes / decisive_vote_total,
+        minimum_votes_required=5,
+        approved_at=APPROVED_AT,
+        network_name=NETWORK_NAME,
+        issuing_node_id=ISSUING_NODE_ID,
+        vote_hash=f"score-vote-hash-{original_votes}-{not_original_votes}-{unsure_votes}",
+    )
+
+
+def test_originality_score_is_deterministic():
+    certificate = _certificate_with_counts(4, 1, 2)
+
+    assert calculate_originality_score(certificate) == calculate_originality_score(certificate)
+    assert certificate.originality_score == calculate_originality_score(certificate)
+
+
+def test_originality_score_increases_with_more_decisive_votes():
+    lower_decisive = _certificate_with_counts(4, 1)
+    higher_decisive = _certificate_with_counts(8, 2)
+
+    assert higher_decisive.approval_percentage == lower_decisive.approval_percentage
+    assert higher_decisive.originality_score > lower_decisive.originality_score
+
+
+def test_originality_score_increases_with_higher_approval_percentage():
+    lower_approval = _certificate_with_counts(4, 1)
+    higher_approval = _certificate_with_counts(5, 0)
+
+    assert higher_approval.decisive_vote_total == lower_approval.decisive_vote_total
+    assert higher_approval.originality_score > lower_approval.originality_score
+
+
+def test_unsure_votes_do_not_increase_originality_score():
+    without_unsure = _certificate_with_counts(4, 1, 0)
+    with_unsure = _certificate_with_counts(4, 1, 10)
+
+    assert with_unsure.vote_total > without_unsure.vote_total
+    assert with_unsure.originality_score == without_unsure.originality_score
 
 
 def test_approved_submission_automatically_creates_certificate(blockchain, submission_image, wallets):
@@ -188,6 +244,7 @@ def test_certificate_can_be_created_from_approved_submission(blockchain, submiss
     assert certificate.approved_at == APPROVED_AT
     assert certificate.network_name == NETWORK_NAME
     assert certificate.issuing_node_id == ISSUING_NODE_ID
+    assert certificate.originality_score == calculate_originality_score(certificate)
     assert len(certificate.certificate_id) == 64
     assert len(certificate.vote_hash) == 64
 
@@ -311,6 +368,26 @@ def test_certificate_persists_and_reloads(blockchain, submission_image, wallets)
     assert len(reloaded_blockchain.originality_certificates) == 1
     assert reloaded_certificate is not None
     assert reloaded_certificate.to_dict() == certificate.to_dict()
+
+
+def test_legacy_certificate_without_score_reloads_with_calculated_score(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    submission = _approved_submission(blockchain, submission_image, wallets)
+    certificate = blockchain.create_originality_certificate(
+        submission.submission_id,
+        approved_at=APPROVED_AT,
+        network_name=NETWORK_NAME,
+        issuing_node_id=ISSUING_NODE_ID,
+    )
+    certificate_data = certificate.to_dict()
+    certificate_data.pop("originality_score")
+
+    reloaded_certificate = OriginalityCertificate.from_dict(certificate_data)
+
+    assert reloaded_certificate.originality_score == calculate_originality_score(reloaded_certificate)
 
 
 def test_certificate_vote_hash_remains_stable_after_rejected_late_vote_attempt(

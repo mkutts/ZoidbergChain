@@ -691,6 +691,7 @@ def _normalize_block_payload(block_payload):
         decisive_vote_total=block_payload.get("decisive_vote_total"),
         minimum_votes_required=block_payload.get("minimum_votes_required"),
         approved_at=block_payload.get("approved_at"),
+        originality_score=block_payload.get("originality_score"),
     )
 
 

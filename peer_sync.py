@@ -4,6 +4,13 @@ import math
 import requests
 
 from block import Block
+from config import ORIGINALITY_APPROVAL_THRESHOLD
+from originality_certificate import (
+    OriginalityCertificate,
+    calculate_certificate_id,
+    calculate_originality_score,
+    validate_certificate_for_submission,
+)
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -43,6 +50,14 @@ class DuplicateSubmissionError(PeerSyncError):
 
 
 class MalformedVoteError(PeerSyncError):
+    pass
+
+
+class MalformedCertificateError(PeerSyncError):
+    pass
+
+
+class ConflictingCertificateError(PeerSyncError):
     pass
 
 
@@ -131,6 +146,7 @@ def receive_peer_block(
     block_payload,
     related_submission_id,
     local_network_name,
+    certificate_payload=None,
 ):
     if network_name != local_network_name:
         raise WrongNetworkError("Peer block belongs to a different network.")
@@ -140,6 +156,14 @@ def receive_peer_block(
         raise UnauthorizedPeerError("Peer is not registered or active.")
     if peer.get("network_name") != local_network_name:
         raise WrongNetworkError("Registered peer belongs to a different network.")
+
+    certificate = None
+    if certificate_payload is not None:
+        certificate, _action = _store_peer_certificate(
+            blockchain=blockchain,
+            certificate_payload=certificate_payload,
+            local_network_name=local_network_name,
+        )
 
     block = _normalize_block_payload(block_payload)
     existing_block = next(
@@ -155,6 +179,7 @@ def receive_peer_block(
             "action": "duplicate",
             "reason": "block_already_exists",
             "block": existing_block.to_dict(),
+            "certificate": certificate.to_dict() if certificate else None,
             "submission": None,
         }
 
@@ -186,7 +211,38 @@ def receive_peer_block(
         "status": "accepted",
         "action": "appended",
         "block": block.to_dict(),
+        "certificate": certificate.to_dict() if certificate else None,
         "submission": minted_submission.to_dict() if minted_submission else None,
+    }
+
+
+def receive_peer_certificate(
+    blockchain,
+    peer_store,
+    origin_node_id,
+    network_name,
+    certificate_payload,
+    local_network_name,
+):
+    if network_name != local_network_name:
+        raise WrongNetworkError("Peer certificate belongs to a different network.")
+
+    peer = peer_store.get_active_peer(origin_node_id)
+    if not peer:
+        raise UnauthorizedPeerError("Peer is not registered or active.")
+    if peer.get("network_name") != local_network_name:
+        raise WrongNetworkError("Registered peer belongs to a different network.")
+
+    certificate, action = _store_peer_certificate(
+        blockchain=blockchain,
+        certificate_payload=certificate_payload,
+        local_network_name=local_network_name,
+        save=True,
+    )
+    return {
+        "accepted": True,
+        "action": action,
+        "certificate": certificate.to_dict(),
     }
 
 
@@ -426,24 +482,22 @@ def broadcast_votes_to_peers(
     }
 
 
-def broadcast_block_to_peers(
-    block,
+def broadcast_certificate_to_peers(
+    certificate,
     peer_store,
     origin_node_id,
     network_name,
-    related_submission_id=None,
     timeout_seconds=3,
 ):
     payload = {
         "origin_node_id": origin_node_id,
         "network_name": network_name,
-        "block": block.to_dict(),
-        "related_submission_id": related_submission_id,
+        "certificate": certificate.to_dict(),
     }
     results = []
 
     for peer in peer_store.list_active_peers(network_name=network_name):
-        receive_url = f"{peer['url'].rstrip('/')}/peers/blocks/receive"
+        receive_url = f"{peer['url'].rstrip('/')}/peers/certificates/receive"
         try:
             response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
             status_code = getattr(response, "status_code", None)
@@ -459,6 +513,86 @@ def broadcast_block_to_peers(
             })
         except requests.RequestException as exc:
             logging.warning(
+                "Failed to broadcast certificate %s to peer %s at %s: %s",
+                certificate.certificate_id,
+                peer.get("node_id"),
+                receive_url,
+                exc,
+            )
+            results.append({
+                "node_id": peer.get("node_id"),
+                "url": peer.get("url"),
+                "status": "failed",
+                "error": str(exc),
+            })
+
+    succeeded = sum(1 for result in results if result["status"] == "sent")
+    failed = sum(1 for result in results if result["status"] == "failed")
+    return {
+        "attempted": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+        "results": results,
+    }
+
+
+def broadcast_block_to_peers(
+    block,
+    peer_store,
+    origin_node_id,
+    network_name,
+    related_submission_id=None,
+    certificate=None,
+    timeout_seconds=3,
+):
+    payload = {
+        "origin_node_id": origin_node_id,
+        "network_name": network_name,
+        "block": block.to_dict(),
+        "related_submission_id": related_submission_id,
+        "certificate": certificate.to_dict() if certificate else None,
+    }
+    results = []
+
+    for peer in peer_store.list_active_peers(network_name=network_name):
+        receive_url = f"{peer['url'].rstrip('/')}/peers/blocks/receive"
+        certificate_result = None
+        try:
+            if certificate:
+                certificate_url = f"{peer['url'].rstrip('/')}/peers/certificates/receive"
+                certificate_payload = {
+                    "origin_node_id": origin_node_id,
+                    "network_name": network_name,
+                    "certificate": certificate.to_dict(),
+                }
+                certificate_response = requests.post(
+                    certificate_url,
+                    json=certificate_payload,
+                    timeout=timeout_seconds,
+                )
+                certificate_status_code = getattr(certificate_response, "status_code", None)
+                if certificate_status_code is None or certificate_status_code >= 400:
+                    raise requests.RequestException(
+                        "Certificate peer returned status "
+                        f"{certificate_status_code}: {getattr(certificate_response, 'text', '')}"
+                    )
+                certificate_result = {"status": "sent", "url": certificate_url}
+
+            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            status_code = getattr(response, "status_code", None)
+            if status_code is None or status_code >= 400:
+                raise requests.RequestException(
+                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
+                )
+
+            results.append({
+                "node_id": peer["node_id"],
+                "url": peer["url"],
+                "status": "sent",
+                "certificate": certificate_result,
+            })
+        except requests.RequestException as exc:
+            logging.warning(
                 "Failed to broadcast block %s to peer %s at %s: %s",
                 block.hash,
                 peer.get("node_id"),
@@ -470,6 +604,7 @@ def broadcast_block_to_peers(
                 "url": peer.get("url"),
                 "status": "failed",
                 "error": str(exc),
+                "certificate": certificate_result,
             })
 
     succeeded = sum(1 for result in results if result["status"] == "sent")
@@ -586,14 +721,19 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
                     decision="keep_local",
                 )
 
-    candidate_blocks_payload = _fetch_peer_blocks(
+    candidate_payload = _fetch_peer_blocks(
         peer,
         from_height=0,
         timeout_seconds=timeout_seconds,
     )
+    _store_chain_sync_certificates(
+        blockchain=blockchain,
+        certificates_payload=candidate_payload.get("certificates", []),
+        local_network_name=network_name,
+    )
     candidate_chain = _validate_candidate_chain(
         blockchain,
-        candidate_blocks_payload,
+        candidate_payload["blocks"],
         expected_latest_hash=peer_latest_hash,
         expected_genesis_hash=local_genesis_hash,
         expected_height=peer_height,
@@ -660,13 +800,242 @@ def _fetch_peer_blocks(peer, from_height, timeout_seconds):
         raise ChainSyncError(f"Peer blocks returned status {status_code}.")
 
     payload = response.json()
+    certificates = []
     if isinstance(payload, dict):
         blocks = payload.get("blocks")
+        certificates = payload.get("certificates", [])
     else:
         blocks = payload
     if not isinstance(blocks, list):
         raise ChainSyncError("Peer blocks response must include a blocks list.")
-    return blocks
+    if not isinstance(certificates, list):
+        raise ChainSyncError("Peer blocks certificates must be a list when provided.")
+
+    normalized_blocks = []
+    normalized_certificates = list(certificates)
+    for block_payload in blocks:
+        if isinstance(block_payload, dict) and "block" in block_payload:
+            normalized_blocks.append(block_payload["block"])
+            if block_payload.get("certificate") is not None:
+                normalized_certificates.append(block_payload["certificate"])
+        else:
+            normalized_blocks.append(block_payload)
+
+    return {
+        "blocks": normalized_blocks,
+        "certificates": normalized_certificates,
+    }
+
+
+def _store_chain_sync_certificates(blockchain, certificates_payload, local_network_name):
+    for certificate_payload in certificates_payload:
+        try:
+            _store_peer_certificate(
+                blockchain=blockchain,
+                certificate_payload=certificate_payload,
+                local_network_name=local_network_name,
+            )
+        except (MalformedCertificateError, ConflictingCertificateError) as exc:
+            raise ChainSyncError(str(exc))
+
+
+def _store_peer_certificate(
+    blockchain,
+    certificate_payload,
+    local_network_name,
+    save=False,
+):
+    if isinstance(certificate_payload, dict):
+        raw_certificate_id = certificate_payload.get("certificate_id")
+        if isinstance(raw_certificate_id, str) and raw_certificate_id.strip():
+            existing_certificate = blockchain.get_originality_certificate(raw_certificate_id.strip())
+            if existing_certificate:
+                try:
+                    incoming_certificate = _normalize_certificate_payload(
+                        certificate_payload,
+                        local_network_name,
+                    )
+                except MalformedCertificateError:
+                    raise ConflictingCertificateError(
+                        "Originality certificate already exists with different contents."
+                    )
+                if existing_certificate.to_dict() == incoming_certificate.to_dict():
+                    return existing_certificate, "duplicate"
+                raise ConflictingCertificateError(
+                    "Originality certificate already exists with different contents."
+                )
+
+    certificate = _normalize_certificate_payload(certificate_payload, local_network_name)
+    existing_certificate = blockchain.get_originality_certificate(certificate.certificate_id)
+    if existing_certificate:
+        if existing_certificate.to_dict() == certificate.to_dict():
+            return existing_certificate, "duplicate"
+        raise ConflictingCertificateError(
+            "Originality certificate already exists with different contents."
+        )
+
+    submission = blockchain.get_submission(certificate.submission_id)
+    if submission:
+        if submission.content_hash != certificate.content_hash:
+            raise MalformedCertificateError(
+                "Originality certificate content_hash does not match submission."
+            )
+        if submission.submitter != certificate.creator_wallet:
+            raise MalformedCertificateError(
+                "Originality certificate creator_wallet does not match submission."
+            )
+        if submission.status == PENDING:
+            submission.transition_to(APPROVED)
+        try:
+            validate_certificate_for_submission(
+                certificate,
+                submission,
+                network_name=local_network_name,
+            )
+        except ValueError as exc:
+            raise MalformedCertificateError(str(exc))
+
+    blockchain.originality_certificates.append(certificate)
+    if save:
+        blockchain.save_blockchain()
+    return certificate, "created"
+
+
+def _normalize_certificate_payload(certificate_payload, local_network_name):
+    if not isinstance(certificate_payload, dict):
+        raise MalformedCertificateError("Certificate payload must be an object.")
+
+    required_fields = [
+        "certificate_id",
+        "submission_id",
+        "content_hash",
+        "creator_wallet",
+        "vote_total",
+        "decisive_vote_total",
+        "original_votes",
+        "not_original_votes",
+        "unsure_votes",
+        "approval_percentage",
+        "minimum_votes_required",
+        "approved_at",
+        "network_name",
+        "issuing_node_id",
+        "vote_hash",
+    ]
+    for field_name in required_fields:
+        if field_name not in certificate_payload:
+            raise MalformedCertificateError(f"Certificate {field_name} is required.")
+
+    normalized = {}
+    for field_name in [
+        "certificate_id",
+        "submission_id",
+        "content_hash",
+        "creator_wallet",
+        "network_name",
+        "issuing_node_id",
+        "vote_hash",
+    ]:
+        value = certificate_payload.get(field_name)
+        if not isinstance(value, str) or not value.strip():
+            raise MalformedCertificateError(f"Certificate {field_name} is required.")
+        normalized[field_name] = value.strip()
+
+    for field_name in [
+        "vote_total",
+        "decisive_vote_total",
+        "original_votes",
+        "not_original_votes",
+        "unsure_votes",
+        "minimum_votes_required",
+    ]:
+        value = certificate_payload.get(field_name)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise MalformedCertificateError(
+                f"Certificate {field_name} must be a non-negative integer."
+            )
+        normalized[field_name] = value
+
+    for field_name in ["approval_percentage", "approved_at"]:
+        value = certificate_payload.get(field_name)
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            raise MalformedCertificateError(f"Certificate {field_name} must be numeric.")
+        if not math.isfinite(value) or value < 0:
+            raise MalformedCertificateError(
+                f"Certificate {field_name} must be a non-negative number."
+            )
+        normalized[field_name] = value
+
+    if "originality_score" in certificate_payload and certificate_payload.get("originality_score") is not None:
+        try:
+            originality_score = float(certificate_payload.get("originality_score"))
+        except (TypeError, ValueError):
+            raise MalformedCertificateError("Certificate originality_score must be numeric.")
+        if not math.isfinite(originality_score) or originality_score < 0:
+            raise MalformedCertificateError(
+                "Certificate originality_score must be a non-negative number."
+            )
+        normalized["originality_score"] = originality_score
+
+    certificate = OriginalityCertificate.from_dict(normalized)
+    _validate_certificate_internal(certificate, local_network_name)
+    return certificate
+
+
+def _validate_certificate_internal(certificate, local_network_name):
+    if certificate.network_name != local_network_name:
+        raise MalformedCertificateError("Originality certificate belongs to a different network.")
+    if not certificate.vote_hash:
+        raise MalformedCertificateError("Originality certificate vote_hash is required.")
+    if certificate.minimum_votes_required is None:
+        raise MalformedCertificateError("Originality certificate minimum_votes_required is required.")
+    if certificate.approval_percentage < ORIGINALITY_APPROVAL_THRESHOLD:
+        raise MalformedCertificateError(
+            "Originality certificate approval percentage is below the required threshold."
+        )
+    if certificate.originality_score is None:
+        raise MalformedCertificateError("Originality certificate originality_score is required.")
+    if certificate.originality_score != calculate_originality_score(certificate):
+        raise MalformedCertificateError(
+            "Originality certificate originality_score is inconsistent."
+        )
+
+    vote_counts = [
+        certificate.original_votes,
+        certificate.not_original_votes,
+        certificate.unsure_votes,
+        certificate.vote_total,
+        certificate.decisive_vote_total,
+        certificate.minimum_votes_required,
+    ]
+    if any(not isinstance(count, int) or count < 0 for count in vote_counts):
+        raise MalformedCertificateError(
+            "Originality certificate vote totals must be non-negative integers."
+        )
+    if certificate.vote_total != (
+        certificate.original_votes
+        + certificate.not_original_votes
+        + certificate.unsure_votes
+    ):
+        raise MalformedCertificateError("Originality certificate vote_total is inconsistent.")
+    if certificate.decisive_vote_total != certificate.original_votes + certificate.not_original_votes:
+        raise MalformedCertificateError(
+            "Originality certificate decisive_vote_total is inconsistent."
+        )
+    if certificate.decisive_vote_total <= 0:
+        raise MalformedCertificateError("Originality certificate must include decisive votes.")
+
+    expected_approval = certificate.original_votes / certificate.decisive_vote_total
+    if not math.isclose(certificate.approval_percentage, expected_approval):
+        raise MalformedCertificateError(
+            "Originality certificate approval percentage is inconsistent."
+        )
+    if certificate.certificate_id != calculate_certificate_id(certificate.to_core_dict()):
+        raise MalformedCertificateError(
+            "Originality certificate_id does not match certificate contents."
+        )
 
 
 def _validate_candidate_chain(
@@ -688,6 +1057,12 @@ def _validate_candidate_chain(
         raise ChainSyncError("Candidate chain height does not match peer summary.")
     if candidate_chain[-1].hash != expected_latest_hash:
         raise ChainSyncError("Candidate chain did not reach peer latest block hash.")
+
+    for block in candidate_chain:
+        metadata = block.certificate_metadata()
+        certificate_id = metadata.get("certificate_id")
+        if certificate_id and not blockchain.get_originality_certificate(certificate_id):
+            raise ChainSyncError(f"Missing originality certificate: {certificate_id}")
 
     for block in candidate_chain:
         _validate_block_hash(blockchain, block)
@@ -939,6 +1314,10 @@ def _validate_block_extends_chain(blockchain, block, current_chain):
 
     _validate_block_hash(blockchain, block)
     _validate_block_transactions(blockchain, block)
+    try:
+        blockchain.validate_block_certificate_metadata(block.to_dict())
+    except ValueError as exc:
+        raise MalformedBlockError(str(exc))
 
     candidate_chain = [existing_block.to_dict() for existing_block in current_chain] + [block.to_dict()]
     if not blockchain.is_chain_valid(candidate_chain):

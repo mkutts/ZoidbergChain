@@ -101,12 +101,26 @@ def _mock_peer_nodes(monkeypatch, peer_nodes_by_url):
                 return FakeResponse(_chain_summary(node, node_id))
             if url.endswith("/chain/blocks"):
                 from_height = params["from_height"]
+                blocks = [
+                    block
+                    for block in node.chain
+                    if block.index >= from_height
+                ]
+                certificate_ids = {
+                    block.certificate_id
+                    for block in blocks
+                    if block.certificate_id
+                }
                 return FakeResponse({
                     "blocks": [
                         block.to_dict()
-                        for block in node.chain
-                        if block.index >= from_height
-                    ]
+                        for block in blocks
+                    ],
+                    "certificates": [
+                        certificate.to_dict()
+                        for certificate in node.originality_certificates
+                        if certificate.certificate_id in certificate_ids
+                    ],
                 })
         raise AssertionError(f"Unexpected URL: {url}")
 
@@ -125,6 +139,35 @@ def _peer_store(isolated_data_dir, filename="peers.json"):
 
 def _sync_from_node_a(node_b, node_a, isolated_data_dir, monkeypatch, filename="peers.json"):
     _mock_peer_nodes(monkeypatch, {"http://node-a.test:8000": ("node-a", node_a)})
+    return sync_chain_from_peers(
+        blockchain=node_b,
+        peer_store=_peer_store(isolated_data_dir, filename),
+        network_name="zoidberg-testnet",
+    )
+
+
+def _sync_from_node_a_without_certificates(
+    node_b,
+    node_a,
+    isolated_data_dir,
+    monkeypatch,
+    filename="peers-without-certificates.json",
+):
+    def fake_get(url, params=None, timeout=None):
+        if url.endswith("/chain/summary"):
+            return FakeResponse(_chain_summary(node_a, "node-a"))
+        if url.endswith("/chain/blocks"):
+            from_height = params["from_height"]
+            return FakeResponse({
+                "blocks": [
+                    block.to_dict()
+                    for block in node_a.chain
+                    if block.index >= from_height
+                ]
+            })
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr("peer_sync.requests.get", fake_get)
     return sync_chain_from_peers(
         blockchain=node_b,
         peer_store=_peer_store(isolated_data_dir, filename),
@@ -227,7 +270,11 @@ def test_two_node_style_sync_preserves_score_and_validates_certificate_backed_bl
         "Two-node certified meme",
         "two-node-certified-voter",
     )
-    _copy_supporting_originality_data(node_a, node_b)
+    node_b.submissions = [
+        Submission.from_dict(submission.to_dict())
+        for submission in node_a.submissions
+    ]
+    node_b.votes = [dict(vote) for vote in node_a.votes]
 
     result = _sync_from_node_a(node_b, node_a, isolated_data_dir, monkeypatch)
 
@@ -236,6 +283,40 @@ def test_two_node_style_sync_preserves_score_and_validates_certificate_backed_bl
     assert node_b.get_cumulative_originality_score() == node_a.get_cumulative_originality_score()
     assert node_b.is_chain_valid([block.to_dict() for block in node_b.chain]) is True
     assert node_b.get_latest_block().certificate_id == block.certificate_id
+
+
+def test_two_node_sync_missing_certificate_fails_clearly(
+    blockchain,
+    submission_image,
+    wallets,
+    isolated_data_dir,
+    monkeypatch,
+):
+    node_a = blockchain
+    node_b = _matching_genesis_node(node_a, wallets)
+    block = _mint_certified_block(
+        node_a,
+        submission_image,
+        wallets,
+        "Missing certificate sync meme",
+        "missing-certificate-voter",
+    )
+    node_b.submissions = [
+        Submission.from_dict(submission.to_dict())
+        for submission in node_a.submissions
+    ]
+
+    result = _sync_from_node_a_without_certificates(
+        node_b,
+        node_a,
+        isolated_data_dir,
+        monkeypatch,
+    )
+
+    assert result["failed"] == 1
+    assert result["results"][0]["status"] == "failed"
+    assert result["results"][0]["reason"] == f"Missing originality certificate: {block.certificate_id}"
+    assert node_b.get_latest_block().index == 0
 
 
 def test_two_node_sync_higher_cumulative_originality_score_wins(

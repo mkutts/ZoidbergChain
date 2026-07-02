@@ -40,19 +40,23 @@ from peers import PeerStore, normalize_peer_url
 from peer_sync import (
     ChainExtensionError,
     ConflictingVoteError,
+    ConflictingCertificateError,
     DuplicateBlockError,
     DuplicateSubmissionError,
     MalformedBlockError,
+    MalformedCertificateError,
     MalformedSubmissionError,
     MalformedVoteError,
     UnauthorizedPeerError,
     UnknownSubmissionError,
     WrongNetworkError,
     broadcast_block_to_peers,
+    broadcast_certificate_to_peers,
     broadcast_submission_to_peers,
     broadcast_vote_to_peers,
     broadcast_votes_to_peers,
     receive_peer_block,
+    receive_peer_certificate,
     receive_peer_submission,
     receive_peer_vote,
     sync_chain_from_peers,
@@ -122,6 +126,13 @@ class PeerBlockReceive(BaseModel):
     network_name: str | None = None
     block: dict | None = None
     related_submission_id: str | None = None
+    certificate: dict | None = None
+
+
+class PeerCertificateReceive(BaseModel):
+    origin_node_id: str | None = None
+    network_name: str | None = None
+    certificate: dict | None = None
 
 
 peer_store = PeerStore()
@@ -324,6 +335,27 @@ async def receive_vote_from_peer(receive_request: PeerVoteReceive):
         raise HTTPException(status_code=409, detail=str(e))
 
 
+@app.post("/peers/certificates/receive")
+async def receive_certificate_from_peer(receive_request: PeerCertificateReceive):
+    try:
+        return receive_peer_certificate(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=receive_request.origin_node_id,
+            network_name=receive_request.network_name,
+            certificate_payload=receive_request.certificate,
+            local_network_name=NETWORK_NAME,
+        )
+    except UnauthorizedPeerError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except WrongNetworkError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except MalformedCertificateError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConflictingCertificateError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+
 @app.post("/peers/blocks/receive")
 async def receive_block_from_peer(receive_request: PeerBlockReceive):
     try:
@@ -335,11 +367,16 @@ async def receive_block_from_peer(receive_request: PeerBlockReceive):
             block_payload=receive_request.block,
             related_submission_id=receive_request.related_submission_id,
             local_network_name=NETWORK_NAME,
+            certificate_payload=receive_request.certificate,
         )
     except UnauthorizedPeerError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except WrongNetworkError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except MalformedCertificateError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ConflictingCertificateError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except MalformedBlockError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except DuplicateBlockError as e:
@@ -372,12 +409,26 @@ async def chain_blocks(from_height: int = 0):
     if from_height < 0:
         raise HTTPException(status_code=400, detail="from_height must be non-negative.")
 
+    blocks = [
+        block
+        for block in blockchain.chain
+        if block.index >= from_height
+    ]
+    certificate_ids = {
+        block.certificate_id
+        for block in blocks
+        if block.certificate_id
+    }
     return {
         "blocks": [
             block.to_dict()
-            for block in blockchain.chain
-            if block.index >= from_height
-        ]
+            for block in blocks
+        ],
+        "certificates": [
+            certificate.to_dict()
+            for certificate in blockchain.originality_certificates
+            if certificate.certificate_id in certificate_ids
+        ],
     }
 
 
@@ -401,6 +452,11 @@ async def broadcast_block(block_hash: str):
         peer_store=peer_store,
         origin_node_id=NODE_ID,
         network_name=NETWORK_NAME,
+        certificate=(
+            blockchain.get_originality_certificate(block.certificate_id)
+            if block.certificate_id
+            else None
+        ),
     )
     return {
         "message": "Block broadcast attempted.",
@@ -591,6 +647,28 @@ async def get_certificate(certificate_id: str):
     return {"certificate": certificate.to_dict()}
 
 
+@app.post("/certificates/{certificate_id}/broadcast")
+async def broadcast_certificate(certificate_id: str):
+    certificate = blockchain.get_originality_certificate(certificate_id)
+    if not certificate:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Originality certificate not found: {certificate_id}",
+        )
+
+    broadcast_result = broadcast_certificate_to_peers(
+        certificate=certificate,
+        peer_store=peer_store,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
+    return {
+        "message": "Originality certificate broadcast attempted.",
+        "certificate": certificate.to_dict(),
+        "broadcast": broadcast_result,
+    }
+
+
 @app.post("/submissions/{submission_id}/broadcast")
 async def broadcast_submission(submission_id: str):
     submission = blockchain.get_submission(submission_id)
@@ -696,6 +774,16 @@ async def evaluate_submission(
             queued_submission = blockchain.add_to_mint_queue(submission_id)
         blockchain.save_blockchain()
         certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+        certificate_broadcast = (
+            broadcast_certificate_to_peers(
+                certificate=certificate,
+                peer_store=peer_store,
+                origin_node_id=NODE_ID,
+                network_name=NETWORK_NAME,
+            )
+            if certificate
+            else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}
+        )
     except ValueError as e:
         message = str(e)
         if message.startswith("Submission not found"):
@@ -707,6 +795,7 @@ async def evaluate_submission(
         "evaluation": evaluation,
         "submission": (queued_submission or submission).to_dict(),
         "certificate": certificate.to_dict() if certificate else None,
+        "certificate_broadcast": certificate_broadcast,
     }
 
 @app.post("/add_block")
@@ -907,6 +996,11 @@ async def mint_queued_submission(
         raise HTTPException(status_code=400, detail=message)
 
     latest_block = blockchain.get_latest_block()
+    certificate = (
+        blockchain.get_originality_certificate(latest_block.certificate_id)
+        if latest_block.certificate_id
+        else None
+    )
     broadcast_result = (
         broadcast_block_to_peers(
             block=latest_block,
@@ -914,6 +1008,7 @@ async def mint_queued_submission(
             origin_node_id=NODE_ID,
             network_name=NETWORK_NAME,
             related_submission_id=submission_id,
+            certificate=certificate,
         )
         if minted
         else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}

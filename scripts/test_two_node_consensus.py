@@ -7,6 +7,7 @@ def main():
     project_root = Path(__file__).resolve().parents[1]
     test_targets = [
         "tests/integration/test_two_node_consensus_verification.py",
+        "tests/api/test_peer_certificate_sync_api.py",
         "tests/api/test_chain_sync_api.py",
         "tests/api/test_peer_block_sync_api.py",
     ]

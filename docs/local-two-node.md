@@ -151,6 +151,12 @@ Invoke-RestMethod "http://127.0.0.1:8001/peers" | ConvertTo-Json -Depth 5
     $certificate | ConvertTo-Json -Depth 8
     ```
 
+    If needed, manually rebroadcast the certificate:
+
+    ```powershell
+    Invoke-RestMethod -Method Post "http://127.0.0.1:8000/certificates/$($certificate.certificate.certificate_id)/broadcast" | ConvertTo-Json -Depth 8
+    ```
+
 11. Mint the approved submission on Node A:
 
     ```powershell
@@ -247,6 +253,8 @@ The script runs the in-process two-node consensus tests plus the peer block rece
 - Node A writes to `data/node-a`.
 - Node B writes to `data/node-b`.
 - Submission metadata can sync between nodes, but image binary transport is not implemented yet. Mint submissions on the node that has the uploaded image file.
-- Certificate-backed synced blocks must validate against locally available supporting certificate and submission data. If a node receives only a block without the certificate/submission context, sync fails safely.
+- Certificate-backed block broadcasts send the certificate before the block and also include the certificate payload with the block receive request.
+- Chain sync returns certificate payloads for returned certificate-backed blocks. If a peer omits a required certificate, sync fails safely with a clear missing certificate error.
+- Certificate-backed synced blocks still require matching submission metadata. Submission/image binary transport remains separate, and image binary transport is not implemented yet.
 - Peer block receive returns `sync_needed` on previous-hash mismatch. It does not start a background sync job.
 - Fork choice is based on cumulative originality score, then height, then lexicographically lowest latest block hash.

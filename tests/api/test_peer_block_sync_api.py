@@ -49,6 +49,23 @@ def _receive_payload(block, origin_node_id="peer-node-1", network_name="zoidberg
     }
 
 
+def _receive_payload_with_certificate(
+    block,
+    certificate,
+    origin_node_id="peer-node-1",
+    network_name="zoidberg-testnet",
+    related_submission_id=None,
+):
+    payload = _receive_payload(
+        block,
+        origin_node_id=origin_node_id,
+        network_name=network_name,
+        related_submission_id=related_submission_id,
+    )
+    payload["certificate"] = certificate.to_dict()
+    return payload
+
+
 def _submission(blockchain, submission_image, submitter):
     return blockchain.submit_content(
         image_path=str(submission_image),
@@ -131,7 +148,7 @@ def test_receiving_direct_extending_block_with_invalid_certificate_is_rejected(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Block failed chain validation."
+    assert response.json()["detail"] == "Block references unknown originality certificate."
     assert len(blockchain.chain) == 1
 
 
@@ -157,8 +174,64 @@ def test_receiving_direct_extending_block_with_mismatched_originality_score_is_r
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Block failed chain validation."
+    assert response.json()["detail"] == "Block certificate metadata originality_score does not match certificate."
     assert len(blockchain.chain) == 1
+
+
+def test_receive_peer_block_succeeds_with_included_certificate(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    certificate = blockchain.get_originality_certificate(block.certificate_id)
+    blockchain.originality_certificates = []
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json=_receive_payload_with_certificate(
+            block,
+            certificate,
+            related_submission_id=submission.submission_id,
+        ),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["accepted"] is True
+    assert response.json()["certificate"]["certificate_id"] == certificate.certificate_id
+    assert blockchain.get_latest_block().hash == block.hash
+
+
+def test_receive_peer_block_succeeds_after_certificate_was_synced_first(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    certificate = blockchain.get_originality_certificate(block.certificate_id)
+    blockchain.originality_certificates = []
+
+    certificate_response = client.post(
+        "/peers/certificates/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "certificate": certificate.to_dict(),
+        },
+    )
+    block_response = client.post(
+        "/peers/blocks/receive",
+        json=_receive_payload(block, related_submission_id=submission.submission_id),
+    )
+
+    assert certificate_response.status_code == 200
+    assert block_response.status_code == 200
+    assert block_response.json()["accepted"] is True
+    assert blockchain.get_latest_block().hash == block.hash
 
 
 def test_receive_peer_block_rejects_unregistered_peer(blockchain, wallets):
@@ -296,9 +369,12 @@ def test_local_mint_broadcasts_block_without_failing_if_one_peer_is_down(
     assert response.json()["broadcast"]["attempted"] == 2
     assert response.json()["broadcast"]["succeeded"] == 1
     assert response.json()["broadcast"]["failed"] == 1
-    assert len(calls) == 2
-    assert all(call["url"].endswith("/peers/blocks/receive") for call in calls)
-    assert calls[0]["json"]["related_submission_id"] == submission.submission_id
+    assert len(calls) == 3
+    assert calls[0]["url"].endswith("/peers/certificates/receive")
+    assert calls[1]["url"].endswith("/peers/blocks/receive")
+    assert calls[2]["url"].endswith("/peers/certificates/receive")
+    assert calls[1]["json"]["related_submission_id"] == submission.submission_id
+    assert calls[1]["json"]["certificate"]["certificate_id"] == blockchain.get_latest_block().certificate_id
 
 
 def test_manual_block_rebroadcast_endpoint_works(blockchain, wallets, monkeypatch):

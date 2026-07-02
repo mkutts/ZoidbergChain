@@ -457,8 +457,10 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
     local_height = blockchain.get_latest_block().index
     local_latest_hash = blockchain.get_latest_block().hash
     local_genesis_hash = blockchain.chain[0].hash
+    local_score = blockchain.get_cumulative_originality_score()
 
     summary = _fetch_peer_chain_summary(peer, timeout_seconds)
+    peer_score = summary["cumulative_originality_score"]
     if summary["network_name"] != network_name:
         return _chain_sync_result(
             peer,
@@ -466,6 +468,8 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
             "wrong_network",
             local_height=local_height,
             peer_height=summary["chain_height"],
+            local_score=local_score,
+            peer_score=peer_score,
         )
     if summary["genesis_hash"] != local_genesis_hash:
         return _chain_sync_result(
@@ -474,20 +478,25 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
             "different_genesis_hash",
             local_height=local_height,
             peer_height=summary["chain_height"],
+            local_score=local_score,
+            peer_score=peer_score,
         )
-    if summary["chain_height"] < local_height:
+
+    if peer_score < local_score:
         return _chain_sync_result(
             peer,
             "skipped",
-            "peer_chain_shorter",
+            "peer_originality_score_lower",
             local_height=local_height,
             peer_height=summary["chain_height"],
+            local_score=local_score,
+            peer_score=peer_score,
         )
-    if summary["chain_height"] == local_height:
+    if peer_score == local_score:
         reason = (
             "already_in_sync"
             if summary["latest_block_hash"] == local_latest_hash
-            else "equal_height_fork_not_resolved"
+            else "equal_originality_score_fork_not_resolved"
         )
         return _chain_sync_result(
             peer,
@@ -495,32 +504,51 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
             reason,
             local_height=local_height,
             peer_height=summary["chain_height"],
+            local_score=local_score,
+            peer_score=peer_score,
         )
 
-    missing_blocks_payload = _fetch_peer_blocks(
+    candidate_blocks_payload = _fetch_peer_blocks(
         peer,
-        from_height=local_height + 1,
+        from_height=0,
         timeout_seconds=timeout_seconds,
     )
-    missing_blocks = _validate_missing_blocks(
+    candidate_chain = _validate_candidate_chain(
         blockchain,
-        missing_blocks_payload,
+        candidate_blocks_payload,
         expected_latest_hash=summary["latest_block_hash"],
+        expected_genesis_hash=local_genesis_hash,
     )
+    comparison = blockchain.compare_chains_by_originality(blockchain.chain, candidate_chain)
+    if comparison["preferred"] != "candidate":
+        return _chain_sync_result(
+            peer,
+            "skipped",
+            comparison["reason"],
+            local_height=local_height,
+            peer_height=summary["chain_height"],
+            local_score=comparison["local_score"],
+            peer_score=peer_score,
+            candidate_score=comparison["candidate_score"],
+        )
 
-    for block in missing_blocks:
-        blockchain.chain.append(block)
+    previous_chain_length = len(blockchain.chain)
+    for block in candidate_chain:
         _remove_confirmed_pending_transactions(blockchain, block.transactions)
+    blockchain.chain = candidate_chain
     blockchain.save_blockchain()
 
     return _chain_sync_result(
         peer,
         "synced",
-        "appended_longer_chain",
+        "replaced_higher_originality_chain",
         local_height=local_height,
         peer_height=summary["chain_height"],
-        appended=len(missing_blocks),
+        appended=max(0, len(candidate_chain) - previous_chain_length),
         latest_block_hash=blockchain.get_latest_block().hash,
+        local_score=comparison["local_score"],
+        peer_score=peer_score,
+        candidate_score=comparison["candidate_score"],
     )
 
 
@@ -554,6 +582,28 @@ def _fetch_peer_blocks(peer, from_height, timeout_seconds):
     return blocks
 
 
+def _validate_candidate_chain(blockchain, blocks_payload, expected_latest_hash, expected_genesis_hash):
+    if not blocks_payload:
+        raise ChainSyncError("Peer returned no blocks for candidate chain.")
+
+    candidate_chain = [_normalize_block_payload(block_payload) for block_payload in blocks_payload]
+    if candidate_chain[0].index != 0:
+        raise ChainSyncError("Candidate chain must begin with genesis block.")
+    if candidate_chain[0].hash != expected_genesis_hash:
+        raise ChainSyncError("Candidate chain genesis hash does not match local genesis.")
+    if candidate_chain[-1].hash != expected_latest_hash:
+        raise ChainSyncError("Candidate chain did not reach peer latest block hash.")
+
+    for block in candidate_chain:
+        _validate_block_hash(blockchain, block)
+        _validate_block_transactions(blockchain, block)
+
+    if not blockchain.is_chain_valid([block.to_dict() for block in candidate_chain]):
+        raise ChainSyncError("Candidate chain failed validation.")
+
+    return candidate_chain
+
+
 def _normalize_chain_summary(summary):
     if not isinstance(summary, dict):
         raise ChainSyncError("Peer chain summary must be an object.")
@@ -573,12 +623,21 @@ def _normalize_chain_summary(summary):
     if not isinstance(summary["genesis_hash"], str) or not summary["genesis_hash"].strip():
         raise ChainSyncError("Peer chain summary genesis_hash is required.")
 
+    cumulative_originality_score = summary.get("cumulative_originality_score", 0)
+    try:
+        cumulative_originality_score = float(cumulative_originality_score)
+    except (TypeError, ValueError):
+        raise ChainSyncError("Peer chain summary cumulative_originality_score must be numeric.")
+    if not math.isfinite(cumulative_originality_score) or cumulative_originality_score < 0:
+        raise ChainSyncError("Peer chain summary cumulative_originality_score must be non-negative.")
+
     return {
         **summary,
         "network_name": summary["network_name"].strip(),
         "node_id": summary["node_id"].strip(),
         "latest_block_hash": summary["latest_block_hash"].strip(),
         "genesis_hash": summary["genesis_hash"].strip(),
+        "cumulative_originality_score": round(cumulative_originality_score, 8),
     }
 
 
@@ -602,7 +661,18 @@ def _validate_missing_blocks(blockchain, blocks_payload, expected_latest_hash):
     return validated_blocks
 
 
-def _chain_sync_result(peer, status, reason, local_height=None, peer_height=None, appended=0, latest_block_hash=None):
+def _chain_sync_result(
+    peer,
+    status,
+    reason,
+    local_height=None,
+    peer_height=None,
+    appended=0,
+    latest_block_hash=None,
+    local_score=None,
+    peer_score=None,
+    candidate_score=None,
+):
     result = {
         "node_id": peer.get("node_id"),
         "url": peer.get("url"),
@@ -616,6 +686,12 @@ def _chain_sync_result(peer, status, reason, local_height=None, peer_height=None
         result["peer_height"] = peer_height
     if latest_block_hash is not None:
         result["latest_block_hash"] = latest_block_hash
+    if local_score is not None:
+        result["local_score"] = local_score
+    if peer_score is not None:
+        result["peer_score"] = peer_score
+    if candidate_score is not None:
+        result["candidate_score"] = candidate_score
     return result
 
 

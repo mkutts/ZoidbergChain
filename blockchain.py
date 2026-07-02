@@ -841,6 +841,60 @@ class Blockchain:
     def get_cumulative_originality_score(self):
         return self.calculate_cumulative_originality_score(self.chain)
 
+    @staticmethod
+    def chain_to_dicts(chain):
+        return [
+            block.to_dict() if hasattr(block, "to_dict") else block
+            for block in chain
+        ]
+
+    def compare_chains_by_originality(self, local_chain, candidate_chain):
+        local_chain_dicts = self.chain_to_dicts(local_chain)
+        candidate_chain_dicts = self.chain_to_dicts(candidate_chain)
+        local_score = self.calculate_cumulative_originality_score(local_chain_dicts)
+        candidate_score = self.calculate_cumulative_originality_score(candidate_chain_dicts)
+
+        result = {
+            "local_score": local_score,
+            "candidate_score": candidate_score,
+        }
+
+        if not local_chain_dicts or not candidate_chain_dicts:
+            return {
+                **result,
+                "preferred": "local",
+                "reason": "candidate_chain_invalid",
+            }
+        if candidate_chain_dicts[0].get("hash") != local_chain_dicts[0].get("hash"):
+            return {
+                **result,
+                "preferred": "local",
+                "reason": "different_genesis_hash",
+            }
+        if not self.is_chain_valid(candidate_chain_dicts):
+            return {
+                **result,
+                "preferred": "local",
+                "reason": "candidate_chain_invalid",
+            }
+        if candidate_score > local_score:
+            return {
+                **result,
+                "preferred": "candidate",
+                "reason": "higher_originality_score",
+            }
+        if candidate_score < local_score:
+            return {
+                **result,
+                "preferred": "local",
+                "reason": "lower_originality_score",
+            }
+        return {
+            **result,
+            "preferred": "tie",
+            "reason": "equal_originality_score_unresolved",
+        }
+
     def extract_block_certificate_metadata(self, block_dict):
         fields = [
             "submission_id",

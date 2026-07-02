@@ -37,6 +37,17 @@ def _register_peer(node_id="peer-node-1", url="http://peer-one.test:8000"):
     )
 
 
+def _chain_score(chain):
+    return round(
+        sum(
+            getattr(block, "originality_score", 0) or 0
+            for block in chain
+            if getattr(block, "index", None) != 0
+        ),
+        8,
+    )
+
+
 def _next_block(chain, miner, timestamp=1_000_000.0, text="Synced peer block"):
     latest_block = chain[-1]
     return Block(
@@ -49,10 +60,24 @@ def _next_block(chain, miner, timestamp=1_000_000.0, text="Synced peer block"):
     )
 
 
-def _mint_certified_block(blockchain, submission_image, wallets):
+def _legacy_chain(base_chain, miner, count, start_timestamp=1_000_000.0):
+    chain = list(base_chain)
+    for offset in range(count):
+        chain.append(
+            _next_block(
+                chain,
+                miner,
+                timestamp=start_timestamp + offset,
+                text=f"Legacy peer block {offset}",
+            )
+        )
+    return chain
+
+
+def _mint_certified_block(blockchain, submission_image, wallets, text, voter_prefix):
     submission = blockchain.submit_content(
         image_path=str(submission_image),
-        text_content="Summary scored meme",
+        text_content=text,
         submitter=wallets["owner"].public_key,
     )
     for index, vote_type in enumerate([
@@ -64,7 +89,7 @@ def _mint_certified_block(blockchain, submission_image, wallets):
     ]):
         blockchain.cast_submission_vote(
             submission_id=submission.submission_id,
-            voter=f"summary-voter-{index}",
+            voter=f"{voter_prefix}-{index}",
             vote_type=vote_type,
             created_at=1_000_000 + index,
         )
@@ -81,25 +106,56 @@ def _mint_certified_block(blockchain, submission_image, wallets):
     return blockchain.get_latest_block()
 
 
-def _summary(chain, network_name="zoidberg-testnet", node_id="peer-node-1"):
+def _certified_chain_from_base(
+    blockchain,
+    base_chain,
+    submission_image,
+    wallets,
+    text="Peer certified meme",
+    voter_prefix="peer-certified-voter",
+):
+    saved_chain = list(blockchain.chain)
+    blockchain.chain = list(base_chain)
+    block = _mint_certified_block(blockchain, submission_image, wallets, text, voter_prefix)
+    peer_chain = list(blockchain.chain)
+    blockchain.chain = saved_chain
+    return peer_chain, block
+
+
+def _summary(
+    chain,
+    network_name="zoidberg-testnet",
+    node_id="peer-node-1",
+    cumulative_originality_score=None,
+):
     return {
         "network_name": network_name,
         "node_id": node_id,
         "chain_height": chain[-1].index,
         "latest_block_hash": chain[-1].hash,
         "genesis_hash": chain[0].hash,
+        "cumulative_originality_score": (
+            _chain_score(chain)
+            if cumulative_originality_score is None
+            else cumulative_originality_score
+        ),
         "cumulative_work": None,
     }
 
 
-def _mock_peer_chain(monkeypatch, peer_chain):
+def _mock_peer_chain(monkeypatch, peer_chain, summary_overrides=None, blocks_override=None):
     calls = []
 
     def fake_get(url, params=None, timeout=None):
         calls.append({"url": url, "params": params, "timeout": timeout})
         if url.endswith("/chain/summary"):
-            return FakeResponse(_summary(peer_chain))
+            peer_summary = _summary(peer_chain)
+            if summary_overrides:
+                peer_summary.update(summary_overrides)
+            return FakeResponse(peer_summary)
         if url.endswith("/chain/blocks"):
+            if blocks_override is not None:
+                return FakeResponse({"blocks": blocks_override})
             from_height = params["from_height"]
             return FakeResponse({
                 "blocks": [
@@ -138,7 +194,13 @@ def test_chain_summary_reports_cumulative_originality_score(
     wallets,
 ):
     client = _client(blockchain)
-    latest_block = _mint_certified_block(blockchain, submission_image, wallets)
+    latest_block = _mint_certified_block(
+        blockchain,
+        submission_image,
+        wallets,
+        "Summary scored meme",
+        "summary-voter",
+    )
 
     response = client.get("/chain/summary")
 
@@ -162,78 +224,144 @@ def test_fetching_blocks_from_height(blockchain, wallets):
     ]
 
 
-def test_sync_from_longer_valid_peer_chain(blockchain, wallets, monkeypatch):
+def test_sync_uses_cumulative_originality_score_instead_of_height(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    peer_chain, _peer_block = _certified_chain_from_base(
+        blockchain,
+        blockchain.chain,
+        submission_image,
+        wallets,
+        "Local certified meme",
+        "local-score-voter",
+    )
+    blockchain.chain = peer_chain
+    local_tip = blockchain.get_latest_block()
+    longer_lower_score_peer = _legacy_chain(
+        blockchain.chain[:1],
+        wallets["contributor_two"].public_key,
+        count=2,
+        start_timestamp=1_000_300.0,
+    )
     client = _client(blockchain)
     _register_peer()
-    peer_block = _next_block(blockchain.chain, wallets["contributor_one"].public_key)
-    peer_chain = list(blockchain.chain) + [peer_block]
+    calls = _mock_peer_chain(monkeypatch, longer_lower_score_peer)
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["results"][0]["status"] == "skipped"
+    assert response.json()["results"][0]["reason"] == "peer_originality_score_lower"
+    assert all(not call["url"].endswith("/chain/blocks") for call in calls)
+    assert blockchain.get_latest_block().hash == local_tip.hash
+
+
+def test_sync_replaces_local_chain_with_valid_higher_score_peer(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    client = _client(blockchain)
+    _register_peer()
+    peer_chain, peer_block = _certified_chain_from_base(
+        blockchain,
+        blockchain.chain,
+        submission_image,
+        wallets,
+        "Peer certified replacement",
+        "peer-replace-voter",
+    )
     _mock_peer_chain(monkeypatch, peer_chain)
 
     response = client.post("/chain/sync")
 
     assert response.status_code == 200
     assert response.json()["synced"] == 1
-    assert response.json()["results"][0]["appended"] == 1
+    assert response.json()["results"][0]["reason"] == "replaced_higher_originality_chain"
+    assert response.json()["results"][0]["candidate_score"] == peer_block.originality_score
+    assert blockchain.get_latest_block().hash == peer_block.hash
+
+
+def test_sync_accepts_shorter_higher_score_peer_chain(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    local_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=2,
+        start_timestamp=1_000_200.0,
+    )
+    blockchain.chain = local_chain
+    peer_chain, peer_block = _certified_chain_from_base(
+        blockchain,
+        local_chain[:1],
+        submission_image,
+        wallets,
+        "Shorter peer with stronger originality",
+        "shorter-peer-voter",
+    )
+    client = _client(blockchain)
+    _register_peer()
+    _mock_peer_chain(monkeypatch, peer_chain)
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["synced"] == 1
+    assert response.json()["results"][0]["peer_height"] < local_chain[-1].index
     assert blockchain.get_latest_block().hash == peer_block.hash
 
 
 def test_sync_rejects_peer_with_different_genesis_hash(blockchain, wallets, monkeypatch):
     client = _client(blockchain)
     _register_peer()
-    peer_block = _next_block(blockchain.chain, wallets["contributor_one"].public_key)
-    peer_chain = list(blockchain.chain) + [peer_block]
-    calls = []
-
-    def fake_get(url, params=None, timeout=None):
-        calls.append(url)
-        peer_summary = _summary(peer_chain)
-        peer_summary["genesis_hash"] = "different-genesis"
-        return FakeResponse(peer_summary)
-
-    monkeypatch.setattr("peer_sync.requests.get", fake_get)
+    peer_chain = _legacy_chain(blockchain.chain, wallets["contributor_one"].public_key, count=1)
+    calls = _mock_peer_chain(
+        monkeypatch,
+        peer_chain,
+        summary_overrides={"genesis_hash": "different-genesis"},
+    )
 
     response = client.post("/chain/sync")
 
     assert response.status_code == 200
     assert response.json()["results"][0]["status"] == "skipped"
     assert response.json()["results"][0]["reason"] == "different_genesis_hash"
-    assert all(not url.endswith("/chain/blocks") for url in calls)
+    assert all(not call["url"].endswith("/chain/blocks") for call in calls)
     assert blockchain.get_latest_block().hash == blockchain.chain[0].hash
 
 
-def test_sync_rejects_shorter_peer_chain(blockchain, wallets, monkeypatch):
-    local_block = _next_block(blockchain.chain, wallets["contributor_one"].public_key)
-    blockchain.chain.append(local_block)
+def test_sync_rejects_invalid_higher_score_chain(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
     client = _client(blockchain)
     _register_peer()
-    peer_chain = blockchain.chain[:1]
-    _mock_peer_chain(monkeypatch, peer_chain)
-
-    response = client.post("/chain/sync")
-
-    assert response.status_code == 200
-    assert response.json()["results"][0]["status"] == "skipped"
-    assert response.json()["results"][0]["reason"] == "peer_chain_shorter"
-    assert blockchain.get_latest_block().hash == local_block.hash
-
-
-def test_sync_rejects_invalid_fetched_block(blockchain, wallets, monkeypatch):
-    client = _client(blockchain)
-    _register_peer()
-    peer_block = _next_block(blockchain.chain, wallets["contributor_one"].public_key)
+    peer_chain, peer_block = _certified_chain_from_base(
+        blockchain,
+        blockchain.chain,
+        submission_image,
+        wallets,
+        "Invalid higher score peer",
+        "invalid-peer-voter",
+    )
     invalid_block = peer_block.to_dict()
     invalid_block["hash"] = "invalid-hash"
-
-    def fake_get(url, params=None, timeout=None):
-        if url.endswith("/chain/summary"):
-            peer_summary = _summary(list(blockchain.chain) + [peer_block])
-            peer_summary["latest_block_hash"] = "invalid-hash"
-            return FakeResponse(peer_summary)
-        if url.endswith("/chain/blocks"):
-            return FakeResponse({"blocks": [invalid_block]})
-        raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr("peer_sync.requests.get", fake_get)
+    _mock_peer_chain(
+        monkeypatch,
+        peer_chain,
+        summary_overrides={"latest_block_hash": "invalid-hash"},
+        blocks_override=[peer_chain[0].to_dict(), invalid_block],
+    )
 
     response = client.post("/chain/sync")
 
@@ -244,7 +372,7 @@ def test_sync_rejects_invalid_fetched_block(blockchain, wallets, monkeypatch):
     assert blockchain.get_latest_block().index == 0
 
 
-def test_sync_does_not_resolve_equal_height_fork(blockchain, wallets, monkeypatch):
+def test_sync_does_not_resolve_equal_score_fork(blockchain, wallets, monkeypatch):
     local_block = _next_block(blockchain.chain, wallets["contributor_one"].public_key, timestamp=1_000_001.0)
     peer_block = _next_block(blockchain.chain, wallets["contributor_two"].public_key, timestamp=1_000_002.0)
     blockchain.chain.append(local_block)
@@ -257,7 +385,7 @@ def test_sync_does_not_resolve_equal_height_fork(blockchain, wallets, monkeypatc
 
     assert response.status_code == 200
     assert response.json()["results"][0]["status"] == "skipped"
-    assert response.json()["results"][0]["reason"] == "equal_height_fork_not_resolved"
+    assert response.json()["results"][0]["reason"] == "equal_originality_score_fork_not_resolved"
     assert blockchain.get_latest_block().hash == local_block.hash
 
 
@@ -267,8 +395,14 @@ def test_successful_sync_preserves_existing_submissions_and_votes(
     wallets,
     monkeypatch,
 ):
-    client = _client(blockchain)
-    _register_peer()
+    peer_chain, peer_block = _certified_chain_from_base(
+        blockchain,
+        blockchain.chain,
+        submission_image,
+        wallets,
+        "Peer preserves local metadata",
+        "preserve-peer-voter",
+    )
     submission = blockchain.submit_content(
         image_path=str(submission_image),
         text_content="Preserve local state",
@@ -280,8 +414,8 @@ def test_successful_sync_preserves_existing_submissions_and_votes(
         vote_type=VOTE_ORIGINAL,
         created_at=1_000_000.0,
     )
-    peer_block = _next_block(blockchain.chain, wallets["contributor_two"].public_key)
-    peer_chain = list(blockchain.chain) + [peer_block]
+    client = _client(blockchain)
+    _register_peer()
     _mock_peer_chain(monkeypatch, peer_chain)
 
     response = client.post("/chain/sync")
@@ -289,5 +423,5 @@ def test_successful_sync_preserves_existing_submissions_and_votes(
     assert response.status_code == 200
     assert response.json()["synced"] == 1
     assert blockchain.get_submission(submission.submission_id) is submission
-    assert blockchain.votes == [vote]
+    assert vote in blockchain.votes
     assert blockchain.get_latest_block().hash == peer_block.hash

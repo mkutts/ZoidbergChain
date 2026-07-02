@@ -1,6 +1,28 @@
-# Local Two-Node Peer Networking
+# Local Two-Node Meme Consensus Verification
 
-This guide starts two ZoidbergChain API nodes on one machine with separate local data directories.
+This guide runs two ZoidbergChain API nodes on one Windows machine with separate node identities and separate data directories. Use it to verify Meme-Based Proof of Originality Consensus without changing production deployment behavior.
+
+## Node Configuration
+
+Node A:
+
+```powershell
+$env:NODE_ID = "node-a"
+$env:NODE_PORT = "8000"
+$env:PUBLIC_NODE_URL = "http://127.0.0.1:8000"
+$env:DATA_DIR = "data/node-a"
+```
+
+Node B:
+
+```powershell
+$env:NODE_ID = "node-b"
+$env:NODE_PORT = "8001"
+$env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
+$env:DATA_DIR = "data/node-b"
+```
+
+The startup scripts also set `NODE_DATA_DIR` to the same path because the backend accepts both `DATA_DIR` and `NODE_DATA_DIR`.
 
 ## One-Time Setup
 
@@ -15,7 +37,7 @@ This creates:
 - `data/node-a/blockchain.json`
 - `data/node-b/blockchain.json`
 
-Node B starts from a copy of Node A's genesis chain so both nodes have the same genesis hash. That matters because basic chain sync rejects different-genesis peers.
+Node B starts from a copy of Node A's genesis chain so both nodes have the same genesis hash. Chain sync rejects peers with different genesis hashes.
 
 ## Start The Nodes
 
@@ -36,6 +58,32 @@ Terminal 2:
 Node A runs at `http://127.0.0.1:8000`.
 Node B runs at `http://127.0.0.1:8001`.
 
+Manual equivalent for Node A:
+
+```powershell
+$env:NODE_ID = "node-a"
+$env:NODE_HOST = "127.0.0.1"
+$env:NODE_PORT = "8000"
+$env:PUBLIC_NODE_URL = "http://127.0.0.1:8000"
+$env:NETWORK_NAME = "zoidberg-testnet"
+$env:DATA_DIR = "data/node-a"
+$env:NODE_DATA_DIR = "data/node-a"
+.\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+Manual equivalent for Node B:
+
+```powershell
+$env:NODE_ID = "node-b"
+$env:NODE_HOST = "127.0.0.1"
+$env:NODE_PORT = "8001"
+$env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
+$env:NETWORK_NAME = "zoidberg-testnet"
+$env:DATA_DIR = "data/node-b"
+$env:NODE_DATA_DIR = "data/node-b"
+.\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8001
+```
+
 ## Register Peers
 
 Register Node B with Node A:
@@ -53,100 +101,152 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8001/peers/register" -Cont
 Confirm peers:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8000/peers"
-Invoke-RestMethod "http://127.0.0.1:8001/peers"
+Invoke-RestMethod "http://127.0.0.1:8000/peers" | ConvertTo-Json -Depth 5
+Invoke-RestMethod "http://127.0.0.1:8001/peers" | ConvertTo-Json -Depth 5
 ```
 
-## Manual End-To-End Checklist
+## Scenario A: Normal Consensus Flow
 
-1. Start Node A with `.\scripts\start_node_a.ps1`.
-2. Start Node B with `.\scripts\start_node_b.ps1`.
+1. Start Node A.
+2. Start Node B.
 3. Register Node B with Node A.
 4. Register Node A with Node B.
-5. Confirm `/peers` on both nodes includes the other node.
-6. Create a submission on Node A.
+5. Confirm `/peers` works on both nodes.
+6. Submit meme content on Node A:
 
    ```powershell
    $walletA = (Invoke-RestMethod "http://127.0.0.1:8000/get_wallets").wallets[0].public_key
-   $submission = curl.exe -s -X POST "http://127.0.0.1:8000/submit_content" -F "submitter=$walletA" -F "text_content=two node submission" -F "image=@zoidberg.jpg" | ConvertFrom-Json
+   $submission = curl.exe -s -X POST "http://127.0.0.1:8000/submit_content" -F "submitter=$walletA" -F "text_content=two node original meme" -F "image=@zoidberg.jpg" | ConvertFrom-Json
    $submissionId = $submission.submission.submission_id
    $submission.broadcast | ConvertTo-Json -Depth 5
    ```
 
-   The broadcast should show at least one attempted peer and one success. If it shows `attempted: 0`, register Node B with Node A and rebroadcast. If it shows a failed peer attempt, confirm Node B has Node A registered and rebroadcast.
-
-7. Confirm the submission appears on Node B.
+7. Confirm the submission broadcasts to Node B:
 
    ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8001/submissions/$submissionId"
+   Invoke-RestMethod "http://127.0.0.1:8001/submissions/$submissionId" | ConvertTo-Json -Depth 5
    ```
 
-   If this returns `Submission not found`, inspect identity and peer registration:
+8. Vote from wallets across nodes. The current minimum vote count is 5. Use wallets that are not the creator wallet:
 
    ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8000/node-info"
-   Invoke-RestMethod "http://127.0.0.1:8001/node-info"
-   Invoke-RestMethod "http://127.0.0.1:8000/peers" | ConvertTo-Json -Depth 5
-   Invoke-RestMethod "http://127.0.0.1:8001/peers" | ConvertTo-Json -Depth 5
+   1..5 | ForEach-Object {
+       $voter = (Invoke-RestMethod -Method Post "http://127.0.0.1:8001/generate_wallet").wallet.public_key
+       curl.exe -s -X POST "http://127.0.0.1:8001/submissions/$submissionId/vote" -F "voter=$voter" -F "vote_type=original" | Out-Null
+   }
+   Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/votes" | ConvertTo-Json -Depth 5
    ```
 
-   Node A must report `node_id: node-a`, Node B must report `node_id: node-b`, Node A must know Node B, and Node B must know Node A. After fixing registration, rebroadcast from Node A:
+9. Evaluate and approve on Node A:
 
    ```powershell
-   Invoke-RestMethod -Method Post "http://127.0.0.1:8000/submissions/$submissionId/broadcast" | ConvertTo-Json -Depth 5
-   Invoke-RestMethod "http://127.0.0.1:8001/submissions/$submissionId"
+   $evaluation = curl.exe -s -X POST "http://127.0.0.1:8000/submissions/$submissionId/evaluate" -F "automated_originality_passed=true" | ConvertFrom-Json
+   $evaluation | ConvertTo-Json -Depth 8
    ```
 
-8. Vote on Node B and confirm the vote appears on Node A.
+10. Confirm an Originality Certificate exists on Node A:
 
-   Generate or choose a non-creator wallet on Node B, then vote:
+    ```powershell
+    $certificate = Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/certificate"
+    $certificate | ConvertTo-Json -Depth 8
+    ```
+
+11. Mint the approved submission on Node A:
+
+    ```powershell
+    $mint = Invoke-RestMethod -Method Post "http://127.0.0.1:8000/mint-queue/$submissionId/mint"
+    $mint.block | ConvertTo-Json -Depth 8
+    ```
+
+12. Confirm the minted block includes the certificate-backed fields:
+
+    ```powershell
+    $mint.block.submission_id
+    $mint.block.certificate_id
+    $mint.block.content_hash
+    $mint.block.originality_score
+    ```
+
+13. Confirm the block broadcast reached Node B. If the peer receive response says `sync_needed`, run sync on Node B:
+
+    ```powershell
+    Invoke-RestMethod -Method Post "http://127.0.0.1:8001/chain/sync" | ConvertTo-Json -Depth 8
+    ```
+
+14. Confirm both nodes show the same latest block hash and cumulative originality score:
+
+    ```powershell
+    Invoke-RestMethod "http://127.0.0.1:8000/chain/summary" | ConvertTo-Json -Depth 5
+    Invoke-RestMethod "http://127.0.0.1:8001/chain/summary" | ConvertTo-Json -Depth 5
+    ```
+
+## Scenario B: Higher Originality Score Beats Longer Lower-Score Chain
+
+This is easiest to verify through the automated backend tests because creating competing certified chains by hand requires carefully copying certificates and submissions between nodes.
+
+Automated route:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_two_node_consensus_verification.py -k "higher_score or longer_lower"
+```
+
+Expected result:
+
+- A chain with higher `cumulative_originality_score` is selected.
+- A longer chain with lower `cumulative_originality_score` is rejected.
+- Fork choice does not choose merely by height.
+
+Manual API route, if you have prepared two matching-genesis nodes with supporting certificate data:
+
+1. Make Chain A longer using legacy or non-certified blocks so its cumulative originality score stays lower.
+2. Make Chain B shorter but include a certified meme block with a higher originality score.
+3. Register the Chain B node as a peer of the Chain A node.
+4. Run:
 
    ```powershell
-   $voterB = (Invoke-RestMethod -Method Post "http://127.0.0.1:8001/generate_wallet").wallet.public_key
-   curl.exe -s -X POST "http://127.0.0.1:8001/submissions/$submissionId/vote" -F "voter=$voterB" -F "vote_type=original"
-   Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/votes"
+   Invoke-RestMethod -Method Post "http://127.0.0.1:8000/chain/sync" | ConvertTo-Json -Depth 8
    ```
 
-9. Cast enough distinct votes for approval. The current minimum is 5 votes, so generate additional voters on Node B as needed and vote `original`.
-10. Evaluate the submission on Node A.
+5. Confirm the sync result reason is `higher_originality_score` and the local summary now matches the higher-score chain.
 
-    ```powershell
-    curl.exe -s -X POST "http://127.0.0.1:8000/submissions/$submissionId/evaluate" -F "automated_originality_passed=true"
-    ```
+## Scenario C: Deterministic Tie-Breaker
 
-11. Mint the queued submission on Node A.
+Equal-score forks are easiest to verify with automated tests because they need precise chain construction.
 
-    ```powershell
-    Invoke-RestMethod -Method Post "http://127.0.0.1:8000/mint-queue/$submissionId/mint"
-    ```
+Automated route:
 
-12. Confirm Node B received the new block.
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_two_node_consensus_verification.py -k "equal_score"
+```
 
-    ```powershell
-    Invoke-RestMethod "http://127.0.0.1:8000/chain/summary"
-    Invoke-RestMethod "http://127.0.0.1:8001/chain/summary"
-    ```
+Expected result:
 
-13. Stop Node B.
-14. Create and mint another submission on Node A.
-15. Restart Node B.
-16. Run chain sync on Node B.
+- If cumulative originality scores are tied, higher chain height wins.
+- If score and height are tied, the lexicographically lowest `latest_block_hash` wins.
+- The result is deterministic regardless of peer order.
 
-    ```powershell
-    Invoke-RestMethod -Method Post "http://127.0.0.1:8001/chain/sync"
-    ```
+The broader fork-choice tests are also available:
 
-17. Confirm Node B catches up to Node A's chain height and latest hash.
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\blockchain\test_chain_originality_comparison.py tests\api\test_chain_sync_api.py
+```
 
-    ```powershell
-    Invoke-RestMethod "http://127.0.0.1:8000/chain/summary"
-    Invoke-RestMethod "http://127.0.0.1:8001/chain/summary"
-    ```
+## Lightweight Verification Script
 
-## Notes
+Run the focused two-node consensus verification set:
 
-- Each node uses its own data directory through `NODE_DATA_DIR`.
+```powershell
+.\.venv\Scripts\python.exe .\scripts\test_two_node_consensus.py
+```
+
+The script runs the in-process two-node consensus tests plus the peer block receive and chain sync API tests. It does not start server processes.
+
+## Notes And Current Limits
+
+- Each node uses its own data directory through `DATA_DIR` and `NODE_DATA_DIR`.
 - Node A writes to `data/node-a`.
 - Node B writes to `data/node-b`.
-- Submission metadata syncs between nodes, but image binary transport is not implemented yet. Mint submissions on the node that has the uploaded image file.
-- Chain sync only appends a longer valid chain with the same genesis hash. It does not resolve equal-height forks.
+- Submission metadata can sync between nodes, but image binary transport is not implemented yet. Mint submissions on the node that has the uploaded image file.
+- Certificate-backed synced blocks must validate against locally available supporting certificate and submission data. If a node receives only a block without the certificate/submission context, sync fails safely.
+- Peer block receive returns `sync_needed` on previous-hash mismatch. It does not start a background sync job.
+- Fork choice is based on cumulative originality score, then height, then lexicographically lowest latest block hash.

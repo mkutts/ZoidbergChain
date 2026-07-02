@@ -12,6 +12,7 @@ $env:NODE_HOST = "127.0.0.1"
 $env:NODE_PORT = "8001"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
 $env:NETWORK_NAME = "zoidberg-testnet"
+$env:DATA_DIR = "data/node-b"
 $env:NODE_DATA_DIR = "data/node-b"
 
 New-Item -ItemType Directory -Force -Path (Join-Path $ProjectRoot $env:NODE_DATA_DIR) | Out-Null

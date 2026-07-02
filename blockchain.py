@@ -848,51 +848,105 @@ class Blockchain:
             for block in chain
         ]
 
+    @staticmethod
+    def chain_height(chain_dicts):
+        if not chain_dicts:
+            return None
+        return chain_dicts[-1].get("index")
+
+    @staticmethod
+    def chain_latest_hash(chain_dicts):
+        if not chain_dicts:
+            return None
+        return chain_dicts[-1].get("hash")
+
     def compare_chains_by_originality(self, local_chain, candidate_chain):
         local_chain_dicts = self.chain_to_dicts(local_chain)
         candidate_chain_dicts = self.chain_to_dicts(candidate_chain)
         local_score = self.calculate_cumulative_originality_score(local_chain_dicts)
         candidate_score = self.calculate_cumulative_originality_score(candidate_chain_dicts)
+        local_height = self.chain_height(local_chain_dicts)
+        candidate_height = self.chain_height(candidate_chain_dicts)
+        local_latest_hash = self.chain_latest_hash(local_chain_dicts)
+        candidate_latest_hash = self.chain_latest_hash(candidate_chain_dicts)
 
         result = {
             "local_score": local_score,
             "candidate_score": candidate_score,
+            "local_height": local_height,
+            "candidate_height": candidate_height,
+            "local_latest_hash": local_latest_hash,
+            "candidate_latest_hash": candidate_latest_hash,
         }
 
         if not local_chain_dicts or not candidate_chain_dicts:
             return {
                 **result,
+                "decision": "invalid_candidate",
                 "preferred": "local",
                 "reason": "candidate_chain_invalid",
             }
         if candidate_chain_dicts[0].get("hash") != local_chain_dicts[0].get("hash"):
             return {
                 **result,
+                "decision": "invalid_candidate",
                 "preferred": "local",
                 "reason": "different_genesis_hash",
             }
         if not self.is_chain_valid(candidate_chain_dicts):
             return {
                 **result,
+                "decision": "invalid_candidate",
                 "preferred": "local",
                 "reason": "candidate_chain_invalid",
             }
         if candidate_score > local_score:
             return {
                 **result,
+                "decision": "replace_with_candidate",
                 "preferred": "candidate",
                 "reason": "higher_originality_score",
             }
         if candidate_score < local_score:
             return {
                 **result,
+                "decision": "keep_local",
                 "preferred": "local",
                 "reason": "lower_originality_score",
             }
+        if candidate_height > local_height:
+            return {
+                **result,
+                "decision": "replace_with_candidate",
+                "preferred": "candidate",
+                "reason": "higher_chain_height",
+            }
+        if candidate_height < local_height:
+            return {
+                **result,
+                "decision": "keep_local",
+                "preferred": "local",
+                "reason": "lower_chain_height",
+            }
+        if candidate_latest_hash < local_latest_hash:
+            return {
+                **result,
+                "decision": "replace_with_candidate",
+                "preferred": "candidate",
+                "reason": "lower_latest_block_hash",
+            }
+        if candidate_latest_hash > local_latest_hash:
+            return {
+                **result,
+                "decision": "keep_local",
+                "preferred": "local",
+                "reason": "higher_latest_block_hash",
+            }
         return {
             **result,
-            "preferred": "tie",
-            "reason": "equal_originality_score_unresolved",
+            "decision": "equivalent",
+            "preferred": "equivalent",
+            "reason": "same_latest_block_hash",
         }
 
     def extract_block_certificate_metadata(self, block_dict):
@@ -1047,12 +1101,13 @@ class Blockchain:
         return [block.__dict__ for block in self.chain]
     
     def replace_chain(self, new_chain):
-        """Replace the current chain with a new one if it is longer and valid."""
-        if len(new_chain) > len(self.chain) and self.is_chain_valid(new_chain):
+        """Replace the current chain only when the originality fork-choice rule prefers it."""
+        comparison = self.compare_chains_by_originality(self.chain, new_chain)
+        if comparison["decision"] == "replace_with_candidate":
             self.chain = new_chain
-            print("Debug: Replaced local chain with the received chain.")
+            print(f"Debug: Replaced local chain: {comparison['reason']}.")
             return True
-        print("Debug: Received chain is invalid or not longer.")
+        print(f"Debug: Received chain not selected: {comparison['reason']}.")
         return False
     
     def calculate_hash_from_dict(self, block_dict):

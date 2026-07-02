@@ -74,6 +74,27 @@ def _legacy_chain(base_chain, miner, count, start_timestamp=1_000_000.0):
     return chain
 
 
+def _same_height_equal_score_chains(blockchain, wallets):
+    first_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=1,
+        start_timestamp=1_000_001.0,
+    )
+    second_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_two"].public_key,
+        count=1,
+        start_timestamp=1_000_002.0,
+    )
+    lower_hash_chain, higher_hash_chain = sorted(
+        [first_chain, second_chain],
+        key=lambda chain: chain[-1].hash,
+    )
+    assert lower_hash_chain[-1].hash < higher_hash_chain[-1].hash
+    return lower_hash_chain, higher_hash_chain
+
+
 def _mint_certified_block(blockchain, submission_image, wallets, text, voter_prefix):
     submission = blockchain.submit_content(
         image_path=str(submission_image),
@@ -170,6 +191,31 @@ def _mock_peer_chain(monkeypatch, peer_chain, summary_overrides=None, blocks_ove
     return calls
 
 
+def _mock_peer_chains(monkeypatch, peer_chains_by_url):
+    calls = []
+
+    def fake_get(url, params=None, timeout=None):
+        calls.append({"url": url, "params": params, "timeout": timeout})
+        for peer_url, peer_chain in peer_chains_by_url.items():
+            if not url.startswith(peer_url.rstrip("/") + "/"):
+                continue
+            if url.endswith("/chain/summary"):
+                return FakeResponse(_summary(peer_chain))
+            if url.endswith("/chain/blocks"):
+                from_height = params["from_height"]
+                return FakeResponse({
+                    "blocks": [
+                        block.to_dict()
+                        for block in peer_chain
+                        if block.index >= from_height
+                    ]
+                })
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr("peer_sync.requests.get", fake_get)
+    return calls
+
+
 def test_chain_summary_endpoint(blockchain):
     client = _client(blockchain)
     latest_block = blockchain.get_latest_block()
@@ -254,7 +300,8 @@ def test_sync_uses_cumulative_originality_score_instead_of_height(
 
     assert response.status_code == 200
     assert response.json()["results"][0]["status"] == "skipped"
-    assert response.json()["results"][0]["reason"] == "peer_originality_score_lower"
+    assert response.json()["results"][0]["decision"] == "keep_local"
+    assert response.json()["results"][0]["reason"] == "lower_originality_score"
     assert all(not call["url"].endswith("/chain/blocks") for call in calls)
     assert blockchain.get_latest_block().hash == local_tip.hash
 
@@ -281,7 +328,8 @@ def test_sync_replaces_local_chain_with_valid_higher_score_peer(
 
     assert response.status_code == 200
     assert response.json()["synced"] == 1
-    assert response.json()["results"][0]["reason"] == "replaced_higher_originality_chain"
+    assert response.json()["results"][0]["decision"] == "replace_with_candidate"
+    assert response.json()["results"][0]["reason"] == "higher_originality_score"
     assert response.json()["results"][0]["candidate_score"] == peer_block.originality_score
     assert blockchain.get_latest_block().hash == peer_block.hash
 
@@ -319,6 +367,101 @@ def test_sync_accepts_shorter_higher_score_peer_chain(
     assert blockchain.get_latest_block().hash == peer_block.hash
 
 
+def test_sync_accepts_equal_score_higher_height_peer_chain(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    _register_peer()
+    peer_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=1,
+        start_timestamp=1_000_001.0,
+    )
+    _mock_peer_chain(monkeypatch, peer_chain)
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["synced"] == 1
+    assert response.json()["results"][0]["decision"] == "replace_with_candidate"
+    assert response.json()["results"][0]["reason"] == "higher_chain_height"
+    assert blockchain.get_latest_block().hash == peer_chain[-1].hash
+
+
+def test_sync_accepts_equal_score_and_height_lower_latest_hash_peer_chain(
+    blockchain,
+    wallets,
+    monkeypatch,
+):
+    lower_hash_chain, higher_hash_chain = _same_height_equal_score_chains(blockchain, wallets)
+    blockchain.chain = higher_hash_chain
+    client = _client(blockchain)
+    _register_peer()
+    _mock_peer_chain(monkeypatch, lower_hash_chain)
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["synced"] == 1
+    assert response.json()["results"][0]["decision"] == "replace_with_candidate"
+    assert response.json()["results"][0]["reason"] == "lower_latest_block_hash"
+    assert response.json()["results"][0]["candidate_latest_hash"] < response.json()["results"][0]["local_latest_hash"]
+    assert blockchain.get_latest_block().hash == lower_hash_chain[-1].hash
+
+
+def test_sync_treats_same_latest_block_hash_as_equivalent(blockchain, monkeypatch):
+    client = _client(blockchain)
+    _register_peer()
+    calls = _mock_peer_chain(monkeypatch, list(blockchain.chain))
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["results"][0]["status"] == "skipped"
+    assert response.json()["results"][0]["decision"] == "equivalent"
+    assert response.json()["results"][0]["reason"] == "same_latest_block_hash"
+    assert all(not call["url"].endswith("/chain/blocks") for call in calls)
+
+
+def test_sync_result_is_deterministic_independent_of_peer_order(
+    blockchain,
+    wallets,
+    monkeypatch,
+):
+    lower_hash_chain, higher_hash_chain = _same_height_equal_score_chains(blockchain, wallets)
+    genesis_chain = list(blockchain.chain)
+    lower_peer_url = "http://peer-low.test:8000"
+    higher_peer_url = "http://peer-high.test:8000"
+    peer_chains = {
+        lower_peer_url: lower_hash_chain,
+        higher_peer_url: higher_hash_chain,
+    }
+
+    def sync_with_order(peer_order):
+        import api
+
+        blockchain.chain = list(genesis_chain)
+        client = _client(blockchain)
+        api.peer_store._save_peers([])
+        for node_id, peer_url in peer_order:
+            _register_peer(node_id=node_id, url=peer_url)
+        _mock_peer_chains(monkeypatch, peer_chains)
+        response = client.post("/chain/sync")
+        assert response.status_code == 200
+        return blockchain.get_latest_block().hash
+
+    first_order_hash = sync_with_order([
+        ("peer-high", higher_peer_url),
+        ("peer-low", lower_peer_url),
+    ])
+    second_order_hash = sync_with_order([
+        ("peer-low", lower_peer_url),
+        ("peer-high", higher_peer_url),
+    ])
+
+    assert first_order_hash == lower_hash_chain[-1].hash
+    assert second_order_hash == lower_hash_chain[-1].hash
+
+
 def test_sync_rejects_peer_with_different_genesis_hash(blockchain, wallets, monkeypatch):
     client = _client(blockchain)
     _register_peer()
@@ -333,6 +476,7 @@ def test_sync_rejects_peer_with_different_genesis_hash(blockchain, wallets, monk
 
     assert response.status_code == 200
     assert response.json()["results"][0]["status"] == "skipped"
+    assert response.json()["results"][0]["decision"] == "invalid_candidate"
     assert response.json()["results"][0]["reason"] == "different_genesis_hash"
     assert all(not call["url"].endswith("/chain/blocks") for call in calls)
     assert blockchain.get_latest_block().hash == blockchain.chain[0].hash
@@ -372,21 +516,25 @@ def test_sync_rejects_invalid_higher_score_chain(
     assert blockchain.get_latest_block().index == 0
 
 
-def test_sync_does_not_resolve_equal_score_fork(blockchain, wallets, monkeypatch):
-    local_block = _next_block(blockchain.chain, wallets["contributor_one"].public_key, timestamp=1_000_001.0)
-    peer_block = _next_block(blockchain.chain, wallets["contributor_two"].public_key, timestamp=1_000_002.0)
-    blockchain.chain.append(local_block)
+def test_sync_keeps_equal_score_and_height_higher_latest_hash_peer_chain(
+    blockchain,
+    wallets,
+    monkeypatch,
+):
+    lower_hash_chain, higher_hash_chain = _same_height_equal_score_chains(blockchain, wallets)
+    blockchain.chain = lower_hash_chain
     client = _client(blockchain)
     _register_peer()
-    peer_chain = blockchain.chain[:1] + [peer_block]
-    _mock_peer_chain(monkeypatch, peer_chain)
+    calls = _mock_peer_chain(monkeypatch, higher_hash_chain)
 
     response = client.post("/chain/sync")
 
     assert response.status_code == 200
     assert response.json()["results"][0]["status"] == "skipped"
-    assert response.json()["results"][0]["reason"] == "equal_originality_score_fork_not_resolved"
-    assert blockchain.get_latest_block().hash == local_block.hash
+    assert response.json()["results"][0]["decision"] == "keep_local"
+    assert response.json()["results"][0]["reason"] == "higher_latest_block_hash"
+    assert all(not call["url"].endswith("/chain/blocks") for call in calls)
+    assert blockchain.get_latest_block().hash == lower_hash_chain[-1].hash
 
 
 def test_successful_sync_preserves_existing_submissions_and_votes(

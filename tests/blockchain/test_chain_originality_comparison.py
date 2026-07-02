@@ -70,7 +70,37 @@ def _certified_chain_from_base(blockchain, base_chain, submission_image, wallets
     return certified_chain, block
 
 
-def test_higher_originality_score_chain_is_preferred(
+def _same_height_equal_score_chains(blockchain, wallets):
+    first_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=1,
+        start_timestamp=1_000_001.0,
+    )
+    second_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_two"].public_key,
+        count=1,
+        start_timestamp=1_000_002.0,
+    )
+    lower_hash_chain, higher_hash_chain = sorted(
+        [first_chain, second_chain],
+        key=lambda chain: chain[-1].hash,
+    )
+    assert lower_hash_chain[-1].hash < higher_hash_chain[-1].hash
+    return lower_hash_chain, higher_hash_chain
+
+
+def _select_best_chain(blockchain, chains):
+    selected_chain = chains[0]
+    for candidate_chain in chains[1:]:
+        result = blockchain.compare_chains_by_originality(selected_chain, candidate_chain)
+        if result["decision"] == "replace_with_candidate":
+            selected_chain = candidate_chain
+    return selected_chain
+
+
+def test_higher_originality_score_chain_wins(
     blockchain,
     submission_image,
     wallets,
@@ -86,11 +116,66 @@ def test_higher_originality_score_chain_is_preferred(
 
     result = blockchain.compare_chains_by_originality(blockchain.chain, candidate_chain)
 
-    assert result["preferred"] == "candidate"
+    assert result["decision"] == "replace_with_candidate"
     assert result["reason"] == "higher_originality_score"
 
 
-def test_longer_lower_score_chain_is_rejected(blockchain, submission_image, wallets):
+def test_equal_score_higher_height_wins(blockchain, wallets):
+    candidate_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=1,
+        start_timestamp=1_000_001.0,
+    )
+
+    result = blockchain.compare_chains_by_originality(blockchain.chain, candidate_chain)
+
+    assert result["decision"] == "replace_with_candidate"
+    assert result["reason"] == "higher_chain_height"
+
+
+def test_equal_score_and_height_lower_latest_block_hash_wins(blockchain, wallets):
+    lower_hash_chain, higher_hash_chain = _same_height_equal_score_chains(blockchain, wallets)
+
+    result = blockchain.compare_chains_by_originality(higher_hash_chain, lower_hash_chain)
+
+    assert result["decision"] == "replace_with_candidate"
+    assert result["reason"] == "lower_latest_block_hash"
+    assert result["candidate_latest_hash"] < result["local_latest_hash"]
+
+
+def test_exact_same_latest_block_hash_is_equivalent(blockchain, wallets):
+    local_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=1,
+        start_timestamp=1_000_001.0,
+    )
+
+    result = blockchain.compare_chains_by_originality(local_chain, list(local_chain))
+
+    assert result["decision"] == "equivalent"
+    assert result["reason"] == "same_latest_block_hash"
+
+
+def test_deterministic_result_is_independent_of_peer_order(blockchain, wallets):
+    lower_hash_chain, higher_hash_chain = _same_height_equal_score_chains(blockchain, wallets)
+    genesis_chain = blockchain.chain
+
+    first_order_winner = _select_best_chain(
+        blockchain,
+        [genesis_chain, higher_hash_chain, lower_hash_chain],
+    )
+    second_order_winner = _select_best_chain(
+        blockchain,
+        [genesis_chain, lower_hash_chain, higher_hash_chain],
+    )
+
+    assert first_order_winner[-1].hash == lower_hash_chain[-1].hash
+    assert second_order_winner[-1].hash == lower_hash_chain[-1].hash
+
+
+def test_longer_lower_score_chain_still_loses(blockchain, submission_image, wallets):
     local_chain, _local_block = _certified_chain_from_base(
         blockchain,
         blockchain.chain,
@@ -108,12 +193,12 @@ def test_longer_lower_score_chain_is_rejected(blockchain, submission_image, wall
 
     result = blockchain.compare_chains_by_originality(local_chain, candidate_chain)
 
-    assert result["preferred"] == "local"
+    assert result["decision"] == "keep_local"
     assert result["reason"] == "lower_originality_score"
     assert len(candidate_chain) > len(local_chain)
 
 
-def test_shorter_higher_score_chain_is_preferred(blockchain, submission_image, wallets):
+def test_shorter_higher_score_chain_still_wins(blockchain, submission_image, wallets):
     local_chain = _legacy_chain(
         blockchain.chain,
         wallets["contributor_one"].public_key,
@@ -131,9 +216,25 @@ def test_shorter_higher_score_chain_is_preferred(blockchain, submission_image, w
 
     result = blockchain.compare_chains_by_originality(local_chain, candidate_chain)
 
-    assert result["preferred"] == "candidate"
+    assert result["decision"] == "replace_with_candidate"
     assert result["reason"] == "higher_originality_score"
     assert len(candidate_chain) < len(local_chain)
+
+
+def test_invalid_candidate_rejected_even_if_tie_breaker_would_prefer_it(blockchain, wallets):
+    candidate_chain = _legacy_chain(
+        blockchain.chain,
+        wallets["contributor_one"].public_key,
+        count=1,
+        start_timestamp=1_000_001.0,
+    )
+    candidate_dicts = [block.to_dict() for block in candidate_chain]
+    candidate_dicts[-1]["hash"] = "invalid-hash"
+
+    result = blockchain.compare_chains_by_originality(blockchain.chain, candidate_dicts)
+
+    assert result["decision"] == "invalid_candidate"
+    assert result["reason"] == "candidate_chain_invalid"
 
 
 def test_different_genesis_hash_is_rejected(blockchain):
@@ -142,47 +243,5 @@ def test_different_genesis_hash_is_rejected(blockchain):
 
     result = blockchain.compare_chains_by_originality(blockchain.chain, candidate_chain)
 
-    assert result["preferred"] == "local"
+    assert result["decision"] == "invalid_candidate"
     assert result["reason"] == "different_genesis_hash"
-
-
-def test_invalid_higher_score_chain_is_rejected(
-    blockchain,
-    submission_image,
-    wallets,
-):
-    candidate_chain, _candidate_block = _certified_chain_from_base(
-        blockchain,
-        blockchain.chain,
-        submission_image,
-        wallets,
-        "Invalid higher score candidate",
-        "invalid-candidate-voter",
-    )
-    candidate_dicts = [block.to_dict() for block in candidate_chain]
-    candidate_dicts[-1]["hash"] = "invalid-hash"
-
-    result = blockchain.compare_chains_by_originality(blockchain.chain, candidate_dicts)
-
-    assert result["preferred"] == "local"
-    assert result["reason"] == "candidate_chain_invalid"
-
-
-def test_equal_score_fork_is_unresolved(blockchain, wallets):
-    local_chain = _legacy_chain(
-        blockchain.chain,
-        wallets["contributor_one"].public_key,
-        count=1,
-        start_timestamp=1_000_001.0,
-    )
-    candidate_chain = _legacy_chain(
-        blockchain.chain,
-        wallets["contributor_two"].public_key,
-        count=1,
-        start_timestamp=1_000_002.0,
-    )
-
-    result = blockchain.compare_chains_by_originality(local_chain, candidate_chain)
-
-    assert result["preferred"] == "tie"
-    assert result["reason"] == "equal_originality_score_unresolved"

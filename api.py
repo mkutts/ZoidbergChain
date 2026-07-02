@@ -242,6 +242,7 @@ async def node_info():
         "network_name": NETWORK_NAME,
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,
+        "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
     }
 
 
@@ -361,6 +362,7 @@ async def chain_summary():
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,
         "genesis_hash": blockchain.chain[0].hash,
+        "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
         "cumulative_work": None,
     }
 

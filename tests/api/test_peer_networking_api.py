@@ -3,6 +3,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
+
 
 def _client(blockchain):
     import api
@@ -27,7 +29,49 @@ def test_node_info_response(blockchain):
         "network_name": "zoidberg-testnet",
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,
+        "cumulative_originality_score": 0,
     }
+
+
+def test_node_info_includes_cumulative_originality_score_for_scored_chain(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = blockchain.submit_content(
+        image_path=str(submission_image),
+        text_content="Node info scored meme",
+        submitter=wallets["owner"].public_key,
+    )
+    for index, vote_type in enumerate([
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_NOT_ORIGINAL,
+    ]):
+        blockchain.cast_submission_vote(
+            submission_id=submission.submission_id,
+            voter=f"node-info-voter-{index}",
+            vote_type=vote_type,
+            created_at=1_000_000 + index,
+        )
+    blockchain.evaluate_submission(
+        submission.submission_id,
+        automated_originality_passed=True,
+        now=1_000_100,
+    )
+    blockchain.add_to_mint_queue(submission.submission_id)
+    blockchain.mint_next_queued_submission(
+        miner=wallets["contributor_one"].public_key,
+        validate_meme=False,
+    )
+
+    response = client.get("/node-info")
+
+    assert response.status_code == 200
+    assert response.json()["cumulative_originality_score"] == blockchain.get_latest_block().originality_score
 
 
 def test_registering_valid_peer(blockchain, monkeypatch):

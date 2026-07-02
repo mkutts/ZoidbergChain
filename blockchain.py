@@ -820,6 +820,27 @@ class Blockchain:
     def get_latest_block(self):
         return self.chain[-1]
 
+    @staticmethod
+    def calculate_cumulative_originality_score(chain):
+        cumulative_score = 0
+        for block in chain:
+            if isinstance(block, dict):
+                if block.get("index") == 0:
+                    continue
+                originality_score = block.get("originality_score", 0)
+            else:
+                if getattr(block, "index", None) == 0:
+                    continue
+                originality_score = getattr(block, "originality_score", 0)
+
+            if originality_score is not None:
+                cumulative_score += originality_score
+
+        return round(cumulative_score, 8)
+
+    def get_cumulative_originality_score(self):
+        return self.calculate_cumulative_originality_score(self.chain)
+
     def extract_block_certificate_metadata(self, block_dict):
         fields = [
             "submission_id",

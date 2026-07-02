@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from block import Block
 from peers import PeerStore
-from submission import VOTE_ORIGINAL
+from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 
 
@@ -47,6 +47,38 @@ def _next_block(chain, miner, timestamp=1_000_000.0, text="Synced peer block"):
         miner=miner,
         meme={"encoded_image": "peer-image", "text": text},
     )
+
+
+def _mint_certified_block(blockchain, submission_image, wallets):
+    submission = blockchain.submit_content(
+        image_path=str(submission_image),
+        text_content="Summary scored meme",
+        submitter=wallets["owner"].public_key,
+    )
+    for index, vote_type in enumerate([
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_NOT_ORIGINAL,
+    ]):
+        blockchain.cast_submission_vote(
+            submission_id=submission.submission_id,
+            voter=f"summary-voter-{index}",
+            vote_type=vote_type,
+            created_at=1_000_000 + index,
+        )
+    blockchain.evaluate_submission(
+        submission.submission_id,
+        automated_originality_passed=True,
+        now=1_000_100,
+    )
+    blockchain.add_to_mint_queue(submission.submission_id)
+    blockchain.mint_next_queued_submission(
+        miner=wallets["contributor_one"].public_key,
+        validate_meme=False,
+    )
+    return blockchain.get_latest_block()
 
 
 def _summary(chain, network_name="zoidberg-testnet", node_id="peer-node-1"):
@@ -95,8 +127,24 @@ def test_chain_summary_endpoint(blockchain):
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,
         "genesis_hash": blockchain.chain[0].hash,
+        "cumulative_originality_score": 0,
         "cumulative_work": None,
     }
+
+
+def test_chain_summary_reports_cumulative_originality_score(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    latest_block = _mint_certified_block(blockchain, submission_image, wallets)
+
+    response = client.get("/chain/summary")
+
+    assert response.status_code == 200
+    assert response.json()["latest_block_hash"] == latest_block.hash
+    assert response.json()["cumulative_originality_score"] == latest_block.originality_score
 
 
 def test_fetching_blocks_from_height(blockchain, wallets):

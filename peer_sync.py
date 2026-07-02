@@ -142,8 +142,36 @@ def receive_peer_block(
         raise WrongNetworkError("Registered peer belongs to a different network.")
 
     block = _normalize_block_payload(block_payload)
+    existing_block = next(
+        (local_block for local_block in blockchain.chain if local_block.hash == block.hash),
+        None,
+    )
+    if existing_block:
+        if existing_block.to_dict() != block.to_dict():
+            raise DuplicateBlockError("Block hash already exists with different contents.")
+        return {
+            "accepted": True,
+            "status": "duplicate",
+            "action": "duplicate",
+            "reason": "block_already_exists",
+            "block": existing_block.to_dict(),
+            "submission": None,
+        }
+
+    local_latest_block = blockchain.get_latest_block()
+    if block.previous_hash != local_latest_block.hash:
+        return {
+            "accepted": False,
+            "status": "sync_needed",
+            "reason": "previous_hash_mismatch",
+            "local_latest_hash": local_latest_block.hash,
+            "received_previous_hash": block.previous_hash,
+            "received_block_hash": block.hash,
+            "recommended_action": "run_chain_sync",
+        }
+
     for existing_block in blockchain.chain:
-        if existing_block.hash == block.hash or existing_block.index == block.index:
+        if existing_block.index == block.index:
             raise DuplicateBlockError("Block already exists.")
 
     _validate_block_extends_chain(blockchain, block, blockchain.chain)
@@ -155,6 +183,7 @@ def receive_peer_block(
 
     return {
         "accepted": True,
+        "status": "accepted",
         "action": "appended",
         "block": block.to_dict(),
         "submission": minted_submission.to_dict() if minted_submission else None,

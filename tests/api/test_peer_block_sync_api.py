@@ -75,6 +75,25 @@ def _certify_submission(blockchain, submission):
     return blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_100)
 
 
+def _certified_peer_block(blockchain, submission_image, wallets):
+    original_chain = list(blockchain.chain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _certify_submission(blockchain, submission)
+    blockchain.add_to_mint_queue(submission.submission_id)
+    assert blockchain.mint_next_queued_submission(
+        miner=wallets["contributor_one"].public_key,
+        validate_meme=False,
+    ) is True
+    block = blockchain.get_latest_block()
+    blockchain.chain = original_chain
+    return submission, block
+
+
+def _rehash(blockchain, block_dict):
+    block_dict["hash"] = blockchain.calculate_hash_from_dict(block_dict)
+    return block_dict
+
+
 def test_receiving_valid_peer_block_extends_chain(blockchain, wallets):
     client = _client(blockchain)
     _register_peer()
@@ -88,6 +107,58 @@ def test_receiving_valid_peer_block_extends_chain(blockchain, wallets):
     assert response.json()["action"] == "appended"
     assert len(blockchain.chain) == starting_height + 1
     assert blockchain.get_latest_block().hash == block.hash
+
+
+def test_receiving_direct_extending_block_with_invalid_certificate_is_rejected(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    _submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    block_dict = block.to_dict()
+    block_dict["certificate_id"] = "unknown-certificate"
+    _rehash(blockchain, block_dict)
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block_dict,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Block failed chain validation."
+    assert len(blockchain.chain) == 1
+
+
+def test_receiving_direct_extending_block_with_mismatched_originality_score_is_rejected(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    _submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    block_dict = block.to_dict()
+    block_dict["originality_score"] = block_dict["originality_score"] + 1
+    _rehash(blockchain, block_dict)
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block_dict,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Block failed chain validation."
+    assert len(blockchain.chain) == 1
 
 
 def test_receive_peer_block_rejects_unregistered_peer(blockchain, wallets):
@@ -134,7 +205,7 @@ def test_receive_peer_block_rejects_malformed_block(blockchain):
     assert len(blockchain.chain) == 1
 
 
-def test_receive_peer_block_rejects_duplicate_block(blockchain, wallets):
+def test_receive_peer_block_duplicate_is_idempotent(blockchain, wallets):
     client = _client(blockchain)
     _register_peer()
     block = _peer_block(blockchain, wallets["contributor_one"].public_key)
@@ -142,12 +213,15 @@ def test_receive_peer_block_rejects_duplicate_block(blockchain, wallets):
     assert client.post("/peers/blocks/receive", json=_receive_payload(block)).status_code == 200
     duplicate_response = client.post("/peers/blocks/receive", json=_receive_payload(block))
 
-    assert duplicate_response.status_code == 409
-    assert duplicate_response.json()["detail"] == "Block already exists."
+    assert duplicate_response.status_code == 200
+    assert duplicate_response.json()["accepted"] is True
+    assert duplicate_response.json()["status"] == "duplicate"
+    assert duplicate_response.json()["action"] == "duplicate"
+    assert duplicate_response.json()["reason"] == "block_already_exists"
     assert len(blockchain.chain) == 2
 
 
-def test_receive_peer_block_rejects_mismatched_previous_hash(blockchain, wallets):
+def test_receive_peer_block_mismatched_previous_hash_returns_sync_needed(blockchain, wallets):
     client = _client(blockchain)
     _register_peer()
     latest_block = blockchain.get_latest_block()
@@ -162,11 +236,16 @@ def test_receive_peer_block_rejects_mismatched_previous_hash(blockchain, wallets
 
     response = client.post("/peers/blocks/receive", json=_receive_payload(block))
 
-    assert response.status_code == 409
-    assert response.json()["detail"] == (
-        "Block does not extend the local chain tip. Fork resolution is not implemented yet."
-    )
+    assert response.status_code == 200
+    assert response.json()["accepted"] is False
+    assert response.json()["status"] == "sync_needed"
+    assert response.json()["reason"] == "previous_hash_mismatch"
+    assert response.json()["local_latest_hash"] == latest_block.hash
+    assert response.json()["received_previous_hash"] == "not-the-local-tip"
+    assert response.json()["received_block_hash"] == block.hash
+    assert response.json()["recommended_action"] == "run_chain_sync"
     assert len(blockchain.chain) == 1
+    assert blockchain.get_latest_block().hash == latest_block.hash
 
 
 def test_known_submission_status_becomes_minted_when_peer_block_references_it(

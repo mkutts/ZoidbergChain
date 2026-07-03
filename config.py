@@ -24,6 +24,8 @@ _SECURITY_DEFAULTS = {
         "ALLOW_DEV_RESET_ENDPOINTS": True,
         "ALLOW_INSECURE_LOCAL_PEERS": True,
         "ENABLE_RATE_LIMITING": False,
+        "ENABLE_SIGNED_PEER_MESSAGES": False,
+        "PEER_REPLAY_PROTECTION_ENABLED": False,
         "REQUIRE_PEER_AUTH": False,
         "PUBLIC_API_MODE": False,
     },
@@ -32,6 +34,8 @@ _SECURITY_DEFAULTS = {
         "ALLOW_DEV_RESET_ENDPOINTS": False,
         "ALLOW_INSECURE_LOCAL_PEERS": False,
         "ENABLE_RATE_LIMITING": True,
+        "ENABLE_SIGNED_PEER_MESSAGES": True,
+        "PEER_REPLAY_PROTECTION_ENABLED": True,
         "REQUIRE_PEER_AUTH": True,
         "PUBLIC_API_MODE": True,
     },
@@ -40,6 +44,8 @@ _SECURITY_DEFAULTS = {
         "ALLOW_DEV_RESET_ENDPOINTS": False,
         "ALLOW_INSECURE_LOCAL_PEERS": False,
         "ENABLE_RATE_LIMITING": True,
+        "ENABLE_SIGNED_PEER_MESSAGES": True,
+        "PEER_REPLAY_PROTECTION_ENABLED": True,
         "REQUIRE_PEER_AUTH": True,
         "PUBLIC_API_MODE": True,
     },
@@ -83,6 +89,16 @@ def _env_flag_any(names, default=False):
     return default
 
 
+def _env_int(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value.strip())
+    except (AttributeError, ValueError):
+        raise ValueError(f"Invalid integer value for {name}: {value!r}.")
+
+
 def _load_environment():
     raw_environment = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development"))
     environment = (raw_environment or "development").strip().lower()
@@ -114,6 +130,15 @@ ALLOW_INSECURE_LOCAL_PEERS = _env_flag(
 ENABLE_RATE_LIMITING = _env_flag_any(
     ("ENABLE_RATE_LIMITING", "RATE_LIMIT_ENABLED"),
     _CURRENT_SECURITY_DEFAULTS["ENABLE_RATE_LIMITING"],
+)
+ENABLE_SIGNED_PEER_MESSAGES = _env_flag(
+    "ENABLE_SIGNED_PEER_MESSAGES",
+    _CURRENT_SECURITY_DEFAULTS["ENABLE_SIGNED_PEER_MESSAGES"],
+)
+PEER_SIGNATURE_WINDOW_SECONDS = _env_int("PEER_SIGNATURE_WINDOW_SECONDS", 300)
+PEER_REPLAY_PROTECTION_ENABLED = _env_flag(
+    "PEER_REPLAY_PROTECTION_ENABLED",
+    _CURRENT_SECURITY_DEFAULTS["PEER_REPLAY_PROTECTION_ENABLED"],
 )
 REQUIRE_PEER_AUTH = _env_flag(
     "REQUIRE_PEER_AUTH",
@@ -156,6 +181,18 @@ def rate_limiting_enabled():
     return ENABLE_RATE_LIMITING
 
 
+def signed_peer_messages_enabled():
+    return ENABLE_SIGNED_PEER_MESSAGES
+
+
+def peer_signature_window_seconds():
+    return PEER_SIGNATURE_WINDOW_SECONDS
+
+
+def peer_replay_protection_enabled():
+    return PEER_REPLAY_PROTECTION_ENABLED
+
+
 def require_peer_auth():
     return REQUIRE_PEER_AUTH
 
@@ -174,13 +211,16 @@ def peer_shared_secret():
 
 def peer_shared_secret_is_configured():
     secret = peer_shared_secret()
-    return bool(secret) and secret.lower() not in {"change-me", "replace-with-long-random-secret"}
+    return bool(secret) and secret.lower() not in {
+        "change-me",
+        "replace-with-long-random-secret",
+    }
 
 
 def validate_peer_auth_config():
-    if REQUIRE_PEER_AUTH and not peer_shared_secret_is_configured():
+    if (REQUIRE_PEER_AUTH or ENABLE_SIGNED_PEER_MESSAGES) and not peer_shared_secret_is_configured():
         raise ValueError(
-            "PEER_SHARED_SECRET must be set to a non-default value when peer auth is required."
+            "PEER_SHARED_SECRET must be set to a non-default value when peer auth or signed peer messages are enabled."
         )
 
 

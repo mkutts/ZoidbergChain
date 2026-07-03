@@ -1,10 +1,23 @@
+import hashlib
+import hmac
+import json
 import logging
 import math
+import secrets
+import time
 
 import requests
 
 from block import Block
-from config import ORIGINALITY_APPROVAL_THRESHOLD, peer_auth_required, peer_shared_secret, peer_shared_secret_is_configured
+from config import (
+    ORIGINALITY_APPROVAL_THRESHOLD,
+    peer_auth_required,
+    peer_replay_protection_enabled,
+    peer_shared_secret,
+    peer_shared_secret_is_configured,
+    peer_signature_window_seconds,
+    signed_peer_messages_enabled,
+)
 from originality_certificate import (
     OriginalityCertificate,
     calculate_certificate_id,
@@ -27,16 +40,173 @@ from transaction import Transaction
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
+_PEER_NONCE_CACHE: dict[str, dict[str, int]] = {}
 
 
-def _peer_request_headers():
+class PeerSyncError(ValueError):
+    pass
+
+
+class MissingSignedPeerHeadersError(PeerSyncError):
+    pass
+
+
+class InvalidPeerTimestampError(PeerSyncError):
+    pass
+
+
+class ExpiredPeerSignatureError(PeerSyncError):
+    pass
+
+
+class InvalidPeerSignatureError(PeerSyncError):
+    pass
+
+
+class ReplayedPeerNonceError(PeerSyncError):
+    pass
+
+
+def hash_body(body_bytes):
+    if body_bytes is None:
+        body_bytes = b""
+    if isinstance(body_bytes, str):
+        body_bytes = body_bytes.encode("utf-8")
+    return hashlib.sha256(body_bytes).hexdigest()
+
+
+def build_peer_signature_payload(method, path, timestamp, nonce, body_hash):
+    return "\n".join(
+        [
+            str(method).upper(),
+            str(path),
+            str(timestamp),
+            str(nonce),
+            str(body_hash),
+        ]
+    )
+
+
+def sign_peer_request(method, path, timestamp, nonce, body_bytes, secret=None):
+    secret = peer_shared_secret() if secret is None else secret
+    canonical_payload = build_peer_signature_payload(
+        method=method,
+        path=path,
+        timestamp=timestamp,
+        nonce=nonce,
+        body_hash=hash_body(body_bytes),
+    )
+    return hmac.new(
+        secret.encode("utf-8"),
+        canonical_payload.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _serialize_peer_body(payload):
+    return json.dumps(payload, allow_nan=False).encode("utf-8")
+
+
+def _peer_request_headers(method, path, payload, origin_node_id):
+    if signed_peer_messages_enabled():
+        if not peer_shared_secret_is_configured():
+            raise ValueError("PEER_SHARED_SECRET must be configured for signed peer messages.")
+        if not isinstance(origin_node_id, str) or not origin_node_id.strip():
+            raise ValueError("origin_node_id is required for signed peer messages.")
+        timestamp = int(time.time())
+        nonce = secrets.token_hex(16)
+        body_bytes = _serialize_peer_body(payload)
+        signature = sign_peer_request(
+            method=method,
+            path=path,
+            timestamp=timestamp,
+            nonce=nonce,
+            body_bytes=body_bytes,
+        )
+        return {
+            "X-ZOID-Node-Id": origin_node_id,
+            "X-ZOID-Timestamp": str(timestamp),
+            "X-ZOID-Nonce": nonce,
+            "X-ZOID-Signature": signature,
+        }
     if peer_auth_required() and peer_shared_secret_is_configured():
         return {"X-ZOID-Peer-Secret": peer_shared_secret()}
     return {}
 
 
-class PeerSyncError(ValueError):
-    pass
+def _cleanup_peer_nonce_cache(now=None, window_seconds=None):
+    if not _PEER_NONCE_CACHE:
+        return
+
+    now = int(time.time()) if now is None else int(now)
+    window_seconds = peer_signature_window_seconds() if window_seconds is None else int(window_seconds)
+    cutoff = now - window_seconds
+    stale_node_ids = []
+
+    for node_id, nonces in list(_PEER_NONCE_CACHE.items()):
+        stale_nonces = [nonce for nonce, timestamp in nonces.items() if timestamp < cutoff]
+        for nonce in stale_nonces:
+            nonces.pop(nonce, None)
+        if not nonces:
+            stale_node_ids.append(node_id)
+
+    for node_id in stale_node_ids:
+        _PEER_NONCE_CACHE.pop(node_id, None)
+
+
+def _record_peer_nonce(node_id, nonce, timestamp):
+    _cleanup_peer_nonce_cache(int(time.time()), peer_signature_window_seconds())
+    _PEER_NONCE_CACHE.setdefault(node_id, {})[nonce] = int(timestamp)
+
+
+def _is_replayed_peer_nonce(node_id, nonce):
+    _cleanup_peer_nonce_cache(int(time.time()), peer_signature_window_seconds())
+    return nonce in _PEER_NONCE_CACHE.get(node_id, {})
+
+
+def verify_peer_signature(method, path, headers, body_bytes):
+    if not signed_peer_messages_enabled():
+        return None
+
+    node_id = headers.get("X-ZOID-Node-Id")
+    timestamp = headers.get("X-ZOID-Timestamp")
+    nonce = headers.get("X-ZOID-Nonce")
+    signature = headers.get("X-ZOID-Signature")
+
+    if not node_id or not timestamp or not nonce or not signature:
+        raise MissingSignedPeerHeadersError("Missing signed peer headers.")
+
+    try:
+        timestamp_value = int(str(timestamp).strip())
+    except (TypeError, ValueError):
+        raise InvalidPeerTimestampError("Invalid peer timestamp.")
+
+    now = int(time.time())
+    window_seconds = peer_signature_window_seconds()
+    if abs(now - timestamp_value) > window_seconds:
+        raise ExpiredPeerSignatureError("Peer signature timestamp outside the allowed window.")
+
+    expected_signature = sign_peer_request(
+        method=method,
+        path=path,
+        timestamp=timestamp_value,
+        nonce=nonce,
+        body_bytes=body_bytes,
+    )
+    if not hmac.compare_digest(str(signature), expected_signature):
+        raise InvalidPeerSignatureError("Invalid peer signature.")
+
+    if peer_replay_protection_enabled():
+        _cleanup_peer_nonce_cache(now, window_seconds)
+        if _is_replayed_peer_nonce(str(node_id), str(nonce)):
+            raise ReplayedPeerNonceError("Replayed peer nonce.")
+        _record_peer_nonce(str(node_id), str(nonce), timestamp_value)
+
+    return str(node_id)
+
+
+def build_peer_request_headers(method, path, payload, origin_node_id):
+    return _peer_request_headers(method, path, payload, origin_node_id)
 
 
 class UnauthorizedPeerError(PeerSyncError):
@@ -367,7 +537,12 @@ def broadcast_submission_to_peers(
             response = requests.post(
                 receive_url,
                 json=payload,
-                headers=_peer_request_headers(),
+                headers=build_peer_request_headers(
+                    "POST",
+                    "/peers/submissions/receive",
+                    payload,
+                    origin_node_id,
+                ),
                 timeout=timeout_seconds,
             )
             status_code = getattr(response, "status_code", None)
@@ -429,7 +604,12 @@ def broadcast_vote_to_peers(
             response = requests.post(
                 receive_url,
                 json=payload,
-                headers=_peer_request_headers(),
+                headers=build_peer_request_headers(
+                    "POST",
+                    "/peers/votes/receive",
+                    payload,
+                    origin_node_id,
+                ),
                 timeout=timeout_seconds,
             )
             status_code = getattr(response, "status_code", None)
@@ -518,7 +698,12 @@ def broadcast_certificate_to_peers(
             response = requests.post(
                 receive_url,
                 json=payload,
-                headers=_peer_request_headers(),
+                headers=build_peer_request_headers(
+                    "POST",
+                    "/peers/certificates/receive",
+                    payload,
+                    origin_node_id,
+                ),
                 timeout=timeout_seconds,
             )
             status_code = getattr(response, "status_code", None)
@@ -589,7 +774,12 @@ def broadcast_block_to_peers(
                 certificate_response = requests.post(
                     certificate_url,
                     json=certificate_payload,
-                    headers=_peer_request_headers(),
+                    headers=build_peer_request_headers(
+                        "POST",
+                        "/peers/certificates/receive",
+                        certificate_payload,
+                        origin_node_id,
+                    ),
                     timeout=timeout_seconds,
                 )
                 certificate_status_code = getattr(certificate_response, "status_code", None)
@@ -603,7 +793,12 @@ def broadcast_block_to_peers(
             response = requests.post(
                 receive_url,
                 json=payload,
-                headers=_peer_request_headers(),
+                headers=build_peer_request_headers(
+                    "POST",
+                    "/peers/blocks/receive",
+                    payload,
+                    origin_node_id,
+                ),
                 timeout=timeout_seconds,
             )
             status_code = getattr(response, "status_code", None)

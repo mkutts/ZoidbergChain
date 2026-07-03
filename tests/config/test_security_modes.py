@@ -12,6 +12,9 @@ _CONFIG_ENV_KEYS = (
     "ALLOW_DEV_RESET_ENDPOINTS",
     "ALLOW_INSECURE_LOCAL_PEERS",
     "ENABLE_RATE_LIMITING",
+    "ENABLE_SIGNED_PEER_MESSAGES",
+    "PEER_SIGNATURE_WINDOW_SECONDS",
+    "PEER_REPLAY_PROTECTION_ENABLED",
     "RATE_LIMIT_ENABLED",
     "REQUIRE_PEER_AUTH",
     "PUBLIC_API_MODE",
@@ -59,12 +62,16 @@ def test_default_environment_is_development():
         assert config.is_development()
         assert not config.is_testnet()
         assert not config.is_production()
+        assert config.ENABLE_SIGNED_PEER_MESSAGES is False
+        assert config.PEER_SIGNATURE_WINDOW_SECONDS == 300
+        assert config.PEER_REPLAY_PROTECTION_ENABLED is False
 
 
 def test_development_allows_dev_private_key_export():
     with loaded_config(ENVIRONMENT="development") as config:
         assert config.ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT is True
         assert config.allow_private_key_export() is True
+        assert config.signed_peer_messages_enabled() is False
 
 
 @pytest.mark.parametrize("environment", ["testnet", "production"])
@@ -72,6 +79,8 @@ def test_public_environments_block_private_key_export(environment):
     with loaded_config(ENVIRONMENT=environment) as config:
         assert config.ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT is False
         assert config.allow_private_key_export() is False
+        assert config.signed_peer_messages_enabled() is True
+        assert config.PEER_REPLAY_PROTECTION_ENABLED is True
 
 
 @pytest.mark.parametrize(
@@ -113,6 +122,9 @@ def test_helper_functions_return_correct_values_for_testnet():
         assert config.allow_private_key_export() is False
         assert config.allow_dev_reset_endpoints() is False
         assert config.allow_insecure_local_peers() is False
+        assert config.signed_peer_messages_enabled() is True
+        assert config.peer_signature_window_seconds() == 300
+        assert config.peer_replay_protection_enabled() is True
 
 
 def test_invalid_environment_value_fails_clearly():
@@ -128,6 +140,16 @@ def test_peer_auth_requires_non_default_secret_in_public_modes():
 
     with pytest.raises(ValueError, match="PEER_SHARED_SECRET must be set"):
         with loaded_config(ENVIRONMENT="production", PEER_SHARED_SECRET=""):
+            pass
+
+
+def test_signed_peer_messages_require_non_default_secret_in_development_when_enabled():
+    with pytest.raises(ValueError, match="PEER_SHARED_SECRET must be set"):
+        with loaded_config(
+            ENVIRONMENT="development",
+            ENABLE_SIGNED_PEER_MESSAGES="true",
+            PEER_SHARED_SECRET="change-me",
+        ):
             pass
 
 

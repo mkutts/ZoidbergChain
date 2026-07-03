@@ -27,6 +27,7 @@ from config import (
     BLOCKCHAIN_FILE,
     COIN_NAME,
     ENABLE_RATE_LIMITING,
+    PEER_SIGNATURE_WINDOW_SECONDS,
     ENVIRONMENT,
     NETWORK_NAME,
     NODE_ID,
@@ -40,11 +41,14 @@ from config import (
     WALLET_GENERATION_RATE_LIMIT,
     allow_dev_reset_endpoints,
     allow_private_key_export,
+    peer_replay_protection_enabled,
     is_development,
     is_production,
     public_api_mode_enabled,
     peer_auth_required,
     peer_shared_secret,
+    peer_shared_secret_is_configured,
+    signed_peer_messages_enabled,
     require_peer_auth,
 )
 from auth import validate_api_key  # ✅ API authentication
@@ -72,6 +76,12 @@ from peer_sync import (
     receive_peer_certificate,
     receive_peer_submission,
     receive_peer_vote,
+    ExpiredPeerSignatureError,
+    InvalidPeerSignatureError,
+    InvalidPeerTimestampError,
+    MissingSignedPeerHeadersError,
+    ReplayedPeerNonceError,
+    verify_peer_signature,
     sync_chain_from_peers,
 )
 
@@ -126,12 +136,36 @@ def _require_dev_private_key_export():
     )
 
 
-def require_peer_secret(x_zoid_peer_secret: str | None = Header(default=None, alias="X-ZOID-Peer-Secret")):
+async def require_peer_secret(
+    request: Request,
+    x_zoid_peer_secret: str | None = Header(default=None, alias="X-ZOID-Peer-Secret"),
+):
+    if signed_peer_messages_enabled():
+        body_bytes = await request.body()
+        try:
+            verify_peer_signature(
+                method=request.method,
+                path=request.url.path,
+                headers=request.headers,
+                body_bytes=body_bytes,
+            )
+            return
+        except MissingSignedPeerHeadersError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        except InvalidPeerTimestampError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        except ExpiredPeerSignatureError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        except InvalidPeerSignatureError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        except ReplayedPeerNonceError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+
     if not peer_auth_required():
         return
 
     expected_secret = peer_shared_secret()
-    if not expected_secret or expected_secret.lower() in {"change-me", "replace-with-long-random-secret"}:
+    if not peer_shared_secret_is_configured():
         raise HTTPException(status_code=500, detail="Peer auth is enabled but the shared secret is not configured.")
     if x_zoid_peer_secret is None:
         raise HTTPException(status_code=401, detail="Peer auth required. Missing shared secret.")
@@ -142,7 +176,8 @@ def log_startup_security_config():
     logger.info(
         "Startup config: environment=%s network_name=%s node_id=%s "
         "public_node_url=%s public_api_mode=%s require_peer_auth=%s "
-        "peer_secret_configured=%s "
+        "signed_peer_messages=%s peer_signature_window_seconds=%s "
+        "peer_replay_protection_enabled=%s peer_secret_configured=%s "
         "allow_dev_wallet_private_key_export=%s",
         ENVIRONMENT,
         NETWORK_NAME,
@@ -150,7 +185,10 @@ def log_startup_security_config():
         PUBLIC_NODE_URL,
         public_api_mode_enabled(),
         require_peer_auth(),
-        bool(peer_shared_secret()),
+        signed_peer_messages_enabled(),
+        PEER_SIGNATURE_WINDOW_SECONDS,
+        peer_replay_protection_enabled(),
+        peer_shared_secret_is_configured(),
         allow_private_key_export(),
     )
 

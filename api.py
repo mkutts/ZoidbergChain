@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,20 +23,24 @@ from validators import is_valid_public_key, is_valid_amount, is_valid_image
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ADD_BLOCK_RATE_LIMIT,
-    APP_ENV,
     BLOCKCHAIN_FILE,
     COIN_NAME,
+    ENABLE_RATE_LIMITING,
+    ENVIRONMENT,
     NETWORK_NAME,
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
-    RATE_LIMIT_ENABLED,
     SUBMISSION_RATE_LIMIT,
     SUBMISSIONS_DIR,
     TRANSACTION_RATE_LIMIT,
     VOTE_RATE_LIMIT,
     VOTING_WINDOW_HOURS,
     WALLET_GENERATION_RATE_LIMIT,
+    allow_private_key_export,
+    is_production,
+    public_api_mode_enabled,
+    require_peer_auth,
 )
 from auth import validate_api_key  # ✅ API authentication
 
@@ -70,12 +75,33 @@ logging.basicConfig(
     level=logging.INFO,  # Set log level to INFO
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+logger = logging.getLogger(__name__)
 
 # code? 
 
-app = FastAPI()
+def log_startup_security_config():
+    logger.info(
+        "Startup config: environment=%s network_name=%s node_id=%s "
+        "public_node_url=%s public_api_mode=%s require_peer_auth=%s "
+        "allow_dev_wallet_private_key_export=%s",
+        ENVIRONMENT,
+        NETWORK_NAME,
+        NODE_ID,
+        PUBLIC_NODE_URL,
+        public_api_mode_enabled(),
+        require_peer_auth(),
+        allow_private_key_export(),
+    )
 
-# ✅ CORS: Allow both Local and Live Frontend
+@asynccontextmanager
+async def lifespan(app):
+    log_startup_security_config()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
+# CORS: allow both local and live frontend origins.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -89,7 +115,7 @@ app.add_middleware(
 )
 
 # ✅ Initialize the rate limiter
-limiter = Limiter(key_func=get_remote_address, enabled=RATE_LIMIT_ENABLED)
+limiter = Limiter(key_func=get_remote_address, enabled=ENABLE_RATE_LIMITING)
 
 # ✅ Exclude FastAPI Docs from rate limiting
 app.state.limiter = limiter
@@ -652,7 +678,7 @@ async def get_certificate(certificate_id: str):
 
 @app.post("/dev/submissions/{submission_id}/repair-certificate")
 async def repair_submission_certificate(submission_id: str):
-    if APP_ENV == "production":
+    if is_production():
         raise HTTPException(status_code=403, detail="Dev certificate repair is disabled in production.")
 
     submission = blockchain.get_submission(submission_id)

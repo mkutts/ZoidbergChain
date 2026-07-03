@@ -38,6 +38,7 @@ from config import (
     VOTING_WINDOW_HOURS,
     WALLET_GENERATION_RATE_LIMIT,
     allow_private_key_export,
+    is_development,
     is_production,
     public_api_mode_enabled,
     require_peer_auth,
@@ -78,6 +79,40 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # code? 
+
+DEV_PRIVATE_KEY_EXPORT_WARNING = (
+    "Development-only private key export. Never expose this endpoint publicly."
+)
+
+
+def _short_key(public_key):
+    key = str(public_key or "")
+    if len(key) <= 18:
+        return key or "unknown"
+    return f"{key[:10]}...{key[-8:]}"
+
+
+def _wallet_public_response(public_key, wallet):
+    return {
+        "public_key": public_key,
+        "balance": blockchain.get_balance(public_key),
+    }
+
+
+def _dev_private_key_export_enabled():
+    return (
+        is_development()
+        and allow_private_key_export()
+        and not public_api_mode_enabled()
+    )
+
+
+def _require_dev_private_key_export():
+    if not _dev_private_key_export_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="Development private key export is disabled for this environment.",
+        )
 
 def log_startup_security_config():
     logger.info(
@@ -559,22 +594,33 @@ async def add_transaction(
 @app.get("/get_wallets")
 async def get_wallets():
     """
-    Retrieve all registered wallets (public & private keys for setup only).
-    REMOVE PRIVATE KEYS BEFORE GOING LIVE.
+    Retrieve registered wallets using public-safe fields only.
     """
     try:
         return {
             "message": "Registered wallets retrieved successfully.",
             "wallets": [
-                {
-                    "public_key": key,
-                    "private_key": blockchain.wallets[key].private_key  # ✅ TEMPORARILY include private keys
-                }
-                for key in blockchain.wallets.keys()
-            ]
+                _wallet_public_response(key, wallet)
+                for key, wallet in blockchain.wallets.items()
+            ],
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/dev/wallets")
+async def get_dev_wallets():
+    _require_dev_private_key_export()
+    return {
+        "warning": DEV_PRIVATE_KEY_EXPORT_WARNING,
+        "wallets": [
+            {
+                **_wallet_public_response(key, wallet),
+                "private_key": wallet.private_key,
+            }
+            for key, wallet in blockchain.wallets.items()
+        ],
+    }
 
 @app.get("/transaction_pool")
 async def transaction_pool():
@@ -949,7 +995,9 @@ async def add_block(
         raise HTTPException(status_code=400, detail="Private key does not match the wallet ID.")
 
     # ✅ Print blockchain owner info (debugging `self.owner_wallet`)
-    print(f"Debug: Checking blockchain owner wallet... {getattr(blockchain, 'owner_wallet', 'NOT SET')}")
+    owner_wallet = getattr(blockchain, "owner_wallet", None)
+    owner_public_key = getattr(owner_wallet, "public_key", None)
+    print(f"Debug: Checking blockchain owner wallet... {_short_key(owner_public_key)}")
     print(f"Debug: Owner balance before block: {getattr(blockchain, 'owner_balance', 'NOT SET')}")
 
     # Validate image format
@@ -1023,11 +1071,25 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
     wallet = Wallet()
     blockchain.wallets[wallet.public_key] = wallet  # Register the wallet in the blockchain
 
-    # Debug: Confirm wallet registration
-    print(f"Debug: Wallet registered with public key: {wallet.public_key}")
+    logger.info("Wallet registered with public key: %s", _short_key(wallet.public_key))
     blockchain.save_blockchain()
 
-    return {"message": "Wallet generated successfully.", "wallet": wallet.get_keys()}
+    response = {
+        "message": "Wallet generated successfully.",
+        "wallet": _wallet_public_response(wallet.public_key, wallet),
+    }
+    if _dev_private_key_export_enabled():
+        response["key_export"] = {
+            "enabled": True,
+            "endpoint": "/dev/wallets",
+            "warning": DEV_PRIVATE_KEY_EXPORT_WARNING,
+        }
+    else:
+        response["key_export"] = {
+            "enabled": False,
+            "message": "Private key export is disabled for this environment.",
+        }
+    return response
 
 @app.get("/get_balance")
 async def get_balance(public_key: str):

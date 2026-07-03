@@ -24,9 +24,10 @@
     <p v-if="errorMessage" class="status-message error">{{ errorMessage }}</p>
 
     <div v-if="walletDetails" class="wallet-details">
-      <p class="warning"><strong>Important:</strong> Save the following information. This is the only time you will be able to see your private key and public key!</p>
+      <p v-if="walletDetails.privateKey" class="warning"><strong>Development only:</strong> Private key export is enabled for this local node.</p>
+      <p v-else class="warning">{{ walletDetails.exportMessage }}</p>
       <p><strong>Public Key:</strong> {{ walletDetails.publicKey }}</p>
-      <p><strong>Private Key:</strong> {{ walletDetails.privateKey }}</p>
+      <p v-if="walletDetails.privateKey"><strong>Private Key:</strong> {{ walletDetails.privateKey }}</p>
     </div>
   </div>
 </template>
@@ -37,7 +38,7 @@ import { apiClient, getApiErrorMessage } from '../config/api';
 export default {
   data() {
     return {
-      walletDetails: null, // Store wallet details (publicKey, privateKey)
+      walletDetails: null,
       successMessage: '',
       errorMessage: '',
       whitePaperURL: "/ZoidbergCoin_WhitePaper.pdf" // ✅ Path to the white paper in public folder
@@ -51,11 +52,14 @@ export default {
         const response = await apiClient.post('/generate_wallet');
 
         const { public_key, private_key } = response.data.wallet;
+        const keyExport = response.data.key_export || {};
 
-        // Display the wallet details to the user
         this.walletDetails = {
           publicKey: public_key,
-          privateKey: private_key,
+          privateKey: private_key || null,
+          exportMessage: keyExport.enabled
+            ? 'Development-only private key export is available separately.'
+            : keyExport.message || 'Private key export is disabled for this response.',
         };
         this.successMessage = response.data.message || 'Wallet generated successfully.';
       } catch (error) {

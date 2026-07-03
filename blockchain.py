@@ -33,6 +33,14 @@ from config import (
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
+
+def _short_public_key(public_key):
+    key = str(public_key or "")
+    if len(key) <= 18:
+        return key or "unknown"
+    return f"{key[:10]}...{key[-8:]}"
+
+
 class Blockchain:
     def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
         self.chain = []  # The blockchain
@@ -71,7 +79,7 @@ class Blockchain:
             self.wallets[self.Contributor_two.public_key] = self.Contributor_two
 
         # ✅ Debugging - Print wallet storage
-        print("Debug: Registered Wallets -", {k: v.__dict__ for k, v in self.wallets.items()})
+        print("Debug: Registered Wallets -", [_short_public_key(key) for key in self.wallets.keys()])
 
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
@@ -217,15 +225,14 @@ class Blockchain:
         # ✅ Debugging to verify genesis block transactions
         print("\n🔍 Genesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
 
-        # ✅ Securely print the wallet details ONCE (store securely)
-        print("\n🔐 **Genesis Wallets (Store These Securely!)** 🔐")
+        print("\nGenesis wallets initialized:")
         if project_owner_wallet:
-            print(f"📌 Project Owner Wallet:\n   - Public Key: {project_owner_wallet.public_key}\n   - Private Key: {project_owner_wallet.private_key}")
+            print(f"Project Owner Wallet Public Key: {_short_public_key(project_owner_wallet.public_key)}")
         if Contributor_one:
-            print(f"📌 Contributor One:\n   - Public Key: {Contributor_one.public_key}\n   - Private Key: {Contributor_one.private_key}")
+            print(f"Contributor One Public Key: {_short_public_key(Contributor_one.public_key)}")
         if Contributor_two:
-            print(f"📌 Contributor Two:\n   - Public Key: {Contributor_two.public_key}\n   - Private Key: {Contributor_two.private_key}")
-        print("\n🚨 **Secure these keys immediately! They will NOT be shown again.** 🚨\n")
+            print(f"Contributor Two Public Key: {_short_public_key(Contributor_two.public_key)}")
+        print("Private keys are not printed. Use the development-only export endpoint for local setup.\n")
 
 
     def encode_image(self, image_path):

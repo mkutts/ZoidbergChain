@@ -128,4 +128,4 @@ class Wallet:
         return wallet  # ✅ Ensures wallet object is correctly reconstructed
 
     def __str__(self):
-        return f"Wallet(Public Key: {self.public_key}, Private Key: {self.private_key})"
+        return f"Wallet(Public Key: {self.public_key})"

@@ -37,6 +37,7 @@ from config import (
     VOTE_RATE_LIMIT,
     VOTING_WINDOW_HOURS,
     WALLET_GENERATION_RATE_LIMIT,
+    allow_dev_reset_endpoints,
     allow_private_key_export,
     is_development,
     is_production,
@@ -80,8 +81,8 @@ logger = logging.getLogger(__name__)
 
 # code? 
 
-DEV_PRIVATE_KEY_EXPORT_WARNING = (
-    "Development-only private key export. Never expose this endpoint publicly."
+DEV_ENDPOINT_WARNING = (
+    "Development-only endpoint. Never expose this publicly."
 )
 
 
@@ -99,20 +100,27 @@ def _wallet_public_response(public_key, wallet):
     }
 
 
+def development_tools_enabled(feature_enabled=True):
+    return is_development() and not public_api_mode_enabled() and bool(feature_enabled)
+
+
+def require_development_mode(feature_enabled=True, feature_name="Development tools"):
+    if not development_tools_enabled(feature_enabled):
+        raise HTTPException(
+            status_code=403,
+            detail=f"{feature_name} is disabled.",
+        )
+
+
 def _dev_private_key_export_enabled():
-    return (
-        is_development()
-        and allow_private_key_export()
-        and not public_api_mode_enabled()
-    )
+    return development_tools_enabled(allow_private_key_export())
 
 
 def _require_dev_private_key_export():
-    if not _dev_private_key_export_enabled():
-        raise HTTPException(
-            status_code=403,
-            detail="Development private key export is disabled for this environment.",
-        )
+    require_development_mode(
+        allow_private_key_export(),
+        "Development private key export",
+    )
 
 def log_startup_security_config():
     logger.info(
@@ -277,30 +285,65 @@ else:
     print("⚠️ Debug: No blockchain file found. Creating new blockchain...")
     blockchain = Blockchain(project_owner, contributor1, contributor2)  # ✅ Only creates new if no file exists
 
-@app.post("/reset_blockchain")
-async def reset_blockchain():
-    """Reset blockchain to Genesis state."""
+def _reset_blockchain_to_genesis():
+    if os.path.exists(BLOCKCHAIN_FILE):
+        os.remove(BLOCKCHAIN_FILE)
+
+    global project_owner, contributor1, contributor2, blockchain
+
+    project_owner = Wallet()
+    contributor1 = Wallet()
+    contributor2 = Wallet()
+
+    blockchain = Blockchain(
+        project_owner_wallet=project_owner,
+        Contributor_one=contributor1,
+        Contributor_two=contributor2
+    )
+    return {"message": "Blockchain reset to Genesis state."}
+
+
+@app.post("/dev/reset")
+async def dev_reset_blockchain():
+    """Development-only reset to Genesis state."""
+    require_development_mode(allow_dev_reset_endpoints(), "Development reset endpoints")
     try:
-        if os.path.exists(BLOCKCHAIN_FILE):
-            os.remove(BLOCKCHAIN_FILE)  # ✅ Delete previous blockchain state
-
-        global project_owner, contributor1, contributor2, blockchain
-        
-        # ✅ RECREATE wallets
-        project_owner = Wallet()
-        contributor1 = Wallet()
-        contributor2 = Wallet()
-
-        # ✅ PASS wallets to Blockchain constructor
-        blockchain = Blockchain(
-            project_owner_wallet=project_owner,
-            Contributor_one=contributor1,
-            Contributor_two=contributor2
-        )
-
-        return {"message": "Blockchain reset to Genesis state."}
+        return {
+            "warning": DEV_ENDPOINT_WARNING,
+            **_reset_blockchain_to_genesis(),
+        }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/reset_blockchain")
+async def reset_blockchain():
+    """Legacy development-only reset route. Prefer /dev/reset."""
+    require_development_mode(allow_dev_reset_endpoints(), "Development reset endpoints")
+    return {
+        "warning": DEV_ENDPOINT_WARNING,
+        "deprecated_route": True,
+        "replacement": "/dev/reset",
+        **_reset_blockchain_to_genesis(),
+    }
+
+@app.get("/dev/debug")
+async def dev_debug():
+    """Development-only node diagnostics with no key material."""
+    require_development_mode(allow_dev_reset_endpoints(), "Development debug endpoints")
+    latest_block = blockchain.get_latest_block()
+    return {
+        "warning": DEV_ENDPOINT_WARNING,
+        "environment": ENVIRONMENT,
+        "network_name": NETWORK_NAME,
+        "node_id": NODE_ID,
+        "public_node_url": PUBLIC_NODE_URL,
+        "chain_height": latest_block.index,
+        "latest_block_hash": latest_block.hash,
+        "wallet_count": len(blockchain.wallets),
+        "peer_count": len(peer_store.list_peers()),
+    }
+
 
 @app.get("/sync")
 async def sync_blockchain():
@@ -612,7 +655,7 @@ async def get_wallets():
 async def get_dev_wallets():
     _require_dev_private_key_export()
     return {
-        "warning": DEV_PRIVATE_KEY_EXPORT_WARNING,
+        "warning": DEV_ENDPOINT_WARNING,
         "wallets": [
             {
                 **_wallet_public_response(key, wallet),
@@ -724,8 +767,7 @@ async def get_certificate(certificate_id: str):
 
 @app.post("/dev/submissions/{submission_id}/repair-certificate")
 async def repair_submission_certificate(submission_id: str):
-    if is_production():
-        raise HTTPException(status_code=403, detail="Dev certificate repair is disabled in production.")
+    require_development_mode(allow_dev_reset_endpoints(), "Development repair endpoints")
 
     submission = blockchain.get_submission(submission_id)
     if not submission:
@@ -1082,7 +1124,7 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
         response["key_export"] = {
             "enabled": True,
             "endpoint": "/dev/wallets",
-            "warning": DEV_PRIVATE_KEY_EXPORT_WARNING,
+            "warning": DEV_ENDPOINT_WARNING,
         }
     else:
         response["key_export"] = {

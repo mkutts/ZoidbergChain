@@ -18,12 +18,20 @@ def _client(blockchain):
     return TestClient(api.app)
 
 
-def _set_security_mode(monkeypatch, environment, allow_export=False, public_api_mode=False):
+def _set_security_mode(
+    monkeypatch,
+    environment,
+    allow_export=False,
+    public_api_mode=False,
+    allow_reset=None,
+):
     import api
 
+    reset_enabled = environment == "development" if allow_reset is None else allow_reset
     monkeypatch.setattr(api, "is_development", lambda: environment == "development")
     monkeypatch.setattr(api, "is_production", lambda: environment == "production")
     monkeypatch.setattr(api, "allow_private_key_export", lambda: allow_export)
+    monkeypatch.setattr(api, "allow_dev_reset_endpoints", lambda: reset_enabled)
     monkeypatch.setattr(api, "public_api_mode_enabled", lambda: public_api_mode)
 
 
@@ -105,7 +113,7 @@ def test_dev_private_key_export_works_in_development_when_enabled(blockchain, mo
 
     assert response.status_code == 200
     body = response.json()
-    assert "Development-only private key export" in body["warning"]
+    assert body["warning"] == "Development-only endpoint. Never expose this publicly."
     assert body["wallets"]
     assert all("private_key" in wallet for wallet in body["wallets"])
     assert {
@@ -113,6 +121,16 @@ def test_dev_private_key_export_works_in_development_when_enabled(blockchain, mo
     } == {
         wallet.private_key for wallet in blockchain.wallets.values()
     }
+
+
+def test_dev_private_key_export_is_blocked_in_development_when_flag_disabled(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "development", allow_export=False, public_api_mode=False)
+    client = _client(blockchain)
+
+    response = client.get("/dev/wallets")
+
+    assert response.status_code == 403
+    _assert_no_sensitive_fields(response.json())
 
 
 def test_dev_private_key_export_is_blocked_in_testnet(blockchain, monkeypatch):
@@ -143,6 +161,146 @@ def test_dev_private_key_export_is_blocked_when_public_api_mode_is_true(blockcha
 
     assert response.status_code == 403
     assert "disabled" in response.json()["detail"]
+
+
+def test_public_api_mode_blocks_all_dev_endpoints(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "development", allow_export=True, public_api_mode=True)
+    client = _client(blockchain)
+
+    responses = [
+        client.get("/dev/wallets"),
+        client.post("/dev/reset"),
+        client.get("/dev/debug"),
+        client.post("/dev/submissions/missing/repair-certificate"),
+    ]
+
+    for response in responses:
+        assert response.status_code == 403
+        _assert_no_sensitive_fields(response.json())
+
+
+def test_dev_reset_and_debug_work_in_development_when_enabled(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "development", allow_export=True, public_api_mode=False)
+    client = _client(blockchain)
+
+    debug_response = client.get("/dev/debug")
+    reset_response = client.post("/dev/reset")
+
+    assert debug_response.status_code == 200
+    assert debug_response.json()["warning"] == "Development-only endpoint. Never expose this publicly."
+    assert "wallet_count" in debug_response.json()
+    _assert_no_sensitive_fields(debug_response.json())
+    assert reset_response.status_code == 200
+    assert reset_response.json()["warning"] == "Development-only endpoint. Never expose this publicly."
+    _assert_no_sensitive_fields(reset_response.json())
+
+
+def test_legacy_reset_route_is_guarded_and_points_to_dev_reset(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "development", allow_export=True, public_api_mode=False)
+    client = _client(blockchain)
+
+    response = client.post("/reset_blockchain")
+
+    assert response.status_code == 200
+    assert response.json()["deprecated_route"] is True
+    assert response.json()["replacement"] == "/dev/reset"
+    assert response.json()["warning"] == "Development-only endpoint. Never expose this publicly."
+    _assert_no_sensitive_fields(response.json())
+
+
+def test_dev_reset_and_debug_endpoints_blocked_in_testnet(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "testnet", allow_export=False, public_api_mode=True)
+    client = _client(blockchain)
+
+    responses = [
+        client.post("/dev/reset"),
+        client.get("/dev/debug"),
+        client.post("/dev/submissions/missing/repair-certificate"),
+        client.post("/reset_blockchain"),
+    ]
+
+    for response in responses:
+        assert response.status_code == 403
+        _assert_no_sensitive_fields(response.json())
+
+
+def test_dev_reset_and_debug_endpoints_blocked_in_development_when_flag_disabled(blockchain, monkeypatch):
+    _set_security_mode(
+        monkeypatch,
+        "development",
+        allow_export=True,
+        public_api_mode=False,
+        allow_reset=False,
+    )
+    client = _client(blockchain)
+
+    responses = [
+        client.post("/dev/reset"),
+        client.get("/dev/debug"),
+        client.post("/dev/submissions/missing/repair-certificate"),
+        client.post("/reset_blockchain"),
+    ]
+
+    for response in responses:
+        assert response.status_code == 403
+        _assert_no_sensitive_fields(response.json())
+
+
+def test_dev_reset_and_debug_endpoints_blocked_in_production(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "production", allow_export=False, public_api_mode=True)
+    client = _client(blockchain)
+
+    responses = [
+        client.post("/dev/reset"),
+        client.get("/dev/debug"),
+        client.post("/dev/submissions/missing/repair-certificate"),
+        client.post("/reset_blockchain"),
+    ]
+
+    for response in responses:
+        assert response.status_code == 403
+        _assert_no_sensitive_fields(response.json())
+
+
+def test_reusable_dev_guard_allows_and_blocks_correctly(monkeypatch):
+    import pytest
+    from fastapi import HTTPException
+    import api
+
+    _set_security_mode(monkeypatch, "development", allow_export=True, public_api_mode=False)
+    api.require_development_mode(True, "Development test tools")
+
+    _set_security_mode(monkeypatch, "development", allow_export=True, public_api_mode=True)
+    with pytest.raises(HTTPException) as public_mode_error:
+        api.require_development_mode(True, "Development test tools")
+    assert public_mode_error.value.status_code == 403
+
+    _set_security_mode(monkeypatch, "production", allow_export=False, public_api_mode=True)
+    with pytest.raises(HTTPException) as production_error:
+        api.require_development_mode(True, "Development test tools")
+    assert production_error.value.status_code == 403
+
+    _set_security_mode(monkeypatch, "development", allow_export=True, public_api_mode=False)
+    with pytest.raises(HTTPException) as disabled_flag_error:
+        api.require_development_mode(False, "Development test tools")
+    assert disabled_flag_error.value.status_code == 403
+
+
+def test_blocked_dev_responses_do_not_expose_sensitive_fields(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "production", allow_export=False, public_api_mode=True)
+    client = _client(blockchain)
+
+    responses = [
+        client.get("/dev/wallets"),
+        client.post("/dev/reset"),
+        client.get("/dev/debug"),
+        client.post("/dev/submissions/missing/repair-certificate"),
+        client.post("/reset_blockchain"),
+    ]
+
+    for response in responses:
+        assert response.status_code == 403
+        _assert_no_sensitive_fields(response.json())
 
 
 def test_wallet_api_responses_do_not_contain_sensitive_fields(blockchain, monkeypatch):

@@ -5,5 +5,12 @@
         "network_name": "zoidberg-testnet",
         "last_seen": 1782855317.4693098,
         "status": "active"
+    },
+    {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+        "last_seen": 1783107512.9738984,
+        "status": "active"
     }
 ]

@@ -34,6 +34,17 @@ from originality_certificate import OriginalityCertificate, validate_certificate
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 
 
+def _hash_number(value):
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        numeric_value = float(value)
+        if numeric_value.is_integer():
+            return str(int(numeric_value))
+        return str(numeric_value)
+    return str(value)
+
+
 def _short_public_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -1193,7 +1204,10 @@ class Blockchain:
     def calculate_hash_from_dict(self, block_dict):
         """Calculate the hash for a block dictionary."""
         transaction_data = "".join(
-            [f"{tx['sender']}{tx['recipient']}{tx['amount']}{tx['tip']}{tx['payload_size_kb']}{tx['signature']}" for tx in block_dict["transactions"]]
+            [
+                f"{tx['sender']}{tx['recipient']}{_hash_number(tx['amount'])}{_hash_number(tx['tip'])}{_hash_number(tx['payload_size_kb'])}{tx['signature']}"
+                for tx in block_dict["transactions"]
+            ]
         )
         certificate_data = ""
         certificate_metadata = self.extract_block_certificate_metadata(block_dict)

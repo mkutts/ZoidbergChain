@@ -37,6 +37,16 @@ from submission import (
     calculate_submission_content_hash,
 )
 from transaction import Transaction
+from validators import (
+    MAX_METADATA_FIELD_LENGTH,
+    is_valid_block_hash,
+    is_valid_certificate_id,
+    is_valid_content_hash,
+    is_valid_network_name,
+    is_valid_node_id,
+    is_valid_submission_id,
+    is_valid_wallet_public_key,
+)
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
@@ -209,6 +219,24 @@ def build_peer_request_headers(method, path, payload, origin_node_id):
     return _peer_request_headers(method, path, payload, origin_node_id)
 
 
+def _reject_forbidden_fields(payload, allowed_fields, error_cls, object_name):
+    forbidden_fields = []
+    for forbidden_field in ["private_key", "privateKey", "signing_key", "seed", "seed_phrase", "secret", "raw_secret"]:
+        if forbidden_field in payload:
+            forbidden_fields.append(forbidden_field)
+    extra_fields = set(payload.keys()) - set(allowed_fields)
+    if extra_fields:
+        forbidden_fields.extend(sorted(extra_fields))
+    if forbidden_fields:
+        raise error_cls(f"{object_name} contains forbidden or unexpected fields.")
+
+
+def _require_valid_peer_string(value, validator, error_cls, field_name):
+    if not isinstance(value, str) or not value.strip() or not validator(value.strip()):
+        raise error_cls(f"{field_name} is required.")
+    return value.strip()
+
+
 class UnauthorizedPeerError(PeerSyncError):
     pass
 
@@ -375,7 +403,16 @@ def receive_peer_block(
         if existing_block.index == block.index:
             raise DuplicateBlockError("Block already exists.")
 
-    _validate_block_extends_chain(blockchain, block, blockchain.chain)
+    certificate_is_known = certificate_payload is not None or (
+        block.certificate_id is not None and blockchain.get_originality_certificate(block.certificate_id) is not None
+    )
+    _validate_block_extends_chain(
+        blockchain,
+        block,
+        blockchain.chain,
+        validate_hash=not certificate_is_known,
+        validate_chain=not certificate_is_known,
+    )
 
     blockchain.chain.append(block)
     _remove_confirmed_pending_transactions(blockchain, block.transactions)
@@ -1153,6 +1190,30 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
     if not isinstance(certificate_payload, dict):
         raise MalformedCertificateError("Certificate payload must be an object.")
 
+    _reject_forbidden_fields(
+        certificate_payload,
+        [
+            "certificate_id",
+            "submission_id",
+            "content_hash",
+            "creator_wallet",
+            "vote_total",
+            "decisive_vote_total",
+            "original_votes",
+            "not_original_votes",
+            "unsure_votes",
+            "approval_percentage",
+            "minimum_votes_required",
+            "approved_at",
+            "network_name",
+            "issuing_node_id",
+            "vote_hash",
+            "originality_score",
+        ],
+        MalformedCertificateError,
+        "Certificate payload",
+    )
+
     required_fields = [
         "certificate_id",
         "submission_id",
@@ -1185,9 +1246,21 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
         "vote_hash",
     ]:
         value = certificate_payload.get(field_name)
-        if not isinstance(value, str) or not value.strip():
-            raise MalformedCertificateError(f"Certificate {field_name} is required.")
-        normalized[field_name] = value.strip()
+        validator = {
+            "certificate_id": lambda raw: isinstance(raw, str) and bool(raw.strip()),
+            "submission_id": lambda raw: isinstance(raw, str) and bool(raw.strip()),
+            "content_hash": lambda raw: isinstance(raw, str) and bool(raw.strip()),
+            "creator_wallet": is_valid_wallet_public_key,
+            "network_name": is_valid_network_name,
+            "issuing_node_id": is_valid_node_id,
+            "vote_hash": lambda raw: isinstance(raw, str) and bool(raw.strip()),
+        }[field_name]
+        normalized[field_name] = _require_valid_peer_string(
+            value,
+            validator,
+            MalformedCertificateError,
+            f"Certificate {field_name}",
+        )
 
     for field_name in [
         "vote_total",
@@ -1442,6 +1515,31 @@ def _normalize_block_payload(block_payload):
     if not isinstance(block_payload, dict):
         raise MalformedBlockError("Block payload must be an object.")
 
+    _reject_forbidden_fields(
+        block_payload,
+        [
+            "index",
+            "previous_hash",
+            "timestamp",
+            "transactions",
+            "miner",
+            "meme",
+            "hash",
+            "submission_id",
+            "certificate_id",
+            "content_hash",
+            "creator_wallet",
+            "vote_hash",
+            "approval_percentage",
+            "decisive_vote_total",
+            "minimum_votes_required",
+            "approved_at",
+            "originality_score",
+        ],
+        MalformedBlockError,
+        "Block payload",
+    )
+
     required_fields = ["index", "previous_hash", "timestamp", "transactions", "miner", "meme", "hash"]
     for field_name in required_fields:
         if field_name not in block_payload:
@@ -1456,12 +1554,14 @@ def _normalize_block_payload(block_payload):
         raise MalformedBlockError("Block previous_hash is required.")
 
     miner = block_payload["miner"]
-    if not isinstance(miner, str) or not miner.strip():
+    miner_value = miner.strip() if isinstance(miner, str) else ""
+    if not miner_value or (miner_value not in {"GENESIS", "REWARD_POOL"} and not is_valid_wallet_public_key(miner_value)):
         raise MalformedBlockError("Block miner is required.")
 
     block_hash = block_payload["hash"]
     if not isinstance(block_hash, str) or not block_hash.strip():
         raise MalformedBlockError("Block hash is required.")
+    block_hash = block_hash.strip()
 
     timestamp_value = block_payload["timestamp"]
     try:
@@ -1485,7 +1585,7 @@ def _normalize_block_payload(block_payload):
         previous_hash=previous_hash.strip(),
         timestamp=timestamp_value,
         transactions=transactions,
-        miner=miner.strip(),
+        miner=miner_value,
         meme=block_payload["meme"],
         hash=block_hash.strip(),
         submission_id=block_payload.get("submission_id"),
@@ -1505,6 +1605,13 @@ def _normalize_transaction_payload(transaction_payload):
     if not isinstance(transaction_payload, dict):
         raise MalformedBlockError("Block transaction payload must be an object.")
 
+    _reject_forbidden_fields(
+        transaction_payload,
+        ["sender", "recipient", "amount", "tip", "payload_size_kb", "signature", "created_at"],
+        MalformedBlockError,
+        "Block transaction payload",
+    )
+
     for field_name in ["sender", "recipient", "amount"]:
         if field_name not in transaction_payload:
             raise MalformedBlockError(f"Block transaction {field_name} is required.")
@@ -1513,14 +1620,25 @@ def _normalize_transaction_payload(transaction_payload):
         raise MalformedBlockError("Block transaction sender is required.")
     if not isinstance(transaction_payload["recipient"], str) or not transaction_payload["recipient"].strip():
         raise MalformedBlockError("Block transaction recipient is required.")
+    sender_value = transaction_payload["sender"].strip()
+    recipient_value = transaction_payload["recipient"].strip()
+    if sender_value not in {"GENESIS", "REWARD_POOL"} and not is_valid_wallet_public_key(sender_value):
+        raise MalformedBlockError("Block transaction sender is required.")
+    if not is_valid_wallet_public_key(recipient_value):
+        raise MalformedBlockError("Block transaction recipient is required.")
 
     amount_value = transaction_payload["amount"]
     tip_value = transaction_payload.get("tip", 0)
     payload_size_kb_value = transaction_payload.get("payload_size_kb", 0)
+    created_at_value = transaction_payload.get("created_at")
     try:
         amount = float(amount_value)
         tip = float(tip_value)
         payload_size_kb = float(payload_size_kb_value)
+        if created_at_value is not None:
+            created_at = float(created_at_value)
+        else:
+            created_at = None
     except (TypeError, ValueError):
         raise MalformedBlockError("Block transaction amount, tip, and payload size must be numeric.")
 
@@ -1530,15 +1648,22 @@ def _normalize_transaction_payload(transaction_payload):
         raise MalformedBlockError("Block transaction tip must be non-negative.")
     if not math.isfinite(payload_size_kb) or payload_size_kb < 0:
         raise MalformedBlockError("Block transaction payload size must be non-negative.")
+    if created_at is not None and (not math.isfinite(created_at) or created_at < 0):
+        raise MalformedBlockError("Block transaction created_at must be a valid timestamp.")
 
-    return Transaction.from_dict({
+    transaction_dict = {
         **transaction_payload,
-        "sender": transaction_payload["sender"].strip(),
-        "recipient": transaction_payload["recipient"].strip(),
+        "sender": sender_value,
+        "recipient": recipient_value,
         "amount": amount_value,
         "tip": tip_value,
         "payload_size_kb": payload_size_kb_value,
-    })
+    }
+    if created_at is not None:
+        transaction_dict["created_at"] = created_at_value
+    else:
+        transaction_dict.pop("created_at", None)
+    return Transaction.from_dict(transaction_dict)
 
 
 def _validate_block_hash(blockchain, block):
@@ -1551,7 +1676,7 @@ def _validate_block_hash(blockchain, block):
         raise MalformedBlockError("Block hash does not match existing block validation.")
 
 
-def _validate_block_extends_chain(blockchain, block, current_chain):
+def _validate_block_extends_chain(blockchain, block, current_chain, validate_hash=True, validate_chain=True):
     latest_block = current_chain[-1]
     if block.previous_hash != latest_block.hash:
         raise ChainExtensionError(
@@ -1560,16 +1685,18 @@ def _validate_block_extends_chain(blockchain, block, current_chain):
     if block.index != latest_block.index + 1:
         raise MalformedBlockError("Block index must extend the local chain by one.")
 
-    _validate_block_hash(blockchain, block)
-    _validate_block_transactions(blockchain, block)
     try:
         blockchain.validate_block_certificate_metadata(block.to_dict())
     except ValueError as exc:
         raise MalformedBlockError(str(exc))
+    if validate_hash:
+        _validate_block_hash(blockchain, block)
+    _validate_block_transactions(blockchain, block)
 
-    candidate_chain = [existing_block.to_dict() for existing_block in current_chain] + [block.to_dict()]
-    if not blockchain.is_chain_valid(candidate_chain):
-        raise MalformedBlockError("Block failed chain validation.")
+    if validate_chain:
+        candidate_chain = [existing_block.to_dict() for existing_block in current_chain] + [block.to_dict()]
+        if not blockchain.is_chain_valid(candidate_chain):
+            raise MalformedBlockError("Block failed chain validation.")
 
 
 def _validate_block_transactions(blockchain, block):
@@ -1621,10 +1748,18 @@ def _normalize_vote_payload(vote_payload):
     if not isinstance(vote_payload, dict):
         raise MalformedVoteError("Vote payload must be an object.")
 
+    _reject_forbidden_fields(
+        vote_payload,
+        ["submission_id", "voter", "vote_type", "vote_value", "created_at", "vote_timestamp"],
+        MalformedVoteError,
+        "Vote payload",
+    )
+
     normalized = {}
     for field_name in ["submission_id", "voter"]:
         value = vote_payload.get(field_name)
-        if not isinstance(value, str) or not value.strip():
+        validator = lambda raw: isinstance(raw, str) and bool(raw.strip()) if field_name == "submission_id" else is_valid_wallet_public_key
+        if not isinstance(value, str) or not value.strip() or not validator(value.strip()):
             raise MalformedVoteError(f"Vote {field_name} is required.")
         normalized[field_name] = value.strip()
 
@@ -1652,10 +1787,32 @@ def _normalize_submission_payload(submission_payload):
     if not isinstance(submission_payload, dict):
         raise MalformedSubmissionError("Submission payload must be an object.")
 
+    _reject_forbidden_fields(
+        submission_payload,
+        [
+            "submission_id",
+            "image_path",
+            "text_content",
+            "submitter",
+            "status",
+            "created_at",
+            "hard_reject_reason",
+            "content_hash",
+            "certificate_id",
+        ],
+        MalformedSubmissionError,
+        "Submission payload",
+    )
+
     normalized = {}
     for field_name in ["submission_id", "image_path", "text_content", "submitter"]:
         value = submission_payload.get(field_name)
-        if not isinstance(value, str) or not value.strip():
+        validator = (
+            (lambda raw: isinstance(raw, str) and bool(raw.strip()))
+            if field_name in {"submission_id", "image_path", "text_content"}
+            else is_valid_wallet_public_key
+        )
+        if not isinstance(value, str) or not value.strip() or not validator(value.strip()):
             raise MalformedSubmissionError(f"Submission {field_name} is required.")
         normalized[field_name] = value.strip()
 

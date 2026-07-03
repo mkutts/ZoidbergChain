@@ -2,12 +2,13 @@ import os
 import time
 import logging
 import hmac
+from typing import Annotated, Any, Literal
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header, Query
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -20,7 +21,27 @@ from wallet import Wallet
 from transaction import Transaction
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED
 from utils import extract_text
-from validators import is_valid_public_key, is_valid_amount, is_valid_image
+from validators import (
+    HEX_32_PATTERN,
+    HEX_64_PATTERN,
+    MAX_METADATA_FIELD_LENGTH,
+    MAX_URL_LENGTH,
+    MAX_SUBMISSION_TEXT_LENGTH,
+    NETWORK_NAME_PATTERN,
+    NODE_ID_PATTERN,
+    PUBLIC_KEY_PATTERN,
+    is_valid_certificate_id,
+    is_valid_content_hash,
+    is_valid_block_hash,
+    is_valid_node_id,
+    is_valid_network_name,
+    is_valid_submission_id,
+    is_safe_filename,
+    is_valid_amount,
+    is_valid_image,
+    is_valid_public_key,
+    is_valid_wallet_public_key,
+)
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ADD_BLOCK_RATE_LIMIT,
@@ -98,6 +119,137 @@ DEV_ENDPOINT_WARNING = (
     "Development-only endpoint. Never expose this publicly."
 )
 
+WalletPublicKey = Annotated[str, Field(pattern=PUBLIC_KEY_PATTERN, min_length=66, max_length=66)]
+NodeIdValue = Annotated[str, Field(pattern=NODE_ID_PATTERN, min_length=1, max_length=64)]
+NetworkNameValue = Annotated[str, Field(pattern=NETWORK_NAME_PATTERN, min_length=3, max_length=64)]
+SubmissionIdValue = Annotated[str, Field(pattern=HEX_32_PATTERN, min_length=32, max_length=32)]
+CertificateIdValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)]
+BlockHashValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)]
+ContentHashValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)]
+VoteTypeValue = Literal["original", "not_original", "unsure"]
+SubmissionStatusValue = Literal["pending", "approved", "rejected", "minted", "queued", "hard_rejected"]
+
+
+class _StrictBodyModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class PeerTransactionPayload(_StrictBodyModel):
+    sender: Annotated[str, Field(min_length=1, max_length=128)]
+    recipient: WalletPublicKey
+    amount: Annotated[float, Field(gt=0)]
+    tip: Annotated[float, Field(ge=0)] = 0
+    payload_size_kb: Annotated[float, Field(ge=0)] = 0
+    created_at: Annotated[float, Field(ge=0)] | None = None
+    signature: str | None = Field(default=None, max_length=2048)
+
+
+class PeerSubmissionPayload(_StrictBodyModel):
+    submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    image_path: str | None = None
+    text_content: str | None = None
+    submitter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    status: str = "pending"
+    created_at: Annotated[float, Field(ge=0)] | None = None
+    hard_reject_reason: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
+    content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+
+
+class PeerVotePayload(_StrictBodyModel):
+    submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_type: str | None = None
+    vote_value: str | None = None
+    created_at: Annotated[float, Field(ge=0)] | None = None
+    vote_timestamp: Annotated[float, Field(ge=0)] | None = None
+
+
+class PeerCertificatePayload(_StrictBodyModel):
+    certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    creator_wallet: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_total: Annotated[int, Field(ge=0)] | None = None
+    decisive_vote_total: Annotated[int, Field(ge=0)] | None = None
+    original_votes: Annotated[int, Field(ge=0)] | None = None
+    not_original_votes: Annotated[int, Field(ge=0)] | None = None
+    unsure_votes: Annotated[int, Field(ge=0)] | None = None
+    approval_percentage: Annotated[float, Field(ge=0)] | None = None
+    minimum_votes_required: Annotated[int, Field(ge=0)] | None = None
+    approved_at: Annotated[float, Field(ge=0)] | None = None
+    network_name: NetworkNameValue | None = None
+    issuing_node_id: NodeIdValue | None = None
+    vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    originality_score: Annotated[float, Field(ge=0)] | None = None
+
+
+class PeerBlockPayload(_StrictBodyModel):
+    index: Annotated[int, Field(ge=0)] | None = None
+    previous_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    timestamp: Annotated[float, Field(ge=0)] | None = None
+    transactions: list[PeerTransactionPayload] | None = None
+    miner: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    meme: dict[str, Any] | str | None = None
+    hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    submission_id: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    creator_wallet: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    approval_percentage: Annotated[float, Field(ge=0)] | None = None
+    decisive_vote_total: Annotated[int, Field(ge=0)] | None = None
+    minimum_votes_required: Annotated[int, Field(ge=0)] | None = None
+    approved_at: Annotated[float, Field(ge=0)] | None = None
+    originality_score: Annotated[float, Field(ge=0)] | None = None
+
+
+class PeerRegistration(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: NodeIdValue
+    url: Annotated[str, Field(min_length=8, max_length=MAX_URL_LENGTH)]
+    network_name: NetworkNameValue
+
+
+class PeerSubmissionReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    submission: PeerSubmissionPayload
+
+
+class PeerVoteReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_type: str | None = None
+    vote_value: str | None = None
+    created_at: Annotated[float, Field(ge=0)] | None = None
+    vote_timestamp: Annotated[float, Field(ge=0)] | None = None
+
+
+class PeerBlockReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    block: PeerBlockPayload
+    related_submission_id: SubmissionIdValue | None = None
+    certificate: PeerCertificatePayload | None = None
+
+
+class PeerCertificateReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    certificate: PeerCertificatePayload
+
 
 def _short_key(public_key):
     key = str(public_key or "")
@@ -111,6 +263,81 @@ def _wallet_public_response(public_key, wallet):
         "public_key": public_key,
         "balance": blockchain.get_balance(public_key),
     }
+
+
+def _has_forbidden_key_fields(payload: dict[str, Any]) -> bool:
+    forbidden_fields = {"private_key", "privateKey", "signing_key", "seed", "seed_phrase", "secret", "raw_secret"}
+    return any(field in payload for field in forbidden_fields)
+
+
+def _validate_unregistered_peer_submission_shape(receive_request: PeerSubmissionReceive):
+    payload = receive_request.submission.model_dump()
+    if _has_forbidden_key_fields(payload):
+        raise HTTPException(status_code=422, detail="Submission payload contains forbidden or unexpected fields.")
+    if not isinstance(payload.get("submission_id"), str) or not payload["submission_id"].strip():
+        raise HTTPException(status_code=422, detail="Submission submission_id is required.")
+    if not isinstance(payload.get("image_path"), str) or not payload["image_path"].strip():
+        raise HTTPException(status_code=422, detail="Submission image_path is required.")
+    if not isinstance(payload.get("text_content"), str) or not payload["text_content"].strip():
+        raise HTTPException(status_code=422, detail="Submission text_content is required.")
+    if not is_valid_wallet_public_key(payload.get("submitter", "")):
+        raise HTTPException(status_code=422, detail="Submission submitter is required.")
+
+
+def _validate_unregistered_peer_vote_shape(receive_request: PeerVoteReceive):
+    payload = receive_request.model_dump()
+    if _has_forbidden_key_fields(payload):
+        raise HTTPException(status_code=422, detail="Vote payload contains forbidden or unexpected fields.")
+    if not isinstance(payload.get("submission_id"), str) or not payload["submission_id"].strip():
+        raise HTTPException(status_code=422, detail="Vote submission_id is required.")
+    if not is_valid_wallet_public_key(payload.get("voter", "")):
+        raise HTTPException(status_code=422, detail="Vote voter is required.")
+    if payload.get("vote_type") not in {"original", "not_original", "unsure"}:
+        raise HTTPException(status_code=422, detail="Vote vote_type is required.")
+
+
+def _validate_unregistered_peer_certificate_shape(receive_request: PeerCertificateReceive):
+    payload = receive_request.certificate.model_dump()
+    if _has_forbidden_key_fields(payload):
+        raise HTTPException(status_code=422, detail="Certificate payload contains forbidden or unexpected fields.")
+    if not is_valid_certificate_id(payload.get("certificate_id", "")):
+        raise HTTPException(status_code=422, detail="Certificate certificate_id is required.")
+    if not is_valid_submission_id(payload.get("submission_id", "")):
+        raise HTTPException(status_code=422, detail="Certificate submission_id is required.")
+    if not is_valid_content_hash(payload.get("content_hash", "")):
+        raise HTTPException(status_code=422, detail="Certificate content_hash is required.")
+    if not is_valid_wallet_public_key(payload.get("creator_wallet", "")):
+        raise HTTPException(status_code=422, detail="Certificate creator_wallet is required.")
+    if not is_valid_node_id(payload.get("issuing_node_id", "")):
+        raise HTTPException(status_code=422, detail="Certificate issuing_node_id is required.")
+    if not is_valid_network_name(payload.get("network_name", "")):
+        raise HTTPException(status_code=422, detail="Certificate network_name is required.")
+    if not is_valid_content_hash(payload.get("vote_hash", "")):
+        raise HTTPException(status_code=422, detail="Certificate vote_hash is required.")
+
+
+def _validate_unregistered_peer_block_shape(receive_request: PeerBlockReceive):
+    payload = receive_request.block.model_dump()
+    if _has_forbidden_key_fields(payload):
+        raise HTTPException(status_code=422, detail="Block payload contains forbidden or unexpected fields.")
+    if payload.get("index") is None:
+        raise HTTPException(status_code=422, detail="Block index is required.")
+    if payload.get("previous_hash") is None:
+        raise HTTPException(status_code=422, detail="Block previous_hash is required.")
+    if payload.get("timestamp") is None:
+        raise HTTPException(status_code=422, detail="Block timestamp is required.")
+    if payload.get("transactions") is None:
+        raise HTTPException(status_code=422, detail="Block transactions are required.")
+    if payload.get("miner") is None:
+        raise HTTPException(status_code=422, detail="Block miner is required.")
+    if payload.get("meme") is None:
+        raise HTTPException(status_code=422, detail="Block meme is required.")
+    if payload.get("hash") is None:
+        raise HTTPException(status_code=422, detail="Block hash is required.")
+    if not is_valid_block_hash(str(payload.get("previous_hash", "")).strip()):
+        raise HTTPException(status_code=422, detail="Block previous_hash is required.")
+    if not is_valid_block_hash(str(payload.get("hash", "")).strip()):
+        raise HTTPException(status_code=422, detail="Block hash is required.")
 
 
 def development_tools_enabled(feature_enabled=True):
@@ -224,43 +451,6 @@ app.add_middleware(SlowAPIMiddleware)
 
 def api_limit(rate):
     return limiter.limit(rate)
-
-
-class PeerRegistration(BaseModel):
-    node_id: str
-    url: str
-    network_name: str
-
-
-class PeerSubmissionReceive(BaseModel):
-    origin_node_id: str
-    network_name: str
-    submission: dict
-
-
-class PeerVoteReceive(BaseModel):
-    origin_node_id: str | None = None
-    network_name: str | None = None
-    submission_id: str | None = None
-    voter: str | None = None
-    vote_type: str | None = None
-    vote_value: str | None = None
-    created_at: float | None = None
-    vote_timestamp: float | None = None
-
-
-class PeerBlockReceive(BaseModel):
-    origin_node_id: str | None = None
-    network_name: str | None = None
-    block: dict | None = None
-    related_submission_id: str | None = None
-    certificate: dict | None = None
-
-
-class PeerCertificateReceive(BaseModel):
-    origin_node_id: str | None = None
-    network_name: str | None = None
-    certificate: dict | None = None
 
 
 peer_store = PeerStore()
@@ -426,7 +616,7 @@ async def register_peer(registration: PeerRegistration, _: None = Depends(requir
         raise HTTPException(status_code=400, detail="Peer belongs to a different network.")
 
     try:
-        peer_url = normalize_peer_url(registration.url)
+        peer_url = normalize_peer_url(str(registration.url))
         public_node_url = normalize_peer_url(PUBLIC_NODE_URL)
         if registration.node_id.strip() == NODE_ID or peer_url == public_node_url:
             raise HTTPException(status_code=400, detail="Cannot register this node as a peer.")
@@ -450,12 +640,14 @@ async def get_peers():
 @app.post("/peers/submissions/receive")
 async def receive_submission_from_peer(receive_request: PeerSubmissionReceive, _: None = Depends(require_peer_secret)):
     try:
+        if not peer_store.get_active_peer(receive_request.origin_node_id):
+            _validate_unregistered_peer_submission_shape(receive_request)
         return receive_peer_submission(
             blockchain=blockchain,
             peer_store=peer_store,
             origin_node_id=receive_request.origin_node_id,
             network_name=receive_request.network_name,
-            submission_payload=receive_request.submission,
+            submission_payload=receive_request.submission.model_dump(),
             local_network_name=NETWORK_NAME,
         )
     except UnauthorizedPeerError as e:
@@ -471,6 +663,8 @@ async def receive_submission_from_peer(receive_request: PeerSubmissionReceive, _
 @app.post("/peers/votes/receive")
 async def receive_vote_from_peer(receive_request: PeerVoteReceive, _: None = Depends(require_peer_secret)):
     try:
+        if not peer_store.get_active_peer(receive_request.origin_node_id):
+            _validate_unregistered_peer_vote_shape(receive_request)
         return receive_peer_vote(
             blockchain=blockchain,
             peer_store=peer_store,
@@ -501,12 +695,16 @@ async def receive_vote_from_peer(receive_request: PeerVoteReceive, _: None = Dep
 @app.post("/peers/certificates/receive")
 async def receive_certificate_from_peer(receive_request: PeerCertificateReceive, _: None = Depends(require_peer_secret)):
     try:
+        if receive_request.certificate is None:
+            raise HTTPException(status_code=400, detail="Certificate payload is required.")
+        if not peer_store.get_active_peer(receive_request.origin_node_id):
+            _validate_unregistered_peer_certificate_shape(receive_request)
         return receive_peer_certificate(
             blockchain=blockchain,
             peer_store=peer_store,
             origin_node_id=receive_request.origin_node_id,
             network_name=receive_request.network_name,
-            certificate_payload=receive_request.certificate,
+            certificate_payload=receive_request.certificate.model_dump(),
             local_network_name=NETWORK_NAME,
         )
     except UnauthorizedPeerError as e:
@@ -522,15 +720,19 @@ async def receive_certificate_from_peer(receive_request: PeerCertificateReceive,
 @app.post("/peers/blocks/receive")
 async def receive_block_from_peer(receive_request: PeerBlockReceive, _: None = Depends(require_peer_secret)):
     try:
+        if receive_request.block is None:
+            raise HTTPException(status_code=400, detail="Block payload is required.")
+        if not peer_store.get_active_peer(receive_request.origin_node_id):
+            _validate_unregistered_peer_block_shape(receive_request)
         return receive_peer_block(
             blockchain=blockchain,
             peer_store=peer_store,
             origin_node_id=receive_request.origin_node_id,
             network_name=receive_request.network_name,
-            block_payload=receive_request.block,
+            block_payload=receive_request.block.model_dump(),
             related_submission_id=receive_request.related_submission_id,
             local_network_name=NETWORK_NAME,
-            certificate_payload=receive_request.certificate,
+            certificate_payload=receive_request.certificate.model_dump() if receive_request.certificate else None,
         )
     except UnauthorizedPeerError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -631,7 +833,10 @@ async def broadcast_block(block_hash: str):
 @api_limit(TRANSACTION_RATE_LIMIT)  # ✅ Keep rate limiting
 async def add_transaction(
     request: Request,  # ✅ Required for rate limiter
-    sender: str, recipient: str, amount: float, private_key: str
+    sender: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    recipient: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    amount: Annotated[float, Query(gt=0)],
+    private_key: Annotated[str, Query(..., min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")],
 ):
     """Add a transaction to the blockchain using wallet validation (no API key)."""
 
@@ -731,18 +936,18 @@ async def transaction_pool():
 async def submit_content(
     request: Request,
     image: UploadFile,
-    submitter: str = Form(...),
-    text_content: str = Form(None),
+    submitter: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    text_content: Annotated[str | None, Form(max_length=MAX_SUBMISSION_TEXT_LENGTH)] = None,
 ):
     """Submit meme content for review without minting a blockchain block."""
     if not is_valid_public_key(submitter, blockchain.wallets):
         raise HTTPException(status_code=400, detail="Invalid submitter public key.")
 
-    if not is_valid_image(image):
+    if not image.filename or not is_safe_filename(image.filename) or not is_valid_image(image):
         raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
 
     os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
-    image_path = os.path.join(SUBMISSIONS_DIR, image.filename)
+    image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(image.filename))
     with open(image_path, "wb") as buffer:
         buffer.write(await image.read())
 
@@ -775,7 +980,7 @@ async def submit_content(
 
 
 @app.get("/submissions")
-async def get_submissions(status: str | None = None):
+async def get_submissions(status: SubmissionStatusValue | None = None):
     submissions = [submission.to_dict() for submission in blockchain.submissions]
     if status:
         submissions = [
@@ -933,8 +1138,8 @@ async def broadcast_submission(submission_id: str):
 async def vote_on_submission(
     request: Request,
     submission_id: str,
-    voter: str = Form(...),
-    vote_type: str = Form(...),
+    voter: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    vote_type: Annotated[VoteTypeValue, Form(...)],
 ):
     if not is_valid_public_key(voter, blockchain.wallets):
         raise HTTPException(status_code=400, detail="Invalid voter public key.")
@@ -1068,8 +1273,8 @@ async def evaluate_submission(
 async def add_block(
     request: Request,  # ✅ Required for rate limiting
     image: UploadFile,
-    miner: str = Form(...),
-    private_key: str = Form(...)  # ✅ Validate miner via wallet key
+    miner: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    private_key: Annotated[str, Form(..., min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")],  # ✅ Validate miner via wallet key
 ):
     """
     Add a new block to the blockchain with the given meme image and transactions.
@@ -1099,7 +1304,7 @@ async def add_block(
     print(f"Debug: Owner balance before block: {getattr(blockchain, 'owner_balance', 'NOT SET')}")
 
     # Validate image format
-    if not is_valid_image(image):
+    if not image.filename or not is_safe_filename(image.filename) or not is_valid_image(image):
         raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
 
     try:
@@ -1107,7 +1312,7 @@ async def add_block(
         os.makedirs("temp", exist_ok=True)
 
         # Save the uploaded image
-        image_path = f"temp/{image.filename}"
+        image_path = f"temp/{os.path.basename(image.filename)}"
         with open(image_path, "wb") as buffer:
             buffer.write(await image.read())
 
@@ -1190,7 +1395,7 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
     return response
 
 @app.get("/get_balance")
-async def get_balance(public_key: str):
+async def get_balance(public_key: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)]):
     """
     Retrieve the balance for a specific wallet.
     """

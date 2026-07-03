@@ -1,6 +1,17 @@
 import hashlib
 import json
 
+def _hash_number(value):
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, (int, float)):
+        numeric_value = float(value)
+        if numeric_value.is_integer():
+            return str(int(numeric_value))
+        return str(numeric_value)
+    return str(value)
+
+
 class Block:
     def __init__(
         self,
@@ -76,7 +87,10 @@ class Block:
     def calculate_hash(self):
         """Calculate the hash of the block."""
         transaction_data = "".join(
-            [f"{tx.sender}{tx.recipient}{tx.amount}{tx.tip}{tx.payload_size_kb}{tx.signature}" for tx in self.transactions]
+            [
+                f"{tx.sender}{tx.recipient}{_hash_number(tx.amount)}{_hash_number(tx.tip)}{_hash_number(tx.payload_size_kb)}{tx.signature}"
+                for tx in self.transactions
+            ]
         )
         certificate_data = ""
         if self.certificate_metadata():

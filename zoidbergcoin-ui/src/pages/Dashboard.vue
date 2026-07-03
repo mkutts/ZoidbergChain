@@ -2,19 +2,59 @@
   <div class="dashboard-page">
     <header class="dashboard-header">
       <div>
-        <p class="eyebrow">Task 1 Workflow</p>
-        <h1>Dashboard</h1>
-        <p class="subtitle">Submit content, review pending memes, and mint approved queue items.</p>
+        <p class="eyebrow">Originality Consensus</p>
+        <h1>ZoidbergCoin Dashboard</h1>
+        <p class="subtitle">Community-approved original memes power every certified block.</p>
       </div>
       <div class="header-actions">
-        <button @click="refreshWorkflow" class="btn secondary" :disabled="isLoading || isQueueLoading">
-          {{ isLoading || isQueueLoading ? 'Refreshing...' : 'Refresh Workflow' }}
+        <button @click="refreshWorkflow" class="btn secondary" :disabled="isRefreshing">
+          {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
         </button>
+        <router-link to="/blockchain" class="btn ghost">Explorer</router-link>
       </div>
     </header>
 
     <main class="dashboard-shell">
-      <section class="card submit-card">
+      <section class="section-panel summary-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Chain Summary</p>
+            <h2>Current Consensus</h2>
+          </div>
+          <span class="workflow-chip">Meme Originality</span>
+        </div>
+
+        <p v-if="summaryError" class="status-message error">{{ summaryError }}</p>
+
+        <div v-if="chainSummary" class="metric-grid">
+          <div class="metric-card">
+            <span>Chain Height</span>
+            <strong>{{ chainSummary.chain_height }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Cumulative Originality Score</span>
+            <strong>{{ formatScore(chainSummary.cumulative_originality_score) }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Latest Block</span>
+            <strong>{{ shortenHash(chainSummary.latest_block_hash) }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Network</span>
+            <strong>{{ chainSummary.network_name || 'Unknown' }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Node</span>
+            <strong>{{ shortenKey(chainSummary.node_id) }}</strong>
+          </div>
+        </div>
+
+        <div v-else-if="!summaryError" class="empty-state">
+          Loading chain summary...
+        </div>
+      </section>
+
+      <section class="section-panel submit-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Create Submission</p>
@@ -57,15 +97,15 @@
             <span>{{ formatDate(lastSubmission.created_at) }}</span>
           </div>
           <p><strong>Submission ID:</strong> {{ lastSubmission.submission_id }}</p>
-          <p class="hint">Submitted content is pending community voting and is not minted automatically.</p>
+          <p class="hint">Submitted content enters community voting before it can be certified.</p>
         </div>
       </section>
 
-      <section class="card voting-card">
+      <section class="section-panel voting-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Community Review</p>
-            <h2>Pending Submissions</h2>
+            <p class="section-label">Pending Community Vote</p>
+            <h2>Review Submissions</h2>
           </div>
           <button @click="fetchSubmissions" class="btn ghost" :disabled="isLoading">
             {{ isLoading ? 'Refreshing...' : 'Refresh' }}
@@ -114,11 +154,104 @@
         </div>
       </section>
 
-      <section class="card queue-card">
+      <section class="section-panel approved-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Approved Content</p>
-            <h2>Mint Queue</h2>
+            <p class="section-label">Approved / Certificate Ready</p>
+            <h2>Originality Certificates</h2>
+          </div>
+          <span class="workflow-chip">Vote Snapshot</span>
+        </div>
+
+        <p v-if="certificateError" class="status-message error">{{ certificateError }}</p>
+
+        <div v-if="approvedCertificateSubmissions.length === 0" class="empty-state">
+          No certified approved submissions are ready yet.
+        </div>
+
+        <div v-else class="submission-list">
+          <article v-for="submission in approvedCertificateSubmissions" :key="submission.submission_id" class="submission-card">
+            <div class="submission-header">
+              <span class="status-pill ready">{{ formatStatus(submission.status) }}</span>
+              <span>{{ formatDate(submission.created_at) }}</span>
+            </div>
+
+            <p class="submission-text">{{ submission.text_content }}</p>
+            <div class="detail-grid">
+              <div>
+                <span>Certificate Status</span>
+                <strong class="text-success">exists</strong>
+              </div>
+              <div>
+                <span>Certificate ID</span>
+                <strong>{{ shortenHash(getCertificate(submission)?.certificate_id) || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Approval</span>
+                <strong>{{ formatPercent(getCertificate(submission)?.approval_percentage) }}</strong>
+              </div>
+              <div>
+                <span>Decisive Votes</span>
+                <strong>{{ getCertificate(submission)?.decisive_vote_total ?? 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Vote Hash</span>
+                <strong>{{ shortenHash(getCertificate(submission)?.vote_hash) || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Originality Score</span>
+                <strong>{{ formatScore(getCertificate(submission)?.originality_score) }}</strong>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section v-if="approvedMissingCertificateSubmissions.length > 0" class="section-panel missing-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Approved / Certificate Missing</p>
+            <h2>Needs Certificate Repair</h2>
+          </div>
+          <span class="workflow-chip warning-chip">Not Mintable</span>
+        </div>
+
+        <div class="submission-list">
+          <article v-for="submission in approvedMissingCertificateSubmissions" :key="submission.submission_id" class="submission-card">
+            <div class="submission-header">
+              <span class="status-pill pending">{{ formatStatus(submission.status) }}</span>
+              <span>{{ formatDate(submission.created_at) }}</span>
+            </div>
+            <p class="submission-text">{{ submission.text_content }}</p>
+            <p class="queue-warning">Originality certificate is missing. This submission is not certificate-ready and cannot be minted.</p>
+
+            <div class="detail-grid">
+              <div>
+                <span>Submission ID</span>
+                <strong>{{ shortenHash(submission.submission_id) }}</strong>
+              </div>
+              <div>
+                <span>Content Hash</span>
+                <strong>{{ shortenHash(submission.content_hash) }}</strong>
+              </div>
+              <div>
+                <span>Creator Wallet</span>
+                <strong>{{ shortenKey(submission.submitter) }}</strong>
+              </div>
+              <div>
+                <span>Certificate Status</span>
+                <strong class="text-warning">missing</strong>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-panel queue-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Mint Queue</p>
+            <h2>Certified Queue</h2>
           </div>
           <button @click="fetchMintQueue" class="btn ghost" :disabled="isQueueLoading">
             {{ isQueueLoading ? 'Refreshing...' : 'Refresh Queue' }}
@@ -131,7 +264,7 @@
         </div>
 
         <div v-if="mintQueue.length === 0" class="empty-state">
-          No approved submissions are waiting to mint.
+          No certified submissions are waiting to mint.
         </div>
 
         <div v-else class="queue-list">
@@ -141,11 +274,104 @@
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
-            <p class="meta">Submitted by {{ shortenKey(submission.submitter) }}</p>
+
+            <div class="detail-grid">
+              <div>
+                <span>Submission ID</span>
+                <strong>{{ shortenHash(submission.submission_id) }}</strong>
+              </div>
+              <div>
+                <span>Certificate ID</span>
+                <strong>{{ shortenHash(getCertificate(submission)?.certificate_id) || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Content Hash</span>
+                <strong>{{ shortenHash(getCertificate(submission)?.content_hash || submission.content_hash) }}</strong>
+              </div>
+              <div>
+                <span>Originality Score</span>
+                <strong>{{ formatScore(getCertificate(submission)?.originality_score) }}</strong>
+              </div>
+              <div>
+                <span>Creator Wallet</span>
+                <strong>{{ shortenKey(getCertificate(submission)?.creator_wallet || submission.submitter) }}</strong>
+              </div>
+            </div>
+
+            <p v-if="!getCertificate(submission)" class="queue-warning">Certificate required before minting.</p>
+
             <div class="card-actions">
-              <button @click="mintSubmission(submission.submission_id)" class="btn primary">
-                Mint Block
+              <button
+                @click="mintSubmission(submission.submission_id)"
+                class="btn primary"
+                :disabled="!getCertificate(submission) || mintingSubmissionId === submission.submission_id"
+              >
+                {{ mintingSubmissionId === submission.submission_id ? 'Minting...' : 'Mint Block' }}
               </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-panel blocks-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Recent Blocks</p>
+            <h2>Certified Meme Blocks</h2>
+          </div>
+          <button @click="fetchRecentBlocks" class="btn ghost" :disabled="isBlocksLoading">
+            {{ isBlocksLoading ? 'Refreshing...' : 'Refresh Blocks' }}
+          </button>
+        </div>
+
+        <p v-if="blocksError" class="status-message error">{{ blocksError }}</p>
+
+        <div v-if="recentBlocks.length === 0" class="empty-state">
+          No blocks loaded yet.
+        </div>
+
+        <div v-else class="block-list">
+          <article v-for="block in recentBlocks" :key="block.hash || block.index" class="block-card">
+            <div class="block-heading">
+              <h3>Block #{{ block.index }}</h3>
+              <span :class="block.certificate_id ? 'status-pill ready' : 'status-pill'">
+                {{ block.certificate_id ? 'Certified Meme' : 'Genesis / Legacy' }}
+              </span>
+            </div>
+
+            <div class="detail-grid">
+              <div>
+                <span>Block Hash</span>
+                <strong>{{ shortenHash(block.hash) }}</strong>
+              </div>
+              <div>
+                <span>Previous Hash</span>
+                <strong>{{ shortenHash(block.previous_hash) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Submission ID</span>
+                <strong>{{ shortenHash(block.submission_id) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Certificate ID</span>
+                <strong>{{ shortenHash(block.certificate_id) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Content Hash</span>
+                <strong>{{ shortenHash(block.content_hash) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Originality Score</span>
+                <strong>{{ formatScore(block.originality_score) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Creator Wallet</span>
+                <strong>{{ shortenKey(block.creator_wallet) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Approval</span>
+                <strong>{{ formatPercent(block.approval_percentage) }}</strong>
+              </div>
             </div>
           </article>
         </div>
@@ -153,7 +379,7 @@
     </main>
 
     <nav class="navigation-card">
-      <router-link to="/blockchain" class="btn secondary">View Blockchain</router-link>
+      <router-link to="/blockchain" class="btn secondary">View Blockchain Explorer</router-link>
       <button @click="goToHome" class="btn secondary">Home</button>
     </nav>
   </div>
@@ -171,6 +397,9 @@ export default {
       textContent: '',
       submissions: [],
       mintQueue: [],
+      recentBlocks: [],
+      chainSummary: null,
+      certificatesBySubmission: {},
       lastSubmission: null,
       submitMessage: '',
       errorMessage: '',
@@ -180,14 +409,32 @@ export default {
       evaluateError: '',
       mintMessage: '',
       mintError: '',
+      summaryError: '',
+      certificateError: '',
+      blocksError: '',
       isSubmitting: false,
       isLoading: false,
       isQueueLoading: false,
+      isBlocksLoading: false,
+      isSummaryLoading: false,
+      isRefreshing: false,
+      mintingSubmissionId: '',
     };
   },
   computed: {
     pendingSubmissions() {
       return this.submissions.filter((submission) => submission.status === 'pending');
+    },
+    approvedCertificateSubmissions() {
+      return this.approvedSubmissions.filter((submission) => this.getCertificate(submission));
+    },
+    approvedMissingCertificateSubmissions() {
+      return this.approvedSubmissions.filter(
+        (submission) => this.certificateLookupComplete(submission) && !this.getCertificate(submission),
+      );
+    },
+    approvedSubmissions() {
+      return this.submissions.filter((submission) => ['approved', 'queued'].includes(submission.status));
     },
   },
   async created() {
@@ -198,7 +445,18 @@ export default {
       this.memeFile = event.target.files[0] || null;
     },
     async refreshWorkflow() {
-      await Promise.all([this.fetchSubmissions(), this.fetchMintQueue()]);
+      this.isRefreshing = true;
+      try {
+        await Promise.all([
+          this.fetchChainSummary(),
+          this.fetchSubmissions(false),
+          this.fetchMintQueue(false),
+          this.fetchRecentBlocks(),
+        ]);
+        await this.loadVisibleCertificates(true);
+      } finally {
+        this.isRefreshing = false;
+      }
     },
     async submitMeme() {
       this.submitMessage = '';
@@ -244,12 +502,28 @@ export default {
         this.isSubmitting = false;
       }
     },
-    async fetchSubmissions() {
+    async fetchChainSummary() {
+      this.isSummaryLoading = true;
+      this.summaryError = '';
+      try {
+        const response = await apiClient.get('/chain/summary');
+        this.chainSummary = response.data;
+      } catch (error) {
+        console.error('Error fetching chain summary:', error);
+        this.summaryError = getApiErrorMessage(error, 'Failed to load chain summary.');
+      } finally {
+        this.isSummaryLoading = false;
+      }
+    },
+    async fetchSubmissions(loadCertificates = true) {
       this.isLoading = true;
       this.voteError = '';
       try {
         const response = await apiClient.get('/submissions');
         this.submissions = response.data.submissions || [];
+        if (loadCertificates) {
+          await this.loadVisibleCertificates(true);
+        }
       } catch (error) {
         console.error('Error fetching submissions:', error);
         this.voteError = getApiErrorMessage(error, 'Failed to load submissions.');
@@ -257,18 +531,76 @@ export default {
         this.isLoading = false;
       }
     },
-    async fetchMintQueue() {
+    async fetchMintQueue(loadCertificates = true) {
       this.isQueueLoading = true;
       this.mintError = '';
       try {
         const response = await apiClient.get('/mint-queue');
         this.mintQueue = response.data.mint_queue || [];
+        if (loadCertificates) {
+          await this.loadVisibleCertificates(true);
+        }
       } catch (error) {
         console.error('Error fetching mint queue:', error);
         this.mintError = getApiErrorMessage(error, 'Failed to load mint queue.');
       } finally {
         this.isQueueLoading = false;
       }
+    },
+    async fetchRecentBlocks() {
+      this.isBlocksLoading = true;
+      this.blocksError = '';
+      try {
+        const response = await apiClient.get('/chain');
+        this.recentBlocks = [...(response.data.chain || [])].reverse().slice(0, 6);
+      } catch (error) {
+        console.error('Error fetching recent blocks:', error);
+        this.blocksError = getApiErrorMessage(error, 'Failed to load recent blocks.');
+      } finally {
+        this.isBlocksLoading = false;
+      }
+    },
+    async fetchCertificateForSubmission(submissionId) {
+      try {
+        const response = await apiClient.get(`/submissions/${submissionId}/certificate`);
+        return response.data.certificate || null;
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        this.certificateError = getApiErrorMessage(error, 'Failed to load originality certificate.');
+        return null;
+      }
+    },
+    async loadVisibleCertificates(force = false) {
+      this.certificateError = '';
+      const ids = new Set();
+
+      this.approvedSubmissions.forEach((submission) => ids.add(submission.submission_id));
+      this.mintQueue.forEach((submission) => ids.add(submission.submission_id));
+
+      await Promise.all([...ids].map(async (submissionId) => {
+        if (!force && Object.prototype.hasOwnProperty.call(this.certificatesBySubmission, submissionId)) {
+          return;
+        }
+        const certificate = await this.fetchCertificateForSubmission(submissionId);
+        this.certificatesBySubmission = {
+          ...this.certificatesBySubmission,
+          [submissionId]: certificate,
+        };
+      }));
+    },
+    getCertificate(submission) {
+      if (!submission?.submission_id) {
+        return null;
+      }
+      return this.certificatesBySubmission[submission.submission_id] || null;
+    },
+    certificateLookupComplete(submission) {
+      return Boolean(
+        submission?.submission_id
+        && Object.prototype.hasOwnProperty.call(this.certificatesBySubmission, submission.submission_id),
+      );
     },
     async vote(submissionId, voteType) {
       this.voteMessage = '';
@@ -304,7 +636,15 @@ export default {
         const response = await apiClient.post(`/submissions/${submissionId}/evaluate`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        this.evaluateMessage = `${response.data.message || 'Submission evaluated successfully.'} Status: ${this.formatStatus(response.data.submission?.status)}.`;
+        if (response.data.certificate) {
+          this.certificatesBySubmission = {
+            ...this.certificatesBySubmission,
+            [submissionId]: response.data.certificate,
+          };
+        }
+        const status = response.data.submission?.status;
+        const certificateId = response.data.certificate?.certificate_id;
+        this.evaluateMessage = `${response.data.message || 'Submission evaluated successfully.'} Status: ${this.formatStatus(status)}${certificateId ? `, certificate ${this.shortenHash(certificateId)}.` : '.'}`;
         await this.refreshWorkflow();
       } catch (error) {
         console.error('Error evaluating submission:', error);
@@ -315,13 +655,23 @@ export default {
       this.mintMessage = '';
       this.mintError = '';
 
+      const submission = this.mintQueue.find((item) => item.submission_id === submissionId);
+      if (!this.getCertificate(submission)) {
+        this.mintError = 'Certificate required before minting.';
+        return;
+      }
+
+      this.mintingSubmissionId = submissionId;
       try {
         const response = await apiClient.post(`/mint-queue/${submissionId}/mint`);
-        this.mintMessage = `${response.data.message || 'Submission minted successfully.'} Status: ${this.formatStatus(response.data.submission?.status)}.`;
+        const certificateId = response.data.block?.certificate_id;
+        this.mintMessage = `${response.data.message || 'Submission minted successfully.'} Block #${response.data.block?.index ?? 'created'}${certificateId ? ` with certificate ${this.shortenHash(certificateId)}.` : '.'}`;
         await this.refreshWorkflow();
       } catch (error) {
         console.error('Error minting submission:', error);
         this.mintError = getApiErrorMessage(error, 'Failed to mint submission.');
+      } finally {
+        this.mintingSubmissionId = '';
       }
     },
     formatStatus(status) {
@@ -333,11 +683,35 @@ export default {
       }
       return new Date(timestamp * 1000).toLocaleString();
     },
-    shortenKey(key) {
-      if (!key || key.length <= 18) {
-        return key || 'Unknown wallet';
+    formatPercent(value) {
+      if (value === null || value === undefined || value === '') {
+        return 'Missing';
       }
-      return `${key.slice(0, 10)}...${key.slice(-8)}`;
+      return `${Math.round(Number(value) * 1000) / 10}%`;
+    },
+    formatScore(value) {
+      if (value === null || value === undefined || value === '') {
+        return '0';
+      }
+      return Number(value).toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 8,
+      });
+    },
+    shortenHash(hash) {
+      if (!hash) {
+        return '';
+      }
+      if (String(hash).length <= 18) {
+        return hash;
+      }
+      return `${String(hash).slice(0, 10)}...${String(hash).slice(-8)}`;
+    },
+    shortenKey(key) {
+      if (!key || String(key).length <= 18) {
+        return key || 'Unknown';
+      }
+      return `${String(key).slice(0, 10)}...${String(key).slice(-8)}`;
     },
     goToHome() {
       this.$router.push('/');
@@ -350,9 +724,7 @@ export default {
 .dashboard-page {
   min-height: 100vh;
   padding: 40px 24px 56px;
-  background:
-    radial-gradient(circle at top, rgba(255, 71, 71, 0.12), transparent 34rem),
-    radial-gradient(circle, #1a1a1a 0%, #000 100%);
+  background: linear-gradient(150deg, #090909 0%, #181818 48%, #080808 100%);
   color: #fff;
   font-family: Arial, sans-serif;
 }
@@ -360,7 +732,7 @@ export default {
 .dashboard-header,
 .dashboard-shell,
 .navigation-card {
-  width: min(1180px, 100%);
+  width: min(1220px, 100%);
   margin: 0 auto;
 }
 
@@ -384,6 +756,7 @@ export default {
 
 h1,
 h2,
+h3,
 p {
   margin-top: 0;
 }
@@ -392,13 +765,18 @@ h1 {
   margin-bottom: 8px;
   font-size: 3rem;
   line-height: 1;
-  text-shadow: 3px 3px 6px rgba(255, 0, 0, 0.5);
+  text-shadow: 3px 3px 6px rgba(255, 0, 0, 0.42);
 }
 
 h2 {
   margin-bottom: 0;
   font-size: 1.35rem;
   line-height: 1.2;
+}
+
+h3 {
+  margin-bottom: 0;
+  font-size: 1.08rem;
 }
 
 .subtitle {
@@ -409,27 +787,46 @@ h2 {
 
 .dashboard-shell {
   display: grid;
-  grid-template-columns: minmax(320px, 430px) minmax(420px, 1fr);
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
   grid-template-areas:
+    "summary summary"
     "submit voting"
-    "queue voting";
+    "approved voting"
+    "missing voting"
+    "queue blocks";
   gap: 22px;
   align-items: start;
 }
 
-.submit-card {
+.summary-panel {
+  grid-area: summary;
+}
+
+.submit-panel {
   grid-area: submit;
 }
 
-.voting-card {
+.voting-panel {
   grid-area: voting;
 }
 
-.queue-card {
+.approved-panel {
+  grid-area: approved;
+}
+
+.missing-panel {
+  grid-area: missing;
+}
+
+.queue-panel {
   grid-area: queue;
 }
 
-.card,
+.blocks-panel {
+  grid-area: blocks;
+}
+
+.section-panel,
 .navigation-card {
   background: rgba(28, 28, 28, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -437,7 +834,7 @@ h2 {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
 }
 
-.card {
+.section-panel {
   padding: 22px;
 }
 
@@ -468,15 +865,62 @@ h2 {
   color: #ffd884;
 }
 
-.status-pill.queued {
+.warning-chip {
+  background: rgba(255, 201, 71, 0.14);
+  color: #ffd884;
+}
+
+.status-pill.queued,
+.status-pill.ready {
   background: rgba(141, 245, 166, 0.14);
   color: #8df5a6;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card,
+.submission-result,
+.submission-card,
+.block-card,
+.empty-state {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(8, 8, 8, 0.58);
+}
+
+.metric-card {
+  min-height: 92px;
+  padding: 14px;
+}
+
+.metric-card span,
+.detail-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: #aeb4bd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.metric-card strong,
+.detail-grid strong {
+  display: block;
+  color: #f4f4f4;
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .form-stack,
 .message-stack,
 .submission-list,
-.queue-list {
+.queue-list,
+.block-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -611,9 +1055,13 @@ h2 {
   line-height: 1.4;
 }
 
+.success,
+.text-success {
+  color: #8df5a6;
+}
+
 .success {
   background: rgba(141, 245, 166, 0.12);
-  color: #8df5a6;
 }
 
 .error {
@@ -621,12 +1069,9 @@ h2 {
   color: #ff8c8c;
 }
 
-.submission-result,
-.submission-card,
-.empty-state {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(8, 8, 8, 0.58);
+.text-warning,
+.queue-warning {
+  color: #ffd884;
 }
 
 .submission-result {
@@ -634,7 +1079,8 @@ h2 {
   padding: 14px;
 }
 
-.submission-card {
+.submission-card,
+.block-card {
   padding: 16px;
 }
 
@@ -643,7 +1089,8 @@ h2 {
   color: #bbb;
 }
 
-.submission-header {
+.submission-header,
+.block-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -662,11 +1109,27 @@ h2 {
 }
 
 .hint,
-.meta {
+.meta,
+.queue-warning {
   margin-bottom: 0;
-  color: #b8b8b8;
   font-size: 0.9rem;
   line-height: 1.4;
+}
+
+.hint,
+.meta {
+  color: #b8b8b8;
+}
+
+.queue-warning {
+  margin-top: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
 }
 
 .navigation-card {
@@ -677,7 +1140,7 @@ h2 {
   padding: 16px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1060px) {
   .dashboard-header {
     align-items: flex-start;
     flex-direction: column;
@@ -686,9 +1149,17 @@ h2 {
   .dashboard-shell {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
+      "summary"
       "submit"
       "voting"
-      "queue";
+      "approved"
+      "missing"
+      "queue"
+      "blocks";
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -701,17 +1172,23 @@ h2 {
     font-size: 2.3rem;
   }
 
-  .card,
+  .section-panel,
   .navigation-card {
     padding: 16px;
   }
 
   .card-heading,
   .submission-header,
+  .block-heading,
   .submission-actions,
   .navigation-card {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .metric-grid,
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .btn,

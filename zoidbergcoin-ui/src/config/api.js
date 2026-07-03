@@ -24,6 +24,10 @@ export function getApiErrorMessage(error, fallback = "Something went wrong.") {
     return data.detail;
   }
 
+  if (data?.detail && typeof data.detail === "object") {
+    return formatObjectMessage(data.detail, fallback);
+  }
+
   if (typeof data?.error === "string") {
     return data.error;
   }
@@ -32,9 +36,69 @@ export function getApiErrorMessage(error, fallback = "Something went wrong.") {
     return data.message;
   }
 
+  if (data && typeof data === "object") {
+    const objectMessage = formatObjectMessage(data, "");
+    if (objectMessage) {
+      return objectMessage;
+    }
+  }
+
   if (error?.message) {
     return error.message;
   }
 
   return fallback;
+}
+
+function formatObjectMessage(data, fallback) {
+  const pieces = [];
+
+  if (typeof data.message === "string") {
+    pieces.push(data.message);
+  }
+  if (typeof data.error === "string") {
+    pieces.push(data.error);
+  }
+  if (typeof data.status === "string") {
+    pieces.push(`Status: ${formatToken(data.status)}`);
+  }
+  if (typeof data.reason === "string") {
+    pieces.push(`Reason: ${formatToken(data.reason)}`);
+  }
+  if (typeof data.recommended_action === "string") {
+    pieces.push(`Action: ${formatToken(data.recommended_action)}`);
+  }
+
+  const hashFields = [
+    ["local_latest_hash", "Local latest"],
+    ["received_previous_hash", "Received previous"],
+    ["received_block_hash", "Received block"],
+  ];
+
+  hashFields.forEach(([field, label]) => {
+    if (typeof data[field] === "string") {
+      pieces.push(`${label}: ${shortenValue(data[field])}`);
+    }
+  });
+
+  if (pieces.length > 0) {
+    return pieces.join(" ");
+  }
+
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return fallback;
+  }
+}
+
+function formatToken(value) {
+  return value.replace(/_/g, " ");
+}
+
+function shortenValue(value) {
+  if (!value || value.length <= 18) {
+    return value;
+  }
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
 }

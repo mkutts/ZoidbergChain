@@ -858,8 +858,11 @@ def _store_peer_certificate(
                 except MalformedCertificateError:
                     raise ConflictingCertificateError(
                         "Originality certificate already exists with different contents."
-                    )
+                )
                 if existing_certificate.to_dict() == incoming_certificate.to_dict():
+                    submission = blockchain.get_submission(existing_certificate.submission_id)
+                    if submission:
+                        submission.certificate_id = existing_certificate.certificate_id
                     return existing_certificate, "duplicate"
                 raise ConflictingCertificateError(
                     "Originality certificate already exists with different contents."
@@ -869,6 +872,9 @@ def _store_peer_certificate(
     existing_certificate = blockchain.get_originality_certificate(certificate.certificate_id)
     if existing_certificate:
         if existing_certificate.to_dict() == certificate.to_dict():
+            submission = blockchain.get_submission(existing_certificate.submission_id)
+            if submission:
+                submission.certificate_id = existing_certificate.certificate_id
             return existing_certificate, "duplicate"
         raise ConflictingCertificateError(
             "Originality certificate already exists with different contents."
@@ -884,6 +890,21 @@ def _store_peer_certificate(
             raise MalformedCertificateError(
                 "Originality certificate creator_wallet does not match submission."
             )
+        try:
+            validate_certificate_for_submission(
+                certificate,
+                submission,
+                network_name=local_network_name,
+                allowed_submission_statuses={PENDING, APPROVED, QUEUED, MINTED},
+            )
+        except ValueError as exc:
+            raise MalformedCertificateError(str(exc))
+
+    blockchain.originality_certificates.append(certificate)
+    if submission:
+        previous_status = submission.status
+        previous_certificate_id = submission.certificate_id
+        submission.certificate_id = certificate.certificate_id
         if submission.status == PENDING:
             submission.transition_to(APPROVED)
         try:
@@ -893,9 +914,14 @@ def _store_peer_certificate(
                 network_name=local_network_name,
             )
         except ValueError as exc:
+            submission.status = previous_status
+            submission.certificate_id = previous_certificate_id
+            blockchain.originality_certificates = [
+                stored_certificate
+                for stored_certificate in blockchain.originality_certificates
+                if stored_certificate.certificate_id != certificate.certificate_id
+            ]
             raise MalformedCertificateError(str(exc))
-
-    blockchain.originality_certificates.append(certificate)
     if save:
         blockchain.save_blockchain()
     return certificate, "created"

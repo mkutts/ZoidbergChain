@@ -147,6 +147,7 @@ class Blockchain:
                         OriginalityCertificate.from_dict(certificate_data)
                         for certificate_data in loaded_data.get("originality_certificates", [])
                     ]
+                    self.link_certificates_to_submissions()
 
                 else:
                     print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
@@ -436,6 +437,15 @@ class Blockchain:
                 return certificate
         return None
 
+    def link_certificates_to_submissions(self):
+        linked_any = False
+        for certificate in self.originality_certificates:
+            submission = self.get_submission(certificate.submission_id)
+            if submission and submission.certificate_id != certificate.certificate_id:
+                submission.certificate_id = certificate.certificate_id
+                linked_any = True
+        return linked_any
+
     def certificate_block_metadata(self, certificate):
         return {
             "submission_id": certificate.submission_id,
@@ -455,26 +465,15 @@ class Blockchain:
         validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
         return certificate
 
-    def create_originality_certificate(
+    def _build_originality_certificate(
         self,
-        submission_id,
-        approved_at=None,
-        network_name=NETWORK_NAME,
-        issuing_node_id=NODE_ID,
+        submission,
+        approved_at,
+        network_name,
+        issuing_node_id,
     ):
-        submission = self.get_submission(submission_id)
-        if not submission:
-            raise ValueError(f"Submission not found: {submission_id}")
-        if submission.status not in {APPROVED, QUEUED}:
-            raise ValueError("Only approved unminted submissions can receive originality certificates.")
-
-        existing_certificate = self.get_originality_certificate_for_submission(submission_id)
-        if existing_certificate:
-            return existing_certificate
-
-        vote_summary = self.get_submission_votes(submission_id)
-        approved_at = approved_at if approved_at is not None else time.time()
-        certificate = OriginalityCertificate.from_approved_submission(
+        vote_summary = self.get_submission_votes(submission.submission_id)
+        return OriginalityCertificate.from_approved_submission(
             submission=submission,
             votes=vote_summary["votes"],
             minimum_votes_required=self.get_voting_threshold(now=approved_at)["minimum_votes"],
@@ -482,8 +481,49 @@ class Blockchain:
             network_name=network_name,
             issuing_node_id=issuing_node_id,
         )
+
+    def create_originality_certificate(
+        self,
+        submission_id,
+        approved_at=None,
+        network_name=NETWORK_NAME,
+        issuing_node_id=NODE_ID,
+        allow_pending=False,
+        save=True,
+    ):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+        allowed_statuses = {APPROVED, QUEUED}
+        if allow_pending:
+            allowed_statuses.add(PENDING)
+        if submission.status not in allowed_statuses:
+            raise ValueError("Only approved unminted submissions can receive originality certificates.")
+
+        existing_certificate = self.get_originality_certificate_for_submission(submission_id)
+        if existing_certificate:
+            submission.certificate_id = existing_certificate.certificate_id
+            if save:
+                self.save_blockchain()
+            return existing_certificate
+
+        approved_at = approved_at if approved_at is not None else time.time()
+        certificate = self._build_originality_certificate(
+            submission,
+            approved_at,
+            network_name,
+            issuing_node_id,
+        )
+        validate_certificate_for_submission(
+            certificate,
+            submission,
+            network_name=network_name,
+            allowed_submission_statuses=allowed_statuses,
+        )
         self.originality_certificates.append(certificate)
-        self.save_blockchain()
+        submission.certificate_id = certificate.certificate_id
+        if save:
+            self.save_blockchain()
         return certificate
 
     def evaluate_submission(self, submission_id, automated_originality_passed=None, now=None):
@@ -530,9 +570,38 @@ class Blockchain:
             return result
 
         if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
-            submission.transition_to(APPROVED)
-            certificate = self.create_originality_certificate(submission_id, approved_at=now)
+            previous_status = submission.status
+            previous_certificate_id = submission.certificate_id
+            existing_certificate = self.get_originality_certificate_for_submission(submission_id)
+            created_certificate_id = None
+            try:
+                certificate = self.create_originality_certificate(
+                    submission_id,
+                    approved_at=now,
+                    allow_pending=True,
+                    save=False,
+                )
+                created_certificate_id = certificate.certificate_id
+                if not self.get_originality_certificate_for_submission(submission_id):
+                    raise ValueError("certificate could not be retrieved after creation")
+                self.save_blockchain()
+                submission.transition_to(APPROVED)
+                validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+                if self.get_originality_certificate_for_submission(submission_id) is None:
+                    raise ValueError("certificate could not be retrieved after approval")
+                self.save_blockchain()
+            except Exception as exc:
+                submission.status = previous_status
+                submission.certificate_id = previous_certificate_id
+                if not existing_certificate and created_certificate_id:
+                    self.originality_certificates = [
+                        stored_certificate
+                        for stored_certificate in self.originality_certificates
+                        if stored_certificate.certificate_id != created_certificate_id
+                    ]
+                raise ValueError(f"Originality certificate creation failed: {exc}") from exc
             result["certificate_id"] = certificate.certificate_id
+            result["certificate"] = certificate.to_dict()
             result["reason"] = "approved_by_vote"
         else:
             submission.transition_to(REJECTED)
@@ -662,6 +731,10 @@ class Blockchain:
             if certificate_ready:
                 valid_queue.append(submission_id)
             else:
+                if submission and submission.status == QUEUED:
+                    submission.status = APPROVED
+                if submission and not self.get_originality_certificate_for_submission(submission.submission_id):
+                    submission.certificate_id = None
                 removed_entries.append(submission_id)
 
         self.mint_queue = valid_queue

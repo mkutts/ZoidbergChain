@@ -1,6 +1,15 @@
 from fastapi.testclient import TestClient
 
-from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
+from submission import (
+    APPROVED,
+    HARD_REJECTED,
+    MINTED,
+    PENDING,
+    QUEUED,
+    REJECTED,
+    VOTE_NOT_ORIGINAL,
+    VOTE_ORIGINAL,
+)
 
 
 def _client(blockchain):
@@ -37,6 +46,96 @@ def _certify_submission(blockchain, submission):
     return blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
 
 
+def _generate_wallet_via_api(client):
+    response = client.post("/generate_wallet")
+    assert response.status_code == 200
+    return response.json()["wallet"]["public_key"]
+
+
+def _submit_content_via_api(client, submission_image, submitter, text="Real API lifecycle meme"):
+    with open(submission_image, "rb") as image_file:
+        response = client.post(
+            "/submit_content",
+            files={"image": ("real-api-lifecycle.jpg", image_file, "image/jpeg")},
+            data={
+                "submitter": submitter,
+                "text_content": text,
+            },
+        )
+    assert response.status_code == 200
+    return response.json()["submission"]
+
+
+def _vote_via_api(client, submission_id, voter, vote_type=VOTE_ORIGINAL):
+    response = client.post(
+        f"/submissions/{submission_id}/vote",
+        data={
+            "voter": voter,
+            "vote_type": vote_type,
+        },
+    )
+    assert response.status_code == 200
+    return response.json()["vote"]
+
+
+def test_real_api_submit_vote_evaluate_certificate_lookup_and_mint_flow(
+    blockchain,
+    submission_image,
+):
+    client = _client(blockchain)
+    submitter = _generate_wallet_via_api(client)
+    voters = [_generate_wallet_via_api(client) for _ in range(5)]
+    submission = _submit_content_via_api(client, submission_image, submitter)
+    submission_id = submission["submission_id"]
+
+    pending_certificate = client.get(f"/submissions/{submission_id}/certificate")
+    assert pending_certificate.status_code == 404
+
+    for voter in voters:
+        _vote_via_api(client, submission_id, voter, VOTE_ORIGINAL)
+
+    evaluate_response = client.post(
+        f"/submissions/{submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert evaluate_response.status_code == 200
+    body = evaluate_response.json()
+    certificate = body["certificate"]
+    certificate_id = certificate["certificate_id"]
+    assert body["evaluation"]["status"] == APPROVED
+    assert body["evaluation"]["certificate_id"] == certificate_id
+    assert body["submission"]["status"] == QUEUED
+    assert body["submission"]["certificate_id"] == certificate_id
+    assert certificate["submission_id"] == submission_id
+    assert certificate["approval_percentage"] == 1.0
+    assert certificate["decisive_vote_total"] == 5
+    assert certificate["vote_hash"]
+    assert certificate["minimum_votes_required"] == 5
+    assert certificate["originality_score"] > 0
+
+    by_submission = client.get(f"/submissions/{submission_id}/certificate")
+    by_certificate_id = client.get(f"/certificates/{certificate_id}")
+    assert by_submission.status_code == 200
+    assert by_certificate_id.status_code == 200
+    assert by_submission.json()["certificate"] == certificate
+    assert by_certificate_id.json()["certificate"] == certificate
+
+    mint_queue = client.get("/mint-queue")
+    assert mint_queue.status_code == 200
+    assert mint_queue.json()["mint_queue"][0]["submission_id"] == submission_id
+    assert mint_queue.json()["mint_queue"][0]["certificate_id"] == certificate_id
+
+    mint_response = client.post(f"/mint-queue/{submission_id}/mint")
+    assert mint_response.status_code == 200
+    minted = mint_response.json()
+    assert minted["minted"] is True
+    assert minted["submission"]["status"] == MINTED
+    assert minted["block"]["submission_id"] == submission_id
+    assert minted["block"]["certificate_id"] == certificate_id
+    assert minted["block"]["originality_score"] == certificate["originality_score"]
+
+
 def test_evaluate_approved_submission_enters_mint_queue(blockchain, submission_image, wallets):
     client = _client(blockchain)
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
@@ -56,8 +155,47 @@ def test_evaluate_approved_submission_enters_mint_queue(blockchain, submission_i
     assert body["evaluation"]["status"] == APPROVED
     assert body["submission"]["status"] == "queued"
     assert body["certificate"]["submission_id"] == submission.submission_id
+    assert body["certificate"]["certificate_id"]
+    assert body["certificate"]["vote_hash"]
+    assert body["certificate"]["approval_percentage"] == 0.8
+    assert body["certificate"]["decisive_vote_total"] == 5
+    assert body["certificate"]["minimum_votes_required"] == 5
+    assert body["certificate"]["originality_score"] > 0
+    assert body["submission"]["certificate_id"] == body["certificate"]["certificate_id"]
+    assert body["evaluation"]["certificate_id"] == body["certificate"]["certificate_id"]
     assert blockchain.get_originality_certificate_for_submission(submission.submission_id) is not None
     assert client.get("/mint-queue").json()["mint_queue"][0]["submission_id"] == submission.submission_id
+
+
+def test_evaluate_100_percent_original_submission_creates_certificate(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL],
+    )
+
+    response = client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    certificate = body["certificate"]
+    assert body["submission"]["status"] == QUEUED
+    assert body["submission"]["certificate_id"] == certificate["certificate_id"]
+    assert certificate["submission_id"] == submission.submission_id
+    assert certificate["approval_percentage"] == 1.0
+    assert certificate["decisive_vote_total"] == 5
+    assert certificate["vote_hash"]
+    assert certificate["minimum_votes_required"] == 5
+    assert certificate["originality_score"] > 0
 
 
 def test_repeated_evaluation_does_not_create_duplicate_certificate(blockchain, submission_image, wallets):
@@ -153,6 +291,7 @@ def test_certificate_lookup_by_submission_id_works(blockchain, submission_image,
 
     assert response.status_code == 200
     assert response.json()["certificate"] == evaluate_response.json()["certificate"]
+    assert response.json()["certificate"]["originality_score"] > 0
 
 
 def test_certificate_lookup_by_certificate_id_works(blockchain, submission_image, wallets):
@@ -172,6 +311,7 @@ def test_certificate_lookup_by_certificate_id_works(blockchain, submission_image
     response = client.get(f"/certificates/{certificate_id}")
 
     assert response.status_code == 200
+    assert response.json()["certificate"] == evaluate_response.json()["certificate"]
     assert response.json()["certificate"]["certificate_id"] == certificate_id
 
 
@@ -233,6 +373,132 @@ def test_approved_submission_without_certificate_cannot_mint(blockchain, submiss
     assert response.json()["detail"] == "Originality certificate is required before minting."
     assert submission.status == APPROVED
     assert len(blockchain.chain) == 1
+
+
+def test_mint_queue_excludes_approved_submission_missing_certificate(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    submission.transition_to(APPROVED)
+
+    response = client.get("/mint-queue")
+
+    assert response.status_code == 200
+    assert response.json() == {"mint_queue": []}
+    assert submission.status == APPROVED
+    assert submission.certificate_id is None
+
+
+def test_mint_queue_repairs_stale_queued_submission_missing_certificate(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    submission.transition_to(APPROVED)
+    submission.transition_to(QUEUED)
+    blockchain.mint_queue.append(submission.submission_id)
+
+    response = client.get("/mint-queue")
+
+    assert response.status_code == 200
+    assert response.json() == {"mint_queue": []}
+    assert blockchain.mint_queue == []
+    assert submission.status == APPROVED
+    assert submission.certificate_id is None
+
+
+def test_dev_repair_certificate_creates_certificate_for_old_approved_submission(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL],
+    )
+    submission.transition_to(APPROVED)
+
+    response = client.post(f"/dev/submissions/{submission.submission_id}/repair-certificate")
+
+    assert response.status_code == 200
+    body = response.json()
+    certificate = body["certificate"]
+    certificate_id = certificate["certificate_id"]
+    assert body["submission"]["status"] == APPROVED
+    assert body["submission"]["certificate_id"] == certificate_id
+    assert certificate["submission_id"] == submission.submission_id
+    assert certificate["vote_hash"]
+    assert certificate["approval_percentage"] == 1.0
+    assert certificate["decisive_vote_total"] == 5
+    assert certificate["originality_score"] > 0
+    assert client.get(f"/submissions/{submission.submission_id}/certificate").status_code == 200
+    assert client.get(f"/certificates/{certificate_id}").status_code == 200
+
+    mint_queue = client.get("/mint-queue")
+
+    assert mint_queue.status_code == 200
+    assert mint_queue.json()["mint_queue"][0]["submission_id"] == submission.submission_id
+    assert mint_queue.json()["mint_queue"][0]["certificate_id"] == certificate_id
+
+
+def test_dev_repair_certificate_rejects_old_approved_submission_without_votes(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    submission.transition_to(APPROVED)
+
+    response = client.post(f"/dev/submissions/{submission.submission_id}/repair-certificate")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Cannot repair certificate: finalized vote data is missing."
+    assert blockchain.get_originality_certificate_for_submission(submission.submission_id) is None
+    assert client.get("/mint-queue").json() == {"mint_queue": []}
+
+
+def test_evaluation_rolls_back_when_certificate_creation_fails(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL],
+    )
+
+    def fail_certificate_creation(*args, **kwargs):
+        raise ValueError("certificate storage unavailable")
+
+    monkeypatch.setattr(blockchain, "create_originality_certificate", fail_certificate_creation)
+
+    response = client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Originality certificate creation failed: certificate storage unavailable"
+    )
+    assert submission.status == PENDING
+    assert submission.certificate_id is None
+    assert blockchain.originality_certificates == []
+    assert blockchain.mint_queue == []
+    assert client.get("/mint-queue").json() == {"mint_queue": []}
 
 
 def test_mint_rejects_pending_rejected_and_already_minted_submissions(blockchain, submission_image, wallets):

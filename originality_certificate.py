@@ -75,6 +75,7 @@ def validate_certificate_for_submission(
     submission,
     network_name=NETWORK_NAME,
     approval_threshold=ORIGINALITY_APPROVAL_THRESHOLD,
+    allowed_submission_statuses=None,
 ):
     if certificate is None:
         raise ValueError("Originality certificate is required before minting.")
@@ -90,7 +91,12 @@ def validate_certificate_for_submission(
         raise ValueError("Originality certificate belongs to a different network.")
     if not certificate.vote_hash:
         raise ValueError("Originality certificate vote_hash is required.")
-    if submission.status not in {APPROVED, QUEUED, MINTED}:
+    valid_statuses = (
+        {APPROVED, QUEUED, MINTED}
+        if allowed_submission_statuses is None
+        else set(allowed_submission_statuses)
+    )
+    if submission.status not in valid_statuses:
         raise ValueError("Originality certificate must reference an approved submission.")
     if certificate.approval_percentage < approval_threshold:
         raise ValueError("Originality certificate approval percentage is below the required threshold.")

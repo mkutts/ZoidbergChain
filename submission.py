@@ -55,6 +55,7 @@ class Submission:
     created_at: float = field(default_factory=time.time)
     hard_reject_reason: str | None = None
     content_hash: str | None = None
+    certificate_id: str | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
@@ -85,6 +86,7 @@ class Submission:
             "created_at": self.created_at,
             "hard_reject_reason": self.hard_reject_reason,
             "content_hash": self.content_hash,
+            "certificate_id": self.certificate_id,
         }
 
     @classmethod
@@ -98,4 +100,5 @@ class Submission:
             created_at=data.get("created_at", time.time()),
             hard_reject_reason=data.get("hard_reject_reason"),
             content_hash=data.get("content_hash"),
+            certificate_id=data.get("certificate_id"),
         )

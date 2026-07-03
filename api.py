@@ -22,16 +22,19 @@ from validators import is_valid_public_key, is_valid_amount, is_valid_image
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ADD_BLOCK_RATE_LIMIT,
+    APP_ENV,
     BLOCKCHAIN_FILE,
     COIN_NAME,
     NETWORK_NAME,
     NODE_ID,
+    ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
     RATE_LIMIT_ENABLED,
     SUBMISSION_RATE_LIMIT,
     SUBMISSIONS_DIR,
     TRANSACTION_RATE_LIMIT,
     VOTE_RATE_LIMIT,
+    VOTING_WINDOW_HOURS,
     WALLET_GENERATION_RATE_LIMIT,
 )
 from auth import validate_api_key  # ✅ API authentication
@@ -647,6 +650,74 @@ async def get_certificate(certificate_id: str):
     return {"certificate": certificate.to_dict()}
 
 
+@app.post("/dev/submissions/{submission_id}/repair-certificate")
+async def repair_submission_certificate(submission_id: str):
+    if APP_ENV == "production":
+        raise HTTPException(status_code=403, detail="Dev certificate repair is disabled in production.")
+
+    submission = blockchain.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
+
+    existing_certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+    if existing_certificate:
+        submission.certificate_id = existing_certificate.certificate_id
+        blockchain.save_blockchain()
+        return {
+            "message": "Originality certificate already exists.",
+            "submission": submission.to_dict(),
+            "certificate": existing_certificate.to_dict(),
+        }
+
+    if submission.status == QUEUED:
+        submission.status = APPROVED
+        if submission_id in blockchain.mint_queue:
+            blockchain.mint_queue = [
+                queued_id for queued_id in blockchain.mint_queue if queued_id != submission_id
+            ]
+
+    if submission.status != APPROVED:
+        raise HTTPException(
+            status_code=400,
+            detail="Only approved submissions can be repaired with an originality certificate.",
+        )
+
+    vote_summary = blockchain.get_submission_votes(submission_id)
+    voting_threshold = blockchain.get_voting_threshold()
+    voting_window_expired = time.time() >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
+    if not vote_summary["votes"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot repair certificate: finalized vote data is missing.",
+        )
+    if not (len(vote_summary["votes"]) >= voting_threshold["minimum_votes"] or voting_window_expired):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot repair certificate: vote data has not reached finality.",
+        )
+    if vote_summary["approval_percentage"] < ORIGINALITY_APPROVAL_THRESHOLD:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot repair certificate: approval percentage is below the required threshold.",
+        )
+
+    try:
+        certificate = blockchain.create_originality_certificate(submission_id, approved_at=time.time())
+        persisted_certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+        if not persisted_certificate:
+            raise ValueError("certificate could not be retrieved after repair")
+        submission.certificate_id = persisted_certificate.certificate_id
+        blockchain.save_blockchain()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Cannot repair certificate: {e}")
+
+    return {
+        "message": "Originality certificate repaired.",
+        "submission": submission.to_dict(),
+        "certificate": certificate.to_dict(),
+    }
+
+
 @app.post("/certificates/{certificate_id}/broadcast")
 async def broadcast_certificate(certificate_id: str):
     certificate = blockchain.get_originality_certificate(certificate_id)
@@ -770,10 +841,34 @@ async def evaluate_submission(
             automated_originality_passed=automated_originality_passed,
         )
         queued_submission = None
-        if submission.status == APPROVED:
-            queued_submission = blockchain.add_to_mint_queue(submission_id)
-        blockchain.save_blockchain()
         certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+        if submission.status == APPROVED:
+            if not certificate:
+                raise ValueError(
+                    "Approved submission is missing an originality certificate and cannot enter the mint queue."
+                )
+            queued_submission = blockchain.add_to_mint_queue(submission_id)
+            certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+        blockchain.save_blockchain()
+        if submission.status in {APPROVED, QUEUED}:
+            certificate = blockchain.get_originality_certificate_for_submission(submission_id)
+            if not certificate:
+                raise ValueError(
+                    "Originality certificate creation failed: certificate could not be retrieved after approval."
+                )
+            submission.certificate_id = certificate.certificate_id
+        logging.debug(
+            "evaluate_submission certificate lifecycle: submission_id=%s votes_cast=%s "
+            "approval_percentage=%s decision=%s certificate_creation_attempted=%s "
+            "certificate_id=%s certificate_lookup_after_save=%s",
+            submission_id,
+            evaluation.get("votes_cast"),
+            evaluation.get("approval_percentage"),
+            evaluation.get("reason"),
+            evaluation.get("reason") == "approved_by_vote",
+            certificate.certificate_id if certificate else None,
+            certificate is not None,
+        )
         certificate_broadcast = (
             broadcast_certificate_to_peers(
                 certificate=certificate,
@@ -957,7 +1052,14 @@ async def voting_threshold():
 
 @app.get("/mint-queue")
 async def mint_queue():
+    changed = False
+    if blockchain.link_certificates_to_submissions():
+        changed = True
     if sync_approved_submissions_to_mint_queue():
+        changed = True
+    if blockchain.remove_invalid_mint_queue_entries():
+        changed = True
+    if changed:
         blockchain.save_blockchain()
     return {"mint_queue": blockchain.get_mint_queue()}
 

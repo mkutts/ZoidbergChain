@@ -138,6 +138,8 @@ def test_approved_submission_automatically_creates_certificate(blockchain, submi
     assert submission.status == APPROVED
     assert certificate is not None
     assert result["certificate_id"] == certificate.certificate_id
+    assert result["certificate"] == certificate.to_dict()
+    assert submission.certificate_id == certificate.certificate_id
     assert certificate.vote_hash == calculate_vote_hash(
         blockchain.get_submission_votes(submission.submission_id)["votes"]
     )
@@ -245,6 +247,7 @@ def test_certificate_can_be_created_from_approved_submission(blockchain, submiss
     assert certificate.network_name == NETWORK_NAME
     assert certificate.issuing_node_id == ISSUING_NODE_ID
     assert certificate.originality_score == calculate_originality_score(certificate)
+    assert submission.certificate_id == certificate.certificate_id
     assert len(certificate.certificate_id) == 64
     assert len(certificate.vote_hash) == 64
 

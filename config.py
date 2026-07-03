@@ -51,6 +51,45 @@ _SECURITY_DEFAULTS = {
     },
 }
 
+_RATE_LIMIT_DEFAULTS = {
+    "development": {
+        "RATE_LIMIT_TRANSACTION_CREATE": "30/minute",
+        "RATE_LIMIT_WALLET_CREATE": "30/minute",
+        "RATE_LIMIT_SUBMISSION_CREATE": "20/minute",
+        "RATE_LIMIT_VOTE": "60/minute",
+        "RATE_LIMIT_EVALUATE": "20/minute",
+        "RATE_LIMIT_MINT": "20/minute",
+        "RATE_LIMIT_CHAIN_SYNC": "30/minute",
+        "RATE_LIMIT_PEER_RECEIVE": "120/minute",
+        "RATE_LIMIT_PUBLIC_READ": "120/minute",
+        "RATE_LIMIT_DEV_ENDPOINTS": "30/minute",
+    },
+    "testnet": {
+        "RATE_LIMIT_TRANSACTION_CREATE": "10/minute",
+        "RATE_LIMIT_WALLET_CREATE": "10/minute",
+        "RATE_LIMIT_SUBMISSION_CREATE": "10/minute",
+        "RATE_LIMIT_VOTE": "30/minute",
+        "RATE_LIMIT_EVALUATE": "10/minute",
+        "RATE_LIMIT_MINT": "10/minute",
+        "RATE_LIMIT_CHAIN_SYNC": "20/minute",
+        "RATE_LIMIT_PEER_RECEIVE": "120/minute",
+        "RATE_LIMIT_PUBLIC_READ": "180/minute",
+        "RATE_LIMIT_DEV_ENDPOINTS": "5/minute",
+    },
+    "production": {
+        "RATE_LIMIT_TRANSACTION_CREATE": "10/minute",
+        "RATE_LIMIT_WALLET_CREATE": "10/minute",
+        "RATE_LIMIT_SUBMISSION_CREATE": "10/minute",
+        "RATE_LIMIT_VOTE": "30/minute",
+        "RATE_LIMIT_EVALUATE": "10/minute",
+        "RATE_LIMIT_MINT": "10/minute",
+        "RATE_LIMIT_CHAIN_SYNC": "20/minute",
+        "RATE_LIMIT_PEER_RECEIVE": "120/minute",
+        "RATE_LIMIT_PUBLIC_READ": "180/minute",
+        "RATE_LIMIT_DEV_ENDPOINTS": "5/minute",
+    },
+}
+
 
 def _clean_path(value):
     cleaned = (value or ".").strip()
@@ -89,6 +128,14 @@ def _env_flag_any(names, default=False):
     return default
 
 
+def _env_value_any(names, default):
+    for name in names:
+        value = os.getenv(name)
+        if value is not None:
+            return value.strip()
+    return default
+
+
 def _env_int(name, default):
     value = os.getenv(name)
     if value is None:
@@ -114,6 +161,7 @@ def _load_environment():
 ENVIRONMENT = _load_environment()
 APP_ENV = ENVIRONMENT
 _CURRENT_SECURITY_DEFAULTS = _SECURITY_DEFAULTS[ENVIRONMENT]
+_CURRENT_RATE_LIMIT_DEFAULTS = _RATE_LIMIT_DEFAULTS[ENVIRONMENT]
 
 ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT = _env_flag(
     "ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT",
@@ -217,6 +265,13 @@ def peer_shared_secret_is_configured():
     }
 
 
+def get_rate_limit(name):
+    try:
+        return RATE_LIMITS[name]
+    except KeyError as exc:
+        raise KeyError(f"Unknown rate limit category: {name!r}.") from exc
+
+
 def validate_peer_auth_config():
     if (REQUIRE_PEER_AUTH or ENABLE_SIGNED_PEER_MESSAGES) and not peer_shared_secret_is_configured():
         raise ValueError(
@@ -231,11 +286,65 @@ def _env_value(name, default):
     return value.strip()
 
 
-TRANSACTION_RATE_LIMIT = os.getenv("TRANSACTION_RATE_LIMIT", "5/minute")
-SUBMISSION_RATE_LIMIT = os.getenv("SUBMISSION_RATE_LIMIT", "5/minute")
-VOTE_RATE_LIMIT = os.getenv("VOTE_RATE_LIMIT", "10/minute")
-ADD_BLOCK_RATE_LIMIT = os.getenv("ADD_BLOCK_RATE_LIMIT", "3/minute")
-WALLET_GENERATION_RATE_LIMIT = os.getenv("WALLET_GENERATION_RATE_LIMIT", "2/minute")
+RATE_LIMIT_TRANSACTION_CREATE = _env_value_any(
+    ("RATE_LIMIT_TRANSACTION_CREATE", "TRANSACTION_RATE_LIMIT"),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_TRANSACTION_CREATE"],
+)
+RATE_LIMIT_WALLET_CREATE = _env_value_any(
+    ("RATE_LIMIT_WALLET_CREATE", "WALLET_GENERATION_RATE_LIMIT"),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_WALLET_CREATE"],
+)
+RATE_LIMIT_SUBMISSION_CREATE = _env_value_any(
+    ("RATE_LIMIT_SUBMISSION_CREATE", "SUBMISSION_RATE_LIMIT"),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_SUBMISSION_CREATE"],
+)
+RATE_LIMIT_VOTE = _env_value_any(
+    ("RATE_LIMIT_VOTE", "VOTE_RATE_LIMIT"),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_VOTE"],
+)
+RATE_LIMIT_EVALUATE = _env_value_any(
+    ("RATE_LIMIT_EVALUATE",),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_EVALUATE"],
+)
+RATE_LIMIT_MINT = _env_value_any(
+    ("RATE_LIMIT_MINT", "ADD_BLOCK_RATE_LIMIT"),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_MINT"],
+)
+RATE_LIMIT_CHAIN_SYNC = _env_value_any(
+    ("RATE_LIMIT_CHAIN_SYNC",),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_CHAIN_SYNC"],
+)
+RATE_LIMIT_PEER_RECEIVE = _env_value_any(
+    ("RATE_LIMIT_PEER_RECEIVE",),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_PEER_RECEIVE"],
+)
+RATE_LIMIT_PUBLIC_READ = _env_value_any(
+    ("RATE_LIMIT_PUBLIC_READ",),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_PUBLIC_READ"],
+)
+RATE_LIMIT_DEV_ENDPOINTS = _env_value_any(
+    ("RATE_LIMIT_DEV_ENDPOINTS",),
+    _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_DEV_ENDPOINTS"],
+)
+
+RATE_LIMITS = {
+    "transaction_create": RATE_LIMIT_TRANSACTION_CREATE,
+    "wallet_create": RATE_LIMIT_WALLET_CREATE,
+    "submission_create": RATE_LIMIT_SUBMISSION_CREATE,
+    "vote": RATE_LIMIT_VOTE,
+    "evaluate": RATE_LIMIT_EVALUATE,
+    "mint": RATE_LIMIT_MINT,
+    "chain_sync": RATE_LIMIT_CHAIN_SYNC,
+    "peer_receive": RATE_LIMIT_PEER_RECEIVE,
+    "public_read": RATE_LIMIT_PUBLIC_READ,
+    "dev_endpoint": RATE_LIMIT_DEV_ENDPOINTS,
+}
+
+TRANSACTION_RATE_LIMIT = RATE_LIMIT_TRANSACTION_CREATE
+WALLET_GENERATION_RATE_LIMIT = RATE_LIMIT_WALLET_CREATE
+SUBMISSION_RATE_LIMIT = RATE_LIMIT_SUBMISSION_CREATE
+VOTE_RATE_LIMIT = RATE_LIMIT_VOTE
+ADD_BLOCK_RATE_LIMIT = RATE_LIMIT_MINT
 NODE_ID = _env_value("NODE_ID", "zoidberg-local-node")
 NODE_HOST = _env_value("NODE_HOST", "127.0.0.1")
 NODE_PORT = int(os.getenv("NODE_PORT", "8000"))

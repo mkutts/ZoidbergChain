@@ -19,6 +19,21 @@ _CONFIG_ENV_KEYS = (
     "REQUIRE_PEER_AUTH",
     "PUBLIC_API_MODE",
     "PEER_SHARED_SECRET",
+    "RATE_LIMIT_TRANSACTION_CREATE",
+    "RATE_LIMIT_WALLET_CREATE",
+    "RATE_LIMIT_SUBMISSION_CREATE",
+    "RATE_LIMIT_VOTE",
+    "RATE_LIMIT_EVALUATE",
+    "RATE_LIMIT_MINT",
+    "RATE_LIMIT_CHAIN_SYNC",
+    "RATE_LIMIT_PEER_RECEIVE",
+    "RATE_LIMIT_PUBLIC_READ",
+    "RATE_LIMIT_DEV_ENDPOINTS",
+    "TRANSACTION_RATE_LIMIT",
+    "WALLET_GENERATION_RATE_LIMIT",
+    "SUBMISSION_RATE_LIMIT",
+    "VOTE_RATE_LIMIT",
+    "ADD_BLOCK_RATE_LIMIT",
 )
 
 
@@ -125,6 +140,34 @@ def test_helper_functions_return_correct_values_for_testnet():
         assert config.signed_peer_messages_enabled() is True
         assert config.peer_signature_window_seconds() == 300
         assert config.peer_replay_protection_enabled() is True
+        assert config.get_rate_limit("wallet_create") == "10/minute"
+        assert config.get_rate_limit("public_read") == "180/minute"
+
+
+@pytest.mark.parametrize(
+    ("environment", "expected_wallet_limit", "expected_public_read_limit"),
+    [
+        ("development", "30/minute", "120/minute"),
+        ("testnet", "10/minute", "180/minute"),
+        ("production", "10/minute", "180/minute"),
+    ],
+)
+def test_rate_limit_helpers_return_expected_environment_defaults(
+    environment,
+    expected_wallet_limit,
+    expected_public_read_limit,
+):
+    with loaded_config(ENVIRONMENT=environment) as config:
+        assert config.RATE_LIMIT_WALLET_CREATE == expected_wallet_limit
+        assert config.RATE_LIMIT_PUBLIC_READ == expected_public_read_limit
+        assert config.get_rate_limit("wallet_create") == expected_wallet_limit
+        assert config.get_rate_limit("public_read") == expected_public_read_limit
+
+
+def test_invalid_rate_limit_category_fails_clearly():
+    with loaded_config() as config:
+        with pytest.raises(KeyError, match="Unknown rate limit category"):
+            config.get_rate_limit("not-a-category")
 
 
 def test_invalid_environment_value_fails_clearly():

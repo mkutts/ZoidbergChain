@@ -14,7 +14,6 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
-from slowapi.extension import _rate_limit_exceeded_handler
 
 from blockchain import Blockchain
 from wallet import Wallet
@@ -44,7 +43,6 @@ from validators import (
 )
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
-    ADD_BLOCK_RATE_LIMIT,
     BLOCKCHAIN_FILE,
     COIN_NAME,
     ENABLE_RATE_LIMITING,
@@ -54,14 +52,11 @@ from config import (
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
-    SUBMISSION_RATE_LIMIT,
     SUBMISSIONS_DIR,
-    TRANSACTION_RATE_LIMIT,
-    VOTE_RATE_LIMIT,
     VOTING_WINDOW_HOURS,
-    WALLET_GENERATION_RATE_LIMIT,
     allow_dev_reset_endpoints,
     allow_private_key_export,
+    get_rate_limit,
     peer_replay_protection_enabled,
     is_development,
     is_production,
@@ -445,12 +440,18 @@ limiter = Limiter(key_func=get_remote_address, enabled=ENABLE_RATE_LIMITING)
 
 # ✅ Exclude FastAPI Docs from rate limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Try again later."},
+    )
+
 app.add_middleware(SlowAPIMiddleware)
 
 
-def api_limit(rate):
-    return limiter.limit(rate)
+def api_limit(category):
+    return limiter.limit(get_rate_limit(category))
 
 
 peer_store = PeerStore()
@@ -550,7 +551,8 @@ def _reset_blockchain_to_genesis():
 
 
 @app.post("/dev/reset")
-async def dev_reset_blockchain():
+@api_limit("dev_endpoint")
+async def dev_reset_blockchain(request: Request):
     """Development-only reset to Genesis state."""
     require_development_mode(allow_dev_reset_endpoints(), "Development reset endpoints")
     try:
@@ -563,7 +565,8 @@ async def dev_reset_blockchain():
 
 
 @app.post("/reset_blockchain")
-async def reset_blockchain():
+@api_limit("dev_endpoint")
+async def reset_blockchain(request: Request):
     """Legacy development-only reset route. Prefer /dev/reset."""
     require_development_mode(allow_dev_reset_endpoints(), "Development reset endpoints")
     return {
@@ -574,7 +577,8 @@ async def reset_blockchain():
     }
 
 @app.get("/dev/debug")
-async def dev_debug():
+@api_limit("dev_endpoint")
+async def dev_debug(request: Request):
     """Development-only node diagnostics with no key material."""
     require_development_mode(allow_dev_reset_endpoints(), "Development debug endpoints")
     latest_block = blockchain.get_latest_block()
@@ -592,13 +596,15 @@ async def dev_debug():
 
 
 @app.get("/sync")
-async def sync_blockchain():
+@api_limit("chain_sync")
+async def sync_blockchain(request: Request):
     """Returns the latest blockchain state for syncing with other nodes."""
     return {"chain": blockchain.get_chain()}
 
 
 @app.get("/node-info")
-async def node_info():
+@api_limit("public_read")
+async def node_info(request: Request):
     latest_block = blockchain.get_latest_block()
     return {
         "node_id": NODE_ID,
@@ -611,7 +617,8 @@ async def node_info():
 
 
 @app.post("/peers/register")
-async def register_peer(registration: PeerRegistration, _: None = Depends(require_peer_secret)):
+@api_limit("peer_receive")
+async def register_peer(request: Request, registration: PeerRegistration, _: None = Depends(require_peer_secret)):
     if registration.network_name.strip() != NETWORK_NAME:
         raise HTTPException(status_code=400, detail="Peer belongs to a different network.")
 
@@ -633,12 +640,14 @@ async def register_peer(registration: PeerRegistration, _: None = Depends(requir
 
 
 @app.get("/peers")
-async def get_peers():
+@api_limit("public_read")
+async def get_peers(request: Request):
     return {"peers": peer_store.list_peers()}
 
 
 @app.post("/peers/submissions/receive")
-async def receive_submission_from_peer(receive_request: PeerSubmissionReceive, _: None = Depends(require_peer_secret)):
+@api_limit("peer_receive")
+async def receive_submission_from_peer(request: Request, receive_request: PeerSubmissionReceive, _: None = Depends(require_peer_secret)):
     try:
         if not peer_store.get_active_peer(receive_request.origin_node_id):
             _validate_unregistered_peer_submission_shape(receive_request)
@@ -661,7 +670,8 @@ async def receive_submission_from_peer(receive_request: PeerSubmissionReceive, _
 
 
 @app.post("/peers/votes/receive")
-async def receive_vote_from_peer(receive_request: PeerVoteReceive, _: None = Depends(require_peer_secret)):
+@api_limit("peer_receive")
+async def receive_vote_from_peer(request: Request, receive_request: PeerVoteReceive, _: None = Depends(require_peer_secret)):
     try:
         if not peer_store.get_active_peer(receive_request.origin_node_id):
             _validate_unregistered_peer_vote_shape(receive_request)
@@ -693,7 +703,8 @@ async def receive_vote_from_peer(receive_request: PeerVoteReceive, _: None = Dep
 
 
 @app.post("/peers/certificates/receive")
-async def receive_certificate_from_peer(receive_request: PeerCertificateReceive, _: None = Depends(require_peer_secret)):
+@api_limit("peer_receive")
+async def receive_certificate_from_peer(request: Request, receive_request: PeerCertificateReceive, _: None = Depends(require_peer_secret)):
     try:
         if receive_request.certificate is None:
             raise HTTPException(status_code=400, detail="Certificate payload is required.")
@@ -718,7 +729,8 @@ async def receive_certificate_from_peer(receive_request: PeerCertificateReceive,
 
 
 @app.post("/peers/blocks/receive")
-async def receive_block_from_peer(receive_request: PeerBlockReceive, _: None = Depends(require_peer_secret)):
+@api_limit("peer_receive")
+async def receive_block_from_peer(request: Request, receive_request: PeerBlockReceive, _: None = Depends(require_peer_secret)):
     try:
         if receive_request.block is None:
             raise HTTPException(status_code=400, detail="Block payload is required.")
@@ -750,13 +762,15 @@ async def receive_block_from_peer(receive_request: PeerBlockReceive, _: None = D
         raise HTTPException(status_code=409, detail=str(e))
 
 @app.get("/chain")
-async def get_chain():
+@api_limit("public_read")
+async def get_chain(request: Request):
     """Retrieve the blockchain."""
     return {"chain": blockchain.get_chain()}
 
 
 @app.get("/chain/summary")
-async def chain_summary():
+@api_limit("public_read")
+async def chain_summary(request: Request):
     latest_block = blockchain.get_latest_block()
     return {
         "network_name": NETWORK_NAME,
@@ -770,7 +784,8 @@ async def chain_summary():
 
 
 @app.get("/chain/blocks")
-async def chain_blocks(from_height: int = 0):
+@api_limit("public_read")
+async def chain_blocks(request: Request, from_height: int = 0):
     if from_height < 0:
         raise HTTPException(status_code=400, detail="from_height must be non-negative.")
 
@@ -798,7 +813,8 @@ async def chain_blocks(from_height: int = 0):
 
 
 @app.post("/chain/sync")
-async def sync_chain():
+@api_limit("chain_sync")
+async def sync_chain(request: Request):
     return sync_chain_from_peers(
         blockchain=blockchain,
         peer_store=peer_store,
@@ -807,7 +823,8 @@ async def sync_chain():
 
 
 @app.post("/blocks/{block_hash}/broadcast")
-async def broadcast_block(block_hash: str):
+@api_limit("mint")
+async def broadcast_block(request: Request, block_hash: str):
     block = next((block for block in blockchain.chain if block.hash == block_hash), None)
     if not block:
         raise HTTPException(status_code=404, detail=f"Block not found: {block_hash}")
@@ -830,9 +847,9 @@ async def broadcast_block(block_hash: str):
     }
 
 @app.post("/add_transaction")
-@api_limit(TRANSACTION_RATE_LIMIT)  # ✅ Keep rate limiting
+@api_limit("transaction_create")
 async def add_transaction(
-    request: Request,  # ✅ Required for rate limiter
+    request: Request,
     sender: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
     recipient: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
     amount: Annotated[float, Query(gt=0)],
@@ -896,7 +913,8 @@ async def add_transaction(
 #         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/get_wallets")
-async def get_wallets():
+@api_limit("public_read")
+async def get_wallets(request: Request):
     """
     Retrieve registered wallets using public-safe fields only.
     """
@@ -913,7 +931,8 @@ async def get_wallets():
 
 
 @app.get("/dev/wallets")
-async def get_dev_wallets():
+@api_limit("dev_endpoint")
+async def get_dev_wallets(request: Request):
     _require_dev_private_key_export()
     return {
         "warning": DEV_ENDPOINT_WARNING,
@@ -927,12 +946,13 @@ async def get_dev_wallets():
     }
 
 @app.get("/transaction_pool")
-async def transaction_pool():
+@api_limit("public_read")
+async def transaction_pool(request: Request):
     """Retrieve the current transaction pool."""
     return {"pending_transactions": blockchain.get_transaction_pool()}
 
 @app.post("/submit_content")
-@api_limit(SUBMISSION_RATE_LIMIT)
+@api_limit("submission_create")
 async def submit_content(
     request: Request,
     image: UploadFile,
@@ -980,7 +1000,8 @@ async def submit_content(
 
 
 @app.get("/submissions")
-async def get_submissions(status: SubmissionStatusValue | None = None):
+@api_limit("public_read")
+async def get_submissions(request: Request, status: SubmissionStatusValue | None = None):
     submissions = [submission.to_dict() for submission in blockchain.submissions]
     if status:
         submissions = [
@@ -993,7 +1014,8 @@ async def get_submissions(status: SubmissionStatusValue | None = None):
 
 
 @app.get("/submissions/{submission_id}")
-async def get_submission(submission_id: str):
+@api_limit("public_read")
+async def get_submission(request: Request, submission_id: str):
     submission = blockchain.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
@@ -1001,7 +1023,8 @@ async def get_submission(submission_id: str):
 
 
 @app.get("/submissions/{submission_id}/certificate")
-async def get_submission_certificate(submission_id: str):
+@api_limit("public_read")
+async def get_submission_certificate(request: Request, submission_id: str):
     submission = blockchain.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
@@ -1016,7 +1039,8 @@ async def get_submission_certificate(submission_id: str):
 
 
 @app.get("/certificates/{certificate_id}")
-async def get_certificate(certificate_id: str):
+@api_limit("public_read")
+async def get_certificate(request: Request, certificate_id: str):
     certificate = blockchain.get_originality_certificate(certificate_id)
     if not certificate:
         raise HTTPException(
@@ -1027,7 +1051,8 @@ async def get_certificate(certificate_id: str):
 
 
 @app.post("/dev/submissions/{submission_id}/repair-certificate")
-async def repair_submission_certificate(submission_id: str):
+@api_limit("dev_endpoint")
+async def repair_submission_certificate(request: Request, submission_id: str):
     require_development_mode(allow_dev_reset_endpoints(), "Development repair endpoints")
 
     submission = blockchain.get_submission(submission_id)
@@ -1094,7 +1119,8 @@ async def repair_submission_certificate(submission_id: str):
 
 
 @app.post("/certificates/{certificate_id}/broadcast")
-async def broadcast_certificate(certificate_id: str):
+@api_limit("mint")
+async def broadcast_certificate(request: Request, certificate_id: str):
     certificate = blockchain.get_originality_certificate(certificate_id)
     if not certificate:
         raise HTTPException(
@@ -1116,7 +1142,8 @@ async def broadcast_certificate(certificate_id: str):
 
 
 @app.post("/submissions/{submission_id}/broadcast")
-async def broadcast_submission(submission_id: str):
+@api_limit("submission_create")
+async def broadcast_submission(request: Request, submission_id: str):
     submission = blockchain.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
@@ -1134,7 +1161,7 @@ async def broadcast_submission(submission_id: str):
     }
 
 @app.post("/submissions/{submission_id}/vote")
-@api_limit(VOTE_RATE_LIMIT)
+@api_limit("vote")
 async def vote_on_submission(
     request: Request,
     submission_id: str,
@@ -1170,7 +1197,8 @@ async def vote_on_submission(
     }
 
 @app.get("/submissions/{submission_id}/votes")
-async def get_submission_votes(submission_id: str):
+@api_limit("public_read")
+async def get_submission_votes(request: Request, submission_id: str):
     try:
         return blockchain.get_submission_votes(submission_id)
     except ValueError as e:
@@ -1178,7 +1206,8 @@ async def get_submission_votes(submission_id: str):
 
 
 @app.post("/submissions/{submission_id}/votes/broadcast")
-async def broadcast_submission_votes(submission_id: str):
+@api_limit("vote")
+async def broadcast_submission_votes(request: Request, submission_id: str):
     try:
         vote_summary = blockchain.get_submission_votes(submission_id)
     except ValueError as e:
@@ -1198,7 +1227,9 @@ async def broadcast_submission_votes(submission_id: str):
 
 
 @app.post("/submissions/{submission_id}/evaluate")
+@api_limit("evaluate")
 async def evaluate_submission(
+    request: Request,
     submission_id: str,
     automated_originality_passed: bool | None = Form(None),
 ):
@@ -1269,9 +1300,9 @@ async def evaluate_submission(
     }
 
 @app.post("/add_block")
-@api_limit(ADD_BLOCK_RATE_LIMIT)  # ✅ Keep rate limiting
+@api_limit("mint")
 async def add_block(
-    request: Request,  # ✅ Required for rate limiting
+    request: Request,
     image: UploadFile,
     miner: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
     private_key: Annotated[str, Form(..., min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")],  # ✅ Validate miner via wallet key
@@ -1366,7 +1397,7 @@ async def add_block(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/generate_wallet", summary="Generate a new wallet", description="Creates a new wallet.")
-@api_limit(WALLET_GENERATION_RATE_LIMIT)  # ✅ Keep rate limiting in production
+@api_limit("wallet_create")
 async def generate_wallet(request: Request):  # ✅ No more API key validation
     """
     Generate a new wallet.
@@ -1395,7 +1426,11 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
     return response
 
 @app.get("/get_balance")
-async def get_balance(public_key: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)]):
+@api_limit("public_read")
+async def get_balance(
+    request: Request,
+    public_key: Annotated[str, Query(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+):
     """
     Retrieve the balance for a specific wallet.
     """
@@ -1412,7 +1447,8 @@ async def get_balance(public_key: Annotated[str, Query(..., min_length=66, max_l
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/get_reward_pool_balance")
-async def get_reward_pool_balance():
+@api_limit("public_read")
+async def get_reward_pool_balance(request: Request):
     """
     Retrieve the balance of the reward pool.
     
@@ -1431,18 +1467,21 @@ async def get_reward_pool_balance():
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/active-users")
-async def active_users():
+@api_limit("public_read")
+async def active_users(request: Request):
     return {
         "active_users": blockchain.get_active_users(),
         "lookback_days": ACTIVE_USER_LOOKBACK_DAYS,
     }
 
 @app.get("/voting-threshold")
-async def voting_threshold():
+@api_limit("public_read")
+async def voting_threshold(request: Request):
     return blockchain.get_voting_threshold()
 
 @app.get("/mint-queue")
-async def mint_queue():
+@api_limit("public_read")
+async def mint_queue(request: Request):
     changed = False
     if blockchain.link_certificates_to_submissions():
         changed = True
@@ -1456,7 +1495,9 @@ async def mint_queue():
 
 
 @app.post("/mint-queue/{submission_id}/mint")
+@api_limit("mint")
 async def mint_queued_submission(
+    request: Request,
     submission_id: str,
     miner: str | None = Form(None),
 ):

@@ -4,7 +4,7 @@ import math
 import requests
 
 from block import Block
-from config import ORIGINALITY_APPROVAL_THRESHOLD
+from config import ORIGINALITY_APPROVAL_THRESHOLD, peer_auth_required, peer_shared_secret, peer_shared_secret_is_configured
 from originality_certificate import (
     OriginalityCertificate,
     calculate_certificate_id,
@@ -27,6 +27,12 @@ from transaction import Transaction
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
+
+
+def _peer_request_headers():
+    if peer_auth_required() and peer_shared_secret_is_configured():
+        return {"X-ZOID-Peer-Secret": peer_shared_secret()}
+    return {}
 
 
 class PeerSyncError(ValueError):
@@ -358,7 +364,12 @@ def broadcast_submission_to_peers(
     for peer in peer_store.list_active_peers(network_name=network_name):
         receive_url = f"{peer['url'].rstrip('/')}/peers/submissions/receive"
         try:
-            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            response = requests.post(
+                receive_url,
+                json=payload,
+                headers=_peer_request_headers(),
+                timeout=timeout_seconds,
+            )
             status_code = getattr(response, "status_code", None)
             if status_code is None or status_code >= 400:
                 raise requests.RequestException(
@@ -415,7 +426,12 @@ def broadcast_vote_to_peers(
     for peer in peer_store.list_active_peers(network_name=network_name):
         receive_url = f"{peer['url'].rstrip('/')}/peers/votes/receive"
         try:
-            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            response = requests.post(
+                receive_url,
+                json=payload,
+                headers=_peer_request_headers(),
+                timeout=timeout_seconds,
+            )
             status_code = getattr(response, "status_code", None)
             if status_code is None or status_code >= 400:
                 raise requests.RequestException(
@@ -499,7 +515,12 @@ def broadcast_certificate_to_peers(
     for peer in peer_store.list_active_peers(network_name=network_name):
         receive_url = f"{peer['url'].rstrip('/')}/peers/certificates/receive"
         try:
-            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            response = requests.post(
+                receive_url,
+                json=payload,
+                headers=_peer_request_headers(),
+                timeout=timeout_seconds,
+            )
             status_code = getattr(response, "status_code", None)
             if status_code is None or status_code >= 400:
                 raise requests.RequestException(
@@ -568,6 +589,7 @@ def broadcast_block_to_peers(
                 certificate_response = requests.post(
                     certificate_url,
                     json=certificate_payload,
+                    headers=_peer_request_headers(),
                     timeout=timeout_seconds,
                 )
                 certificate_status_code = getattr(certificate_response, "status_code", None)
@@ -578,7 +600,12 @@ def broadcast_block_to_peers(
                     )
                 certificate_result = {"status": "sent", "url": certificate_url}
 
-            response = requests.post(receive_url, json=payload, timeout=timeout_seconds)
+            response = requests.post(
+                receive_url,
+                json=payload,
+                headers=_peer_request_headers(),
+                timeout=timeout_seconds,
+            )
             status_code = getattr(response, "status_code", None)
             if status_code is None or status_code >= 400:
                 raise requests.RequestException(

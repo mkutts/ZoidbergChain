@@ -354,8 +354,8 @@ def test_local_mint_broadcasts_block_without_failing_if_one_peer_is_down(
     blockchain.add_to_mint_queue(submission.submission_id)
     calls = []
 
-    def fake_post(url, json, timeout):
-        calls.append({"url": url, "json": json, "timeout": timeout})
+    def fake_post(url, json, timeout, headers=None):
+        calls.append({"url": url, "json": json, "timeout": timeout, "headers": headers})
         if "peer-down" in url:
             raise requests.RequestException("connection refused")
         return type("Response", (), {"status_code": 200, "text": "ok"})()
@@ -384,8 +384,8 @@ def test_manual_block_rebroadcast_endpoint_works(blockchain, wallets, monkeypatc
     blockchain.chain.append(block)
     calls = []
 
-    def fake_post(url, json, timeout):
-        calls.append({"url": url, "json": json, "timeout": timeout})
+    def fake_post(url, json, timeout, headers=None):
+        calls.append({"url": url, "json": json, "timeout": timeout, "headers": headers})
         return type("Response", (), {"status_code": 200, "text": "ok"})()
 
     monkeypatch.setattr("peer_sync.requests.post", fake_post)

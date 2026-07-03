@@ -1,8 +1,9 @@
 import os
 import time
 import logging
+import hmac
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,6 +43,8 @@ from config import (
     is_development,
     is_production,
     public_api_mode_enabled,
+    peer_auth_required,
+    peer_shared_secret,
     require_peer_auth,
 )
 from auth import validate_api_key  # ✅ API authentication
@@ -122,10 +125,24 @@ def _require_dev_private_key_export():
         "Development private key export",
     )
 
+
+def require_peer_secret(x_zoid_peer_secret: str | None = Header(default=None, alias="X-ZOID-Peer-Secret")):
+    if not peer_auth_required():
+        return
+
+    expected_secret = peer_shared_secret()
+    if not expected_secret or expected_secret.lower() in {"change-me", "replace-with-long-random-secret"}:
+        raise HTTPException(status_code=500, detail="Peer auth is enabled but the shared secret is not configured.")
+    if x_zoid_peer_secret is None:
+        raise HTTPException(status_code=401, detail="Peer auth required. Missing shared secret.")
+    if not hmac.compare_digest(x_zoid_peer_secret, expected_secret):
+        raise HTTPException(status_code=403, detail="Invalid peer shared secret.")
+
 def log_startup_security_config():
     logger.info(
         "Startup config: environment=%s network_name=%s node_id=%s "
         "public_node_url=%s public_api_mode=%s require_peer_auth=%s "
+        "peer_secret_configured=%s "
         "allow_dev_wallet_private_key_export=%s",
         ENVIRONMENT,
         NETWORK_NAME,
@@ -133,6 +150,7 @@ def log_startup_security_config():
         PUBLIC_NODE_URL,
         public_api_mode_enabled(),
         require_peer_auth(),
+        bool(peer_shared_secret()),
         allow_private_key_export(),
     )
 
@@ -365,7 +383,7 @@ async def node_info():
 
 
 @app.post("/peers/register")
-async def register_peer(registration: PeerRegistration):
+async def register_peer(registration: PeerRegistration, _: None = Depends(require_peer_secret)):
     if registration.network_name.strip() != NETWORK_NAME:
         raise HTTPException(status_code=400, detail="Peer belongs to a different network.")
 
@@ -392,7 +410,7 @@ async def get_peers():
 
 
 @app.post("/peers/submissions/receive")
-async def receive_submission_from_peer(receive_request: PeerSubmissionReceive):
+async def receive_submission_from_peer(receive_request: PeerSubmissionReceive, _: None = Depends(require_peer_secret)):
     try:
         return receive_peer_submission(
             blockchain=blockchain,
@@ -413,7 +431,7 @@ async def receive_submission_from_peer(receive_request: PeerSubmissionReceive):
 
 
 @app.post("/peers/votes/receive")
-async def receive_vote_from_peer(receive_request: PeerVoteReceive):
+async def receive_vote_from_peer(receive_request: PeerVoteReceive, _: None = Depends(require_peer_secret)):
     try:
         return receive_peer_vote(
             blockchain=blockchain,
@@ -443,7 +461,7 @@ async def receive_vote_from_peer(receive_request: PeerVoteReceive):
 
 
 @app.post("/peers/certificates/receive")
-async def receive_certificate_from_peer(receive_request: PeerCertificateReceive):
+async def receive_certificate_from_peer(receive_request: PeerCertificateReceive, _: None = Depends(require_peer_secret)):
     try:
         return receive_peer_certificate(
             blockchain=blockchain,
@@ -464,7 +482,7 @@ async def receive_certificate_from_peer(receive_request: PeerCertificateReceive)
 
 
 @app.post("/peers/blocks/receive")
-async def receive_block_from_peer(receive_request: PeerBlockReceive):
+async def receive_block_from_peer(receive_request: PeerBlockReceive, _: None = Depends(require_peer_secret)):
     try:
         return receive_peer_block(
             blockchain=blockchain,

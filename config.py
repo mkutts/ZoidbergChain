@@ -164,6 +164,26 @@ def public_api_mode_enabled():
     return PUBLIC_API_MODE
 
 
+def peer_auth_required():
+    return REQUIRE_PEER_AUTH
+
+
+def peer_shared_secret():
+    return _env_value("PEER_SHARED_SECRET", "")
+
+
+def peer_shared_secret_is_configured():
+    secret = peer_shared_secret()
+    return bool(secret) and secret.lower() not in {"change-me", "replace-with-long-random-secret"}
+
+
+def validate_peer_auth_config():
+    if REQUIRE_PEER_AUTH and not peer_shared_secret_is_configured():
+        raise ValueError(
+            "PEER_SHARED_SECRET must be set to a non-default value when peer auth is required."
+        )
+
+
 def _env_value(name, default):
     value = os.getenv(name)
     if value is None:
@@ -188,3 +208,5 @@ BLOCKCHAIN_FILE = _DATA_PATHS["blockchain_file"]
 PEERS_FILE = _DATA_PATHS["peers_file"]
 TEMP_DIR = _DATA_PATHS["temp_dir"]
 SUBMISSIONS_DIR = _DATA_PATHS["submissions_dir"]
+
+validate_peer_auth_config()

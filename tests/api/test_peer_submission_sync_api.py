@@ -168,8 +168,8 @@ def test_broadcasting_local_submission_does_not_fail_if_one_peer_is_down(
     _register_peer("peer-down", "http://peer-down.test")
     calls = []
 
-    def fake_post(url, json, timeout):
-        calls.append({"url": url, "json": json, "timeout": timeout})
+    def fake_post(url, json, timeout, headers=None):
+        calls.append({"url": url, "json": json, "timeout": timeout, "headers": headers})
         if "peer-down" in url:
             raise requests.RequestException("connection refused")
         return type("Response", (), {"status_code": 200, "text": "ok"})()
@@ -199,8 +199,8 @@ def test_manual_rebroadcast_endpoint_works(blockchain, submission_image, wallets
     _register_peer()
     calls = []
 
-    def fake_post(url, json, timeout):
-        calls.append({"url": url, "json": json, "timeout": timeout})
+    def fake_post(url, json, timeout, headers=None):
+        calls.append({"url": url, "json": json, "timeout": timeout, "headers": headers})
         return type("Response", (), {"status_code": 200, "text": "ok"})()
 
     monkeypatch.setattr("peer_sync.requests.post", fake_post)

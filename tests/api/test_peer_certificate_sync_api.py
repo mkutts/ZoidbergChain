@@ -219,8 +219,8 @@ def test_certificate_broadcasts_after_creation(
     _cast_votes(blockchain, submission.submission_id, "broadcast-create-voter")
     calls = []
 
-    def fake_post(url, json, timeout):
-        calls.append({"url": url, "json": json, "timeout": timeout})
+    def fake_post(url, json, timeout, headers=None):
+        calls.append({"url": url, "json": json, "timeout": timeout, "headers": headers})
         return type("Response", (), {"status_code": 200, "text": "ok"})()
 
     monkeypatch.setattr("peer_sync.requests.post", fake_post)
@@ -247,8 +247,8 @@ def test_manual_certificate_broadcast_endpoint_works(
     _submission, certificate = _certificate(blockchain, submission_image, wallets)
     calls = []
 
-    def fake_post(url, json, timeout):
-        calls.append({"url": url, "json": json, "timeout": timeout})
+    def fake_post(url, json, timeout, headers=None):
+        calls.append({"url": url, "json": json, "timeout": timeout, "headers": headers})
         return type("Response", (), {"status_code": 200, "text": "ok"})()
 
     monkeypatch.setattr("peer_sync.requests.post", fake_post)

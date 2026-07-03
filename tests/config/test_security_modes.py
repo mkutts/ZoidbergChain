@@ -15,6 +15,7 @@ _CONFIG_ENV_KEYS = (
     "RATE_LIMIT_ENABLED",
     "REQUIRE_PEER_AUTH",
     "PUBLIC_API_MODE",
+    "PEER_SHARED_SECRET",
 )
 
 
@@ -29,6 +30,12 @@ def loaded_config(**environment_values):
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
+
+        if (
+            environment_values.get("ENVIRONMENT", "development") in {"testnet", "production"}
+            and "PEER_SHARED_SECRET" not in environment_values
+        ):
+            os.environ["PEER_SHARED_SECRET"] = "super-secret-value"
 
         import config
 
@@ -112,3 +119,18 @@ def test_invalid_environment_value_fails_clearly():
     with pytest.raises(ValueError, match="Invalid ENVIRONMENT value"):
         with loaded_config(ENVIRONMENT="staging"):
             pass
+
+
+def test_peer_auth_requires_non_default_secret_in_public_modes():
+    with pytest.raises(ValueError, match="PEER_SHARED_SECRET must be set"):
+        with loaded_config(ENVIRONMENT="testnet", PEER_SHARED_SECRET="change-me"):
+            pass
+
+    with pytest.raises(ValueError, match="PEER_SHARED_SECRET must be set"):
+        with loaded_config(ENVIRONMENT="production", PEER_SHARED_SECRET=""):
+            pass
+
+
+def test_development_allows_peer_auth_secret_to_be_missing():
+    with loaded_config(ENVIRONMENT="development", PEER_SHARED_SECRET="") as config:
+        assert config.REQUIRE_PEER_AUTH is False

@@ -482,7 +482,8 @@ async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = time.time() - start_time
-    log_message = f"{request.client.host} - {request.method} {request.url} - {response.status_code} ({process_time:.2f}s)"
+    client_host = request.client.host if request.client else "unknown"
+    log_message = f"{client_host} - {request.method} {request.url.path} - {response.status_code} ({process_time:.2f}s)"
     logging.info(log_message)
     return response
 
@@ -492,7 +493,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     if isinstance(exc, StarletteHTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
-    logging.error(f"Exception: {str(exc)} - {request.method} {request.url}")
+    logging.error(f"Exception: {str(exc)} - {request.method} {request.url.path}")
     return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 # ✅ Serve the Home Page (Splash Page)
@@ -1349,7 +1350,7 @@ async def add_block(
 
         # Debug: Check if the file exists
         if not os.path.isfile(image_path):
-            print(f"Debug: File {image_path} does not exist after saving.")
+            print(f"Debug: File {os.path.basename(image.filename)} does not exist after saving.")
             return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
 
         # Extract text content
@@ -1393,8 +1394,8 @@ async def add_block(
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
     except Exception as e:
-        print(f"Debug: Unexpected Error in add_block: {e}")  # ✅ Print error for debugging
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        logging.error("Unexpected error in add_block for miner %s: %s", _short_key(miner), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 @app.post("/generate_wallet", summary="Generate a new wallet", description="Creates a new wallet.")
 @api_limit("wallet_create")
@@ -1439,12 +1440,12 @@ async def get_balance(
             return JSONResponse(status_code=400, content={"error": f"Public key {public_key} is not registered in the blockchain."})
 
         balance = blockchain.get_balance(public_key)
-        print(f"Debug: Returning balance for {public_key}: {balance}")
+        logging.info("Returning balance for wallet %s", _short_key(public_key))
 
         return {"message": "Balance retrieved successfully.", "balance": balance}
     except Exception as e:
-        print(f"Debug: ERROR retrieving balance - {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        logging.error("ERROR retrieving balance for wallet %s: %s", _short_key(public_key), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 @app.get("/get_reward_pool_balance")
 @api_limit("public_read")
@@ -1464,7 +1465,8 @@ async def get_reward_pool_balance(request: Request):
             "reward_pool_balance": balance
         }
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        logging.error("ERROR retrieving reward pool balance: %s", e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 @app.get("/active-users")
 @api_limit("public_read")

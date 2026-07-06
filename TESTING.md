@@ -26,6 +26,18 @@ The test fixtures run blockchain operations from a temporary working directory a
 
 Storage supports JSON and SQLite. `STORAGE_BACKEND=json` remains the default. `STORAGE_BACKEND=sqlite` uses a node-local database at `SQLITE_DB_PATH`, which defaults to `DATA_DIR/zoidbergchain.db`. `DATA_DIR` (or `NODE_DATA_DIR`) must stay unique per node. Task 5.3 will handle JSON to SQLite migration separately.
 
+Storage writes are now hardened:
+
+- JSON saves use a temporary file and atomic replace.
+- JSON and SQLite keep a latest-known-good `.bak` backup.
+- Corrupt JSON loads fall back to the backup when possible.
+- SQLite saves run inside a transaction and roll back on failure.
+- The local integrity helper can be called with:
+
+  ```powershell
+  .\.venv\Scripts\python.exe -c "from storage import check_storage_integrity; print(check_storage_integrity())"
+  ```
+
 To migrate an existing JSON data directory into SQLite manually:
 
 ```powershell
@@ -33,3 +45,5 @@ To migrate an existing JSON data directory into SQLite manually:
 ```
 
 Use `--overwrite` only when you want to replace an existing SQLite database after creating a backup copy.
+
+Always make a separate copy of the data directory before switching storage backends.

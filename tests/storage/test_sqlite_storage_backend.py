@@ -2,8 +2,11 @@ import os
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from blockchain import Blockchain
 from peers import PeerStore
+import storage
 from storage import SQLiteStorageBackend
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from wallet import Wallet
@@ -181,6 +184,77 @@ def test_sqlite_storage_backend_peers_save_reload(isolated_data_dir):
     backend.save_peers(peers)
 
     assert backend.load_peers() == peers
+
+
+def test_sqlite_storage_backend_failed_save_rolls_back_cleanly(monkeypatch, isolated_data_dir):
+    backend = _backend(isolated_data_dir, "rollback")
+    original_chain = [{"index": 1, "hash": "1" * 64}]
+    updated_chain = [{"index": 2, "hash": "2" * 64}]
+
+    backend.save_chain(original_chain)
+
+    real_dumps = storage.json.dumps
+    call_count = {"count": 0}
+
+    def flaky_dumps(obj, *args, **kwargs):
+        call_count["count"] += 1
+        if call_count["count"] == 3:
+            raise RuntimeError("forced sqlite save failure")
+        return real_dumps(obj, *args, **kwargs)
+
+    monkeypatch.setattr(storage.json, "dumps", flaky_dumps)
+
+    with pytest.raises(RuntimeError, match="forced sqlite save failure"):
+        backend.save_blockchain_state(
+            {
+                "chain": updated_chain,
+                "wallets": {},
+                "submissions": [],
+                "mint_queue": [],
+                "votes": [],
+                "originality_certificates": [],
+                "peers": [],
+            }
+        )
+
+    assert backend.load_chain() == original_chain
+
+
+def test_sqlite_storage_backend_backup_helper_creates_usable_backup(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "backup")
+    chain = [{"index": 1, "hash": "1" * 64}]
+
+    backend.save_chain(chain)
+    backup_path = Path(backend.backup_sqlite_database())
+
+    assert backup_path.exists()
+    assert SQLiteStorageBackend(sqlite_db_path=str(backup_path)).load_chain() == chain
+
+
+def test_sqlite_storage_integrity_passes_on_valid_database(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "integrity")
+    backend.save_chain([{ "index": 1, "hash": "1" * 64 }])
+
+    report = storage.check_storage_integrity(backend)
+
+    assert report["backend"] == "sqlite"
+    assert report["healthy"] is True
+    assert report["main_path"] == backend.sqlite_db_path
+
+
+def test_sqlite_storage_integrity_fails_on_malformed_section_json(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "integrity-bad")
+    backend.save_chain([{ "index": 1, "hash": "1" * 64 }])
+
+    with sqlite3.connect(backend.sqlite_db_path) as connection:
+        connection.execute(
+            "UPDATE storage_sections SET json_data = ? WHERE section_name = ?",
+            ("{not valid json", "chain"),
+        )
+        connection.commit()
+
+    with pytest.raises(storage.StorageCorruptionError, match="Malformed JSON stored in SQLite section chain"):
+        storage.check_storage_integrity(backend)
 
 
 def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):

@@ -1,6 +1,10 @@
+import json
 from pathlib import Path
 
+import pytest
+
 from blockchain import Blockchain
+import storage
 from storage import JSONStorageBackend
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from wallet import Wallet
@@ -159,6 +163,90 @@ def test_json_storage_backend_peers_save_reload(isolated_data_dir):
     backend.save_peers(peers)
 
     assert backend.load_peers() == peers
+
+
+def test_json_storage_backend_save_is_atomic_and_creates_backup(monkeypatch, isolated_data_dir):
+    backend = _backend(isolated_data_dir, "atomic")
+    first_chain = [{"index": 1, "hash": "1" * 64}]
+    second_chain = [{"index": 2, "hash": "2" * 64}]
+
+    backend.save_chain(first_chain)
+    main_path = Path(backend.blockchain_file)
+    backup_path = Path(str(main_path) + ".bak")
+    original_state = json.loads(main_path.read_text(encoding="utf-8"))
+
+    replace_calls = []
+    real_replace = storage.os.replace
+
+    def tracking_replace(src, dst):
+        replace_calls.append((src, dst))
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(storage.os, "replace", tracking_replace)
+
+    backend.save_chain(second_chain)
+
+    assert replace_calls
+    assert Path(replace_calls[0][1]) == main_path
+    assert json.loads(main_path.read_text(encoding="utf-8"))["chain"] == second_chain
+    assert json.loads(backup_path.read_text(encoding="utf-8")) == original_state
+
+
+def test_json_storage_backend_recovers_from_backup_when_main_is_corrupt(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "recover")
+    first_chain = [{"index": 1, "hash": "1" * 64}]
+    second_chain = [{"index": 2, "hash": "2" * 64}]
+
+    backend.save_chain(first_chain)
+    backend.save_chain(second_chain)
+
+    main_path = Path(backend.blockchain_file)
+    main_path.write_text("{not valid json", encoding="utf-8")
+
+    assert backend.load_chain() == first_chain
+
+
+def test_json_storage_backend_fails_when_main_and_backup_are_corrupt(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "double-corrupt")
+    first_chain = [{"index": 1, "hash": "1" * 64}]
+
+    backend.save_chain(first_chain)
+    main_path = Path(backend.blockchain_file)
+    backup_path = Path(str(main_path) + ".bak")
+
+    main_path.write_text("{still bad", encoding="utf-8")
+    backup_path.write_text("{also bad", encoding="utf-8")
+
+    with pytest.raises(storage.StorageCorruptionError, match="backup is also unreadable"):
+        backend.load_chain()
+
+
+def test_json_storage_backend_failed_write_preserves_existing_good_file(monkeypatch, isolated_data_dir):
+    backend = _backend(isolated_data_dir, "failed-write")
+    first_chain = [{"index": 1, "hash": "1" * 64}]
+    second_chain = [{"index": 2, "hash": "2" * 64}]
+
+    backend.save_chain(first_chain)
+    main_path = Path(backend.blockchain_file)
+    original_text = main_path.read_text(encoding="utf-8")
+
+    def failing_replace(src, dst):
+        raise OSError("forced replace failure")
+
+    monkeypatch.setattr(storage.os, "replace", failing_replace)
+
+    with pytest.raises(OSError, match="forced replace failure"):
+        backend.save_chain(second_chain)
+
+    assert main_path.read_text(encoding="utf-8") == original_text
+    assert json.loads(main_path.read_text(encoding="utf-8"))["chain"] == first_chain
+    assert not list(main_path.parent.glob(main_path.name + ".*.tmp"))
+
+
+def test_json_storage_backend_missing_file_allows_bootstrap_behavior(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "bootstrap")
+
+    assert backend.load_blockchain_state() is None
 
 
 def test_json_storage_backend_isolates_two_nodes(isolated_data_dir):

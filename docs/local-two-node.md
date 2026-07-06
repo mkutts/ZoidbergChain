@@ -260,6 +260,13 @@ The script runs the in-process two-node consensus tests plus the peer block rece
 - Each node uses its own data directory through `DATA_DIR` and `NODE_DATA_DIR`.
 - `STORAGE_BACKEND=json` is the supported backend for now.
 - `STORAGE_BACKEND=sqlite` is also supported and uses `SQLITE_DB_PATH`.
+- To migrate a node's existing JSON data into SQLite, run:
+
+  ```powershell
+  .\.venv\Scripts\python.exe .\scripts\migrate_json_to_sqlite.py --data-dir data\node-a
+  ```
+
+  Add `--overwrite` if you intentionally want to replace an existing SQLite database after backing it up.
 - Node A writes to `data/node-a`.
 - Node B writes to `data/node-b`.
 - Submission metadata can sync between nodes, but image binary transport is not implemented yet. Mint submissions on the node that has the uploaded image file.

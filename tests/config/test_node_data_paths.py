@@ -10,6 +10,7 @@ def test_node_data_paths_are_scoped_under_node_data_dir():
         "data_dir": "data/node-a",
         "blockchain_file": os.path.join("data/node-a", "blockchain.json"),
         "peers_file": os.path.join("data/node-a", "peers.json"),
+        "sqlite_db_path": os.path.join("data/node-a", "zoidbergchain.db"),
         "temp_dir": os.path.join("data/node-a", "temp"),
         "submissions_dir": os.path.join("data/node-a", "temp", "submissions"),
     }
@@ -20,6 +21,7 @@ def test_empty_node_data_dir_defaults_to_current_directory():
 
     assert paths["data_dir"] == "."
     assert paths["blockchain_file"] == os.path.join(".", "blockchain.json")
+    assert paths["sqlite_db_path"] == os.path.join(".", "zoidbergchain.db")
 
 
 def test_two_node_data_paths_do_not_collide():

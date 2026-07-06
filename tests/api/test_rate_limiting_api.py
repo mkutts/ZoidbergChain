@@ -32,6 +32,8 @@ RATE_LIMIT_ENV_KEYS = (
     "NODE_ID",
     "NETWORK_NAME",
     "PUBLIC_NODE_URL",
+    "STORAGE_BACKEND",
+    "SQLITE_DB_PATH",
 )
 
 

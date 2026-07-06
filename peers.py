@@ -2,7 +2,7 @@ import time
 from urllib.parse import urlparse
 
 from config import PEERS_FILE
-from storage import JSONStorageBackend
+from storage import create_storage_backend
 
 ACTIVE = "active"
 INACTIVE = "inactive"
@@ -22,8 +22,11 @@ def normalize_peer_url(url):
 
 
 class PeerStore:
-    def __init__(self, file_path=PEERS_FILE):
-        self.storage = JSONStorageBackend(peers_file=file_path)
+    def __init__(self, file_path=PEERS_FILE, storage_backend=None, sqlite_db_path=None):
+        self.storage = storage_backend or create_storage_backend(
+            peers_file=file_path,
+            sqlite_db_path=sqlite_db_path,
+        )
 
     def list_peers(self):
         return self._load_peers()

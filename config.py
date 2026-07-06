@@ -17,7 +17,7 @@ APPROVAL_PERCENTAGE_WEIGHT = 1.0
 UNSURE_VOTE_WEIGHT = 0.0
 
 VALID_ENVIRONMENTS = {"development", "testnet", "production"}
-VALID_STORAGE_BACKENDS = {"json"}
+VALID_STORAGE_BACKENDS = {"json", "sqlite"}
 
 _SECURITY_DEFAULTS = {
     "development": {
@@ -104,6 +104,7 @@ def build_data_paths(data_dir):
         "data_dir": data_dir,
         "blockchain_file": os.path.join(data_dir, "blockchain.json"),
         "peers_file": os.path.join(data_dir, "peers.json"),
+        "sqlite_db_path": os.path.join(data_dir, "zoidbergchain.db"),
         "temp_dir": temp_dir,
         "submissions_dir": os.path.join(temp_dir, "submissions"),
     }
@@ -365,5 +366,6 @@ if STORAGE_BACKEND not in VALID_STORAGE_BACKENDS:
         f"Invalid STORAGE_BACKEND value: {STORAGE_BACKEND!r}. "
         f"Expected one of: {supported_backends}."
     )
+SQLITE_DB_PATH = _env_value("SQLITE_DB_PATH", _DATA_PATHS["sqlite_db_path"])
 
 validate_peer_auth_config()

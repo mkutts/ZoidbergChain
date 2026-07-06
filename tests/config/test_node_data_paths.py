@@ -20,3 +20,12 @@ def test_empty_node_data_dir_defaults_to_current_directory():
 
     assert paths["data_dir"] == "."
     assert paths["blockchain_file"] == os.path.join(".", "blockchain.json")
+
+
+def test_two_node_data_paths_do_not_collide():
+    node_a_paths = build_data_paths("data/node-a")
+    node_b_paths = build_data_paths("data/node-b")
+
+    assert node_a_paths["data_dir"] != node_b_paths["data_dir"]
+    assert node_a_paths["blockchain_file"] != node_b_paths["blockchain_file"]
+    assert node_a_paths["peers_file"] != node_b_paths["peers_file"]

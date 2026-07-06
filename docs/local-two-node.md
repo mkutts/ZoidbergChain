@@ -11,6 +11,7 @@ $env:NODE_ID = "node-a"
 $env:NODE_PORT = "8000"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8000"
 $env:DATA_DIR = "data/node-a"
+$env:STORAGE_BACKEND = "json"
 ```
 
 Node B:
@@ -20,9 +21,10 @@ $env:NODE_ID = "node-b"
 $env:NODE_PORT = "8001"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
 $env:DATA_DIR = "data/node-b"
+$env:STORAGE_BACKEND = "json"
 ```
 
-The startup scripts also set `NODE_DATA_DIR` to the same path because the backend accepts both `DATA_DIR` and `NODE_DATA_DIR`.
+The startup scripts also set `NODE_DATA_DIR` to the same path because the backend accepts both `DATA_DIR` and `NODE_DATA_DIR`. The storage backend is currently JSON-only, so `STORAGE_BACKEND=json` keeps the current behavior explicit.
 
 ## One-Time Setup
 
@@ -68,6 +70,7 @@ $env:PUBLIC_NODE_URL = "http://127.0.0.1:8000"
 $env:NETWORK_NAME = "zoidberg-testnet"
 $env:DATA_DIR = "data/node-a"
 $env:NODE_DATA_DIR = "data/node-a"
+$env:STORAGE_BACKEND = "json"
 .\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8000
 ```
 
@@ -81,6 +84,7 @@ $env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
 $env:NETWORK_NAME = "zoidberg-testnet"
 $env:DATA_DIR = "data/node-b"
 $env:NODE_DATA_DIR = "data/node-b"
+$env:STORAGE_BACKEND = "json"
 .\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8001
 ```
 
@@ -250,6 +254,7 @@ The script runs the in-process two-node consensus tests plus the peer block rece
 ## Notes And Current Limits
 
 - Each node uses its own data directory through `DATA_DIR` and `NODE_DATA_DIR`.
+- `STORAGE_BACKEND=json` is the supported backend for now.
 - Node A writes to `data/node-a`.
 - Node B writes to `data/node-b`.
 - Submission metadata can sync between nodes, but image binary transport is not implemented yet. Mint submissions on the node that has the uploaded image file.
@@ -258,3 +263,4 @@ The script runs the in-process two-node consensus tests plus the peer block rece
 - Certificate-backed synced blocks still require matching submission metadata. Submission/image binary transport remains separate, and image binary transport is not implemented yet.
 - Peer block receive returns `sync_needed` on previous-hash mismatch. It does not start a background sync job.
 - Fork choice is based on cumulative originality score, then height, then lexicographically lowest latest block hash.
+- SQLite will be added in Task 5.2 after the storage abstraction is stable.

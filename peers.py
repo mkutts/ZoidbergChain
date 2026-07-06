@@ -1,9 +1,8 @@
-import json
-import os
 import time
 from urllib.parse import urlparse
 
 from config import PEERS_FILE
+from storage import JSONStorageBackend
 
 ACTIVE = "active"
 INACTIVE = "inactive"
@@ -24,7 +23,7 @@ def normalize_peer_url(url):
 
 class PeerStore:
     def __init__(self, file_path=PEERS_FILE):
-        self.file_path = file_path
+        self.storage = JSONStorageBackend(peers_file=file_path)
 
     def list_peers(self):
         return self._load_peers()
@@ -84,14 +83,7 @@ class PeerStore:
         return peer
 
     def _load_peers(self):
-        if not os.path.exists(self.file_path):
-            return []
-
-        try:
-            with open(self.file_path, "r") as peer_file:
-                peers = json.load(peer_file)
-        except json.JSONDecodeError:
-            return []
+        peers = self.storage.load_peers()
 
         if not isinstance(peers, list):
             return []
@@ -104,6 +96,4 @@ class PeerStore:
         ]
 
     def _save_peers(self, peers):
-        os.makedirs(os.path.dirname(self.file_path) or ".", exist_ok=True)
-        with open(self.file_path, "w") as peer_file:
-            json.dump(peers, peer_file, indent=4)
+        self.storage.save_peers(peers)

@@ -43,7 +43,6 @@ from validators import (
 )
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
-    BLOCKCHAIN_FILE,
     COIN_NAME,
     ENABLE_RATE_LIMITING,
     PEER_SIGNATURE_WINDOW_SECONDS,
@@ -526,18 +525,11 @@ contributor1 = Wallet()  # ✅ First contributor (receives 10%)
 contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
 
 # ✅ Load blockchain properly when FastAPI starts
-if os.path.exists(BLOCKCHAIN_FILE):
-    print(f"✅ Debug: Loading existing blockchain from {BLOCKCHAIN_FILE}...")
-    blockchain = Blockchain()  # ✅ Ensures it loads correctly
-else:
-    print("⚠️ Debug: No blockchain file found. Creating new blockchain...")
-    blockchain = Blockchain(project_owner, contributor1, contributor2)  # ✅ Only creates new if no file exists
+blockchain = Blockchain(project_owner, contributor1, contributor2)
 
 def _reset_blockchain_to_genesis():
-    if os.path.exists(BLOCKCHAIN_FILE):
-        os.remove(BLOCKCHAIN_FILE)
-
     global project_owner, contributor1, contributor2, blockchain
+    blockchain.storage.delete_blockchain_document()
 
     project_owner = Wallet()
     contributor1 = Wallet()

@@ -17,6 +17,7 @@ APPROVAL_PERCENTAGE_WEIGHT = 1.0
 UNSURE_VOTE_WEIGHT = 0.0
 
 VALID_ENVIRONMENTS = {"development", "testnet", "production"}
+VALID_STORAGE_BACKENDS = {"json"}
 
 _SECURITY_DEFAULTS = {
     "development": {
@@ -357,5 +358,12 @@ BLOCKCHAIN_FILE = _DATA_PATHS["blockchain_file"]
 PEERS_FILE = _DATA_PATHS["peers_file"]
 TEMP_DIR = _DATA_PATHS["temp_dir"]
 SUBMISSIONS_DIR = _DATA_PATHS["submissions_dir"]
+STORAGE_BACKEND = _env_value("STORAGE_BACKEND", "json").strip().lower()
+if STORAGE_BACKEND not in VALID_STORAGE_BACKENDS:
+    supported_backends = ", ".join(sorted(VALID_STORAGE_BACKENDS))
+    raise ValueError(
+        f"Invalid STORAGE_BACKEND value: {STORAGE_BACKEND!r}. "
+        f"Expected one of: {supported_backends}."
+    )
 
 validate_peer_auth_config()

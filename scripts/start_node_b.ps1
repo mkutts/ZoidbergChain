@@ -14,6 +14,7 @@ $env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
 $env:NETWORK_NAME = "zoidberg-testnet"
 $env:DATA_DIR = "data/node-b"
 $env:NODE_DATA_DIR = "data/node-b"
+$env:STORAGE_BACKEND = "json"
 
 New-Item -ItemType Directory -Force -Path (Join-Path $ProjectRoot $env:NODE_DATA_DIR) | Out-Null
 if (-not (Test-Path (Join-Path $ProjectRoot "$($env:NODE_DATA_DIR)/blockchain.json"))) {

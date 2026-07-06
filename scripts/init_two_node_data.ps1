@@ -16,6 +16,7 @@ $NodeBData = Join-Path $ProjectRoot "data\node-b"
 $NodeAChain = Join-Path $NodeAData "blockchain.json"
 $NodeBChain = Join-Path $NodeBData "blockchain.json"
 $PreviousNodeDataDir = $env:NODE_DATA_DIR
+$PreviousStorageBackend = $env:STORAGE_BACKEND
 
 try {
     if ($Reset) {
@@ -30,6 +31,7 @@ try {
 
     if (-not (Test-Path $NodeAChain)) {
         $env:NODE_DATA_DIR = "data/node-a"
+        $env:STORAGE_BACKEND = "json"
         & $Python -c "from wallet import Wallet; from blockchain import Blockchain; bc = Blockchain(Wallet(), Wallet(), Wallet()); bc.save_blockchain()"
     }
 
@@ -47,5 +49,12 @@ finally {
     }
     else {
         $env:NODE_DATA_DIR = $PreviousNodeDataDir
+    }
+
+    if ($null -eq $PreviousStorageBackend) {
+        Remove-Item Env:STORAGE_BACKEND -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:STORAGE_BACKEND = $PreviousStorageBackend
     }
 }

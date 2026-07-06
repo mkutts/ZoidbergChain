@@ -1,4 +1,4 @@
-# Import statements
+﻿# Import statements
 import os
 import hashlib
 import math
@@ -19,7 +19,6 @@ import json
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
-    BLOCKCHAIN_FILE,
     COIN_NAME,
     MEME_BLOCK_REWARD,
     MIN_VOTE_FLOOR,
@@ -32,6 +31,7 @@ from config import (
 )
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from storage import create_storage_backend
 
 
 def _hash_number(value):
@@ -53,7 +53,14 @@ def _short_public_key(public_key):
 
 
 class Blockchain:
-    def __init__(self, project_owner_wallet=None, Contributor_one=None, Contributor_two=None, initial_supply=TOTAL_SUPPLY):
+    def __init__(
+        self,
+        project_owner_wallet=None,
+        Contributor_one=None,
+        Contributor_two=None,
+        initial_supply=TOTAL_SUPPLY,
+        storage_backend=None,
+    ):
         self.chain = []  # The blockchain
         self.pending_transactions = []  # Transaction pool
         self.wallets = {}  # Registered wallets
@@ -67,21 +74,20 @@ class Blockchain:
         self.originality_certificates = []  # Community approval certificates
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
+        self.storage = storage_backend or create_storage_backend()
 
-        # ✅ Store wallets immediately before loading blockchain
+        # âœ… Store wallets immediately before loading blockchain
         self.project_owner_wallet = project_owner_wallet
         self.Contributor_one = Contributor_one
         self.Contributor_two = Contributor_two
 
-        # ✅ Load blockchain from file, ensuring wallets persist
-        if os.path.exists(BLOCKCHAIN_FILE):
-            print("Debug: Attempting to load existing blockchain...")
-            self.load_blockchain()
-        else:
-            print("Debug: No blockchain file found. Creating Genesis blockchain...")
+        # âœ… Load blockchain from storage, ensuring wallets persist
+        self.load_blockchain()
+        if not self.chain:
+            print("Debug: No valid blockchain found. Creating Genesis blockchain...")
             self.create_genesis_block(self.project_owner_wallet, self.Contributor_one, self.Contributor_two)
 
-        # ✅ Ensure wallets are always assigned even after loading blockchain
+        # âœ… Ensure wallets are always assigned even after loading blockchain
         if self.project_owner_wallet and self.project_owner_wallet.public_key not in self.wallets:
             self.wallets[self.project_owner_wallet.public_key] = self.project_owner_wallet
         if self.Contributor_one and self.Contributor_one.public_key not in self.wallets:
@@ -89,89 +95,91 @@ class Blockchain:
         if self.Contributor_two and self.Contributor_two.public_key not in self.wallets:
             self.wallets[self.Contributor_two.public_key] = self.Contributor_two
 
-        # ✅ Debugging - Print wallet storage
+        # âœ… Debugging - Print wallet storage
         print("Debug: Registered Wallets -", [_short_public_key(key) for key in self.wallets.keys()])
+
+    def _serialize_blockchain_state(self):
+        return {
+            "chain": [
+                {
+                    "index": block.index,
+                    "previous_hash": block.previous_hash,
+                    "timestamp": block.timestamp,
+                    "transactions": [tx.to_dict() for tx in block.transactions],
+                    "miner": block.miner,
+                    "meme": block.meme,
+                    "hash": block.hash,
+                    **block.certificate_metadata(),
+                }
+                for block in self.chain
+            ],
+            "submissions": [submission.to_dict() for submission in self.submissions],
+            "mint_queue": self.mint_queue,
+            "votes": self.votes,
+            "originality_certificates": [
+                certificate.to_dict()
+                for certificate in self.originality_certificates
+            ],
+            "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
+        }
 
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
-        os.makedirs(os.path.dirname(BLOCKCHAIN_FILE) or ".", exist_ok=True)
-        with open(BLOCKCHAIN_FILE, "w") as f:
-            json.dump({
-                "chain": [
-                    {
-                        "index": block.index,
-                        "previous_hash": block.previous_hash,
-                        "timestamp": block.timestamp,
-                        "transactions": [tx.to_dict() for tx in block.transactions],  # ✅ Convert transactions to dicts
-                        "miner": block.miner,
-                        "meme": block.meme,
-                        "hash": block.hash,
-                        **block.certificate_metadata(),
-                    }
-                    for block in self.chain
-                ],
-                "submissions": [submission.to_dict() for submission in self.submissions],
-                "mint_queue": self.mint_queue,
-                "votes": self.votes,
-                "originality_certificates": [
-                    certificate.to_dict()
-                    for certificate in self.originality_certificates
-                ],
-                "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()}  # ✅ Convert wallets to dicts
-            }, f, indent=4)
+        self.storage.save_blockchain_state(self._serialize_blockchain_state())
         print("✅ Debug: Blockchain and wallets saved successfully.")
 
     def load_blockchain(self):
         """Load blockchain state from disk if it exists, ensuring wallets persist."""
         try:
-            with open(BLOCKCHAIN_FILE, "r") as f:
-                loaded_data = json.load(f)
+            loaded_data = self.storage.load_blockchain_state()
 
-                # ✅ Ensure data structure is valid
-                if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
-                    self.chain = [
-                        Block(
-                            index=block_data["index"],
-                            previous_hash=block_data["previous_hash"],
-                            timestamp=block_data["timestamp"],
-                            transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],  # ✅ Convert transactions
-                            miner=block_data["miner"],
-                            meme=block_data.get("meme", {}),
-                            hash=block_data.get("hash"),
-                            submission_id=block_data.get("submission_id"),
-                            certificate_id=block_data.get("certificate_id"),
-                            content_hash=block_data.get("content_hash"),
-                            creator_wallet=block_data.get("creator_wallet"),
-                            vote_hash=block_data.get("vote_hash"),
-                            approval_percentage=block_data.get("approval_percentage"),
-                            decisive_vote_total=block_data.get("decisive_vote_total"),
-                            minimum_votes_required=block_data.get("minimum_votes_required"),
-                            approved_at=block_data.get("approved_at"),
-                            originality_score=block_data.get("originality_score"),
-                        )
-                        for block_data in loaded_data["chain"]
-                    ]
+            if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
+                self.chain = [
+                    Block(
+                        index=block_data["index"],
+                        previous_hash=block_data["previous_hash"],
+                        timestamp=block_data["timestamp"],
+                        transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],
+                        miner=block_data["miner"],
+                        meme=block_data.get("meme", {}),
+                        hash=block_data.get("hash"),
+                        submission_id=block_data.get("submission_id"),
+                        certificate_id=block_data.get("certificate_id"),
+                        content_hash=block_data.get("content_hash"),
+                        creator_wallet=block_data.get("creator_wallet"),
+                        vote_hash=block_data.get("vote_hash"),
+                        approval_percentage=block_data.get("approval_percentage"),
+                        decisive_vote_total=block_data.get("decisive_vote_total"),
+                        minimum_votes_required=block_data.get("minimum_votes_required"),
+                        approved_at=block_data.get("approved_at"),
+                        originality_score=block_data.get("originality_score"),
+                    )
+                    for block_data in loaded_data["chain"]
+                ]
 
-                    self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}  # ✅ Load wallets correctly
+                self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}
 
-                    print("✅ Debug: Blockchain and wallets loaded successfully from blockchain.json.")
+                print("✅ Debug: Blockchain and wallets loaded successfully from blockchain.json.")
 
-                    self.submissions = [
-                        Submission.from_dict(submission_data)
-                        for submission_data in loaded_data.get("submissions", [])
-                    ]
-                    self.mint_queue = loaded_data.get("mint_queue", [])
-                    self.votes = loaded_data.get("votes", [])
-                    self.originality_certificates = [
-                        OriginalityCertificate.from_dict(certificate_data)
-                        for certificate_data in loaded_data.get("originality_certificates", [])
-                    ]
-                    self.link_certificates_to_submissions()
+                self.submissions = [
+                    Submission.from_dict(submission_data)
+                    for submission_data in loaded_data.get("submissions", [])
+                ]
+                self.mint_queue = loaded_data.get("mint_queue", [])
+                self.votes = loaded_data.get("votes", [])
+                self.originality_certificates = [
+                    OriginalityCertificate.from_dict(certificate_data)
+                    for certificate_data in loaded_data.get("originality_certificates", [])
+                ]
+                self.link_certificates_to_submissions()
+                print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
+                print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
+                return True
 
-                else:
-                    print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
-                    self.chain = []
-                    self.wallets = {}
+            if loaded_data is not None:
+                print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
+                self.chain = []
+                self.wallets = {}
 
         except FileNotFoundError:
             print("⚠️ Debug: No saved blockchain found. Creating new blockchain.")
@@ -186,14 +194,7 @@ class Blockchain:
             self.chain = []
             self.wallets = {}
 
-        # ✅ If blockchain is empty, create Genesis block
-        if not self.chain:
-            print("⚠️ Debug: No valid blockchain found. Creating Genesis block.")
-            self.create_genesis_block(self.project_owner_wallet, self.Contributor_one, self.Contributor_two)
-
-        # ✅ Debug - Print blockchain length
-        print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
-        print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
+        return False
 
     def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=TOTAL_SUPPLY):
         """Create the Genesis block with initial transactions and optional encoded meme."""
@@ -227,14 +228,14 @@ class Blockchain:
             index=0,
             previous_hash="0",
             timestamp=time.time(),
-            transactions=genesis_transactions,  # ✅ Assign transactions explicitly
+            transactions=genesis_transactions,  # âœ… Assign transactions explicitly
             miner="GENESIS",
             meme={"encoded_image": encoded_image, "text": "LOOKING FOR A NEW MEME COIN? WHY NOT ZOIDBERGCOIN"}
         )
         self.chain.append(genesis_block)
 
-        # ✅ Debugging to verify genesis block transactions
-        print("\n🔍 Genesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
+        # âœ… Debugging to verify genesis block transactions
+        print("\nðŸ” Genesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
 
         print("\nGenesis wallets initialized:")
         if project_owner_wallet:
@@ -787,27 +788,27 @@ class Blockchain:
                 print(f"Debug: No text extracted from image {image_path}.")
                 raise ValueError("No text content could be extracted from the image.")
 
-        # ✅ Meme Validation Check
+        # âœ… Meme Validation Check
         image_hash = hash_image(image_path)  # Compute image hash
         normalized_text = re.sub(r'[^\w\s]', '', text_content).strip().lower()  # Normalize text
 
         if validate_meme:
             if image_hash in self.image_hashes and normalized_text in self.texts:
-                print(f"⚠️ Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
+                print(f"âš ï¸ Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
                 raise ValueError("This meme has already been submitted.")
 
         # Encode the image as base64
         print(f"Debug: Encoding image at path {image_path}.")
         meme_encoded = self.encode_image(image_path)
 
-        # ✅ Calculate meme size (base64 encoding increases size)
+        # âœ… Calculate meme size (base64 encoding increases size)
         meme_size_kb = len(meme_encoded) / 1024
         text_size_kb = len(text_content.encode()) / 1024  # Convert text content size to KB
 
         # Validate transactions and calculate total tips
         valid_transactions = []
-        total_tx_size_kb = 0  # ✅ Track total transaction size
-        total_miner_tips = 0  # ✅ Only track miner’s tip earnings
+        total_tx_size_kb = 0  # âœ… Track total transaction size
+        total_miner_tips = 0  # âœ… Only track minerâ€™s tip earnings
 
         print("Debug: Validating transactions concurrently...")
         with ThreadPoolExecutor() as executor:
@@ -816,9 +817,9 @@ class Blockchain:
                 tx = future_to_tx[future]
                 try:
                     if future.result():
-                        tip = tx.tip  # ✅ Keep tip logic
+                        tip = tx.tip  # âœ… Keep tip logic
 
-                        # ✅ Tip Distribution (Existing Model)
+                        # âœ… Tip Distribution (Existing Model)
                         if self.reward_pool < (self.initial_reward_pool * 0.25):
                             tip_split = {"miner": 0.25, "reward_pool": 0.75}
                         else:
@@ -827,50 +828,50 @@ class Blockchain:
                         miner_tip_share = tip * tip_split["miner"]
                         reward_pool_tip_share = tip * tip_split["reward_pool"]
 
-                        # ✅ Add to balances
-                        self.reward_pool += reward_pool_tip_share  # ✅ Only tips go to reward pool
-                        total_miner_tips += miner_tip_share  # ✅ Miner gets tip only
+                        # âœ… Add to balances
+                        self.reward_pool += reward_pool_tip_share  # âœ… Only tips go to reward pool
+                        total_miner_tips += miner_tip_share  # âœ… Miner gets tip only
 
-                        # ✅ Debugging Output
+                        # âœ… Debugging Output
                         print(f"Debug: Transaction Distribution - Tip Total: {tip:.4f}")
                         print(f"Debug: - Miner gets: {miner_tip_share:.4f}")
                         print(f"Debug: - Reward Pool gets: {reward_pool_tip_share:.4f}")
 
-                        tx_size_kb = len(str(tx)) / 1024  # ✅ Convert transaction size to KB
+                        tx_size_kb = len(str(tx)) / 1024  # âœ… Convert transaction size to KB
                         total_tx_size_kb += tx_size_kb
                         valid_transactions.append(tx)
                 except Exception as e:
                     print(f"Debug: Transaction validation error: {e}")
 
-        # ✅ Calculate total block size
+        # âœ… Calculate total block size
         total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb
 
-        # ✅ Enforce block size limit
+        # âœ… Enforce block size limit
         if total_block_size_kb > max_block_size_kb:
             print(f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of {max_block_size_kb} KB. Rejecting block.")
             return False
 
         print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
 
-        # ✅ Ensure miner’s balance is updated
+        # âœ… Ensure minerâ€™s balance is updated
         if miner in self.wallets:
-            current_balance = self.get_balance(miner)  # ✅ Get miner's balance
-            updated_balance = current_balance + total_miner_tips  # ✅ Add miner's earnings
+            current_balance = self.get_balance(miner)  # âœ… Get miner's balance
+            updated_balance = current_balance + total_miner_tips  # âœ… Add miner's earnings
             print(f"Debug: Before crediting miner {miner}: {current_balance:.4f} {COIN_NAME}")
             print(f"Debug: Miner earned: {total_miner_tips:.4f} {COIN_NAME}")
 
-            # ✅ Store the updated balance at the blockchain level
-            self.wallets[miner].stored_balance = updated_balance  # ✅ Store updated balance
+            # âœ… Store the updated balance at the blockchain level
+            self.wallets[miner].stored_balance = updated_balance  # âœ… Store updated balance
 
             print(f"Debug: After crediting miner {miner}: {self.wallets[miner].stored_balance:.4f} {COIN_NAME}")
         else:
             print(f"Debug: WARNING! Miner {miner} not found in registered wallets. Initializing new wallet.")
 
-            # ✅ Initialize the miner's wallet with the earned balance
+            # âœ… Initialize the miner's wallet with the earned balance
             self.wallets[miner] = Wallet()
             self.wallets[miner].public_key = miner
-            self.wallets[miner].private_key = None  # Miner’s private key is unknown
-            self.wallets[miner].stored_balance = total_miner_tips  # ✅ Store the initial balance
+            self.wallets[miner].private_key = None  # Minerâ€™s private key is unknown
+            self.wallets[miner].stored_balance = total_miner_tips  # âœ… Store the initial balance
             print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} {COIN_NAME}")
 
         # Add mining reward
@@ -896,7 +897,7 @@ class Blockchain:
         self.chain.append(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
 
-        # ✅ Cache meme data after block is added
+        # âœ… Cache meme data after block is added
         print(f"Debug: Caching meme data for image {image_path}.")
         self.image_hashes.add(image_hash)
         self.texts.append(normalized_text)
@@ -1137,7 +1138,7 @@ class Blockchain:
         for block in self.chain:
             for transaction in block.transactions:
                 if transaction.sender == public_key:
-                    balance -= transaction.amount + transaction.tip  # ✅ Deduct amount + tip (NO FEE)
+                    balance -= transaction.amount + transaction.tip  # âœ… Deduct amount + tip (NO FEE)
                 if transaction.recipient == public_key:
                     balance += transaction.amount + transaction.tip
         return balance
@@ -1151,7 +1152,7 @@ class Blockchain:
                 raise Exception("Invalid transaction: Signature is not valid.")
 
             sender_balance = self.get_balance(transaction.sender)
-            total_deduction = transaction.amount + transaction.tip  # ✅ Only deduct amount + tip (NO FEE)
+            total_deduction = transaction.amount + transaction.tip  # âœ… Only deduct amount + tip (NO FEE)
             print(f"Debug: Sender balance: {sender_balance}, Total Deduction: {total_deduction}")
 
             if sender_balance < total_deduction:
@@ -1175,7 +1176,7 @@ class Blockchain:
                 return False
 
             sender_balance = self.get_balance(transaction.sender)
-            total_deduction = transaction.amount + transaction.tip  # ✅ Only deduct amount + tip (NO FEE)
+            total_deduction = transaction.amount + transaction.tip  # âœ… Only deduct amount + tip (NO FEE)
             print(f"Debug: Validating Transaction - Sender Balance: {sender_balance}, Required: {total_deduction}")
 
             if sender_balance < total_deduction:
@@ -1227,3 +1228,5 @@ class Blockchain:
         print(f"Debug: Invalid public key: {public_key}")
         return False
     
+
+

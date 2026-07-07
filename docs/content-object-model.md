@@ -21,9 +21,19 @@ Task 6.1 introduces a first-class content object so meme payloads can be tracked
 
 ## Hash And ID Rules
 
-- `content_hash` is the canonical payload hash.
+- `content_hash` remains the canonical payload hash used by the current submission and certificate workflow.
 - `content_id` is derived from `content_hash` so the same payload gets the same identifier.
-- Raw binary data is not stored in the object.
+- Local binary files are stored separately under `CONTENT_STORAGE_DIR`.
+- For locally stored files, the node also records a raw-byte SHA-256 sidecar so file integrity can be re-verified without changing consensus-facing submission hashes.
+- Raw binary data is not embedded in the object or portable storage export yet.
+
+## Local Content Storage
+
+- `CONTENT_STORAGE_DIR` defaults to `DATA_DIR/content/`.
+- Node A and Node B should use separate `DATA_DIR` values so their content stores stay isolated.
+- Stored file paths are derived from `content_hash`, never from user-supplied filenames.
+- Supported MIME types in Task 6.2 are `image/jpeg`, `image/png`, `image/gif`, `image/webp`, and `text/plain`.
+- `MAX_CONTENT_FILE_SIZE_BYTES` defaults to `5 * 1024 * 1024` bytes for local development and testnet use.
 
 ## Storage Status Meanings
 
@@ -34,4 +44,5 @@ Task 6.1 introduces a first-class content object so meme payloads can be tracked
 
 ## Scope Note
 
-Binary file transport, upload/download endpoints, and peer content sync are deferred to later Task 6 work.
+- API upload/download endpoints are deferred to Task 6.3.
+- Peer content sync is deferred to Task 6.4.

@@ -18,8 +18,22 @@ All node state lives under `DATA_DIR`.
 - `DATA_DIR=data` uses the default local node directory.
 - `DATA_DIR=data\node-a` and `DATA_DIR=data\node-b` keep two local nodes isolated during testing.
 - The active backend reads and writes only inside its own `DATA_DIR`.
+- Task 6.2 also stores local content files under `CONTENT_STORAGE_DIR`, which defaults to `DATA_DIR/content`.
 
 Task 5.7 keeps this behavior unchanged so existing local JSON data still loads without migration.
+
+## Content Files
+
+Task 6.2 adds node-local content-file storage without changing consensus.
+
+- `CONTENT_STORAGE_DIR` defaults to `DATA_DIR/content`.
+- `MAX_CONTENT_FILE_SIZE_BYTES` defaults to `5 MB`.
+- Supported MIME types are `image/jpeg`, `image/png`, `image/gif`, `image/webp`, and `text/plain`.
+- Stored file paths are derived from `content_hash`, not from the uploaded filename.
+- `storage_status` moves through `missing`, `local`, `verified`, and `remote` depending on whether metadata exists, the file is present, and hash verification has succeeded.
+- Portable exports and imports still include content metadata only. Raw content binaries stay in the local node store for now.
+- Upload/download API endpoints are deferred to Task 6.3.
+- Peer content sync is deferred to Task 6.4.
 
 ## Backup
 

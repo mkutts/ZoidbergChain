@@ -965,19 +965,24 @@ async def submit_content(
     with open(image_path, "wb") as buffer:
         buffer.write(await image.read())
 
-    if not os.path.isfile(image_path):
-        return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
+    try:
+        if not os.path.isfile(image_path):
+            return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
 
-    if not text_content:
-        text_content = extract_text(image_path)
-    if not text_content:
-        return JSONResponse(status_code=400, content={"error": "No text found in the image."})
+        if not text_content:
+            text_content = extract_text(image_path)
+        if not text_content:
+            return JSONResponse(status_code=400, content={"error": "No text found in the image."})
 
-    submission = blockchain.submit_content(
-        image_path=image_path,
-        text_content=text_content,
-        submitter=submitter,
-    )
+        submission = blockchain.submit_content(
+            image_path=image_path,
+            text_content=text_content,
+            submitter=submitter,
+        )
+    finally:
+        if os.path.isfile(image_path):
+            os.remove(image_path)
+
     blockchain.save_blockchain()
     broadcast_result = broadcast_submission_to_peers(
         submission=submission,

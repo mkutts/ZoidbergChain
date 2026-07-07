@@ -240,9 +240,34 @@ class StorageBackend(ABC):
         peers_file: str | None = None,
         sqlite_db_path: str | None = None,
     ):
+        provided_blockchain_file = blockchain_file
+        provided_peers_file = peers_file
+        provided_sqlite_db_path = sqlite_db_path
         self.blockchain_file = blockchain_file or config.BLOCKCHAIN_FILE
         self.peers_file = peers_file or config.PEERS_FILE
         self.sqlite_db_path = sqlite_db_path or config.SQLITE_DB_PATH
+        self.data_dir = self._resolve_data_dir(
+            blockchain_file=provided_blockchain_file,
+            peers_file=provided_peers_file,
+            sqlite_db_path=provided_sqlite_db_path,
+        )
+
+    def _resolve_data_dir(
+        self,
+        *,
+        blockchain_file: str | None,
+        peers_file: str | None,
+        sqlite_db_path: str | None,
+    ) -> str:
+        if blockchain_file:
+            return str(Path(blockchain_file).parent)
+        if peers_file:
+            return str(Path(peers_file).parent)
+        if sqlite_db_path:
+            return str(Path(self.sqlite_db_path).parent)
+        if self.blockchain_file:
+            return str(Path(self.blockchain_file).parent)
+        return str(Path(config.DATA_DIR))
 
     @abstractmethod
     def load_blockchain_document(self) -> dict[str, Any] | None:
@@ -347,6 +372,7 @@ class StorageBackend(ABC):
                 content_object = content_object_from_submission_data(
                     submission if isinstance(submission, dict) else getattr(submission, "to_dict", lambda: {})(),
                     network_name=config.NETWORK_NAME,
+                    data_dir=self.data_dir,
                 )
             except ValueError:
                 continue

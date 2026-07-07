@@ -100,6 +100,7 @@ def _clean_path(value):
 def build_data_paths(data_dir):
     data_dir = _clean_path(data_dir)
     temp_dir = os.path.join(data_dir, "temp")
+    content_storage_dir = os.path.join(data_dir, "content")
     return {
         "data_dir": data_dir,
         "blockchain_file": os.path.join(data_dir, "blockchain.json"),
@@ -107,6 +108,7 @@ def build_data_paths(data_dir):
         "sqlite_db_path": os.path.join(data_dir, "zoidbergchain.db"),
         "temp_dir": temp_dir,
         "submissions_dir": os.path.join(temp_dir, "submissions"),
+        "content_storage_dir": content_storage_dir,
     }
 
 
@@ -359,6 +361,8 @@ BLOCKCHAIN_FILE = _DATA_PATHS["blockchain_file"]
 PEERS_FILE = _DATA_PATHS["peers_file"]
 TEMP_DIR = _DATA_PATHS["temp_dir"]
 SUBMISSIONS_DIR = _DATA_PATHS["submissions_dir"]
+CONTENT_STORAGE_DIR = _env_value("CONTENT_STORAGE_DIR", _DATA_PATHS["content_storage_dir"])
+MAX_CONTENT_FILE_SIZE_BYTES = _env_int("MAX_CONTENT_FILE_SIZE_BYTES", 5 * 1024 * 1024)
 STORAGE_BACKEND = _env_value("STORAGE_BACKEND", "json").strip().lower()
 if STORAGE_BACKEND not in VALID_STORAGE_BACKENDS:
     supported_backends = ", ".join(sorted(VALID_STORAGE_BACKENDS))

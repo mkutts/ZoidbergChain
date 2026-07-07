@@ -30,7 +30,19 @@ from config import (
     VOTING_WINDOW_HOURS,
 )
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
-from content import ContentObject, content_object_from_submission_data
+from content import (
+    TEXT_MIME_TYPE,
+    STORAGE_STATUS_LOCAL,
+    STORAGE_STATUS_MISSING,
+    STORAGE_STATUS_VERIFIED,
+    ContentObject,
+    content_object_from_submission_data,
+    ensure_content_storage_dir,
+    guess_mime_type,
+    resolve_local_path,
+    store_content_bytes,
+    verify_content_file,
+)
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from storage import create_storage_backend
 
@@ -77,6 +89,7 @@ class Blockchain:
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
+        ensure_content_storage_dir(data_dir=self.storage.data_dir)
 
         # âœ… Store wallets immediately before loading blockchain
         self.project_owner_wallet = project_owner_wallet
@@ -179,6 +192,7 @@ class Blockchain:
                     for certificate_data in loaded_data.get("originality_certificates", [])
                 ]
                 self.link_content_objects_to_submissions()
+                self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
                 print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
@@ -378,23 +392,115 @@ class Blockchain:
                     "certificate_id": submission.certificate_id,
                 },
                 network_name=NETWORK_NAME,
+                data_dir=self.storage.data_dir,
             )
         except ValueError:
             return None
 
-    def _ensure_content_object_for_submission(self, submission, image_path="", text_content=""):
+    def _apply_stored_content_to_object(self, content_object, stored_content, *, submission_id=None, text_content=""):
+        metadata = dict(content_object.metadata or {})
+        if stored_content.get("byte_hash"):
+            metadata["byte_hash"] = stored_content["byte_hash"]
+        if submission_id:
+            metadata["submission_id"] = submission_id
+
+        content_object.mime_type = stored_content["mime_type"]
+        content_object.file_size_bytes = stored_content["file_size_bytes"]
+        content_object.storage_status = stored_content["storage_status"]
+        content_object.local_path = stored_content["local_path"]
+        if stored_content.get("file_name"):
+            content_object.file_name = stored_content["file_name"]
+        if text_content and not content_object.text_content:
+            content_object.text_content = text_content
+        if text_content and not content_object.caption:
+            content_object.caption = text_content
+        content_object.metadata = metadata
+        return content_object
+
+    def _ensure_content_object_for_submission(self, submission, image_path="", text_content="", stored_content=None):
         content_object = self.get_content_object_by_hash(submission.content_hash)
         if content_object:
             if not submission.content_id:
                 submission.content_id = content_object.content_id
+            if stored_content:
+                self._apply_stored_content_to_object(
+                    content_object,
+                    stored_content,
+                    submission_id=submission.submission_id,
+                    text_content=text_content,
+                )
             return content_object
 
         content_object = self._build_content_object_for_submission(submission, image_path=image_path, text_content=text_content)
         if content_object is None:
             return None
+        if stored_content:
+            self._apply_stored_content_to_object(
+                content_object,
+                stored_content,
+                submission_id=submission.submission_id,
+                text_content=text_content,
+            )
         self.content_objects.append(content_object)
         submission.content_id = content_object.content_id
         return content_object
+
+    def _store_submission_content(self, submission, image_path="", text_content=""):
+        if image_path:
+            with open(image_path, "rb") as image_file:
+                image_bytes = image_file.read()
+            stored_content = store_content_bytes(
+                submission.content_hash,
+                image_bytes,
+                mime_type=guess_mime_type(os.path.basename(image_path), "image/jpeg"),
+                original_filename=os.path.basename(image_path),
+                data_dir=self.storage.data_dir,
+            )
+            submission.image_path = os.path.abspath(stored_content["path"])
+            return stored_content
+
+        normalized_text = (text_content or "").strip()
+        if not normalized_text:
+            return None
+
+        return store_content_bytes(
+            submission.content_hash,
+            normalized_text.encode("utf-8"),
+            mime_type=TEXT_MIME_TYPE,
+            data_dir=self.storage.data_dir,
+        )
+
+    def refresh_content_object_storage_statuses(self):
+        refreshed_any = False
+        for content_object in self.content_objects:
+            local_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
+            byte_hash = (content_object.metadata or {}).get("byte_hash")
+            if not local_path or not os.path.isfile(local_path):
+                if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
+                    content_object.storage_status = STORAGE_STATUS_MISSING
+                    refreshed_any = True
+                continue
+            if byte_hash:
+                verification = verify_content_file(
+                    content_object.content_hash,
+                    content_object.mime_type,
+                    data_dir=self.storage.data_dir,
+                )
+                if verification["verified"]:
+                    if content_object.storage_status != STORAGE_STATUS_VERIFIED:
+                        content_object.storage_status = STORAGE_STATUS_VERIFIED
+                        refreshed_any = True
+                    if content_object.local_path != verification["local_path"]:
+                        content_object.local_path = verification["local_path"]
+                        refreshed_any = True
+                    if content_object.file_size_bytes != verification["file_size_bytes"]:
+                        content_object.file_size_bytes = verification["file_size_bytes"]
+                        refreshed_any = True
+                    continue
+            if content_object.storage_status != STORAGE_STATUS_LOCAL:
+                content_object.storage_status = STORAGE_STATUS_LOCAL
+                refreshed_any = True
+        return refreshed_any
 
     def submit_content(self, image_path="", text_content="", submitter=""):
         """Create a pending content submission without minting a block."""
@@ -409,8 +515,18 @@ class Blockchain:
             submitter=submitter,
             status=PENDING,
         )
+        stored_content = self._store_submission_content(
+            submission,
+            image_path=image_path or "",
+            text_content=text_content or "",
+        )
         self.submissions.append(submission)
-        self._ensure_content_object_for_submission(submission, image_path=image_path or "", text_content=text_content or "")
+        self._ensure_content_object_for_submission(
+            submission,
+            image_path=submission.image_path or "",
+            text_content=text_content or "",
+            stored_content=stored_content,
+        )
         return submission
 
     def get_submission(self, submission_id):
@@ -534,6 +650,18 @@ class Blockchain:
             if content_object:
                 if submission.content_id != content_object.content_id:
                     submission.content_id = content_object.content_id
+                    linked_any = True
+                resolved_image_path = resolve_local_path(
+                    content_object.local_path,
+                    data_dir=self.storage.data_dir,
+                )
+                if (
+                    resolved_image_path
+                    and content_object.content_type in {"image", "mixed"}
+                    and submission.image_path != resolved_image_path
+                    and os.path.isfile(resolved_image_path)
+                ):
+                    submission.image_path = resolved_image_path
                     linked_any = True
             else:
                 created_content_object = self._ensure_content_object_for_submission(

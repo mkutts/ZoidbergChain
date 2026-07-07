@@ -13,6 +13,7 @@ def test_node_data_paths_are_scoped_under_node_data_dir():
         "sqlite_db_path": os.path.join("data/node-a", "zoidbergchain.db"),
         "temp_dir": os.path.join("data/node-a", "temp"),
         "submissions_dir": os.path.join("data/node-a", "temp", "submissions"),
+        "content_storage_dir": os.path.join("data/node-a", "content"),
     }
 
 

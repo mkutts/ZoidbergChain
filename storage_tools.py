@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import sys
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +21,15 @@ from storage import (
 
 
 EXPORT_VERSION = 1
+_SECTION_TYPES = {
+    "chain": list,
+    "wallets": dict,
+    "submissions": list,
+    "mint_queue": list,
+    "votes": list,
+    "originality_certificates": list,
+    "peers": list,
+}
 _SENSITIVE_KEYS = {
     "private_key",
     "privateKey",
@@ -92,6 +102,7 @@ def _load_state(backend: StorageBackend) -> dict[str, Any]:
         "originality_certificates": deepcopy(blockchain_state.get("originality_certificates", [])),
         "peers": deepcopy(backend.load_peers() or blockchain_state.get("peers", [])),
     }
+    _validate_state_shape(state, label="Storage state")
     return state
 
 
@@ -184,12 +195,21 @@ def _validate_export_snapshot(snapshot: dict[str, Any]) -> None:
         raise ValueError("Export snapshot state must be an object.")
 
 
+def _validate_state_shape(state: dict[str, Any], *, label: str) -> None:
+    if not isinstance(state, dict):
+        raise ValueError(f"{label} must be an object.")
+    for section_name, expected_type in _SECTION_TYPES.items():
+        if section_name not in state:
+            raise ValueError(f"{label} is missing state section: {section_name}.")
+        if not isinstance(state[section_name], expected_type):
+            raise ValueError(
+                f"{label} section {section_name!r} must be a {expected_type.__name__}."
+            )
+
+
 def _validate_import_snapshot(snapshot: dict[str, Any]) -> None:
     _validate_export_snapshot(snapshot)
-    state = snapshot["state"]
-    for section_name in ("chain", "wallets", "submissions", "mint_queue", "votes", "originality_certificates", "peers"):
-        if section_name not in state:
-            raise ValueError(f"Export snapshot is missing state section: {section_name}.")
+    _validate_state_shape(snapshot["state"], label="Export snapshot state")
 
 
 def build_export_snapshot(
@@ -351,6 +371,21 @@ def _snapshot_has_sensitive_wallet_data(snapshot: dict[str, Any]) -> bool:
     return any(isinstance(wallet, dict) and "private_key" in wallet for wallet in wallets.values())
 
 
+def _read_snapshot_file(input_path: Path) -> dict[str, Any]:
+    try:
+        snapshot = json.loads(input_path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"Snapshot file not found: {input_path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Snapshot file is not valid JSON: {input_path}") from exc
+    except OSError as exc:
+        raise ValueError(f"Failed to read snapshot file: {input_path}") from exc
+
+    if not isinstance(snapshot, dict):
+        raise ValueError("Snapshot file must contain a JSON object at the top level.")
+    return snapshot
+
+
 def import_storage(
     backend: StorageBackend | None = None,
     *,
@@ -362,7 +397,7 @@ def import_storage(
 ) -> dict[str, Any]:
     backend = backend or _default_backend()
     input_path = Path(input_path)
-    snapshot = json.loads(input_path.read_text(encoding="utf-8"))
+    snapshot = _read_snapshot_file(input_path)
     _validate_import_snapshot(snapshot)
 
     metadata = snapshot["metadata"]
@@ -470,38 +505,42 @@ def build_cli_parser() -> argparse.ArgumentParser:
 
 def run_cli(argv: list[str] | None = None) -> int:
     parser = build_cli_parser()
-    args = parser.parse_args(argv)
-    backend = _resolve_backend(
-        data_dir=args.data_dir,
-        storage_backend=args.storage_backend,
-        sqlite_db_path=args.sqlite_db_path,
-    )
-
-    if args.command == "backup":
-        result = backup_storage(
-            backend,
+    try:
+        args = parser.parse_args(argv)
+        backend = _resolve_backend(
             data_dir=args.data_dir,
-            backup_dir=args.backup_dir,
-            dry_run=args.dry_run,
+            storage_backend=args.storage_backend,
+            sqlite_db_path=args.sqlite_db_path,
         )
-    elif args.command == "export":
-        result = export_storage(
-            backend,
-            output_path=args.output,
-            include_private_keys=args.include_private_keys,
-            dry_run=args.dry_run,
-        )
-    elif args.command == "import":
-        result = import_storage(
-            backend,
-            input_path=args.input,
-            overwrite=args.overwrite,
-            allow_network_override=args.allow_network_override,
-            include_private_keys=args.include_private_keys,
-            dry_run=args.dry_run,
-        )
-    else:
-        raise ValueError(f"Unsupported command: {args.command}")
+
+        if args.command == "backup":
+            result = backup_storage(
+                backend,
+                data_dir=args.data_dir,
+                backup_dir=args.backup_dir,
+                dry_run=args.dry_run,
+            )
+        elif args.command == "export":
+            result = export_storage(
+                backend,
+                output_path=args.output,
+                include_private_keys=args.include_private_keys,
+                dry_run=args.dry_run,
+            )
+        elif args.command == "import":
+            result = import_storage(
+                backend,
+                input_path=args.input,
+                overwrite=args.overwrite,
+                allow_network_override=args.allow_network_override,
+                include_private_keys=args.include_private_keys,
+                dry_run=args.dry_run,
+            )
+        else:
+            raise ValueError(f"Unsupported command: {args.command}")
+    except Exception as exc:
+        print(json.dumps({"error": str(exc)}, indent=2, sort_keys=True), file=sys.stderr)
+        return 1
 
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

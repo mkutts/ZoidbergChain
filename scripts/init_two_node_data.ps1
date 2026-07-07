@@ -15,6 +15,7 @@ $NodeAData = Join-Path $ProjectRoot "data\node-a"
 $NodeBData = Join-Path $ProjectRoot "data\node-b"
 $NodeAChain = Join-Path $NodeAData "blockchain.json"
 $NodeBChain = Join-Path $NodeBData "blockchain.json"
+$PreviousDataDir = $env:DATA_DIR
 $PreviousNodeDataDir = $env:NODE_DATA_DIR
 $PreviousStorageBackend = $env:STORAGE_BACKEND
 
@@ -30,6 +31,7 @@ try {
     New-Item -ItemType Directory -Force -Path $NodeAData, $NodeBData | Out-Null
 
     if (-not (Test-Path $NodeAChain)) {
+        $env:DATA_DIR = "data/node-a"
         $env:NODE_DATA_DIR = "data/node-a"
         $env:STORAGE_BACKEND = "json"
         & $Python -c "from wallet import Wallet; from blockchain import Blockchain; bc = Blockchain(Wallet(), Wallet(), Wallet()); bc.save_blockchain()"
@@ -44,6 +46,13 @@ try {
     Write-Host "  Node B: data/node-b"
 }
 finally {
+    if ($null -eq $PreviousDataDir) {
+        Remove-Item Env:DATA_DIR -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:DATA_DIR = $PreviousDataDir
+    }
+
     if ($null -eq $PreviousNodeDataDir) {
         Remove-Item Env:NODE_DATA_DIR -ErrorAction SilentlyContinue
     }

@@ -313,3 +313,104 @@ def test_dry_run_does_not_write_files(isolated_data_dir, submission_image):
     assert import_result["dry_run"] is True
     assert not Path(backup_result["backup_path"]).exists()
     assert not export_path.exists()
+
+
+@pytest.mark.parametrize(
+    "backend_factory",
+    [_json_backend, _sqlite_backend],
+)
+def test_backup_snapshot_can_be_imported_as_restore(backend_factory, isolated_data_dir, submission_image):
+    source_backend = backend_factory(isolated_data_dir, "restore-source")
+    seeded = _seed_backend(source_backend, submission_image)
+    backup_result = storage_tools.backup_storage(seeded["backend"])
+
+    restored_backend = backend_factory(isolated_data_dir, "restore-target")
+    import_result = storage_tools.import_storage(
+        restored_backend,
+        input_path=backup_result["backup_path"],
+    )
+    reloaded = Blockchain(storage_backend=restored_backend)
+
+    assert import_result["written"] is True
+    assert reloaded.get_submission(seeded["submission"].submission_id) is not None
+    assert reloaded.get_originality_certificate(seeded["certificate"].certificate_id) is not None
+
+
+@pytest.mark.parametrize(
+    "backend_factory",
+    [_json_backend, _sqlite_backend],
+)
+def test_imported_state_supports_follow_on_app_workflow(backend_factory, isolated_data_dir, submission_image):
+    source_backend = backend_factory(isolated_data_dir, "workflow-source")
+    seeded = _seed_backend(source_backend, submission_image)
+    export_path = isolated_data_dir / "workflow-source.json"
+    storage_tools.export_storage(seeded["backend"], output_path=export_path)
+
+    target_backend = backend_factory(isolated_data_dir, "workflow-target")
+    storage_tools.import_storage(target_backend, input_path=export_path)
+    reloaded = Blockchain(storage_backend=target_backend)
+
+    owner_key = seeded["owner"].public_key
+    voter_keys = [
+        seeded["contributor_one"].public_key,
+        seeded["contributor_two"].public_key,
+        *(wallet.public_key for wallet in seeded["extra_wallets"]),
+    ]
+    new_submission = reloaded.submit_content(
+        image_path=str(submission_image),
+        text_content="post import workflow meme",
+        submitter=owner_key,
+    )
+    for index, voter_key in enumerate(voter_keys, start=1):
+        reloaded.cast_submission_vote(
+            submission_id=new_submission.submission_id,
+            voter=voter_key,
+            vote_type=VOTE_ORIGINAL,
+            created_at=20.0 + index,
+        )
+
+    result = reloaded.evaluate_submission(
+        new_submission.submission_id,
+        automated_originality_passed=True,
+        now=30.0,
+    )
+    certificate = reloaded.get_originality_certificate_for_submission(new_submission.submission_id)
+    reloaded.add_to_mint_queue(new_submission.submission_id)
+    reloaded.mint_next_queued_submission(miner=owner_key, validate_meme=False)
+    reloaded.save_blockchain()
+
+    persisted = Blockchain(storage_backend=target_backend)
+    assert result["status"] == "approved"
+    assert certificate is not None
+    assert persisted.get_originality_certificate(certificate.certificate_id) is not None
+    assert persisted.get_latest_block().certificate_id == certificate.certificate_id
+
+
+@pytest.mark.parametrize(
+    "backend_factory",
+    [_json_backend, _sqlite_backend],
+)
+def test_node_a_backup_export_import_do_not_affect_node_b(backend_factory, isolated_data_dir, submission_image):
+    node_a_backend = backend_factory(isolated_data_dir, "node-a")
+    node_b_backend = backend_factory(isolated_data_dir, "node-b")
+    seed_a = _seed_backend(node_a_backend, submission_image)
+    seed_b = _seed_backend(node_b_backend, submission_image)
+    node_b_before = node_b_backend.load_blockchain_state()
+
+    export_path = isolated_data_dir / "node-a-export.json"
+    storage_tools.backup_storage(seed_a["backend"])
+    storage_tools.export_storage(seed_a["backend"], output_path=export_path)
+    storage_tools.import_storage(node_a_backend, input_path=export_path, overwrite=True)
+
+    node_b_after = node_b_backend.load_blockchain_state()
+    assert node_b_after == node_b_before
+    assert Blockchain(storage_backend=node_b_backend).get_latest_block().hash == seed_b["blockchain"].get_latest_block().hash
+
+
+def test_cli_errors_are_reported_without_traceback(capsys):
+    exit_code = storage_tools.run_cli(["import", "--input", "missing-snapshot.json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "Traceback" not in captured.err
+    assert "missing-snapshot.json" in captured.err

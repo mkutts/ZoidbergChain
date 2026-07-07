@@ -101,6 +101,8 @@ def test_json_to_sqlite_migration_succeeds_from_valid_json_to_empty_sqlite(isola
     assert len(sqlite_backend.load_votes()) == len(seeded["blockchain"].votes)
     assert len(sqlite_backend.load_certificates()) == len(seeded["blockchain"].originality_certificates)
     assert len(sqlite_backend.load_peers()) == len(seeded["peer_store"].list_peers())
+    assert sqlite_backend.load_certificates() == [certificate.to_dict() for certificate in seeded["blockchain"].originality_certificates]
+    assert sqlite_backend.load_peers() == seeded["peer_store"].list_peers()
 
 
 def test_migrated_chain_loads_from_sqlite(isolated_data_dir, submission_image):
@@ -165,6 +167,21 @@ def test_migration_fails_clearly_for_malformed_json(isolated_data_dir):
     target_db = isolated_data_dir / "bad-target.db"
 
     with pytest.raises(MigrationError, match="Failed to parse source JSON"):
+        migrate_json_to_sqlite(
+            source_json_path=bad_source,
+            sqlite_db_path=target_db,
+        )
+
+
+def test_migration_refuses_schema_drift_in_source_snapshot(isolated_data_dir):
+    bad_source = isolated_data_dir / "blockchain.json"
+    bad_source.write_text(
+        '{"chain":[],"wallets":[],"submissions":[],"mint_queue":[],"votes":[],"originality_certificates":[]}',
+        encoding="utf-8",
+    )
+    target_db = isolated_data_dir / "schema-drift.db"
+
+    with pytest.raises(MigrationError, match="section 'wallets' must be a dict"):
         migrate_json_to_sqlite(
             source_json_path=bad_source,
             sqlite_db_path=target_db,

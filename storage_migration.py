@@ -20,6 +20,15 @@ _SECTION_DEFAULTS = {
     "originality_certificates": [],
     "peers": [],
 }
+_SECTION_TYPES = {
+    "chain": list,
+    "wallets": dict,
+    "submissions": list,
+    "mint_queue": list,
+    "votes": list,
+    "originality_certificates": list,
+    "peers": list,
+}
 
 
 class MigrationError(RuntimeError):
@@ -94,6 +103,17 @@ def _normalize_snapshot(document: dict[str, Any] | None, peers: list[dict[str, A
     return snapshot
 
 
+def _validate_snapshot_shape(snapshot: dict[str, Any], *, label: str) -> None:
+    if not isinstance(snapshot, dict):
+        raise MigrationError(f"{label} must contain an object at the top level.")
+    for section_name, expected_type in _SECTION_TYPES.items():
+        value = snapshot.get(section_name, _SECTION_DEFAULTS[section_name])
+        if not isinstance(value, expected_type):
+            raise MigrationError(
+                f"{label} section {section_name!r} must be a {expected_type.__name__}."
+            )
+
+
 def _has_persisted_data(snapshot: dict[str, Any]) -> bool:
     return any(bool(snapshot.get(section)) for section in _SECTION_DEFAULTS)
 
@@ -132,7 +152,9 @@ def _load_source_snapshot(source_json_path: Path, source_peers_path: Path) -> di
     else:
         peers = peers_document
 
-    return _normalize_snapshot(source_document, peers)
+    snapshot = _normalize_snapshot(source_document, peers)
+    _validate_snapshot_shape(snapshot, label="Source snapshot")
+    return snapshot
 
 
 def _source_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -165,6 +187,7 @@ def _backup_existing_database(sqlite_db_path: Path) -> Path:
 def _validate_migration(source_snapshot: dict[str, Any], sqlite_db_path: Path) -> None:
     backend = SQLiteStorageBackend(sqlite_db_path=str(sqlite_db_path))
     migrated_snapshot = backend.load_blockchain_state() or {}
+    _validate_snapshot_shape(migrated_snapshot, label="Migrated snapshot")
 
     source_summary = _source_summary(source_snapshot)
     migrated_summary = _source_summary(migrated_snapshot)

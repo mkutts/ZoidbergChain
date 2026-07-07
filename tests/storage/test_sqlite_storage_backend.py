@@ -286,6 +286,110 @@ def test_sqlite_data_dir_isolation_for_two_nodes(isolated_data_dir):
     assert os.path.exists(backend_b.sqlite_db_path)
 
 
+def test_sqlite_storage_backend_query_helpers_find_common_records(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "query-helpers")
+    chain = [
+        {
+            "index": 0,
+            "previous_hash": "0",
+            "timestamp": 123.0,
+            "transactions": [],
+            "miner": "GENESIS",
+            "meme": {"text": "query helper"},
+            "hash": "a" * 64,
+            "submission_id": None,
+            "certificate_id": None,
+            "content_hash": None,
+            "creator_wallet": None,
+            "vote_hash": None,
+            "approval_percentage": None,
+            "decisive_vote_total": None,
+            "minimum_votes_required": None,
+            "approved_at": None,
+            "originality_score": None,
+        }
+    ]
+    wallets = {
+        "wallet-a": {"public_key": "wallet-a", "private_key": "private-a"},
+    }
+    submissions = [
+        {
+            "submission_id": "submission-a",
+            "image_path": "meme-a.jpg",
+            "text_content": "meme a",
+            "submitter": "wallet-a",
+            "status": "approved",
+            "created_at": 1.0,
+            "hard_reject_reason": None,
+            "content_hash": "c" * 64,
+            "certificate_id": "d" * 64,
+        }
+    ]
+    votes = [
+        {
+            "submission_id": "submission-a",
+            "voter": "wallet-b",
+            "vote_type": VOTE_ORIGINAL,
+            "created_at": 1.0,
+        }
+    ]
+    certificates = [
+        {
+            "certificate_id": "d" * 64,
+            "submission_id": "submission-a",
+            "content_hash": "c" * 64,
+            "creator_wallet": "wallet-a",
+            "vote_total": 1,
+            "decisive_vote_total": 1,
+            "original_votes": 1,
+            "not_original_votes": 0,
+            "unsure_votes": 0,
+            "approval_percentage": 1.0,
+            "minimum_votes_required": 1,
+            "approved_at": 1.0,
+            "network_name": "zoidberg-testnet",
+            "issuing_node_id": "node-a",
+            "vote_hash": "f" * 64,
+            "originality_score": 2.0,
+        }
+    ]
+    peers = [
+        {
+            "node_id": "peer-a",
+            "url": "http://peer-a.test:8000",
+            "network_name": "zoidberg-testnet",
+            "last_seen": 100.0,
+            "status": "active",
+        }
+    ]
+
+    backend.save_blockchain_state(
+        {
+            "chain": chain,
+            "wallets": wallets,
+            "submissions": submissions,
+            "mint_queue": ["submission-a"],
+            "votes": votes,
+            "originality_certificates": certificates,
+            "peers": peers,
+        }
+    )
+    backend.save_peers(peers)
+
+    assert backend.get_wallet("wallet-a") == wallets["wallet-a"]
+    assert backend.get_submission("submission-a") == submissions[0]
+    assert backend.get_submission_by_content_hash("c" * 64) == submissions[0]
+    assert backend.get_votes_for_submission("submission-a") == votes
+    assert backend.get_vote("submission-a", "wallet-b") == votes[0]
+    assert backend.get_certificate("d" * 64) == certificates[0]
+    assert backend.get_certificate_for_submission("submission-a") == certificates[0]
+    assert backend.mint_queue_contains("submission-a") is True
+    assert backend.get_block_by_hash("a" * 64) == chain[0]
+    assert backend.get_block_by_height(0) == chain[0]
+    assert backend.get_peer("peer-a") == peers[0]
+    assert backend.list_active_peers(network_name="zoidberg-testnet") == peers
+
+
 def test_blockchain_round_trip_persists_core_entities_sqlite(submission_image, isolated_data_dir):
     backend = _backend(isolated_data_dir, "round-trip")
     owner = Wallet()

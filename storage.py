@@ -251,6 +251,31 @@ class StorageBackend(ABC):
         document["chain"] = chain
         self.save_blockchain_document(document)
 
+    @staticmethod
+    def _record_value(record: Any, field_name: str) -> Any:
+        if isinstance(record, dict):
+            return record.get(field_name)
+        return getattr(record, field_name, None)
+
+    @classmethod
+    def _first_record_where(cls, records, field_name: str, field_value: Any):
+        if not records:
+            return None
+        for record in records:
+            if cls._record_value(record, field_name) == field_value:
+                return record
+        return None
+
+    @classmethod
+    def _records_where(cls, records, field_name: str, field_value: Any):
+        if not records:
+            return []
+        return [
+            record
+            for record in records
+            if cls._record_value(record, field_name) == field_value
+        ]
+
     def load_wallets(self):
         document = self.load_blockchain_document()
         if not document:
@@ -261,6 +286,15 @@ class StorageBackend(ABC):
         document = self._load_or_new_blockchain_document()
         document["wallets"] = wallets
         self.save_blockchain_document(document)
+
+    def get_wallet(self, public_key, wallets=None):
+        if not isinstance(public_key, str) or not public_key.strip():
+            return None
+        wallets = self.load_wallets() if wallets is None else wallets
+        public_key = public_key.strip()
+        if isinstance(wallets, dict):
+            return wallets.get(public_key)
+        return self._first_record_where(wallets, "public_key", public_key)
 
     def load_submissions(self):
         document = self.load_blockchain_document()
@@ -273,6 +307,28 @@ class StorageBackend(ABC):
         document["submissions"] = submissions
         self.save_blockchain_document(document)
 
+    def get_submission(self, submission_id, submissions=None):
+        if not isinstance(submission_id, str) or not submission_id.strip():
+            return None
+        submissions = self.load_submissions() if submissions is None else submissions
+        return self._first_record_where(submissions, "submission_id", submission_id.strip())
+
+    def get_submission_by_content_hash(self, content_hash, submissions=None):
+        if not isinstance(content_hash, str) or not content_hash.strip():
+            return None
+        submissions = self.load_submissions() if submissions is None else submissions
+        return self._first_record_where(submissions, "content_hash", content_hash.strip())
+
+    def list_submissions(self, submissions=None, status=None):
+        submissions = self.load_submissions() if submissions is None else submissions
+        if status is None:
+            return list(submissions or [])
+        return [
+            submission
+            for submission in (submissions or [])
+            if self._record_value(submission, "status") == status
+        ]
+
     def load_mint_queue(self):
         document = self.load_blockchain_document()
         if not document:
@@ -283,6 +339,12 @@ class StorageBackend(ABC):
         document = self._load_or_new_blockchain_document()
         document["mint_queue"] = mint_queue
         self.save_blockchain_document(document)
+
+    def mint_queue_contains(self, submission_id, mint_queue=None) -> bool:
+        if not isinstance(submission_id, str) or not submission_id.strip():
+            return False
+        mint_queue = self.load_mint_queue() if mint_queue is None else mint_queue
+        return submission_id.strip() in list(mint_queue or [])
 
     def load_votes(self):
         document = self.load_blockchain_document()
@@ -295,6 +357,25 @@ class StorageBackend(ABC):
         document["votes"] = votes
         self.save_blockchain_document(document)
 
+    def get_vote(self, submission_id, voter, votes=None):
+        if not isinstance(submission_id, str) or not submission_id.strip():
+            return None
+        if not isinstance(voter, str) or not voter.strip():
+            return None
+        votes = self.load_votes() if votes is None else votes
+        submission_id = submission_id.strip()
+        voter = voter.strip()
+        for vote in votes or []:
+            if self._record_value(vote, "submission_id") == submission_id and self._record_value(vote, "voter") == voter:
+                return vote
+        return None
+
+    def get_votes_for_submission(self, submission_id, votes=None):
+        if not isinstance(submission_id, str) or not submission_id.strip():
+            return []
+        votes = self.load_votes() if votes is None else votes
+        return self._records_where(votes, "submission_id", submission_id.strip())
+
     def load_certificates(self):
         document = self.load_blockchain_document()
         if not document:
@@ -306,11 +387,86 @@ class StorageBackend(ABC):
         document["originality_certificates"] = certificates
         self.save_blockchain_document(document)
 
+    def get_certificate(self, certificate_id, certificates=None):
+        if not isinstance(certificate_id, str) or not certificate_id.strip():
+            return None
+        certificates = self.load_certificates() if certificates is None else certificates
+        return self._first_record_where(certificates, "certificate_id", certificate_id.strip())
+
+    def get_certificate_for_submission(self, submission_id, certificates=None):
+        if not isinstance(submission_id, str) or not submission_id.strip():
+            return None
+        certificates = self.load_certificates() if certificates is None else certificates
+        return self._first_record_where(certificates, "submission_id", submission_id.strip())
+
     def load_blockchain_state(self):
         return self.load_blockchain_document()
 
     def save_blockchain_state(self, state: dict[str, Any]) -> None:
         self.save_blockchain_document(state)
+
+    def get_block_by_hash(self, block_hash, chain=None):
+        if not isinstance(block_hash, str) or not block_hash.strip():
+            return None
+        chain = self.load_chain() if chain is None else chain
+        return self._first_record_where(chain, "hash", block_hash.strip())
+
+    def get_block_by_height(self, height, chain=None):
+        if height is None:
+            return None
+        chain = self.load_chain() if chain is None else chain
+        for block in chain or []:
+            if self._record_value(block, "index") == height:
+                return block
+        return None
+
+    def count_active_users(
+        self,
+        *,
+        submissions=None,
+        votes=None,
+        pending_transactions=None,
+        chain=None,
+        lookback_days: int = 7,
+        now=None,
+    ) -> int:
+        if now is None:
+            now_timestamp = datetime.now(timezone.utc).timestamp()
+        elif isinstance(now, datetime):
+            now_timestamp = now.timestamp()
+        else:
+            now_timestamp = float(now)
+        cutoff = now_timestamp - (lookback_days * 24 * 60 * 60)
+        active_wallets = set()
+
+        for submission in submissions if submissions is not None else self.load_submissions():
+            created_at = self._record_value(submission, "created_at") or 0
+            if created_at >= cutoff:
+                submitter = self._record_value(submission, "submitter")
+                if submitter:
+                    active_wallets.add(submitter)
+
+        for vote in votes if votes is not None else self.load_votes():
+            created_at = self._record_value(vote, "created_at") or 0
+            if created_at >= cutoff:
+                voter = self._record_value(vote, "voter")
+                if voter:
+                    active_wallets.add(voter)
+
+        for transaction in pending_transactions or []:
+            created_at = self._record_value(transaction, "created_at") or 0
+            sender = self._record_value(transaction, "sender")
+            if created_at >= cutoff and sender not in {"GENESIS", "REWARD_POOL"}:
+                active_wallets.add(sender)
+
+        for block in chain if chain is not None else self.load_chain():
+            for transaction in self._record_value(block, "transactions") or []:
+                created_at = self._record_value(transaction, "created_at") or 0
+                sender = self._record_value(transaction, "sender")
+                if created_at >= cutoff and sender not in {"GENESIS", "REWARD_POOL"}:
+                    active_wallets.add(sender)
+
+        return len(active_wallets)
 
     @abstractmethod
     def load_peers(self):
@@ -319,6 +475,27 @@ class StorageBackend(ABC):
     @abstractmethod
     def save_peers(self, peers) -> None:
         raise NotImplementedError
+
+    def get_peer(self, node_id, peers=None):
+        if not isinstance(node_id, str) or not node_id.strip():
+            return None
+        peers = self.load_peers() if peers is None else peers
+        return self._first_record_where(peers, "node_id", node_id.strip())
+
+    def list_active_peers(self, peers=None, network_name=None):
+        peers = self.load_peers() if peers is None else peers
+        active_peers = [
+            peer
+            for peer in peers or []
+            if self._record_value(peer, "status") == "active"
+        ]
+        if network_name:
+            active_peers = [
+                peer
+                for peer in active_peers
+                if self._record_value(peer, "network_name") == network_name
+            ]
+        return active_peers
 
     def _load_or_new_blockchain_document(self) -> dict[str, Any]:
         document = self.load_blockchain_document()

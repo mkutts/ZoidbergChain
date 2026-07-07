@@ -32,27 +32,16 @@ class PeerStore:
         return self._load_peers()
 
     def list_active_peers(self, network_name=None):
-        peers = [
-            peer
-            for peer in self._load_peers()
-            if peer.get("status") == ACTIVE
-        ]
-        if network_name:
-            peers = [
-                peer
-                for peer in peers
-                if peer.get("network_name") == network_name
-            ]
-        return peers
+        return self.storage.list_active_peers(
+            peers=self._load_peers(),
+            network_name=network_name,
+        )
 
     def get_active_peer(self, node_id):
         if not isinstance(node_id, str) or not node_id.strip():
             return None
 
-        for peer in self.list_active_peers():
-            if peer.get("node_id") == node_id.strip():
-                return peer
-        return None
+        return self.storage.get_peer(node_id, self.list_active_peers())
 
     def register_peer(self, node_id, url, network_name, now=None):
         if not isinstance(node_id, str) or not node_id.strip():
@@ -69,17 +58,19 @@ class PeerStore:
         }
 
         peers = self._load_peers()
-        for index, existing_peer in enumerate(peers):
-            if existing_peer.get("node_id") == peer["node_id"]:
-                peers[index] = {
-                    **existing_peer,
-                    "url": peer["url"],
-                    "network_name": peer["network_name"],
-                    "last_seen": peer["last_seen"],
-                    "status": ACTIVE,
-                }
-                self._save_peers(peers)
-                return peers[index]
+        existing_peer = self.storage.get_peer(peer["node_id"], peers)
+        if existing_peer is not None:
+            for index, existing in enumerate(peers):
+                if existing.get("node_id") == peer["node_id"]:
+                    peers[index] = {
+                        **existing,
+                        "url": peer["url"],
+                        "network_name": peer["network_name"],
+                        "last_seen": peer["last_seen"],
+                        "status": ACTIVE,
+                    }
+                    self._save_peers(peers)
+                    return peers[index]
 
         peers.append(peer)
         self._save_peers(peers)

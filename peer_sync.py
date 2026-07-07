@@ -370,10 +370,7 @@ def receive_peer_block(
         )
 
     block = _normalize_block_payload(block_payload)
-    existing_block = next(
-        (local_block for local_block in blockchain.chain if local_block.hash == block.hash),
-        None,
-    )
+    existing_block = blockchain.get_block_by_hash(block.hash)
     if existing_block:
         if existing_block.to_dict() != block.to_dict():
             raise DuplicateBlockError("Block hash already exists with different contents.")
@@ -1502,12 +1499,11 @@ def _find_duplicate_submission(blockchain, submission_payload):
     submission_id = submission_payload.get("submission_id")
     content_hash = submission_payload.get("content_hash")
 
-    for submission in blockchain.submissions:
-        if submission.submission_id == submission_id:
-            return submission
-        if content_hash and getattr(submission, "content_hash", None) == content_hash:
-            return submission
-
+    submission = blockchain.get_submission(submission_id) if isinstance(submission_id, str) and submission_id.strip() else None
+    if submission:
+        return submission
+    if content_hash:
+        return blockchain.storage.get_submission_by_content_hash(content_hash, blockchain.submissions)
     return None
 
 
@@ -1738,10 +1734,7 @@ def _mark_related_submission_minted(blockchain, related_submission_id):
 
 
 def _find_existing_vote(blockchain, submission_id, voter):
-    for vote in blockchain.votes:
-        if vote.get("submission_id") == submission_id and vote.get("voter") == voter:
-            return vote
-    return None
+    return blockchain.storage.get_vote(submission_id, voter, blockchain.votes)
 
 
 def _normalize_vote_payload(vote_payload):

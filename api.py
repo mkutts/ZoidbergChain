@@ -458,8 +458,8 @@ peer_store = PeerStore()
 
 def sync_approved_submissions_to_mint_queue():
     queued_any = False
-    for submission in blockchain.submissions:
-        if submission.status == APPROVED and submission.submission_id not in blockchain.mint_queue:
+    for submission in blockchain.storage.list_submissions(blockchain.submissions, status=APPROVED):
+        if not blockchain.storage.mint_queue_contains(submission.submission_id, blockchain.mint_queue):
             try:
                 blockchain.add_to_mint_queue(submission.submission_id)
                 queued_any = True
@@ -818,7 +818,7 @@ async def sync_chain(request: Request):
 @app.post("/blocks/{block_hash}/broadcast")
 @api_limit("mint")
 async def broadcast_block(request: Request, block_hash: str):
-    block = next((block for block in blockchain.chain if block.hash == block_hash), None)
+    block = blockchain.get_block_by_hash(block_hash)
     if not block:
         raise HTTPException(status_code=404, detail=f"Block not found: {block_hash}")
 

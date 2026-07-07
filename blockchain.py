@@ -276,7 +276,7 @@ class Blockchain:
         """Retrieve a wallet by its public key."""
         print(f"Debug: Retrieving wallet for public key {public_key}")
         print(f"Debug: Current wallets: {list(self.wallets.keys())}")  # Log all available public keys
-        return self.wallets.get(public_key)
+        return self.storage.get_wallet(public_key, self.wallets)
 
     def is_image_unique(self, image_path):
         """Check if the image is unique with caching."""
@@ -352,10 +352,7 @@ class Blockchain:
         return submission
 
     def get_submission(self, submission_id):
-        for submission in self.submissions:
-            if submission.submission_id == submission_id:
-                return submission
-        return None
+        return self.storage.get_submission(submission_id, self.submissions)
 
     def update_submission_status(self, submission_id, new_status):
         submission = self.get_submission(submission_id)
@@ -401,7 +398,7 @@ class Blockchain:
         if voter == submission.submitter:
             raise ValueError("Submission creator cannot vote on their own submission.")
 
-        if any(vote.get("submission_id") == submission_id and vote.get("voter") == voter for vote in self.votes):
+        if self.storage.get_vote(submission_id, voter, self.votes):
             raise ValueError("Wallet has already voted on this submission.")
 
         if self.is_submission_voting_locked(submission):
@@ -420,7 +417,7 @@ class Blockchain:
         if not self.get_submission(submission_id):
             raise ValueError(f"Submission not found: {submission_id}")
 
-        votes = [vote for vote in self.votes if vote.get("submission_id") == submission_id]
+        votes = self.storage.get_votes_for_submission(submission_id, self.votes)
         original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_ORIGINAL)
         not_original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_NOT_ORIGINAL)
         unsure_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_UNSURE)
@@ -445,16 +442,10 @@ class Blockchain:
         )
 
     def get_originality_certificate(self, certificate_id):
-        for certificate in self.originality_certificates:
-            if certificate.certificate_id == certificate_id:
-                return certificate
-        return None
+        return self.storage.get_certificate(certificate_id, self.originality_certificates)
 
     def get_originality_certificate_for_submission(self, submission_id):
-        for certificate in self.originality_certificates:
-            if certificate.submission_id == submission_id:
-                return certificate
-        return None
+        return self.storage.get_certificate_for_submission(submission_id, self.originality_certificates)
 
     def link_certificates_to_submissions(self):
         linked_any = False
@@ -630,28 +621,14 @@ class Blockchain:
         return result
 
     def get_active_users(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
-        now = now if now is not None else time.time()
-        cutoff = now - (lookback_days * 24 * 60 * 60)
-        active_wallets = set()
-
-        for submission in self.submissions:
-            if submission.created_at >= cutoff and submission.submitter:
-                active_wallets.add(submission.submitter)
-
-        for vote in self.votes:
-            if vote.get("created_at", 0) >= cutoff and vote.get("voter"):
-                active_wallets.add(vote["voter"])
-
-        for transaction in self.pending_transactions:
-            if transaction.created_at >= cutoff and transaction.sender not in {"GENESIS", "REWARD_POOL"}:
-                active_wallets.add(transaction.sender)
-
-        for block in self.chain:
-            for transaction in block.transactions:
-                if transaction.created_at >= cutoff and transaction.sender not in {"GENESIS", "REWARD_POOL"}:
-                    active_wallets.add(transaction.sender)
-
-        return len(active_wallets)
+        return self.storage.count_active_users(
+            submissions=self.submissions,
+            votes=self.votes,
+            pending_transactions=self.pending_transactions,
+            chain=self.chain,
+            lookback_days=lookback_days,
+            now=now,
+        )
 
     def calculate_minimum_votes_required(self, active_users):
         return max(
@@ -677,7 +654,7 @@ class Blockchain:
         if submission.status != APPROVED:
             raise ValueError("Only approved submissions can be added to the mint queue.")
         self.require_valid_certificate_for_submission(submission)
-        if submission_id in self.mint_queue:
+        if self.storage.mint_queue_contains(submission_id, self.mint_queue):
             raise ValueError("Submission is already in the mint queue.")
 
         self.mint_queue.append(submission_id)
@@ -911,6 +888,12 @@ class Blockchain:
 
     def get_latest_block(self):
         return self.chain[-1]
+
+    def get_block_by_hash(self, block_hash):
+        return self.storage.get_block_by_hash(block_hash, self.chain)
+
+    def get_block_by_height(self, height):
+        return self.storage.get_block_by_height(height, self.chain)
 
     @staticmethod
     def calculate_cumulative_originality_score(chain):

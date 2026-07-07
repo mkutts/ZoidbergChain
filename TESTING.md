@@ -24,7 +24,18 @@ Coverage reporting is configured for local visibility only. There is no minimum 
 
 The test fixtures run blockchain operations from a temporary working directory and copy only the files needed for the test, so the production `blockchain.json` and `wallets.json` files in the project root are not modified.
 
-Storage supports JSON and SQLite. `STORAGE_BACKEND=json` remains the default. `STORAGE_BACKEND=sqlite` uses a node-local database at `SQLITE_DB_PATH`, which defaults to `DATA_DIR/zoidbergchain.db`. `DATA_DIR` (or `NODE_DATA_DIR`) must stay unique per node. Task 5.3 will handle JSON to SQLite migration separately.
+Storage supports JSON and SQLite. `STORAGE_BACKEND=json` remains the default. `STORAGE_BACKEND=sqlite` uses a node-local database at `SQLITE_DB_PATH`, which defaults to `DATA_DIR/zoidbergchain.db`. `DATA_DIR` (or `NODE_DATA_DIR`) must stay unique per node. Task 5.3 handled JSON to SQLite migration separately, and Task 5.5 added storage query helpers so the app no longer has to scan raw persistence data in the hot paths.
+
+The storage abstraction now includes lookups for common blockchain entities such as:
+
+- blocks by hash or height
+- wallets by public key
+- submissions by id or content hash
+- votes by submission and voter
+- certificates by id or submission
+- peers by node id and active-peer filtering
+- mint-queue membership checks
+- active-user counts over a time window
 
 Storage writes are now hardened:
 

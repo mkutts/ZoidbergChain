@@ -34,6 +34,10 @@ from content import (
     CONTENT_TYPE_IMAGE,
     CONTENT_TYPE_MIXED,
     CONTENT_TYPE_TEXT,
+    HASH_SCHEME_SHA256_BYTES,
+    HASH_SCHEME_LEGACY,
+    HASH_SCHEME_SHA256_TEXT,
+    HASH_SCHEME_UNKNOWN,
     TEXT_MIME_TYPE,
     _validate_content_type,
     STORAGE_STATUS_LOCAL,
@@ -43,13 +47,13 @@ from content import (
     ContentObject,
     canonicalize_text_content,
     content_object_from_submission_data,
-    compute_content_hash_bytes,
     compute_text_content_hash,
     ensure_content_storage_dir,
     guess_mime_type,
+    resolve_payload_hash,
     resolve_local_path,
     store_content_bytes,
-    verify_content_file,
+    verify_content_object_payload,
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from storage import create_storage_backend
@@ -417,6 +421,7 @@ class Blockchain:
         content_object.file_size_bytes = stored_content["file_size_bytes"]
         content_object.storage_status = stored_content["storage_status"]
         content_object.local_path = stored_content["local_path"]
+        content_object.hash_scheme = stored_content.get("hash_scheme", content_object.hash_scheme)
         if stored_content.get("file_name"):
             content_object.file_name = stored_content["file_name"]
         if text_content and not content_object.text_content:
@@ -424,6 +429,10 @@ class Blockchain:
         if text_content and not content_object.caption:
             content_object.caption = text_content
         content_object.metadata = metadata
+        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+        content_object.hash_scheme = verification["hash_scheme"]
+        content_object.verified_at = verification["verified_at"]
+        content_object.verification_error = verification["error"]
         return content_object
 
     def _ensure_content_object_for_submission(
@@ -482,6 +491,7 @@ class Blockchain:
                 mime_type=guess_mime_type(os.path.basename(image_path), "image/jpeg"),
                 original_filename=os.path.basename(image_path),
                 data_dir=self.storage.data_dir,
+                hash_scheme=HASH_SCHEME_LEGACY,
             )
             submission.image_path = os.path.abspath(stored_content["path"])
             return stored_content
@@ -495,37 +505,39 @@ class Blockchain:
             normalized_text.encode("utf-8"),
             mime_type=TEXT_MIME_TYPE,
             data_dir=self.storage.data_dir,
+            hash_scheme=HASH_SCHEME_LEGACY,
         )
 
     def refresh_content_object_storage_statuses(self):
         refreshed_any = False
         for content_object in self.content_objects:
-            local_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
-            byte_hash = (content_object.metadata or {}).get("byte_hash")
-            if not local_path or not os.path.isfile(local_path):
+            verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+            new_status = content_object.storage_status
+            if verification["verified"]:
+                new_status = STORAGE_STATUS_VERIFIED
+            elif verification["error"] == "missing_file":
                 if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
-                    content_object.storage_status = STORAGE_STATUS_MISSING
-                    refreshed_any = True
-                continue
-            if byte_hash:
-                verification = verify_content_file(
-                    content_object.content_hash,
-                    content_object.mime_type,
-                    data_dir=self.storage.data_dir,
-                )
-                if verification["verified"]:
-                    if content_object.storage_status != STORAGE_STATUS_VERIFIED:
-                        content_object.storage_status = STORAGE_STATUS_VERIFIED
-                        refreshed_any = True
-                    if content_object.local_path != verification["local_path"]:
-                        content_object.local_path = verification["local_path"]
-                        refreshed_any = True
-                    if content_object.file_size_bytes != verification["file_size_bytes"]:
-                        content_object.file_size_bytes = verification["file_size_bytes"]
-                        refreshed_any = True
-                    continue
-            if content_object.storage_status != STORAGE_STATUS_LOCAL:
-                content_object.storage_status = STORAGE_STATUS_LOCAL
+                    new_status = STORAGE_STATUS_MISSING
+            elif verification["exists"]:
+                new_status = STORAGE_STATUS_LOCAL
+
+            if content_object.storage_status != new_status:
+                content_object.storage_status = new_status
+                refreshed_any = True
+            if content_object.hash_scheme != verification["hash_scheme"]:
+                content_object.hash_scheme = verification["hash_scheme"]
+                refreshed_any = True
+            if content_object.verification_error != verification["error"]:
+                content_object.verification_error = verification["error"]
+                refreshed_any = True
+            if content_object.verified_at != verification["verified_at"]:
+                content_object.verified_at = verification["verified_at"]
+                refreshed_any = True
+            if verification["local_path"] and content_object.local_path != verification["local_path"]:
+                content_object.local_path = verification["local_path"]
+                refreshed_any = True
+            if verification["file_size_bytes"] is not None and content_object.file_size_bytes != verification["file_size_bytes"]:
+                content_object.file_size_bytes = verification["file_size_bytes"]
                 refreshed_any = True
         return refreshed_any
 
@@ -585,6 +597,9 @@ class Blockchain:
             if content_object.storage_status != STORAGE_STATUS_VERIFIED:
                 content_object.storage_status = STORAGE_STATUS_REMOTE
                 content_object.local_path = None
+                content_object.verified_at = None
+            if content_object.hash_scheme == HASH_SCHEME_UNKNOWN:
+                content_object.verification_error = "legacy_unverifiable"
             if caption and not content_object.caption:
                 content_object.caption = caption.strip()
             if text_content and not content_object.text_content:
@@ -607,6 +622,8 @@ class Blockchain:
             text_content=text_content,
             caption=caption,
             metadata={},
+            hash_scheme=HASH_SCHEME_UNKNOWN,
+            verification_error="legacy_unverifiable",
         )
         self.content_objects.append(content_object)
         return content_object
@@ -626,6 +643,7 @@ class Blockchain:
         content_type_hint=None,
         created_at=None,
         byte_hash=None,
+        hash_scheme=None,
     ):
         content_type = None
         if content_type_hint:
@@ -648,6 +666,7 @@ class Blockchain:
             content_object.mime_type = mime_type
             content_object.file_size_bytes = file_size_bytes
             content_object.storage_status = storage_status
+            content_object.hash_scheme = hash_scheme or content_object.hash_scheme
             if local_path:
                 content_object.local_path = local_path
             if file_name:
@@ -659,6 +678,10 @@ class Blockchain:
             if content_object.content_type == CONTENT_TYPE_IMAGE and content_type == CONTENT_TYPE_MIXED:
                 content_object.content_type = CONTENT_TYPE_MIXED
             content_object.metadata = metadata
+            verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+            content_object.hash_scheme = verification["hash_scheme"]
+            content_object.verified_at = verification["verified_at"]
+            content_object.verification_error = verification["error"]
             return content_object
 
         content_object = ContentObject(
@@ -675,7 +698,14 @@ class Blockchain:
             text_content=text_content,
             caption=caption,
             metadata=({"byte_hash": byte_hash} if byte_hash else {}),
+            hash_scheme=hash_scheme or HASH_SCHEME_UNKNOWN,
+            verified_at=time.time() if storage_status == STORAGE_STATUS_VERIFIED else None,
+            verification_error=None,
         )
+        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+        content_object.hash_scheme = verification["hash_scheme"]
+        content_object.verified_at = verification["verified_at"]
+        content_object.verification_error = verification["error"]
         self.content_objects.append(content_object)
         return content_object
 
@@ -689,17 +719,17 @@ class Blockchain:
         caption=None,
         content_type_hint=None,
     ):
-        content_hash = compute_content_hash_bytes(file_bytes)
-        normalized_text_content = None
+        resolved_payload = resolve_payload_hash(file_bytes, mime_type)
+        content_hash = resolved_payload["content_hash"]
+        normalized_text_content = resolved_payload["text_content"]
         stored_content = store_content_bytes(
             content_hash,
-            file_bytes,
-            mime_type=mime_type,
+            resolved_payload["stored_bytes"],
+            mime_type=resolved_payload["mime_type"],
             original_filename=original_filename,
             data_dir=self.storage.data_dir,
+            hash_scheme=resolved_payload["hash_scheme"],
         )
-        if stored_content["mime_type"] == TEXT_MIME_TYPE:
-            normalized_text_content = canonicalize_text_content(file_bytes.decode("utf-8"))
         content_object = self.register_uploaded_content(
             content_hash=content_hash,
             submitted_by=submitted_by,
@@ -712,6 +742,7 @@ class Blockchain:
             text_content=normalized_text_content,
             content_type_hint=content_type_hint,
             byte_hash=stored_content["byte_hash"],
+            hash_scheme=stored_content["hash_scheme"],
         )
         return content_object
 
@@ -729,6 +760,7 @@ class Blockchain:
             normalized_text.encode("utf-8"),
             mime_type=TEXT_MIME_TYPE,
             data_dir=self.storage.data_dir,
+            hash_scheme=HASH_SCHEME_SHA256_TEXT,
         )
         content_object = self.register_uploaded_content(
             content_hash=content_hash,
@@ -742,6 +774,7 @@ class Blockchain:
             text_content=normalized_text,
             content_type_hint=CONTENT_TYPE_TEXT,
             byte_hash=stored_content["byte_hash"],
+            hash_scheme=stored_content["hash_scheme"],
         )
         return content_object
 
@@ -759,6 +792,15 @@ class Blockchain:
             if not resolved_image_path or not os.path.isfile(resolved_image_path):
                 raise ValueError("Uploaded content file is not available locally.")
             image_path = resolved_image_path
+
+        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+        if content_object.storage_status == STORAGE_STATUS_VERIFIED and not verification["verified"]:
+            raise ValueError("Uploaded content file failed content_hash verification.")
+        if verification["exists"] and verification["verified"]:
+            content_object.hash_scheme = verification["hash_scheme"]
+            content_object.verified_at = verification["verified_at"]
+            content_object.verification_error = None
+            content_object.storage_status = STORAGE_STATUS_VERIFIED
 
         submission_text = (text_content or "").strip() or content_object.text_content or content_object.caption or ""
         submission = Submission(

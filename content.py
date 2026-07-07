@@ -49,6 +49,17 @@ CONTENT_MIME_EXTENSIONS = {
 _HEX_32_PATTERN = re.compile(r"^[a-f0-9]{32}$")
 _HEX_64_PATTERN = re.compile(r"^[a-f0-9]{64}$")
 
+HASH_SCHEME_SHA256_BYTES = "sha256_bytes"
+HASH_SCHEME_SHA256_TEXT = "sha256_text"
+HASH_SCHEME_LEGACY = "legacy"
+HASH_SCHEME_UNKNOWN = "unknown"
+HASH_SCHEMES = {
+    HASH_SCHEME_SHA256_BYTES,
+    HASH_SCHEME_SHA256_TEXT,
+    HASH_SCHEME_LEGACY,
+    HASH_SCHEME_UNKNOWN,
+}
+
 
 def _normalize_json_value(value: Any) -> Any:
     if isinstance(value, dict):
@@ -101,6 +112,31 @@ def canonicalize_text_content(text_content: str) -> str:
 
 def compute_text_content_hash(text_content: str) -> str:
     return compute_content_hash_bytes(canonicalize_text_content(text_content).encode("utf-8"))
+
+
+def _validate_hash_scheme(hash_scheme: str | None) -> str:
+    if hash_scheme in (None, ""):
+        return HASH_SCHEME_UNKNOWN
+    if not isinstance(hash_scheme, str) or hash_scheme.strip() not in HASH_SCHEMES:
+        raise ValueError(f"Invalid hash_scheme: {hash_scheme!r}")
+    return hash_scheme.strip()
+
+
+def _coerce_optional_float(value: float | int | None, field_name: str) -> float | None:
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a valid timestamp when provided.") from exc
+    return numeric
+
+
+def _clean_optional_string(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
 
 
 def calculate_content_hash(
@@ -224,6 +260,87 @@ def _resolve_mime_type(data: bytes, declared_mime_type: str | None) -> str:
     if declared:
         return declared
     raise ValueError("Could not determine a supported mime_type for content bytes.")
+
+
+def resolve_payload_hash(
+    data: bytes,
+    mime_type: str | None,
+) -> dict[str, Any]:
+    payload = bytes(data)
+    resolved_mime_type = _resolve_mime_type(payload, mime_type)
+    if resolved_mime_type == TEXT_MIME_TYPE:
+        normalized_text = canonicalize_text_content(payload.decode("utf-8"))
+        normalized_bytes = normalized_text.encode("utf-8")
+        return {
+            "mime_type": resolved_mime_type,
+            "content_hash": compute_content_hash_bytes(normalized_bytes),
+            "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+            "text_content": normalized_text,
+            "stored_bytes": normalized_bytes,
+            "byte_hash": compute_content_hash_bytes(normalized_bytes),
+        }
+    return {
+        "mime_type": resolved_mime_type,
+        "content_hash": compute_content_hash_bytes(payload),
+        "hash_scheme": HASH_SCHEME_SHA256_BYTES,
+        "text_content": None,
+        "stored_bytes": payload,
+        "byte_hash": compute_content_hash_bytes(payload),
+    }
+
+
+def verify_content_hash_bytes(content_hash: str, data_bytes: bytes) -> dict[str, Any]:
+    if not isinstance(content_hash, str) or not _HEX_64_PATTERN.fullmatch(content_hash.strip()):
+        return {
+            "verified": False,
+            "hash_scheme": HASH_SCHEME_SHA256_BYTES,
+            "error": "malformed_hash",
+            "content_hash": content_hash,
+            "actual_hash": None,
+        }
+
+    actual_hash = compute_content_hash_bytes(bytes(data_bytes))
+    normalized_hash = content_hash.strip()
+    return {
+        "verified": actual_hash == normalized_hash,
+        "hash_scheme": HASH_SCHEME_SHA256_BYTES,
+        "error": None if actual_hash == normalized_hash else "hash_mismatch",
+        "content_hash": normalized_hash,
+        "actual_hash": actual_hash,
+    }
+
+
+def verify_content_hash_text(content_hash: str, text_content: str | None) -> dict[str, Any]:
+    if not isinstance(content_hash, str) or not _HEX_64_PATTERN.fullmatch(content_hash.strip()):
+        return {
+            "verified": False,
+            "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+            "error": "malformed_hash",
+            "content_hash": content_hash,
+            "actual_hash": None,
+            "text_content": None,
+        }
+    if not isinstance(text_content, str) or not text_content.strip():
+        return {
+            "verified": False,
+            "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+            "error": "missing_text",
+            "content_hash": content_hash.strip(),
+            "actual_hash": None,
+            "text_content": None,
+        }
+
+    normalized_text = canonicalize_text_content(text_content)
+    actual_hash = compute_content_hash_bytes(normalized_text.encode("utf-8"))
+    normalized_hash = content_hash.strip()
+    return {
+        "verified": actual_hash == normalized_hash,
+        "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+        "error": None if actual_hash == normalized_hash else "hash_mismatch",
+        "content_hash": normalized_hash,
+        "actual_hash": actual_hash,
+        "text_content": normalized_text,
+    }
 
 
 def _content_relative_storage_path(content_hash: str, mime_type: str) -> Path:
@@ -421,6 +538,215 @@ def verify_content_file(
     }
 
 
+def verify_content_object_payload(
+    content_object,
+    *,
+    data_dir: str | None = None,
+    content_storage_dir: str | None = None,
+) -> dict[str, Any]:
+    content_hash = getattr(content_object, "content_hash", None)
+    mime_type = getattr(content_object, "mime_type", None)
+    content_type = getattr(content_object, "content_type", None)
+    local_path = getattr(content_object, "local_path", None)
+    text_content = getattr(content_object, "text_content", None)
+    file_size_bytes = getattr(content_object, "file_size_bytes", None)
+    declared_hash_scheme = _validate_hash_scheme(getattr(content_object, "hash_scheme", None))
+    now = time.time()
+
+    if not isinstance(content_hash, str) or not _HEX_64_PATTERN.fullmatch(content_hash.strip()):
+        return {
+            "verified": False,
+            "hash_scheme": declared_hash_scheme,
+            "error": "malformed_hash",
+            "exists": False,
+            "local_path": None,
+            "byte_hash": None,
+            "actual_hash": None,
+            "file_size_bytes": None,
+            "verified_at": None,
+        }
+
+    resolved_local_path = resolve_local_path(
+        local_path,
+        data_dir=data_dir,
+        content_storage_dir=content_storage_dir,
+    )
+    file_exists = bool(resolved_local_path and os.path.isfile(resolved_local_path))
+    is_text_payload = mime_type == TEXT_MIME_TYPE or content_type == CONTENT_TYPE_TEXT
+
+    if is_text_payload and isinstance(text_content, str) and text_content.strip():
+        text_result = verify_content_hash_text(content_hash, text_content)
+        if text_result["verified"]:
+            canonical_bytes = text_result["text_content"].encode("utf-8")
+            mismatch = (
+                file_size_bytes is not None
+                and int(file_size_bytes) != len(canonical_bytes)
+            )
+            return {
+                "verified": not mismatch,
+                "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+                "error": None if not mismatch else "file_size_mismatch",
+                "exists": True,
+                "local_path": make_safe_local_path(
+                    resolved_local_path,
+                    data_dir=data_dir,
+                    content_storage_dir=content_storage_dir,
+                ) if file_exists else local_path,
+                "byte_hash": compute_content_hash_bytes(canonical_bytes),
+                "actual_hash": text_result["actual_hash"],
+                "file_size_bytes": len(canonical_bytes),
+                "verified_at": now if not mismatch else None,
+            }
+        if declared_hash_scheme in {HASH_SCHEME_UNKNOWN, HASH_SCHEME_LEGACY} and not file_exists:
+            return {
+                "verified": False,
+                "hash_scheme": HASH_SCHEME_LEGACY,
+                "error": "legacy_unverifiable",
+                "exists": False,
+                "local_path": None,
+                "byte_hash": None,
+                "actual_hash": text_result["actual_hash"],
+                "file_size_bytes": None,
+                "verified_at": None,
+            }
+        if declared_hash_scheme == HASH_SCHEME_SHA256_TEXT:
+            return {
+                "verified": False,
+                "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+                "error": text_result["error"],
+                "exists": True,
+                "local_path": make_safe_local_path(
+                    resolved_local_path,
+                    data_dir=data_dir,
+                    content_storage_dir=content_storage_dir,
+                ) if file_exists else local_path,
+                "byte_hash": None,
+                "actual_hash": text_result["actual_hash"],
+                "file_size_bytes": len(text_result["text_content"].encode("utf-8")) if text_result["text_content"] else None,
+                "verified_at": None,
+            }
+
+    if is_text_payload and file_exists:
+        payload_bytes = Path(resolved_local_path).read_bytes()
+        try:
+            decoded_text = payload_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            return {
+                "verified": False,
+                "hash_scheme": declared_hash_scheme,
+                "error": "unsupported_type",
+                "exists": True,
+                "local_path": make_safe_local_path(
+                    resolved_local_path,
+                    data_dir=data_dir,
+                    content_storage_dir=content_storage_dir,
+                ),
+                "byte_hash": compute_content_hash_bytes(payload_bytes),
+                "actual_hash": None,
+                "file_size_bytes": len(payload_bytes),
+                "verified_at": None,
+            }
+        text_result = verify_content_hash_text(content_hash, decoded_text)
+        if text_result["verified"]:
+            mismatch = file_size_bytes is not None and int(file_size_bytes) != len(payload_bytes)
+            return {
+                "verified": not mismatch,
+                "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+                "error": None if not mismatch else "file_size_mismatch",
+                "exists": True,
+                "local_path": make_safe_local_path(
+                    resolved_local_path,
+                    data_dir=data_dir,
+                    content_storage_dir=content_storage_dir,
+                ),
+                "byte_hash": compute_content_hash_bytes(payload_bytes),
+                "actual_hash": text_result["actual_hash"],
+                "file_size_bytes": len(payload_bytes),
+                "verified_at": now if not mismatch else None,
+            }
+        return {
+            "verified": False,
+            "hash_scheme": HASH_SCHEME_LEGACY if declared_hash_scheme in {HASH_SCHEME_UNKNOWN, HASH_SCHEME_LEGACY} else HASH_SCHEME_SHA256_TEXT,
+            "error": "legacy_unverifiable" if declared_hash_scheme in {HASH_SCHEME_UNKNOWN, HASH_SCHEME_LEGACY} else text_result["error"],
+            "exists": True,
+            "local_path": make_safe_local_path(
+                resolved_local_path,
+                data_dir=data_dir,
+                content_storage_dir=content_storage_dir,
+            ),
+            "byte_hash": compute_content_hash_bytes(payload_bytes),
+            "actual_hash": text_result["actual_hash"],
+            "file_size_bytes": len(payload_bytes),
+            "verified_at": None,
+        }
+
+    if is_text_payload:
+        return {
+            "verified": False,
+            "hash_scheme": declared_hash_scheme,
+            "error": "missing_text" if not file_exists else "hash_mismatch",
+            "exists": file_exists,
+            "local_path": make_safe_local_path(
+                resolved_local_path,
+                data_dir=data_dir,
+                content_storage_dir=content_storage_dir,
+            ) if file_exists else None,
+            "byte_hash": None,
+            "actual_hash": None,
+            "file_size_bytes": None,
+            "verified_at": None,
+        }
+
+    if not file_exists:
+        return {
+            "verified": False,
+            "hash_scheme": declared_hash_scheme,
+            "error": "missing_file",
+            "exists": False,
+            "local_path": None,
+            "byte_hash": None,
+            "actual_hash": None,
+            "file_size_bytes": None,
+            "verified_at": None,
+        }
+
+    payload_bytes = Path(resolved_local_path).read_bytes()
+    bytes_result = verify_content_hash_bytes(content_hash, payload_bytes)
+    if bytes_result["verified"]:
+        mismatch = file_size_bytes is not None and int(file_size_bytes) != len(payload_bytes)
+        return {
+            "verified": not mismatch,
+            "hash_scheme": HASH_SCHEME_SHA256_BYTES,
+            "error": None if not mismatch else "file_size_mismatch",
+            "exists": True,
+            "local_path": make_safe_local_path(
+                resolved_local_path,
+                data_dir=data_dir,
+                content_storage_dir=content_storage_dir,
+            ),
+            "byte_hash": bytes_result["actual_hash"],
+            "actual_hash": bytes_result["actual_hash"],
+            "file_size_bytes": len(payload_bytes),
+            "verified_at": now if not mismatch else None,
+        }
+
+    return {
+        "verified": False,
+        "hash_scheme": HASH_SCHEME_LEGACY if declared_hash_scheme in {HASH_SCHEME_UNKNOWN, HASH_SCHEME_LEGACY} else HASH_SCHEME_SHA256_BYTES,
+        "error": "legacy_unverifiable" if declared_hash_scheme in {HASH_SCHEME_UNKNOWN, HASH_SCHEME_LEGACY} else bytes_result["error"],
+        "exists": True,
+        "local_path": make_safe_local_path(
+            resolved_local_path,
+            data_dir=data_dir,
+            content_storage_dir=content_storage_dir,
+        ),
+        "byte_hash": compute_content_hash_bytes(payload_bytes),
+        "actual_hash": bytes_result["actual_hash"],
+        "file_size_bytes": len(payload_bytes),
+        "verified_at": None,
+    }
+
+
 def store_content_bytes(
     content_hash: str,
     data: bytes,
@@ -430,6 +756,7 @@ def store_content_bytes(
     data_dir: str | None = None,
     content_storage_dir: str | None = None,
     max_size_bytes: int | None = None,
+    hash_scheme: str | None = None,
 ) -> dict[str, Any]:
     normalized_hash = _validate_content_hash_value(content_hash)
     payload = bytes(data)
@@ -440,8 +767,21 @@ def store_content_bytes(
             f"Content file exceeds MAX_CONTENT_FILE_SIZE_BYTES ({max_size_bytes} bytes)."
         )
 
-    resolved_mime_type = _resolve_mime_type(payload, mime_type)
-    byte_hash = compute_content_hash_bytes(payload)
+    resolved_payload = resolve_payload_hash(payload, mime_type)
+    resolved_mime_type = resolved_payload["mime_type"]
+    normalized_scheme = _validate_hash_scheme(hash_scheme) if hash_scheme not in (None, "") else resolved_payload["hash_scheme"]
+    if normalized_scheme not in {
+        HASH_SCHEME_SHA256_BYTES,
+        HASH_SCHEME_SHA256_TEXT,
+        HASH_SCHEME_LEGACY,
+        HASH_SCHEME_UNKNOWN,
+    }:
+        raise ValueError("hash_scheme for stored local content is invalid.")
+    strict_hash_match = normalized_scheme in {HASH_SCHEME_SHA256_BYTES, HASH_SCHEME_SHA256_TEXT}
+    if strict_hash_match and resolved_payload["content_hash"] != normalized_hash:
+        raise ValueError(f"Provided content_hash does not match the {normalized_scheme} payload hash.")
+    payload = resolved_payload["stored_bytes"]
+    byte_hash = resolved_payload["byte_hash"]
     target_path = Path(
         get_content_file_path(
             normalized_hash,
@@ -472,10 +812,11 @@ def store_content_bytes(
                 "path": str(existing_path),
                 "local_path": verification["local_path"],
                 "file_size_bytes": verification["file_size_bytes"],
-                "storage_status": STORAGE_STATUS_VERIFIED,
+                "storage_status": STORAGE_STATUS_VERIFIED if strict_hash_match else STORAGE_STATUS_LOCAL,
                 "byte_hash": byte_hash,
                 "file_name": existing_path.name,
                 "original_filename": os.path.basename(original_filename) if original_filename else None,
+                "hash_scheme": normalized_scheme,
             }
         raise ValueError(
             f"Existing content file for {normalized_hash} does not match the bytes being stored."
@@ -524,10 +865,11 @@ def store_content_bytes(
             "path": str(target_path),
             "local_path": verification["local_path"],
             "file_size_bytes": verification["file_size_bytes"],
-            "storage_status": STORAGE_STATUS_VERIFIED,
+            "storage_status": STORAGE_STATUS_VERIFIED if strict_hash_match else STORAGE_STATUS_LOCAL,
             "byte_hash": byte_hash,
             "file_name": target_path.name,
             "original_filename": os.path.basename(original_filename) if original_filename else None,
+            "hash_scheme": normalized_scheme,
         }
     finally:
         for leftover in (temp_path, sidecar_temp_path):
@@ -553,6 +895,9 @@ class ContentObject:
     text_content: str | None = None
     caption: str | None = None
     metadata: dict[str, Any] | None = None
+    hash_scheme: str = HASH_SCHEME_UNKNOWN
+    verified_at: float | None = None
+    verification_error: str | None = None
     content_id: str = ""
 
     def __post_init__(self):
@@ -578,6 +923,9 @@ class ContentObject:
         if self.caption is not None:
             self.caption = self.caption.strip()
         self.metadata = dict(self.metadata or {})
+        self.hash_scheme = _validate_hash_scheme(self.hash_scheme)
+        self.verified_at = _coerce_optional_float(self.verified_at, "verified_at")
+        self.verification_error = _clean_optional_string(self.verification_error)
 
         expected_content_id = calculate_content_id(self.content_hash)
         if not self.content_id:
@@ -601,24 +949,19 @@ class ContentObject:
         created_at: float | None = None,
         storage_status: str = STORAGE_STATUS_MISSING,
     ) -> "ContentObject":
-        content_hash = calculate_content_hash(
-            content_type=CONTENT_TYPE_TEXT,
-            mime_type=mime_type,
-            text_content=text_content,
-            caption=caption,
-            metadata=metadata,
-        )
+        normalized_text = canonicalize_text_content(text_content)
         return cls(
-            content_hash=content_hash,
+            content_hash=compute_text_content_hash(normalized_text),
             content_type=CONTENT_TYPE_TEXT,
             mime_type=TEXT_MIME_TYPE,
             submitted_by=submitted_by,
             network_name=network_name,
             created_at=time.time() if created_at is None else created_at,
-            text_content=text_content,
+            text_content=normalized_text,
             caption=caption,
             metadata=metadata,
             storage_status=storage_status,
+            hash_scheme=HASH_SCHEME_SHA256_TEXT,
         )
 
     @classmethod
@@ -660,6 +1003,7 @@ class ContentObject:
             text_content=text_content,
             caption=caption,
             metadata=metadata,
+            hash_scheme=HASH_SCHEME_LEGACY,
         )
 
     @classmethod
@@ -681,6 +1025,9 @@ class ContentObject:
             created_at=data.get("created_at", time.time()),
             network_name=data.get("network_name", ""),
             metadata=data.get("metadata"),
+            hash_scheme=data.get("hash_scheme"),
+            verified_at=data.get("verified_at"),
+            verification_error=data.get("verification_error"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -699,6 +1046,9 @@ class ContentObject:
             "created_at": self.created_at,
             "network_name": self.network_name,
             "metadata": self.metadata,
+            "hash_scheme": self.hash_scheme,
+            "verified_at": self.verified_at,
+            "verification_error": self.verification_error,
         }
 
 
@@ -738,47 +1088,36 @@ def content_object_from_submission_data(
     )
 
     local_path = make_safe_local_path(image_path or None, data_dir=data_dir)
-    resolved_storage_status = storage_status
-    verification = None
-    if resolved_storage_status is None:
-        if local_path and content_file_exists(content_hash.strip(), mime_type, data_dir=data_dir):
-            verification = verify_content_file(content_hash.strip(), mime_type, data_dir=data_dir)
-            resolved_storage_status = (
-                STORAGE_STATUS_VERIFIED if verification["verified"] else STORAGE_STATUS_LOCAL
-            )
-        elif image_path and os.path.isfile(image_path):
-            resolved_storage_status = STORAGE_STATUS_LOCAL
-        else:
-            resolved_storage_status = STORAGE_STATUS_MISSING
-
     created_at = submission_data.get("created_at")
     try:
         created_at_value = float(created_at)
     except (TypeError, ValueError):
         created_at_value = time.time()
 
-    file_size_bytes = None
-    if verification and verification["file_size_bytes"] is not None:
-        file_size_bytes = int(verification["file_size_bytes"])
-        local_path = verification["local_path"]
-    elif raw_bytes is not None:
-        file_size_bytes = len(raw_bytes)
+    file_size_bytes = len(raw_bytes) if raw_bytes is not None else None
 
     metadata = {
         "submission_id": submission_data.get("submission_id"),
     }
     if raw_bytes is not None:
         metadata["byte_hash"] = compute_content_hash_bytes(raw_bytes)
-    elif verification and verification["byte_hash"]:
-        metadata["byte_hash"] = verification["byte_hash"]
+    hash_scheme = submission_data.get("hash_scheme")
+    if raw_bytes is not None:
+        payload_hash = resolve_payload_hash(raw_bytes, mime_type)
+        if payload_hash["content_hash"] == content_hash.strip():
+            hash_scheme = payload_hash["hash_scheme"]
+    elif text_content:
+        text_hash = verify_content_hash_text(content_hash.strip(), text_content)
+        if text_hash["verified"]:
+            hash_scheme = HASH_SCHEME_SHA256_TEXT
 
-    return ContentObject(
+    content_object = ContentObject(
         content_hash=content_hash.strip(),
         content_type=content_type,
         mime_type=mime_type,
         file_name=file_name,
         file_size_bytes=file_size_bytes,
-        storage_status=resolved_storage_status,
+        storage_status=storage_status or (STORAGE_STATUS_LOCAL if raw_bytes is not None else STORAGE_STATUS_MISSING),
         local_path=local_path,
         text_content=text_content or None,
         caption=text_content or None,
@@ -786,4 +1125,25 @@ def content_object_from_submission_data(
         network_name=network_name,
         created_at=created_at_value,
         metadata=metadata,
+        hash_scheme=hash_scheme,
+        verified_at=submission_data.get("verified_at"),
+        verification_error=submission_data.get("verification_error"),
     )
+    payload_verification = verify_content_object_payload(content_object, data_dir=data_dir)
+    content_object.hash_scheme = payload_verification["hash_scheme"]
+    content_object.verification_error = payload_verification["error"]
+    content_object.verified_at = payload_verification["verified_at"]
+    if payload_verification["file_size_bytes"] is not None:
+        content_object.file_size_bytes = payload_verification["file_size_bytes"]
+    if payload_verification["local_path"] is not None:
+        content_object.local_path = payload_verification["local_path"]
+    if storage_status is None:
+        if payload_verification["verified"]:
+            content_object.storage_status = STORAGE_STATUS_VERIFIED
+        elif payload_verification["error"] == "missing_file":
+            content_object.storage_status = STORAGE_STATUS_MISSING
+        elif raw_bytes is not None or local_path:
+            content_object.storage_status = STORAGE_STATUS_LOCAL
+        else:
+            content_object.storage_status = STORAGE_STATUS_MISSING
+    return content_object

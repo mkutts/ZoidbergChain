@@ -2,15 +2,23 @@ from pathlib import Path
 
 import pytest
 
+import storage
 from blockchain import Blockchain
 from content import (
+    HASH_SCHEME_LEGACY,
+    HASH_SCHEME_SHA256_BYTES,
+    HASH_SCHEME_SHA256_TEXT,
     STORAGE_STATUS_VERIFIED,
     TEXT_MIME_TYPE,
     compute_content_hash_bytes,
+    compute_text_content_hash,
     content_file_exists,
     ensure_content_storage_dir,
     load_content_bytes,
     store_content_bytes,
+    verify_content_hash_bytes,
+    verify_content_hash_text,
+    verify_content_object_payload,
     verify_content_file,
 )
 from storage import JSONStorageBackend, SQLiteStorageBackend
@@ -66,7 +74,7 @@ def test_compute_content_hash_bytes_is_deterministic():
 
 
 def test_store_content_bytes_writes_file_by_content_hash_and_ignores_original_filename(isolated_data_dir):
-    content_hash = "a" * 64
+    content_hash = compute_content_hash_bytes(PNG_BYTES)
     result = store_content_bytes(
         content_hash,
         PNG_BYTES,
@@ -84,7 +92,7 @@ def test_store_content_bytes_writes_file_by_content_hash_and_ignores_original_fi
 
 
 def test_verify_content_file_succeeds_for_matching_hash(isolated_data_dir):
-    content_hash = "b" * 64
+    content_hash = compute_content_hash_bytes(JPEG_BYTES)
     store_content_bytes(content_hash, JPEG_BYTES, mime_type="image/jpeg", data_dir=str(isolated_data_dir))
 
     verification = verify_content_file(content_hash, "image/jpeg", data_dir=str(isolated_data_dir))
@@ -94,7 +102,7 @@ def test_verify_content_file_succeeds_for_matching_hash(isolated_data_dir):
 
 
 def test_verify_content_file_fails_for_corrupt_content(isolated_data_dir):
-    content_hash = "c" * 64
+    content_hash = compute_content_hash_bytes(GIF_BYTES)
     result = store_content_bytes(content_hash, GIF_BYTES, mime_type="image/gif", data_dir=str(isolated_data_dir))
 
     Path(result["path"]).write_bytes(b"corrupted")
@@ -105,7 +113,7 @@ def test_verify_content_file_fails_for_corrupt_content(isolated_data_dir):
 
 
 def test_storing_same_content_twice_is_idempotent(isolated_data_dir):
-    content_hash = "d" * 64
+    content_hash = compute_content_hash_bytes(WEBP_BYTES)
     first = store_content_bytes(content_hash, WEBP_BYTES, mime_type="image/webp", data_dir=str(isolated_data_dir))
     second = store_content_bytes(content_hash, WEBP_BYTES, mime_type="image/webp", data_dir=str(isolated_data_dir))
 
@@ -114,7 +122,7 @@ def test_storing_same_content_twice_is_idempotent(isolated_data_dir):
 
 
 def test_storing_different_bytes_under_same_content_hash_fails(isolated_data_dir):
-    content_hash = "e" * 64
+    content_hash = compute_content_hash_bytes(PNG_BYTES)
     store_content_bytes(content_hash, PNG_BYTES, mime_type="image/png", data_dir=str(isolated_data_dir))
 
     with pytest.raises(ValueError, match="does not match"):
@@ -169,8 +177,15 @@ def test_submission_content_object_becomes_verified_and_persists(
     backend = backend_factory(isolated_data_dir, "persisted-node")
     blockchain, owner = _blockchain(backend)
 
-    submission = blockchain.submit_content(
-        image_path=str(submission_image),
+    content_object = blockchain.upload_binary_content(
+        file_bytes=submission_image.read_bytes(),
+        submitted_by=owner.public_key,
+        mime_type="image/jpeg",
+        original_filename=submission_image.name,
+    )
+    submission = blockchain.submit_existing_content(
+        content_hash=content_object.content_hash,
+        content_id=content_object.content_id,
         text_content="verified content object",
         submitter=owner.public_key,
     )
@@ -179,6 +194,7 @@ def test_submission_content_object_becomes_verified_and_persists(
     content_object = blockchain.get_content_object_by_hash(submission.content_hash)
     assert content_object is not None
     assert content_object.storage_status == STORAGE_STATUS_VERIFIED
+    assert content_object.hash_scheme == HASH_SCHEME_SHA256_BYTES
     assert content_object.file_size_bytes == Path(submission.image_path).stat().st_size
     assert content_object.local_path is not None
     assert Path(submission.image_path).exists()
@@ -219,3 +235,63 @@ def test_data_dir_isolation_keeps_node_a_and_node_b_content_files_separate(
     assert path_a != path_b
     assert str(path_a).startswith(str(isolated_data_dir / "node-a" / "content"))
     assert str(path_b).startswith(str(isolated_data_dir / "node-b" / "content"))
+
+
+def test_verify_content_hash_helpers_cover_binary_and_text():
+    assert verify_content_hash_bytes(compute_content_hash_bytes(PNG_BYTES), PNG_BYTES)["verified"] is True
+    assert verify_content_hash_bytes(compute_content_hash_bytes(PNG_BYTES), JPEG_BYTES)["error"] == "hash_mismatch"
+    assert verify_content_hash_text(compute_text_content_hash("hello\r\nworld"), "hello\nworld")["verified"] is True
+    assert verify_content_hash_text(compute_text_content_hash("hello world"), "different")["error"] == "hash_mismatch"
+
+
+def test_legacy_submission_content_object_stays_local_and_unverifiable(isolated_data_dir, submission_image):
+    backend = _json_backend(isolated_data_dir, "legacy-node")
+    blockchain, owner = _blockchain(backend)
+
+    submission = blockchain.submit_content(
+        image_path=str(submission_image),
+        text_content="legacy content object",
+        submitter=owner.public_key,
+    )
+
+    content_object = blockchain.get_content_object_by_hash(submission.content_hash)
+    verification = verify_content_object_payload(content_object, data_dir=backend.data_dir)
+    assert content_object.storage_status == "local"
+    assert content_object.hash_scheme == HASH_SCHEME_LEGACY
+    assert verification["verified"] is False
+    assert verification["error"] == "legacy_unverifiable"
+
+
+def test_integrity_check_reports_corrupt_verified_content(isolated_data_dir):
+    backend = _json_backend(isolated_data_dir, "integrity-corrupt")
+    blockchain, owner = _blockchain(backend)
+    content_object = blockchain.upload_binary_content(
+        file_bytes=PNG_BYTES,
+        submitted_by=owner.public_key,
+        mime_type="image/png",
+        original_filename="integrity.png",
+    )
+    blockchain.save_blockchain()
+
+    file_path = Path(backend.data_dir) / Path(content_object.local_path)
+    file_path.write_bytes(b"corrupt")
+    report = storage.check_storage_integrity(backend)
+
+    assert report["healthy"] is False
+    assert any("hash_mismatch" in detail for detail in report["details"])
+
+
+def test_integrity_check_warns_for_legacy_unverifiable_content(isolated_data_dir, submission_image):
+    backend = _json_backend(isolated_data_dir, "integrity-legacy")
+    blockchain, owner = _blockchain(backend)
+    blockchain.submit_content(
+        image_path=str(submission_image),
+        text_content="legacy integrity",
+        submitter=owner.public_key,
+    )
+    blockchain.save_blockchain()
+
+    report = storage.check_storage_integrity(backend)
+
+    assert report["healthy"] is True
+    assert any("legacy/unverifiable" in detail for detail in report["details"])

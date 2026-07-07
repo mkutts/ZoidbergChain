@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import config
-from content import ContentObject, content_object_from_submission_data
+from content import ContentObject, content_object_from_submission_data, verify_content_object_payload
 
 
 SUPPORTED_STORAGE_BACKENDS = {"json", "sqlite"}
@@ -847,6 +847,37 @@ class SQLiteStorageBackend(StorageBackend):
 def check_storage_integrity(backend: StorageBackend | None = None) -> dict[str, Any]:
     backend = backend or create_storage_backend()
 
+    def _content_integrity_details() -> tuple[list[str], bool]:
+        details: list[str] = []
+        healthy = True
+        for payload in backend.load_content_objects():
+            try:
+                content_object = ContentObject.from_dict(payload)
+            except ValueError as exc:
+                details.append(f"content object unreadable: {exc}")
+                healthy = False
+                continue
+
+            verification = verify_content_object_payload(content_object, data_dir=backend.data_dir)
+            if verification["verified"]:
+                details.append(f"content verified: {content_object.content_hash}")
+                continue
+            if verification["error"] == "legacy_unverifiable":
+                details.append(f"warning: content legacy/unverifiable: {content_object.content_hash}")
+                continue
+            if (
+                verification["error"] == "missing_file"
+                and content_object.storage_status in {"missing", "remote"}
+            ):
+                details.append(f"warning: content missing locally: {content_object.content_hash}")
+                continue
+            if verification["error"] in {"missing_file", "hash_mismatch", "malformed_hash", "file_size_mismatch"}:
+                healthy = False
+            details.append(
+                f"content issue ({verification['error']}): {content_object.content_hash}"
+            )
+        return details, healthy
+
     if isinstance(backend, JSONStorageBackend):
         details: list[str] = []
         recovered_from_backup = False
@@ -876,9 +907,12 @@ def check_storage_integrity(backend: StorageBackend | None = None) -> dict[str, 
             details.append("peers JSON readable")
             recovered_from_backup = recovered_from_backup or peers_recovered
 
+        content_details, content_healthy = _content_integrity_details()
+        details.extend(content_details)
+
         report = StorageIntegrityReport(
             backend="json",
-            healthy=True,
+            healthy=content_healthy,
             details=details,
             main_path=backend.blockchain_file,
             backup_path=_backup_path_for(backend.blockchain_file),
@@ -900,9 +934,11 @@ def check_storage_integrity(backend: StorageBackend | None = None) -> dict[str, 
         sections = backend._load_sections(strict=True)
         details.append("sqlite database opened")
         details.append(f"storage sections present: {len(sections)}")
+        content_details, content_healthy = _content_integrity_details()
+        details.extend(content_details)
         report = StorageIntegrityReport(
             backend="sqlite",
-            healthy=True,
+            healthy=content_healthy,
             details=details,
             main_path=backend.sqlite_db_path,
             backup_path=_backup_path_for(backend.sqlite_db_path),

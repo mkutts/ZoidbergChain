@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import config
+from content import ContentObject, verify_content_object_payload
 from storage import (
     JSONStorageBackend,
     SQLiteStorageBackend,
@@ -272,6 +273,32 @@ def _write_state_to_backend(backend: StorageBackend, state: dict[str, Any]) -> N
     backend.save_peers(deepcopy(state.get("peers", [])))
 
 
+def _normalize_imported_content_objects(
+    backend: StorageBackend,
+    content_objects: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for payload in content_objects:
+        if not isinstance(payload, dict):
+            normalized.append(deepcopy(payload))
+            continue
+        content_object = ContentObject.from_dict(payload)
+        verification = verify_content_object_payload(content_object, data_dir=backend.data_dir)
+        if verification["verified"]:
+            content_object.storage_status = "verified"
+        elif verification["error"] == "missing_file" and content_object.storage_status in {"local", "verified"}:
+            content_object.storage_status = "missing"
+        content_object.hash_scheme = verification["hash_scheme"]
+        content_object.verified_at = verification["verified_at"]
+        content_object.verification_error = verification["error"]
+        if verification["file_size_bytes"] is not None:
+            content_object.file_size_bytes = verification["file_size_bytes"]
+        if verification["local_path"] is not None:
+            content_object.local_path = verification["local_path"]
+        normalized.append(content_object.to_dict())
+    return normalized
+
+
 def _build_backup_filename(backend: StorageBackend, chain: list[Any], *, include_suffix: bool = True) -> str:
     timestamp = _utc_timestamp()
     node_id = _safe_filename_part(config.NODE_ID)
@@ -444,7 +471,10 @@ def import_storage(
         "chain": deepcopy(state.get("chain", [])),
         "wallets": deepcopy(state.get("wallets", {})),
         "submissions": deepcopy(state.get("submissions", [])),
-        "content_objects": deepcopy(state.get("content_objects", [])),
+        "content_objects": _normalize_imported_content_objects(
+            backend,
+            deepcopy(state.get("content_objects", [])),
+        ),
         "mint_queue": deepcopy(state.get("mint_queue", [])),
         "votes": deepcopy(state.get("votes", [])),
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),

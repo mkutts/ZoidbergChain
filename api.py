@@ -25,7 +25,7 @@ from content import (
     compute_content_hash_bytes,
     load_content_bytes,
     resolve_local_path,
-    verify_content_file,
+    verify_content_object_payload,
 )
 from wallet import Wallet
 from transaction import Transaction
@@ -283,10 +283,13 @@ def _safe_content_metadata(content_object):
     return {
         "content_id": content_object.content_id,
         "content_hash": content_object.content_hash,
+        "hash_scheme": content_object.hash_scheme,
         "content_type": content_object.content_type,
         "mime_type": content_object.mime_type,
         "file_size_bytes": content_object.file_size_bytes,
         "storage_status": content_object.storage_status,
+        "verified_at": content_object.verified_at,
+        "verification_error": content_object.verification_error,
         "caption": content_object.caption,
         "submitted_by": content_object.submitted_by,
         "created_at": content_object.created_at,
@@ -1093,19 +1096,20 @@ async def get_peer_content_metadata(
 @api_limit("public_read")
 async def download_content(request: Request, content_hash: str):
     content_object = _require_content_object(content_hash)
-
-    if content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
-        return PlainTextResponse(content=content_object.text_content, media_type=TEXT_MIME_TYPE)
-
-    verification = verify_content_file(
-        content_object.content_hash,
-        content_object.mime_type,
-        data_dir=blockchain.storage.data_dir,
-    )
-    if not verification["exists"]:
+    verification = verify_content_object_payload(content_object, data_dir=blockchain.storage.data_dir)
+    if verification["error"] == "missing_file":
         raise HTTPException(status_code=404, detail=f"Content file not found for hash: {content_hash}")
     if not verification["verified"]:
         raise HTTPException(status_code=409, detail="Content file failed integrity verification.")
+    content_object.hash_scheme = verification["hash_scheme"]
+    content_object.verified_at = verification["verified_at"]
+    content_object.verification_error = None
+    content_object.storage_status = "verified"
+    if verification["file_size_bytes"] is not None:
+        content_object.file_size_bytes = verification["file_size_bytes"]
+
+    if content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
+        return PlainTextResponse(content=content_object.text_content, media_type=TEXT_MIME_TYPE)
 
     file_path = resolve_local_path(content_object.local_path, data_dir=blockchain.storage.data_dir)
     if not file_path or not os.path.isfile(file_path):
@@ -1137,19 +1141,20 @@ async def download_peer_content(
     _: None = Depends(require_peer_secret),
 ):
     content_object = _require_content_object(content_hash)
-
-    if content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
-        return PlainTextResponse(content=content_object.text_content, media_type=TEXT_MIME_TYPE)
-
-    verification = verify_content_file(
-        content_object.content_hash,
-        content_object.mime_type,
-        data_dir=blockchain.storage.data_dir,
-    )
-    if not verification["exists"]:
+    verification = verify_content_object_payload(content_object, data_dir=blockchain.storage.data_dir)
+    if verification["error"] == "missing_file":
         raise HTTPException(status_code=404, detail=f"Content file not found for hash: {content_hash}")
     if not verification["verified"]:
         raise HTTPException(status_code=409, detail="Content file failed integrity verification.")
+    content_object.hash_scheme = verification["hash_scheme"]
+    content_object.verified_at = verification["verified_at"]
+    content_object.verification_error = None
+    content_object.storage_status = "verified"
+    if verification["file_size_bytes"] is not None:
+        content_object.file_size_bytes = verification["file_size_bytes"]
+
+    if content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
+        return PlainTextResponse(content=content_object.text_content, media_type=TEXT_MIME_TYPE)
 
     file_path = resolve_local_path(content_object.local_path, data_dir=blockchain.storage.data_dir)
     if not file_path or not os.path.isfile(file_path):

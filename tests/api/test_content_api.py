@@ -206,6 +206,9 @@ def test_metadata_endpoint_returns_safe_fields(blockchain, wallets):
     assert response.status_code == 200
     content = response.json()["content"]
     assert content["content_hash"] == upload.json()["content_hash"]
+    assert content["hash_scheme"] == "sha256_bytes"
+    assert content["verified_at"] is not None
+    assert content["verification_error"] is None
     assert content["network_name"]
     assert "local_path" not in content
     assert "private_key" not in content
@@ -227,6 +230,24 @@ def test_text_metadata_endpoint_works(blockchain, wallets):
     assert response.status_code == 200
     assert response.json()["content"]["mime_type"] == "text/plain"
     assert response.json()["content"]["content_type"] == "text"
+    assert response.json()["content"]["hash_scheme"] == "sha256_text"
+
+
+def test_text_hash_is_canonical_across_line_endings(blockchain, wallets):
+    client = _client(blockchain)
+
+    first = client.post(
+        "/content/text",
+        json={"text_content": "line one\r\nline two", "submitted_by": wallets["owner"].public_key},
+    )
+    second = client.post(
+        "/content/text",
+        json={"text_content": "line one\nline two", "submitted_by": wallets["owner"].public_key},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["content_hash"] == second.json()["content_hash"]
 
 
 def test_existing_verified_content_downloads_successfully(blockchain, wallets):

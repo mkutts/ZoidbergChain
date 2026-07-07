@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 import peer_sync
 from blockchain import Blockchain
+from content import compute_text_content_hash
 from peers import PeerStore
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from submission import APPROVED, PENDING, Submission, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
@@ -247,7 +248,7 @@ def test_signed_peer_get_content_metadata_accepts_empty_body_signature(blockchai
 
 
 def test_fetch_content_from_peer_fetches_and_verifies_text_content(blockchain, monkeypatch):
-    content_hash = peer_sync.compute_content_hash_bytes(TEXT_BYTES)
+    content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
     calls = []
 
@@ -295,7 +296,7 @@ def test_fetch_content_from_peer_fetches_and_verifies_text_content(blockchain, m
 
 
 def test_fetch_content_from_peer_rejects_hash_mismatch_and_keeps_remote_reference(blockchain, monkeypatch):
-    expected_hash = peer_sync.compute_content_hash_bytes(TEXT_BYTES)
+    expected_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
     blockchain.register_remote_content_reference(content_hash=expected_hash, submitted_by="peer-wallet")
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
 
@@ -372,7 +373,7 @@ def test_receive_peer_submission_creates_remote_content_object_and_manual_sync_v
     monkeypatch.setattr("api.is_development", lambda: True)
     monkeypatch.setattr("api.public_api_mode_enabled", lambda: False)
     peer_text = "Peer submission content"
-    content_hash = peer_sync.compute_content_hash_bytes(peer_text.encode("utf-8"))
+    content_hash = compute_text_content_hash(peer_text)
     payload = _submission_payload(wallets["owner"].public_key, text_content=peer_text)
     payload["content_hash"] = content_hash
     payload["content_id"] = hashlib.sha256(content_hash.encode("utf-8")).hexdigest()[:32]

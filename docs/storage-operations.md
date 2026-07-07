@@ -31,6 +31,7 @@ Task 6.2 adds node-local content-file storage without changing consensus.
 - Supported MIME types are `image/jpeg`, `image/png`, `image/gif`, `image/webp`, and `text/plain`.
 - Stored file paths are derived from `content_hash`, not from the uploaded filename.
 - `storage_status` moves through `missing`, `local`, `verified`, and `remote` depending on whether metadata exists, the file is present, and hash verification has succeeded.
+- `hash_scheme` records how `content_hash` should be verified: `sha256_bytes`, `sha256_text`, `legacy`, or `unknown`.
 - Portable exports and imports still include content metadata only. Raw content binaries stay in the local node store for now.
 - Upload/download API endpoints are available in Task 6.3.
 - Task 6.4 adds peer-safe content transport and a development-only manual sync path.
@@ -48,6 +49,9 @@ Security rules:
 
 - uploads enforce `MAX_CONTENT_FILE_SIZE_BYTES`
 - only supported MIME types are accepted
+- binary uploads use `SHA-256(raw file bytes)` for `content_hash`
+- text uploads use `SHA-256(canonical UTF-8 text bytes)` after line-ending normalization to `\n`
+- caption or other metadata does not alter a binary content hash
 - downloads validate `content_hash` format before lookup
 - files are always resolved from `CONTENT_STORAGE_DIR`, never from user-supplied filenames or paths
 - API responses do not expose `local_path` or internal filesystem details
@@ -64,6 +68,13 @@ Peer sync rules:
 - incoming peer submissions, certificates, and blocks may leave content in `remote` state until a later fetch succeeds
 - valid chain sync, certificate sync, and submission sync do not fail just because the local node is still missing the binary
 - exports and imports still move metadata only, not raw content bytes
+
+Verification rules:
+
+- content is marked `verified` only when the local payload matches `content_hash` under its `hash_scheme`
+- `verified_at` records the last successful verification time
+- `verification_error` records safe diagnostic values such as `missing_file`, `hash_mismatch`, `file_size_mismatch`, `malformed_hash`, or `legacy_unverifiable`
+- legacy or unknown hashes are reported by integrity checks as warnings unless the record claims a local verified payload and the payload no longer matches
 
 Recommended upload-first flow:
 
@@ -175,6 +186,13 @@ Check integrity before and after:
 2. switching a node from JSON to SQLite
 3. restoring from backups
 4. copying node data manually between machines
+
+If integrity reports a mismatch:
+
+1. confirm the content object's `hash_scheme`
+2. check whether the content came from the upload-first path or a legacy submission flow
+3. re-fetch peer content with the manual sync endpoint when appropriate
+4. treat `hash_mismatch` on a claimed verified object as corruption, not a consensus rewrite opportunity
 
 ## JSON To SQLite Migration
 

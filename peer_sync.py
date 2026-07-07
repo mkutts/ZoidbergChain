@@ -13,8 +13,7 @@ from content import (
     CONTENT_TYPE_IMAGE,
     CONTENT_TYPE_TEXT,
     TEXT_MIME_TYPE,
-    canonicalize_text_content,
-    compute_content_hash_bytes,
+    resolve_payload_hash,
     store_content_bytes,
 )
 from config import (
@@ -290,44 +289,44 @@ def fetch_content_from_peer(
     if len(payload_bytes) > MAX_CONTENT_FILE_SIZE_BYTES:
         return {"status": "failed_verification", "reason": "oversized_payload", "peer": peer.get("node_id")}
 
-    expected_byte_hash = metadata.get("byte_hash") or content_hash
-    actual_byte_hash = compute_content_hash_bytes(payload_bytes)
-    if actual_byte_hash != expected_byte_hash:
+    try:
+        resolved_payload = resolve_payload_hash(
+            payload_bytes,
+            str(metadata.get("mime_type") or binary_response.headers.get("content-type") or "application/octet-stream").split(";")[0].strip(),
+        )
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ContentSyncError(str(exc)) from exc
+
+    if resolved_payload["content_hash"] != content_hash:
         return {
             "status": "failed_verification",
             "reason": "hash_mismatch",
             "peer": peer.get("node_id"),
-            "expected_byte_hash": expected_byte_hash,
-            "actual_byte_hash": actual_byte_hash,
+            "expected_content_hash": content_hash,
+            "actual_content_hash": resolved_payload["content_hash"],
         }
 
     try:
-        resolved_mime_type = str(
-            metadata.get("mime_type") or binary_response.headers.get("content-type") or "application/octet-stream"
-        ).split(";")[0].strip()
-        normalized_text = (
-            canonicalize_text_content(payload_bytes.decode("utf-8"))
-            if resolved_mime_type == TEXT_MIME_TYPE
-            else None
-        )
         stored_content = store_content_bytes(
             content_hash,
-            payload_bytes,
-            mime_type=resolved_mime_type,
+            resolved_payload["stored_bytes"],
+            mime_type=resolved_payload["mime_type"],
             data_dir=blockchain.storage.data_dir,
+            hash_scheme=resolved_payload["hash_scheme"],
         )
         content_object = blockchain.register_uploaded_content(
             content_hash=content_hash,
             submitted_by=metadata.get("submitted_by") or "peer-content",
-            mime_type=resolved_mime_type,
+            mime_type=resolved_payload["mime_type"],
             file_size_bytes=stored_content["file_size_bytes"],
             storage_status=stored_content["storage_status"],
             local_path=stored_content["local_path"],
             file_name=stored_content["file_name"],
             caption=metadata.get("caption"),
-            text_content=normalized_text,
+            text_content=resolved_payload["text_content"],
             content_type_hint=metadata.get("content_type"),
             byte_hash=stored_content["byte_hash"],
+            hash_scheme=stored_content["hash_scheme"],
         )
     except (UnicodeDecodeError, ValueError) as exc:
         raise ContentSyncError(str(exc)) from exc

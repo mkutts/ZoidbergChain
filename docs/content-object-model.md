@@ -11,6 +11,9 @@ Task 6.1 introduces a first-class content object so meme payloads can be tracked
 - `file_name`: optional filename metadata.
 - `file_size_bytes`: optional size metadata.
 - `storage_status`: one of `missing`, `local`, `remote`, or `verified`.
+- `hash_scheme`: one of `sha256_bytes`, `sha256_text`, `legacy`, or `unknown`.
+- `verified_at`: optional timestamp for the last successful payload verification.
+- `verification_error`: optional short verification status such as `missing_file`, `hash_mismatch`, or `legacy_unverifiable`.
 - `local_path`: optional local file reference.
 - `text_content`: optional text payload.
 - `caption`: optional human-readable caption or alt text.
@@ -22,10 +25,19 @@ Task 6.1 introduces a first-class content object so meme payloads can be tracked
 ## Hash And ID Rules
 
 - `content_hash` remains the canonical payload hash used by the current submission and certificate workflow.
+- `content_hash` is consensus-critical for submissions, certificates, and certified blocks, so it is never silently rewritten.
 - `content_id` is derived from `content_hash` so the same payload gets the same identifier.
 - Local binary files are stored separately under `CONTENT_STORAGE_DIR`.
 - For locally stored files, the node also records a raw-byte SHA-256 sidecar so file integrity can be re-verified without changing consensus-facing submission hashes.
 - Raw binary data is not embedded in the object or portable storage export yet.
+
+Canonical hash rules:
+
+- Binary content: `content_hash = SHA-256(raw file bytes)` and `hash_scheme = sha256_bytes`
+- Text content: `content_hash = SHA-256(canonical UTF-8 text bytes)` and `hash_scheme = sha256_text`
+- Text canonicalization uses UTF-8 encoding, normalizes line endings to `\n`, and trims outer whitespace before hashing
+- Mixed content keeps the binary payload hash; caption or text metadata does not change the binary `content_hash`
+- Older records that do not follow these rules are treated as `legacy` or `unknown` and are not auto-rewritten
 
 ## Local Content Storage
 
@@ -59,9 +71,9 @@ Rules:
 ## Storage Status Meanings
 
 - `missing`: referenced but not available locally.
-- `local`: present locally but not yet fully verified.
+- `local`: present locally but not verified against the consensus-facing `content_hash`.
 - `remote`: known from peer metadata but not local.
-- `verified`: present locally and hash validation has passed.
+- `verified`: present locally and payload verification against `content_hash` has passed under the active `hash_scheme`.
 
 ## Peer Sync Behavior
 
@@ -69,3 +81,9 @@ Rules:
 - Missing local binaries do not invalidate otherwise valid peer metadata, certificate sync, or chain sync.
 - `sync_missing_content(...)` fetches peer metadata first, then the payload, enforces the size limit, verifies the payload hash, stores the local copy, and marks the content object `verified`.
 - Portable storage export and import still include content metadata only. Raw content bytes stay node-local until a later task expands transport or export scope.
+
+## Legacy Notes
+
+- Legacy submissions can still load, evaluate, certify, and mint under the existing consensus rules.
+- Legacy or unknown content hashes may remain in `local`, `missing`, or `remote` state even when a file exists, because the file may not be safely provable against `content_hash`.
+- A hash mismatch should be diagnosed by checking `hash_scheme`, `verification_error`, and whether the local file was created through the upload-first path or through an older submission flow.

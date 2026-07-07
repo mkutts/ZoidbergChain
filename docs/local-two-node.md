@@ -1,98 +1,108 @@
-# Local Two-Node Meme Consensus Verification
+# Local Two-Node Storage Verification
 
-This guide runs two ZoidbergChain API nodes on one Windows machine with separate node identities and separate data directories. Use it to verify Meme-Based Proof of Originality Consensus without changing production deployment behavior.
+This guide runs two ZoidbergChain API nodes on one Windows machine with separate node identities and separate storage paths. It is designed for Task 5.8 verification across JSON, SQLite, and mixed-backend setups.
 
-## Node Configuration
+## JSON Startup
 
-Node A:
+Node A JSON:
 
 ```powershell
 $env:NODE_ID = "node-a"
 $env:NODE_PORT = "8000"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8000"
 $env:DATA_DIR = "data/node-a"
+$env:NODE_DATA_DIR = "data/node-a"
 $env:STORAGE_BACKEND = "json"
-# $env:SQLITE_DB_PATH = "data/node-a/zoidbergchain.db"
 ```
 
-Node B:
+Node B JSON:
 
 ```powershell
 $env:NODE_ID = "node-b"
 $env:NODE_PORT = "8001"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
 $env:DATA_DIR = "data/node-b"
+$env:NODE_DATA_DIR = "data/node-b"
 $env:STORAGE_BACKEND = "json"
-# $env:SQLITE_DB_PATH = "data/node-b/zoidbergchain.db"
 ```
 
-The startup scripts also set `NODE_DATA_DIR` to the same path because the backend accepts both `DATA_DIR` and `NODE_DATA_DIR`. `STORAGE_BACKEND=json` keeps the current behavior explicit. If you switch to SQLite, `SQLITE_DB_PATH` should stay under the node-specific data directory so the two nodes do not share a database file.
-
-## One-Time Setup
-
-From the project root:
+One-time JSON setup:
 
 ```powershell
 .\scripts\init_two_node_data.ps1 -Reset
 ```
 
-This creates:
-
-- `data/node-a/blockchain.json`
-- `data/node-b/blockchain.json`
-
-Node B starts from a copy of Node A's genesis chain so both nodes have the same genesis hash. Chain sync rejects peers with different genesis hashes.
-
-## Start The Nodes
-
-Open two PowerShell terminals from the project root.
-
-Terminal 1:
+Start the JSON nodes:
 
 ```powershell
 .\scripts\start_node_a.ps1
-```
-
-Terminal 2:
-
-```powershell
 .\scripts\start_node_b.ps1
 ```
 
-Node A runs at `http://127.0.0.1:8000`.
-Node B runs at `http://127.0.0.1:8001`.
+This keeps Node A on `data/node-a` and Node B on `data/node-b`. Each node reads and writes only its own JSON files.
 
-Manual equivalent for Node A:
+## SQLite Startup
+
+Node A SQLite:
 
 ```powershell
 $env:NODE_ID = "node-a"
-$env:NODE_HOST = "127.0.0.1"
 $env:NODE_PORT = "8000"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8000"
-$env:NETWORK_NAME = "zoidberg-testnet"
 $env:DATA_DIR = "data/node-a"
 $env:NODE_DATA_DIR = "data/node-a"
-$env:STORAGE_BACKEND = "json"
-# $env:SQLITE_DB_PATH = "data/node-a/zoidbergchain.db"
-.\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8000
+$env:STORAGE_BACKEND = "sqlite"
+$env:SQLITE_DB_PATH = "data/node-a/zoidbergchain.db"
 ```
 
-Manual equivalent for Node B:
+Node B SQLite:
 
 ```powershell
 $env:NODE_ID = "node-b"
-$env:NODE_HOST = "127.0.0.1"
 $env:NODE_PORT = "8001"
 $env:PUBLIC_NODE_URL = "http://127.0.0.1:8001"
-$env:NETWORK_NAME = "zoidberg-testnet"
 $env:DATA_DIR = "data/node-b"
 $env:NODE_DATA_DIR = "data/node-b"
-$env:STORAGE_BACKEND = "json"
-# $env:SQLITE_DB_PATH = "data/node-b/zoidbergchain.db"
-.\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8001
+$env:STORAGE_BACKEND = "sqlite"
+$env:SQLITE_DB_PATH = "data/node-b/zoidbergchain.db"
 ```
 
-## Register Peers
+Recommended one-time SQLite setup:
+
+```powershell
+.\scripts\init_two_node_data.ps1 -Reset
+.\.venv\Scripts\python.exe .\scripts\migrate_json_to_sqlite.py --data-dir data\node-a
+.\.venv\Scripts\python.exe .\scripts\migrate_json_to_sqlite.py --data-dir data\node-b
+```
+
+Start the SQLite nodes:
+
+```powershell
+.\scripts\start_node_a_sqlite.ps1
+.\scripts\start_node_b_sqlite.ps1
+```
+
+This keeps Node A on `data/node-a/zoidbergchain.db` and Node B on `data/node-b/zoidbergchain.db`. The two nodes do not share a database file.
+
+## Mixed Backend Startup
+
+The peer wire format is backend-agnostic, so one node can run JSON while the other runs SQLite.
+
+Example:
+
+```powershell
+.\scripts\start_node_a.ps1
+.\scripts\start_node_b_sqlite.ps1
+```
+
+Or the reverse:
+
+```powershell
+.\scripts\start_node_a_sqlite.ps1
+.\scripts\start_node_b.ps1
+```
+
+## Peer Registration
 
 Register Node B with Node A:
 
@@ -113,166 +123,163 @@ Invoke-RestMethod "http://127.0.0.1:8000/peers" | ConvertTo-Json -Depth 5
 Invoke-RestMethod "http://127.0.0.1:8001/peers" | ConvertTo-Json -Depth 5
 ```
 
-## Scenario A: Normal Consensus Flow
+## Manual Checklist: JSON Backend
 
-1. Start Node A.
-2. Start Node B.
-3. Register Node B with Node A.
-4. Register Node A with Node B.
-5. Confirm `/peers` works on both nodes.
-6. Submit meme content on Node A:
+1. Run `.\scripts\init_two_node_data.ps1 -Reset`.
+2. Start `.\scripts\start_node_a.ps1`.
+3. Start `.\scripts\start_node_b.ps1`.
+4. Register Node A and Node B as peers.
+5. Submit content on Node A:
 
    ```powershell
    $walletA = (Invoke-RestMethod "http://127.0.0.1:8000/get_wallets").wallets[0].public_key
-   $submission = curl.exe -s -X POST "http://127.0.0.1:8000/submit_content" -F "submitter=$walletA" -F "text_content=two node original meme" -F "image=@zoidberg.jpg" | ConvertFrom-Json
+   $submission = curl.exe -s -X POST "http://127.0.0.1:8000/submit_content" -F "submitter=$walletA" -F "text_content=two node json meme" -F "image=@zoidberg.jpg" | ConvertFrom-Json
    $submissionId = $submission.submission.submission_id
-   $submission.broadcast | ConvertTo-Json -Depth 5
    ```
 
-7. Confirm the submission broadcasts to Node B:
+6. Confirm the submission appears on Node B:
 
    ```powershell
-   Invoke-RestMethod "http://127.0.0.1:8001/submissions/$submissionId" | ConvertTo-Json -Depth 5
+   Invoke-RestMethod "http://127.0.0.1:8001/submissions/$submissionId" | ConvertTo-Json -Depth 8
    ```
 
-8. Vote from wallets across nodes. The current minimum vote count is 5. Use wallets that are not the creator wallet:
+7. Vote from Node B:
 
    ```powershell
    1..5 | ForEach-Object {
        $voter = (Invoke-RestMethod -Method Post "http://127.0.0.1:8001/generate_wallet").wallet.public_key
        curl.exe -s -X POST "http://127.0.0.1:8001/submissions/$submissionId/vote" -F "voter=$voter" -F "vote_type=original" | Out-Null
    }
-   Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/votes" | ConvertTo-Json -Depth 5
    ```
 
-9. Evaluate and approve on Node A:
+8. Confirm the votes appear on Node A:
+
+   ```powershell
+   Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/votes" | ConvertTo-Json -Depth 8
+   ```
+
+9. Evaluate on Node A:
 
    ```powershell
    $evaluation = curl.exe -s -X POST "http://127.0.0.1:8000/submissions/$submissionId/evaluate" -F "automated_originality_passed=true" | ConvertFrom-Json
    $evaluation | ConvertTo-Json -Depth 8
    ```
 
-10. Confirm an Originality Certificate exists on Node A:
-
-    ```powershell
-    $certificate = Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/certificate"
-    $certificate | ConvertTo-Json -Depth 8
-    ```
-
-    If needed, manually rebroadcast the certificate:
-
-    ```powershell
-    Invoke-RestMethod -Method Post "http://127.0.0.1:8000/certificates/$($certificate.certificate.certificate_id)/broadcast" | ConvertTo-Json -Depth 8
-    ```
-
-11. Mint the approved submission on Node A:
-
-    ```powershell
-    $mint = Invoke-RestMethod -Method Post "http://127.0.0.1:8000/mint-queue/$submissionId/mint"
-    $mint.block | ConvertTo-Json -Depth 8
-    ```
-
-12. Confirm the minted block includes the certificate-backed fields:
-
-    ```powershell
-    $mint.block.submission_id
-    $mint.block.certificate_id
-    $mint.block.content_hash
-    $mint.block.originality_score
-    ```
-
-13. Confirm the block broadcast reached Node B. If the peer receive response says `sync_needed`, run sync on Node B:
-
-    ```powershell
-    Invoke-RestMethod -Method Post "http://127.0.0.1:8001/chain/sync" | ConvertTo-Json -Depth 8
-    ```
-
-14. Confirm both nodes show the same latest block hash and cumulative originality score:
-
-    ```powershell
-    Invoke-RestMethod "http://127.0.0.1:8000/chain/summary" | ConvertTo-Json -Depth 5
-    Invoke-RestMethod "http://127.0.0.1:8001/chain/summary" | ConvertTo-Json -Depth 5
-    ```
-
-## Scenario B: Higher Originality Score Beats Longer Lower-Score Chain
-
-This is easiest to verify through the automated backend tests because creating competing certified chains by hand requires carefully copying certificates and submissions between nodes.
-
-Automated route:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\integration\test_two_node_consensus_verification.py -k "higher_score or longer_lower"
-```
-
-Expected result:
-
-- A chain with higher `cumulative_originality_score` is selected.
-- A longer chain with lower `cumulative_originality_score` is rejected.
-- Fork choice does not choose merely by height.
-
-Manual API route, if you have prepared two matching-genesis nodes with supporting certificate data:
-
-1. Make Chain A longer using legacy or non-certified blocks so its cumulative originality score stays lower.
-2. Make Chain B shorter but include a certified meme block with a higher originality score.
-3. Register the Chain B node as a peer of the Chain A node.
-4. Run:
+10. Confirm the Originality Certificate exists on Node A and Node B:
 
    ```powershell
-   Invoke-RestMethod -Method Post "http://127.0.0.1:8000/chain/sync" | ConvertTo-Json -Depth 8
+   Invoke-RestMethod "http://127.0.0.1:8000/submissions/$submissionId/certificate" | ConvertTo-Json -Depth 8
+   Invoke-RestMethod "http://127.0.0.1:8001/submissions/$submissionId/certificate" | ConvertTo-Json -Depth 8
    ```
 
-5. Confirm the sync result reason is `higher_originality_score` and the local summary now matches the higher-score chain.
+11. Mint on Node A:
 
-## Scenario C: Deterministic Tie-Breaker
+   ```powershell
+   Invoke-RestMethod -Method Post "http://127.0.0.1:8000/mint-queue/$submissionId/mint" | ConvertTo-Json -Depth 8
+   ```
 
-Equal-score forks are easiest to verify with automated tests because they need precise chain construction.
+12. If Node B reports `sync_needed`, run:
 
-Automated route:
+   ```powershell
+   Invoke-RestMethod -Method Post "http://127.0.0.1:8001/chain/sync" | ConvertTo-Json -Depth 8
+   ```
+
+13. Confirm both nodes show compatible chain summaries:
+
+   ```powershell
+   Invoke-RestMethod "http://127.0.0.1:8000/chain/summary" | ConvertTo-Json -Depth 5
+   Invoke-RestMethod "http://127.0.0.1:8001/chain/summary" | ConvertTo-Json -Depth 5
+   ```
+
+14. Restart both nodes and confirm that chain state, submissions, votes, certificates, peers, and wallet-safe data still load from each node's own JSON files.
+
+## Manual Checklist: SQLite Backend
+
+1. Run `.\scripts\init_two_node_data.ps1 -Reset`.
+2. Migrate both data directories with `scripts\migrate_json_to_sqlite.py`.
+3. Start `.\scripts\start_node_a_sqlite.ps1`.
+4. Start `.\scripts\start_node_b_sqlite.ps1`.
+5. Repeat the same peer registration, submit, vote, evaluate, certificate, mint, sync, and restart flow used for JSON.
+6. Confirm Node A reloads from `data/node-a/zoidbergchain.db`.
+7. Confirm Node B reloads from `data/node-b/zoidbergchain.db`.
+8. Confirm the two SQLite nodes do not share state unless it is synced through the API.
+
+## Manual Checklist: Mixed Backend
+
+1. Start one node with JSON and the other with SQLite.
+2. Register peers both ways.
+3. Submit on one node and confirm the submission appears on the other.
+4. Cast votes on the opposite node and confirm they appear on the origin node.
+5. Evaluate, create the certificate, and mint on the origin node.
+6. Confirm the certificate and block reach the peer, or run `/chain/sync` if the peer reports `sync_needed`.
+7. Restart both nodes and confirm the JSON node reloads from its JSON files while the SQLite node reloads from its own database.
+
+## Restart And Catch-Up
+
+This is the safest manual restart flow for certificate-backed blocks:
+
+1. Start both nodes.
+2. Register peers both ways.
+3. Submit content on Node A and let the submission and vote metadata reach Node B.
+4. Stop Node B.
+5. On Node A, evaluate the submission, create the certificate, and mint the block.
+6. Restart Node B.
+7. Run:
+
+   ```powershell
+   Invoke-RestMethod -Method Post "http://127.0.0.1:8001/chain/sync" | ConvertTo-Json -Depth 8
+   ```
+
+8. Confirm Node B catches up, the latest block hash matches Node A, and the cumulative originality score matches.
+
+Current limitation:
+
+- Certificate-backed chain sync still requires the receiving node to have the supporting submission metadata.
+- Image binary transport is still separate from storage sync, so mint on the node that has the uploaded image available locally.
+
+## Backup And Integrity
+
+JSON node example:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests\integration\test_two_node_consensus_verification.py -k "equal_score"
+.\.venv\Scripts\python.exe .\scripts\storage_backup.py --data-dir data\node-a --storage-backend json
+.\.venv\Scripts\python.exe -c "from storage import JSONStorageBackend, check_storage_integrity; backend = JSONStorageBackend(blockchain_file='data/node-a/blockchain.json', peers_file='data/node-a/peers.json'); print(check_storage_integrity(backend))"
 ```
 
-Expected result:
-
-- If cumulative originality scores are tied, higher chain height wins.
-- If score and height are tied, the lexicographically lowest `latest_block_hash` wins.
-- The result is deterministic regardless of peer order.
-
-The broader fork-choice tests are also available:
+SQLite node example:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests\blockchain\test_chain_originality_comparison.py tests\api\test_chain_sync_api.py
+.\.venv\Scripts\python.exe .\scripts\storage_backup.py --data-dir data\node-b --storage-backend sqlite
+.\.venv\Scripts\python.exe -c "from storage import SQLiteStorageBackend, check_storage_integrity; backend = SQLiteStorageBackend(sqlite_db_path='data/node-b/zoidbergchain.db'); print(check_storage_integrity(backend))"
 ```
 
-## Lightweight Verification Script
+For SQLite-specific backup verification:
 
-Run the focused two-node consensus verification set:
+```powershell
+.\.venv\Scripts\python.exe -c "from storage import SQLiteStorageBackend; backend = SQLiteStorageBackend(sqlite_db_path='data/node-b/zoidbergchain.db'); print(backend.backup_sqlite_database())"
+```
+
+## Automated Verification
+
+Run the focused two-node verification set:
 
 ```powershell
 .\.venv\Scripts\python.exe .\scripts\test_two_node_consensus.py
 ```
 
-The script runs the in-process two-node consensus tests plus the peer block receive and chain sync API tests. It does not start server processes.
+Run the backend-specific two-node storage tests directly:
 
-## Notes And Current Limits
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\integration\test_two_node_storage_backends.py tests\integration\test_two_node_consensus_verification.py tests\storage\test_storage_regression_pass.py
+```
 
-- Each node uses its own data directory through `DATA_DIR` and `NODE_DATA_DIR`.
-- `STORAGE_BACKEND=json` is the supported backend for now.
-- `STORAGE_BACKEND=sqlite` is also supported and uses `SQLITE_DB_PATH`.
-- To migrate a node's existing JSON data into SQLite, run:
+## Known Limitations
 
-  ```powershell
-  .\.venv\Scripts\python.exe .\scripts\migrate_json_to_sqlite.py --data-dir data\node-a
-  ```
-
-  Add `--overwrite` if you intentionally want to replace an existing SQLite database after backing it up.
-- Node A writes to `data/node-a`.
-- Node B writes to `data/node-b`.
-- Submission metadata can sync between nodes, but image binary transport is not implemented yet. Mint submissions on the node that has the uploaded image file.
-- Certificate-backed block broadcasts send the certificate before the block and also include the certificate payload with the block receive request.
-- Chain sync returns certificate payloads for returned certificate-backed blocks. If a peer omits a required certificate, sync fails safely with a clear missing certificate error.
-- Certificate-backed synced blocks still require matching submission metadata. Submission/image binary transport remains separate, and image binary transport is not implemented yet.
-- Peer block receive returns `sync_needed` on previous-hash mismatch. It does not start a background sync job.
-- Fork choice is based on cumulative originality score, then height, then lexicographically lowest latest block hash.
-- JSON to SQLite migration is deferred to Task 5.3.
+- `STORAGE_BACKEND=json` remains the default backend.
+- SQLite support is available for validation and opt-in local testing, but rollout remains conservative.
+- Backups and exports are file-based and unencrypted.
+- Dev exports with private keys remain highly sensitive.
+- Import is intentionally conservative about genesis and network mismatches.
+- SQLite storage is still snapshot-oriented and not normalized.
+- Submission metadata and image binary transport are separate concerns.
+- Certificate-backed chain sync depends on supporting submission metadata already being present on the receiving node.

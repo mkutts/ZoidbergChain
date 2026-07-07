@@ -33,7 +33,7 @@ Task 6.2 adds node-local content-file storage without changing consensus.
 - `storage_status` moves through `missing`, `local`, `verified`, and `remote` depending on whether metadata exists, the file is present, and hash verification has succeeded.
 - Portable exports and imports still include content metadata only. Raw content binaries stay in the local node store for now.
 - Upload/download API endpoints are available in Task 6.3.
-- Peer content sync is deferred to Task 6.4.
+- Task 6.4 adds peer-safe content transport and a development-only manual sync path.
 
 ## Content API
 
@@ -52,13 +52,24 @@ Security rules:
 - files are always resolved from `CONTENT_STORAGE_DIR`, never from user-supplied filenames or paths
 - API responses do not expose `local_path` or internal filesystem details
 
+Task 6.4 adds peer-safe content transport:
+
+- `GET /peers/content/{content_hash}/metadata` returns peer-safe metadata for a known content object
+- `GET /peers/content/{content_hash}` returns verified local content to authenticated peers
+- `POST /content/{content_hash}/sync` asks the local node to fetch and verify missing content from active peers
+
+Peer sync rules:
+
+- peer content fetches use the existing peer auth or signed-message flow
+- incoming peer submissions, certificates, and blocks may leave content in `remote` state until a later fetch succeeds
+- valid chain sync, certificate sync, and submission sync do not fail just because the local node is still missing the binary
+- exports and imports still move metadata only, not raw content bytes
+
 Recommended upload-first flow:
 
 1. upload content with `/content/upload` or `/content/text`
 2. keep the returned `content_hash` and `content_id`
 3. create a later submission that references that uploaded content
-
-Peer content sync is still deferred to Task 6.4.
 
 ## Backup
 

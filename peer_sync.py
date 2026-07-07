@@ -9,7 +9,16 @@ import time
 import requests
 
 from block import Block
+from content import (
+    CONTENT_TYPE_IMAGE,
+    CONTENT_TYPE_TEXT,
+    TEXT_MIME_TYPE,
+    canonicalize_text_content,
+    compute_content_hash_bytes,
+    store_content_bytes,
+)
 from config import (
+    MAX_CONTENT_FILE_SIZE_BYTES,
     ORIGINALITY_APPROVAL_THRESHOLD,
     peer_auth_required,
     peer_replay_protection_enabled,
@@ -77,6 +86,10 @@ class ReplayedPeerNonceError(PeerSyncError):
     pass
 
 
+class ContentSyncError(PeerSyncError):
+    pass
+
+
 def hash_body(body_bytes):
     if body_bytes is None:
         body_bytes = b""
@@ -114,6 +127,8 @@ def sign_peer_request(method, path, timestamp, nonce, body_bytes, secret=None):
 
 
 def _serialize_peer_body(payload):
+    if payload is None:
+        return b""
     return json.dumps(payload, allow_nan=False).encode("utf-8")
 
 
@@ -217,6 +232,165 @@ def verify_peer_signature(method, path, headers, body_bytes):
 
 def build_peer_request_headers(method, path, payload, origin_node_id):
     return _peer_request_headers(method, path, payload, origin_node_id)
+
+
+def fetch_content_from_peer(
+    blockchain,
+    peer,
+    content_hash,
+    *,
+    origin_node_id,
+    timeout_seconds=3,
+):
+    if not is_valid_content_hash(content_hash):
+        raise ContentSyncError("content_hash must be a 64-character lowercase hexadecimal string.")
+
+    metadata_path = f"/peers/content/{content_hash}/metadata"
+    metadata_url = f"{peer['url'].rstrip('/')}{metadata_path}"
+    metadata_response = requests.get(
+        metadata_url,
+        headers=build_peer_request_headers("GET", metadata_path, None, origin_node_id),
+        timeout=timeout_seconds,
+    )
+    metadata_status = getattr(metadata_response, "status_code", None)
+    if metadata_status == 404:
+        return {"status": "not_found", "peer": peer.get("node_id"), "content_hash": content_hash}
+    if metadata_status is None or metadata_status >= 400:
+        raise ContentSyncError(
+            f"Peer content metadata returned status {metadata_status}: {getattr(metadata_response, 'text', '')}"
+        )
+
+    metadata_payload = metadata_response.json()
+    metadata = metadata_payload.get("content") if isinstance(metadata_payload, dict) else None
+    if not isinstance(metadata, dict):
+        raise ContentSyncError("Peer content metadata response is malformed.")
+
+    file_size_bytes = metadata.get("file_size_bytes")
+    if isinstance(file_size_bytes, int) and file_size_bytes > MAX_CONTENT_FILE_SIZE_BYTES:
+        return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
+
+    binary_path = f"/peers/content/{content_hash}"
+    binary_url = f"{peer['url'].rstrip('/')}{binary_path}"
+    binary_response = requests.get(
+        binary_url,
+        headers=build_peer_request_headers("GET", binary_path, None, origin_node_id),
+        timeout=timeout_seconds,
+    )
+    binary_status = getattr(binary_response, "status_code", None)
+    if binary_status == 404:
+        return {"status": "not_found", "peer": peer.get("node_id"), "content_hash": content_hash}
+    if binary_status is None or binary_status >= 400:
+        raise ContentSyncError(
+            f"Peer content returned status {binary_status}: {getattr(binary_response, 'text', '')}"
+        )
+
+    payload_bytes = binary_response.content
+    if not payload_bytes:
+        return {"status": "failed_verification", "reason": "empty_payload", "peer": peer.get("node_id")}
+    if len(payload_bytes) > MAX_CONTENT_FILE_SIZE_BYTES:
+        return {"status": "failed_verification", "reason": "oversized_payload", "peer": peer.get("node_id")}
+
+    expected_byte_hash = metadata.get("byte_hash") or content_hash
+    actual_byte_hash = compute_content_hash_bytes(payload_bytes)
+    if actual_byte_hash != expected_byte_hash:
+        return {
+            "status": "failed_verification",
+            "reason": "hash_mismatch",
+            "peer": peer.get("node_id"),
+            "expected_byte_hash": expected_byte_hash,
+            "actual_byte_hash": actual_byte_hash,
+        }
+
+    try:
+        resolved_mime_type = str(
+            metadata.get("mime_type") or binary_response.headers.get("content-type") or "application/octet-stream"
+        ).split(";")[0].strip()
+        normalized_text = (
+            canonicalize_text_content(payload_bytes.decode("utf-8"))
+            if resolved_mime_type == TEXT_MIME_TYPE
+            else None
+        )
+        stored_content = store_content_bytes(
+            content_hash,
+            payload_bytes,
+            mime_type=resolved_mime_type,
+            data_dir=blockchain.storage.data_dir,
+        )
+        content_object = blockchain.register_uploaded_content(
+            content_hash=content_hash,
+            submitted_by=metadata.get("submitted_by") or "peer-content",
+            mime_type=resolved_mime_type,
+            file_size_bytes=stored_content["file_size_bytes"],
+            storage_status=stored_content["storage_status"],
+            local_path=stored_content["local_path"],
+            file_name=stored_content["file_name"],
+            caption=metadata.get("caption"),
+            text_content=normalized_text,
+            content_type_hint=metadata.get("content_type"),
+            byte_hash=stored_content["byte_hash"],
+        )
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ContentSyncError(str(exc)) from exc
+
+    blockchain.save_blockchain()
+    return {
+        "status": "fetched_and_verified",
+        "peer": peer.get("node_id"),
+        "content_hash": content_hash,
+        "content": content_object.to_dict(),
+    }
+
+
+def sync_missing_content(
+    blockchain,
+    peer_store,
+    content_hash,
+    *,
+    origin_node_id,
+    network_name,
+    timeout_seconds=3,
+):
+    content_object = blockchain.get_content_object_by_hash(content_hash)
+    if content_object is not None and content_object.storage_status == "verified":
+        return {"status": "already_verified", "content_hash": content_hash}
+
+    peers = peer_store.list_active_peers(network_name=network_name)
+    if not peers:
+        return {"status": "no_peers_available", "content_hash": content_hash}
+
+    saw_verification_failure = False
+    saw_not_found = False
+    for peer in peers:
+        try:
+            result = fetch_content_from_peer(
+                blockchain,
+                peer,
+                content_hash,
+                origin_node_id=origin_node_id,
+                timeout_seconds=timeout_seconds,
+            )
+        except Exception as exc:
+            logging.warning(
+                "Failed to fetch content %s from peer %s at %s: %s",
+                content_hash,
+                peer.get("node_id"),
+                peer.get("url"),
+                exc,
+            )
+            continue
+
+        if result["status"] == "fetched_and_verified":
+            return result
+        if result["status"] == "failed_verification":
+            saw_verification_failure = True
+        if result["status"] == "not_found":
+            saw_not_found = True
+
+    if saw_verification_failure:
+        return {"status": "failed_verification", "content_hash": content_hash}
+    if saw_not_found:
+        return {"status": "not_found", "content_hash": content_hash}
+    return {"status": "no_peers_available", "content_hash": content_hash}
 
 
 def _reject_forbidden_fields(payload, allowed_fields, error_cls, object_name):
@@ -412,6 +586,11 @@ def receive_peer_block(
     )
 
     blockchain.chain.append(block)
+    if block.content_hash:
+        blockchain.register_remote_content_reference(
+            content_hash=block.content_hash,
+            submitted_by=block.creator_wallet,
+        )
     _remove_confirmed_pending_transactions(blockchain, block.transactions)
     minted_submission = _mark_related_submission_minted(blockchain, related_submission_id)
     blockchain.save_blockchain()
@@ -448,6 +627,10 @@ def receive_peer_certificate(
         certificate_payload=certificate_payload,
         local_network_name=local_network_name,
         save=True,
+    )
+    blockchain.register_remote_content_reference(
+        content_hash=certificate.content_hash,
+        submitted_by=certificate.creator_wallet,
     )
     return {
         "accepted": True,
@@ -542,6 +725,12 @@ def receive_peer_submission(
 
     submission = Submission.from_dict({**normalized_payload, "status": PENDING})
     blockchain.submissions.append(submission)
+    blockchain._ensure_content_object_for_submission(
+        submission,
+        image_path=submission.image_path,
+        text_content=submission.text_content,
+        storage_status="remote",
+    )
     blockchain.save_blockchain()
 
     return {

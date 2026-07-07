@@ -110,6 +110,7 @@ from peer_sync import (
     ReplayedPeerNonceError,
     verify_peer_signature,
     sync_chain_from_peers,
+    sync_missing_content,
 )
 
 logging.basicConfig(
@@ -296,6 +297,14 @@ def _safe_content_metadata(content_object):
 def _public_content_upload_response(content_object):
     metadata = _safe_content_metadata(content_object)
     metadata["download_url"] = f"/content/{content_object.content_hash}"
+    return metadata
+
+
+def _peer_safe_content_metadata(content_object):
+    metadata = _safe_content_metadata(content_object)
+    byte_hash = (content_object.metadata or {}).get("byte_hash")
+    if isinstance(byte_hash, str) and byte_hash.strip():
+        metadata["byte_hash"] = byte_hash.strip()
     return metadata
 
 
@@ -1069,6 +1078,17 @@ async def get_content_metadata(request: Request, content_hash: str):
     return {"content": _safe_content_metadata(content_object)}
 
 
+@app.get("/peers/content/{content_hash}/metadata")
+@api_limit("peer_receive")
+async def get_peer_content_metadata(
+    request: Request,
+    content_hash: str,
+    _: None = Depends(require_peer_secret),
+):
+    content_object = _require_content_object(content_hash)
+    return {"content": _peer_safe_content_metadata(content_object)}
+
+
 @app.get("/content/{content_hash}")
 @api_limit("public_read")
 async def download_content(request: Request, content_hash: str):
@@ -1107,6 +1127,71 @@ async def download_content(request: Request, content_hash: str):
         media_type=content_object.mime_type,
         filename=content_object.file_name or os.path.basename(file_path),
     )
+
+
+@app.get("/peers/content/{content_hash}")
+@api_limit("peer_receive")
+async def download_peer_content(
+    request: Request,
+    content_hash: str,
+    _: None = Depends(require_peer_secret),
+):
+    content_object = _require_content_object(content_hash)
+
+    if content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
+        return PlainTextResponse(content=content_object.text_content, media_type=TEXT_MIME_TYPE)
+
+    verification = verify_content_file(
+        content_object.content_hash,
+        content_object.mime_type,
+        data_dir=blockchain.storage.data_dir,
+    )
+    if not verification["exists"]:
+        raise HTTPException(status_code=404, detail=f"Content file not found for hash: {content_hash}")
+    if not verification["verified"]:
+        raise HTTPException(status_code=409, detail="Content file failed integrity verification.")
+
+    file_path = resolve_local_path(content_object.local_path, data_dir=blockchain.storage.data_dir)
+    if not file_path or not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail=f"Content file not found for hash: {content_hash}")
+
+    if content_object.mime_type == TEXT_MIME_TYPE:
+        try:
+            text_body = load_content_bytes(
+                content_object.content_hash,
+                content_object.mime_type,
+                data_dir=blockchain.storage.data_dir,
+            ).decode("utf-8")
+        except (FileNotFoundError, UnicodeDecodeError) as exc:
+            raise HTTPException(status_code=409, detail="Stored text content could not be decoded safely.") from exc
+        return PlainTextResponse(content=text_body, media_type=TEXT_MIME_TYPE)
+
+    return FileResponse(
+        path=file_path,
+        media_type=content_object.mime_type,
+        filename=content_object.file_name or os.path.basename(file_path),
+    )
+
+
+@app.post("/content/{content_hash}/sync")
+@api_limit("dev_endpoint")
+async def sync_content_from_peers_endpoint(request: Request, content_hash: str):
+    require_development_mode(True, "Manual content sync")
+    if not is_valid_content_hash(content_hash):
+        raise HTTPException(status_code=422, detail="content_hash must be a 64-character lowercase hexadecimal string.")
+
+    result = sync_missing_content(
+        blockchain=blockchain,
+        peer_store=peer_store,
+        content_hash=content_hash,
+        origin_node_id=NODE_ID,
+        network_name=NETWORK_NAME,
+    )
+    content_object = blockchain.get_content_object_by_hash(content_hash)
+    return {
+        "result": result,
+        "content": _safe_content_metadata(content_object) if content_object else None,
+    }
 
 
 @app.post("/submit_content")

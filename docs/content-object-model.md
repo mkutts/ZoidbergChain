@@ -37,17 +37,22 @@ Task 6.1 introduces a first-class content object so meme payloads can be tracked
 
 ## API Access
 
-Task 6.3 adds public API endpoints for local content access:
+Task 6.3 and Task 6.4 add local and peer-safe content access:
 
 - `POST /content/upload`
 - `POST /content/text`
 - `GET /content/{content_hash}`
 - `GET /content/{content_hash}/metadata`
+- `GET /peers/content/{content_hash}/metadata`
+- `GET /peers/content/{content_hash}`
+- `POST /content/{content_hash}/sync`
 
 Rules:
 
 - uploads validate size, MIME type, and submitter identity
 - downloads resolve content only through `content_hash`
+- peer content endpoints reuse the existing peer auth or signed-message protections
+- manual content sync is development-only and fetches from active peers without changing consensus data
 - public responses never expose `local_path` or other internal filesystem details
 - upload-first then submit-by-`content_hash` is supported for later submission workflows
 
@@ -58,7 +63,9 @@ Rules:
 - `remote`: known from peer metadata but not local.
 - `verified`: present locally and hash validation has passed.
 
-## Scope Note
+## Peer Sync Behavior
 
-- API upload/download endpoints are deferred to Task 6.3.
-- Peer content sync is deferred to Task 6.4.
+- Peer submissions, certificates, and certified blocks may create remote content references even when the local node does not have the binary yet.
+- Missing local binaries do not invalidate otherwise valid peer metadata, certificate sync, or chain sync.
+- `sync_missing_content(...)` fetches peer metadata first, then the payload, enforces the size limit, verifies the payload hash, stores the local copy, and marks the content object `verified`.
+- Portable storage export and import still include content metadata only. Raw content bytes stay node-local until a later task expands transport or export scope.

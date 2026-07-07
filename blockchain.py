@@ -38,6 +38,7 @@ from content import (
     _validate_content_type,
     STORAGE_STATUS_LOCAL,
     STORAGE_STATUS_MISSING,
+    STORAGE_STATUS_REMOTE,
     STORAGE_STATUS_VERIFIED,
     ContentObject,
     canonicalize_text_content,
@@ -386,7 +387,7 @@ class Blockchain:
         print("Debug: Meme is original.")
         return True
 
-    def _build_content_object_for_submission(self, submission, image_path="", text_content=""):
+    def _build_content_object_for_submission(self, submission, image_path="", text_content="", storage_status=None):
         try:
             return content_object_from_submission_data(
                 {
@@ -399,6 +400,7 @@ class Blockchain:
                     "certificate_id": submission.certificate_id,
                 },
                 network_name=NETWORK_NAME,
+                storage_status=storage_status,
                 data_dir=self.storage.data_dir,
             )
         except ValueError:
@@ -424,7 +426,14 @@ class Blockchain:
         content_object.metadata = metadata
         return content_object
 
-    def _ensure_content_object_for_submission(self, submission, image_path="", text_content="", stored_content=None):
+    def _ensure_content_object_for_submission(
+        self,
+        submission,
+        image_path="",
+        text_content="",
+        stored_content=None,
+        storage_status=None,
+    ):
         content_object = self.get_content_object_by_hash(submission.content_hash)
         if content_object:
             if not submission.content_id:
@@ -436,9 +445,18 @@ class Blockchain:
                     submission_id=submission.submission_id,
                     text_content=text_content,
                 )
+            elif storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING} and content_object.storage_status != STORAGE_STATUS_VERIFIED:
+                content_object.storage_status = storage_status
+                if storage_status == STORAGE_STATUS_REMOTE:
+                    content_object.local_path = None
             return content_object
 
-        content_object = self._build_content_object_for_submission(submission, image_path=image_path, text_content=text_content)
+        content_object = self._build_content_object_for_submission(
+            submission,
+            image_path=image_path,
+            text_content=text_content,
+            storage_status=storage_status,
+        )
         if content_object is None:
             return None
         if stored_content:
@@ -448,6 +466,8 @@ class Blockchain:
                 submission_id=submission.submission_id,
                 text_content=text_content,
             )
+        elif storage_status == STORAGE_STATUS_REMOTE:
+            content_object.local_path = None
         self.content_objects.append(content_object)
         submission.content_id = content_object.content_id
         return content_object
@@ -547,6 +567,49 @@ class Blockchain:
 
     def list_content_objects(self, status=None):
         return self.storage.list_content_objects(status=status, content_objects=self.content_objects)
+
+    def register_remote_content_reference(
+        self,
+        *,
+        content_hash,
+        submitted_by=None,
+        mime_type="application/octet-stream",
+        content_type=CONTENT_TYPE_IMAGE,
+        caption=None,
+        text_content=None,
+        file_name=None,
+        created_at=None,
+    ):
+        content_object = self.get_content_object_by_hash(content_hash)
+        if content_object is not None:
+            if content_object.storage_status != STORAGE_STATUS_VERIFIED:
+                content_object.storage_status = STORAGE_STATUS_REMOTE
+                content_object.local_path = None
+            if caption and not content_object.caption:
+                content_object.caption = caption.strip()
+            if text_content and not content_object.text_content:
+                content_object.text_content = text_content.strip()
+            if file_name and not content_object.file_name:
+                content_object.file_name = file_name
+            return content_object
+
+        content_object = ContentObject(
+            content_hash=content_hash,
+            content_type=content_type,
+            mime_type=mime_type,
+            submitted_by=(submitted_by or "peer-content"),
+            network_name=NETWORK_NAME,
+            created_at=time.time() if created_at is None else created_at,
+            file_name=file_name,
+            file_size_bytes=None,
+            storage_status=STORAGE_STATUS_REMOTE,
+            local_path=None,
+            text_content=text_content,
+            caption=caption,
+            metadata={},
+        )
+        self.content_objects.append(content_object)
+        return content_object
 
     def register_uploaded_content(
         self,

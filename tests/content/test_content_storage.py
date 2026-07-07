@@ -13,9 +13,14 @@ from content import (
     compute_content_hash_bytes,
     compute_text_content_hash,
     content_file_exists,
+    detect_mime_type_from_bytes,
     ensure_content_storage_dir,
     load_content_bytes,
+    sanitize_original_filename,
     store_content_bytes,
+    validate_caption,
+    validate_mime_type,
+    validate_text_content,
     verify_content_hash_bytes,
     verify_content_hash_text,
     verify_content_object_payload,
@@ -242,6 +247,36 @@ def test_verify_content_hash_helpers_cover_binary_and_text():
     assert verify_content_hash_bytes(compute_content_hash_bytes(PNG_BYTES), JPEG_BYTES)["error"] == "hash_mismatch"
     assert verify_content_hash_text(compute_text_content_hash("hello\r\nworld"), "hello\nworld")["verified"] is True
     assert verify_content_hash_text(compute_text_content_hash("hello world"), "different")["error"] == "hash_mismatch"
+
+
+def test_mime_detection_and_validation_cover_supported_types():
+    assert detect_mime_type_from_bytes(PNG_BYTES) == "image/png"
+    assert detect_mime_type_from_bytes(JPEG_BYTES) == "image/jpeg"
+    assert detect_mime_type_from_bytes(GIF_BYTES) == "image/gif"
+    assert detect_mime_type_from_bytes(WEBP_BYTES) == "image/webp"
+    assert detect_mime_type_from_bytes(TEXT_BYTES) == "text/plain"
+    assert validate_mime_type("image/png") == "image/png"
+
+
+def test_text_and_caption_limits_are_validated(monkeypatch):
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_TEXT_CONTENT_BYTES", 8)
+    monkeypatch.setattr(content.config, "MAX_CAPTION_LENGTH", 5)
+
+    assert validate_text_content("12345678") == "12345678"
+    assert validate_caption("12345") == "12345"
+    with pytest.raises(ValueError, match="Text content exceeds max size"):
+        validate_text_content("123456789")
+    with pytest.raises(ValueError, match="Caption exceeds max length"):
+        validate_caption("123456")
+
+
+def test_original_filename_is_safely_sanitized_and_truncated(monkeypatch):
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_FILENAME_LENGTH", 8)
+    assert sanitize_original_filename("..\\..\\evil?.png") == "evil_.pn"
 
 
 def test_legacy_submission_content_object_stays_local_and_unverifiable(isolated_data_dir, submission_image):

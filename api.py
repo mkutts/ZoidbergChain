@@ -25,6 +25,10 @@ from content import (
     compute_content_hash_bytes,
     load_content_bytes,
     resolve_local_path,
+    sanitize_original_filename,
+    validate_caption,
+    validate_content_size,
+    validate_text_content,
     verify_content_object_payload,
 )
 from wallet import Wallet
@@ -58,12 +62,16 @@ from config import (
     ENABLE_RATE_LIMITING,
     PEER_SIGNATURE_WINDOW_SECONDS,
     ENVIRONMENT,
+    ENABLE_STRICT_MIME_VALIDATION,
+    MAX_CAPTION_LENGTH,
     NETWORK_NAME,
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
     SUBMISSIONS_DIR,
     MAX_CONTENT_FILE_SIZE_BYTES,
+    MAX_FILENAME_LENGTH,
+    MAX_TEXT_CONTENT_BYTES,
     VOTING_WINDOW_HOURS,
     allow_dev_reset_endpoints,
     allow_private_key_export,
@@ -260,9 +268,9 @@ class PeerCertificateReceive(BaseModel):
 
 
 class TextContentUpload(_StrictBodyModel):
-    text_content: Annotated[str, Field(min_length=1, max_length=MAX_SUBMISSION_TEXT_LENGTH)]
+    text_content: Annotated[str, Field(min_length=1)]
     submitted_by: WalletPublicKey
-    caption: Annotated[str | None, Field(max_length=MAX_METADATA_FIELD_LENGTH)] = None
+    caption: Annotated[str | None, Field(max_length=MAX_CAPTION_LENGTH)] = None
 
 
 def _short_key(public_key):
@@ -1016,19 +1024,17 @@ async def upload_content(
     request: Request,
     file: UploadFile,
     submitted_by: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
-    caption: Annotated[str | None, Form(max_length=MAX_METADATA_FIELD_LENGTH)] = None,
+    caption: Annotated[str | None, Form(max_length=MAX_CAPTION_LENGTH)] = None,
     content_type_hint: Annotated[str | None, Form(max_length=32)] = None,
 ):
     _require_registered_submitter(submitted_by)
 
     file_bytes = await file.read()
-    if not file_bytes:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-    if len(file_bytes) > MAX_CONTENT_FILE_SIZE_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Uploaded file exceeds max size of {MAX_CONTENT_FILE_SIZE_BYTES} bytes.",
-        )
+    try:
+        validate_content_size(len(file_bytes))
+        safe_caption = validate_caption(caption)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     declared_mime_type = (file.content_type or "").strip().lower() or None
     if declared_mime_type == "application/octet-stream":
@@ -1036,9 +1042,10 @@ async def upload_content(
     if declared_mime_type is not None and declared_mime_type not in SUPPORTED_CONTENT_MIME_TYPES:
         raise HTTPException(status_code=400, detail="Unsupported mime_type for uploaded content.")
 
-    safe_original_filename = None
-    if file.filename and is_safe_filename(file.filename):
-        safe_original_filename = os.path.basename(file.filename)
+    try:
+        safe_original_filename = sanitize_original_filename(file.filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
         content_object = blockchain.upload_binary_content(
@@ -1046,7 +1053,7 @@ async def upload_content(
             submitted_by=submitted_by,
             mime_type=declared_mime_type,
             original_filename=safe_original_filename,
-            caption=caption,
+            caption=safe_caption,
             content_type_hint=content_type_hint,
         )
     except ValueError as exc:
@@ -1063,9 +1070,9 @@ async def upload_text_content(request: Request, payload: TextContentUpload):
 
     try:
         content_object = blockchain.upload_text_content(
-            text_content=canonicalize_text_content(payload.text_content),
+            text_content=validate_text_content(payload.text_content),
             submitted_by=payload.submitted_by,
-            caption=payload.caption,
+            caption=validate_caption(payload.caption),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

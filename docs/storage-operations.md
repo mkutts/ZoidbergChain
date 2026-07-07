@@ -28,6 +28,9 @@ Task 6.2 adds node-local content-file storage without changing consensus.
 
 - `CONTENT_STORAGE_DIR` defaults to `DATA_DIR/content`.
 - `MAX_CONTENT_FILE_SIZE_BYTES` defaults to `5 MB`.
+- `MAX_TEXT_CONTENT_BYTES` defaults to `256 KB`.
+- `MAX_CAPTION_LENGTH` defaults to `1000` characters.
+- `MAX_FILENAME_LENGTH` defaults to `255` characters for sanitized display metadata.
 - Supported MIME types are `image/jpeg`, `image/png`, `image/gif`, `image/webp`, and `text/plain`.
 - Stored file paths are derived from `content_hash`, not from the uploaded filename.
 - `storage_status` moves through `missing`, `local`, `verified`, and `remote` depending on whether metadata exists, the file is present, and hash verification has succeeded.
@@ -48,10 +51,13 @@ Task 6.3 adds safe node-local content upload and retrieval:
 Security rules:
 
 - uploads enforce `MAX_CONTENT_FILE_SIZE_BYTES`
+- text uploads enforce `MAX_TEXT_CONTENT_BYTES`
+- captions enforce `MAX_CAPTION_LENGTH`
 - only supported MIME types are accepted
 - binary uploads use `SHA-256(raw file bytes)` for `content_hash`
 - text uploads use `SHA-256(canonical UTF-8 text bytes)` after line-ending normalization to `\n`
 - caption or other metadata does not alter a binary content hash
+- original filenames are sanitized for metadata only and are never used as storage paths
 - downloads validate `content_hash` format before lookup
 - files are always resolved from `CONTENT_STORAGE_DIR`, never from user-supplied filenames or paths
 - API responses do not expose `local_path` or internal filesystem details
@@ -65,6 +71,7 @@ Task 6.4 adds peer-safe content transport:
 Peer sync rules:
 
 - peer content fetches use the existing peer auth or signed-message flow
+- peer content fetches enforce local size and MIME rules before storage mutation
 - incoming peer submissions, certificates, and blocks may leave content in `remote` state until a later fetch succeeds
 - valid chain sync, certificate sync, and submission sync do not fail just because the local node is still missing the binary
 - exports and imports still move metadata only, not raw content bytes
@@ -74,6 +81,7 @@ Verification rules:
 - content is marked `verified` only when the local payload matches `content_hash` under its `hash_scheme`
 - `verified_at` records the last successful verification time
 - `verification_error` records safe diagnostic values such as `missing_file`, `hash_mismatch`, `file_size_mismatch`, `malformed_hash`, or `legacy_unverifiable`
+- MIME detection is intentionally lightweight; it checks common signatures and UTF-8 text behavior, but it is not a deep file parser or a malware scanner
 - legacy or unknown hashes are reported by integrity checks as warnings unless the record claims a local verified payload and the payload no longer matches
 
 Recommended upload-first flow:

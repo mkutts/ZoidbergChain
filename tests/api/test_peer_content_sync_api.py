@@ -337,6 +337,111 @@ def test_fetch_content_from_peer_rejects_hash_mismatch_and_keeps_remote_referenc
     assert content_object.local_path is None
 
 
+def test_fetch_content_from_peer_rejects_mime_mismatch(blockchain, monkeypatch):
+    content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
+    peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
+
+    def fake_get(url, headers=None, timeout=None):
+        if url.endswith("/metadata"):
+            return _fake_response(
+                200,
+                json_body={
+                    "content": {
+                        "content_hash": content_hash,
+                        "mime_type": "image/png",
+                        "content_type": "text",
+                        "submitted_by": "peer-wallet",
+                        "file_size_bytes": len(TEXT_BYTES),
+                        "byte_hash": content_hash,
+                    }
+                },
+            )
+        return _fake_response(200, content=TEXT_BYTES, headers={"content-type": "image/png"})
+
+    monkeypatch.setattr(peer_sync.requests, "get", fake_get)
+
+    with pytest.raises(peer_sync.ContentSyncError, match="does not match detected mime_type"):
+        peer_sync.fetch_content_from_peer(
+            blockchain,
+            peer,
+            content_hash,
+            origin_node_id="local-node",
+        )
+
+
+def test_fetch_content_from_peer_rejects_oversized_payload(blockchain, monkeypatch):
+    content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
+    peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_CONTENT_FILE_SIZE_BYTES", 4)
+
+    def fake_get(url, headers=None, timeout=None):
+        if url.endswith("/metadata"):
+            return _fake_response(
+                200,
+                json_body={
+                    "content": {
+                        "content_hash": content_hash,
+                        "mime_type": "text/plain",
+                        "content_type": "text",
+                        "submitted_by": "peer-wallet",
+                        "file_size_bytes": len(TEXT_BYTES),
+                        "byte_hash": content_hash,
+                    }
+                },
+            )
+        return _fake_response(200, content=TEXT_BYTES, headers={"content-type": "text/plain"})
+
+    monkeypatch.setattr(peer_sync.requests, "get", fake_get)
+
+    result = peer_sync.fetch_content_from_peer(
+        blockchain,
+        peer,
+        content_hash,
+        origin_node_id="local-node",
+    )
+
+    assert result["status"] == "failed_verification"
+    assert result["reason"] == "oversized_metadata"
+
+
+def test_peer_metadata_local_path_is_ignored(blockchain, monkeypatch):
+    content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
+    peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
+
+    def fake_get(url, headers=None, timeout=None):
+        if url.endswith("/metadata"):
+            return _fake_response(
+                200,
+                json_body={
+                    "content": {
+                        "content_hash": content_hash,
+                        "mime_type": "text/plain",
+                        "content_type": "text",
+                        "submitted_by": "peer-wallet",
+                        "file_size_bytes": len(TEXT_BYTES),
+                        "byte_hash": content_hash,
+                        "local_path": "C:/malicious/path.txt",
+                    }
+                },
+            )
+        return _fake_response(200, content=TEXT_BYTES, headers={"content-type": "text/plain"})
+
+    monkeypatch.setattr(peer_sync.requests, "get", fake_get)
+
+    result = peer_sync.fetch_content_from_peer(
+        blockchain,
+        peer,
+        content_hash,
+        origin_node_id="local-node",
+    )
+
+    content_object = blockchain.get_content_object_by_hash(content_hash)
+    assert result["status"] == "fetched_and_verified"
+    assert content_object.local_path != "C:/malicious/path.txt"
+
+
 def test_sync_missing_content_short_circuits_for_verified_or_missing_peers(blockchain, wallets):
     verified = blockchain.upload_text_content(
         text_content="already present",

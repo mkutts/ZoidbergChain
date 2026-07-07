@@ -52,7 +52,10 @@ from content import (
     guess_mime_type,
     resolve_payload_hash,
     resolve_local_path,
+    sanitize_original_filename,
     store_content_bytes,
+    validate_caption,
+    validate_text_content,
     verify_content_object_payload,
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
@@ -414,6 +417,8 @@ class Blockchain:
         metadata = dict(content_object.metadata or {})
         if stored_content.get("byte_hash"):
             metadata["byte_hash"] = stored_content["byte_hash"]
+        if stored_content.get("original_filename"):
+            metadata["original_filename"] = stored_content["original_filename"]
         if submission_id:
             metadata["submission_id"] = submission_id
 
@@ -638,6 +643,7 @@ class Blockchain:
         storage_status,
         local_path=None,
         file_name=None,
+        original_filename=None,
         caption=None,
         text_content=None,
         content_type_hint=None,
@@ -663,6 +669,8 @@ class Blockchain:
             metadata = dict(content_object.metadata or {})
             if byte_hash:
                 metadata["byte_hash"] = byte_hash
+            if original_filename:
+                metadata["original_filename"] = original_filename
             content_object.mime_type = mime_type
             content_object.file_size_bytes = file_size_bytes
             content_object.storage_status = storage_status
@@ -697,7 +705,12 @@ class Blockchain:
             local_path=local_path,
             text_content=text_content,
             caption=caption,
-            metadata=({"byte_hash": byte_hash} if byte_hash else {}),
+            metadata=(
+                {
+                    **({"byte_hash": byte_hash} if byte_hash else {}),
+                    **({"original_filename": original_filename} if original_filename else {}),
+                }
+            ),
             hash_scheme=hash_scheme or HASH_SCHEME_UNKNOWN,
             verified_at=time.time() if storage_status == STORAGE_STATUS_VERIFIED else None,
             verification_error=None,
@@ -726,7 +739,7 @@ class Blockchain:
             content_hash,
             resolved_payload["stored_bytes"],
             mime_type=resolved_payload["mime_type"],
-            original_filename=original_filename,
+            original_filename=sanitize_original_filename(original_filename),
             data_dir=self.storage.data_dir,
             hash_scheme=resolved_payload["hash_scheme"],
         )
@@ -738,7 +751,8 @@ class Blockchain:
             storage_status=stored_content["storage_status"],
             local_path=stored_content["local_path"],
             file_name=stored_content["file_name"],
-            caption=(caption or "").strip() or None,
+            original_filename=stored_content["original_filename"],
+            caption=validate_caption(caption),
             text_content=normalized_text_content,
             content_type_hint=content_type_hint,
             byte_hash=stored_content["byte_hash"],
@@ -753,7 +767,7 @@ class Blockchain:
         submitted_by,
         caption=None,
     ):
-        normalized_text = canonicalize_text_content(text_content)
+        normalized_text = validate_text_content(text_content)
         content_hash = compute_text_content_hash(normalized_text)
         stored_content = store_content_bytes(
             content_hash,
@@ -770,7 +784,8 @@ class Blockchain:
             storage_status=stored_content["storage_status"],
             local_path=stored_content["local_path"],
             file_name=stored_content["file_name"],
-            caption=(caption or "").strip() or None,
+            original_filename=stored_content["original_filename"],
+            caption=validate_caption(caption),
             text_content=normalized_text,
             content_type_hint=CONTENT_TYPE_TEXT,
             byte_hash=stored_content["byte_hash"],

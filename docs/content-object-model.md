@@ -46,6 +46,10 @@ Canonical hash rules:
 - Stored file paths are derived from `content_hash`, never from user-supplied filenames.
 - Supported MIME types in Task 6.2 are `image/jpeg`, `image/png`, `image/gif`, `image/webp`, and `text/plain`.
 - `MAX_CONTENT_FILE_SIZE_BYTES` defaults to `5 * 1024 * 1024` bytes for local development and testnet use.
+- `MAX_TEXT_CONTENT_BYTES` defaults to `256 * 1024` bytes.
+- `MAX_CAPTION_LENGTH` defaults to `1000` characters.
+- `MAX_FILENAME_LENGTH` defaults to `255` characters for display metadata only.
+- Original filenames are sanitized and may be truncated for metadata; they are never used as storage paths.
 
 ## API Access
 
@@ -62,11 +66,14 @@ Task 6.3 and Task 6.4 add local and peer-safe content access:
 Rules:
 
 - uploads validate size, MIME type, and submitter identity
+- strict MIME validation is enabled by default and rejects declared-versus-detected mismatches
+- lightweight MIME detection uses PNG, JPEG, GIF, and WebP signatures plus careful UTF-8 text handling
 - downloads resolve content only through `content_hash`
 - peer content endpoints reuse the existing peer auth or signed-message protections
 - manual content sync is development-only and fetches from active peers without changing consensus data
 - public responses never expose `local_path` or other internal filesystem details
 - upload-first then submit-by-`content_hash` is supported for later submission workflows
+- deeper malware scanning, moderation, or file-format inspection is not implemented yet
 
 ## Storage Status Meanings
 

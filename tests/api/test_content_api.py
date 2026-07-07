@@ -116,9 +116,9 @@ def test_empty_upload_is_rejected(blockchain, wallets):
 
 def test_oversized_upload_is_rejected(blockchain, wallets, monkeypatch):
     client = _client(blockchain)
-    import api
+    import content
 
-    monkeypatch.setattr(api, "MAX_CONTENT_FILE_SIZE_BYTES", 5)
+    monkeypatch.setattr(content.config, "MAX_CONTENT_FILE_SIZE_BYTES", 5)
     response = client.post(
         "/content/upload",
         data={"submitted_by": wallets["owner"].public_key},
@@ -127,6 +127,88 @@ def test_oversized_upload_is_rejected(blockchain, wallets, monkeypatch):
 
     assert response.status_code == 400
     assert "exceeds max size" in response.json()["detail"]
+
+
+def test_file_at_limit_is_accepted(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_CONTENT_FILE_SIZE_BYTES", len(PNG_BYTES))
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key},
+        files={"file": ("limit.png", PNG_BYTES, "image/png")},
+    )
+
+    assert response.status_code == 200
+
+
+def test_text_above_limit_is_rejected(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_TEXT_CONTENT_BYTES", 4)
+    response = client.post(
+        "/content/text",
+        json={"text_content": "hello", "submitted_by": wallets["owner"].public_key},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Text content exceeds max size of 4 bytes."
+
+
+def test_text_at_limit_is_accepted(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_TEXT_CONTENT_BYTES", 5)
+    response = client.post(
+        "/content/text",
+        json={"text_content": "hello", "submitted_by": wallets["owner"].public_key},
+    )
+
+    assert response.status_code == 200
+
+
+def test_caption_above_limit_is_rejected(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_CAPTION_LENGTH", 5)
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key, "caption": "toolong"},
+        files={"file": ("caption.png", PNG_BYTES, "image/png")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Caption exceeds max length of 5 characters."
+
+
+def test_declared_detected_mime_mismatch_is_rejected_in_strict_mode(blockchain, wallets):
+    client = _client(blockchain)
+
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key},
+        files={"file": ("wrong.jpg", PNG_BYTES, "image/jpeg")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Declared mime_type 'image/jpeg' does not match detected mime_type 'image/png'."
+
+
+def test_filename_extension_alone_does_not_determine_mime(blockchain, wallets):
+    client = _client(blockchain)
+
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key},
+        files={"file": ("looks-like.jpg", PNG_BYTES, "image/png")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["mime_type"] == "image/png"
 
 
 def test_unsupported_upload_mime_type_is_rejected(blockchain, wallets):
@@ -157,6 +239,22 @@ def test_path_traversal_filename_is_ignored(blockchain, wallets):
     assert content_object is not None
     assert content_object.file_name.endswith(".png")
     assert "evil" not in content_object.file_name
+
+
+def test_overlong_filename_is_safely_truncated_in_metadata(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    import content
+
+    monkeypatch.setattr(content.config, "MAX_FILENAME_LENGTH", 12)
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key},
+        files={"file": ("verylongfilename!!.png", PNG_BYTES, "image/png")},
+    )
+
+    assert response.status_code == 200
+    content_object = blockchain.get_content_object_by_hash(response.json()["content_hash"])
+    assert len(content_object.metadata["original_filename"]) <= 12
 
 
 def test_upload_hash_is_computed_from_bytes(blockchain, wallets):

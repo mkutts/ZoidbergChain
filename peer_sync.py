@@ -15,6 +15,8 @@ from content import (
     TEXT_MIME_TYPE,
     resolve_payload_hash,
     store_content_bytes,
+    validate_content_size,
+    validate_mime_type,
 )
 from config import (
     MAX_CONTENT_FILE_SIZE_BYTES,
@@ -265,6 +267,16 @@ def fetch_content_from_peer(
         raise ContentSyncError("Peer content metadata response is malformed.")
 
     file_size_bytes = metadata.get("file_size_bytes")
+    if isinstance(file_size_bytes, int):
+        try:
+            validate_content_size(max(file_size_bytes, 1), mime_type=metadata.get("mime_type"))
+        except ValueError:
+            return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
+    if isinstance(metadata.get("mime_type"), str):
+        try:
+            validate_mime_type(metadata.get("mime_type"))
+        except ValueError:
+            return {"status": "failed_verification", "reason": "unsupported_mime_type", "peer": peer.get("node_id")}
     if isinstance(file_size_bytes, int) and file_size_bytes > MAX_CONTENT_FILE_SIZE_BYTES:
         return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
 
@@ -286,8 +298,11 @@ def fetch_content_from_peer(
     payload_bytes = binary_response.content
     if not payload_bytes:
         return {"status": "failed_verification", "reason": "empty_payload", "peer": peer.get("node_id")}
-    if len(payload_bytes) > MAX_CONTENT_FILE_SIZE_BYTES:
-        return {"status": "failed_verification", "reason": "oversized_payload", "peer": peer.get("node_id")}
+    try:
+        validate_content_size(len(payload_bytes), mime_type=metadata.get("mime_type"))
+    except ValueError as exc:
+        reason = "oversized_payload" if "max size" in str(exc).lower() else "empty_payload"
+        return {"status": "failed_verification", "reason": reason, "peer": peer.get("node_id")}
 
     try:
         resolved_payload = resolve_payload_hash(

@@ -31,13 +31,9 @@ STORAGE_STATUSES = {
 }
 
 TEXT_MIME_TYPE = "text/plain"
-SUPPORTED_CONTENT_MIME_TYPES = {
-    "image/gif",
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    TEXT_MIME_TYPE,
-}
+SUPPORTED_CONTENT_MIME_TYPES = set(config.SUPPORTED_CONTENT_MIME_TYPES)
+SUPPORTED_IMAGE_MIME_TYPES = set(config.SUPPORTED_IMAGE_MIME_TYPES)
+SUPPORTED_TEXT_MIME_TYPES = set(config.SUPPORTED_TEXT_MIME_TYPES)
 CONTENT_MIME_EXTENSIONS = {
     "image/gif": ".gif",
     "image/jpeg": ".jpg",
@@ -139,6 +135,49 @@ def _clean_optional_string(value: str | None) -> str | None:
     return cleaned or None
 
 
+def _recover_legacy_original_filename(
+    *,
+    content_hash: str,
+    file_name: str,
+    file_size_bytes: int,
+    byte_hash: str | None,
+    data_dir: str | None,
+    managed_file_path: str | None,
+) -> str | None:
+    """Best-effort recovery for snapshots that predate persisted content object metadata."""
+    if not data_dir or not byte_hash:
+        return None
+
+    managed_name = Path(file_name).stem.lower()
+    if managed_name != content_hash.lower():
+        return None
+
+    data_root = Path(data_dir)
+    content_root = _content_root_for(data_dir=data_dir)
+    managed_resolved = Path(managed_file_path).resolve() if managed_file_path else None
+
+    for candidate in data_root.rglob("*"):
+        if not candidate.is_file():
+            continue
+        try:
+            candidate.relative_to(content_root)
+            continue
+        except ValueError:
+            pass
+        if managed_resolved is not None and candidate.resolve() == managed_resolved:
+            continue
+        if candidate.stat().st_size != file_size_bytes:
+            continue
+        try:
+            candidate_bytes = candidate.read_bytes()
+        except OSError:
+            continue
+        if compute_content_hash_bytes(candidate_bytes) == byte_hash:
+            return candidate.name
+
+    return None
+
+
 def calculate_content_hash(
     *,
     content_type: str,
@@ -224,7 +263,61 @@ def _validate_supported_mime_type(mime_type: str) -> str:
     return normalized
 
 
-def _sniff_mime_type(data: bytes) -> str | None:
+def validate_mime_type(mime_type: str) -> str:
+    return _validate_supported_mime_type(mime_type)
+
+
+def validate_content_size(size_bytes: int, *, mime_type: str | None = None) -> int:
+    if not isinstance(size_bytes, int) or size_bytes < 0:
+        raise ValueError("size_bytes must be a non-negative integer.")
+    if size_bytes == 0:
+        raise ValueError("Uploaded file is empty.")
+    if mime_type == TEXT_MIME_TYPE and size_bytes > config.MAX_TEXT_CONTENT_BYTES:
+        raise ValueError(f"Text content exceeds max size of {config.MAX_TEXT_CONTENT_BYTES} bytes.")
+    if size_bytes > config.MAX_CONTENT_FILE_SIZE_BYTES:
+        raise ValueError(f"Content file exceeds max size of {config.MAX_CONTENT_FILE_SIZE_BYTES} bytes.")
+    return size_bytes
+
+
+def validate_caption(caption: str | None) -> str | None:
+    if caption is None:
+        return None
+    if not isinstance(caption, str):
+        raise ValueError("caption must be a string when provided.")
+    normalized = caption.strip()
+    if not normalized:
+        return None
+    if len(normalized) > config.MAX_CAPTION_LENGTH:
+        raise ValueError(f"Caption exceeds max length of {config.MAX_CAPTION_LENGTH} characters.")
+    return normalized
+
+
+def validate_text_content(text_content: str) -> str:
+    normalized = canonicalize_text_content(text_content)
+    encoded = normalized.encode("utf-8")
+    validate_content_size(len(encoded), mime_type=TEXT_MIME_TYPE)
+    return normalized
+
+
+def sanitize_original_filename(filename: str | None) -> str | None:
+    if filename is None:
+        return None
+    if not isinstance(filename, str):
+        raise ValueError("filename must be a string when provided.")
+    candidate = os.path.basename(filename.strip())
+    if not candidate or candidate in {".", ".."}:
+        return None
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", candidate).strip("._")
+    if not safe:
+        safe = "upload"
+    if len(safe) > config.MAX_FILENAME_LENGTH:
+        safe = safe[: config.MAX_FILENAME_LENGTH].rstrip("._")
+    if not safe:
+        raise ValueError("Invalid filename metadata.")
+    return safe
+
+
+def detect_mime_type_from_bytes(data: bytes) -> str | None:
     payload = bytes(data)
     if payload.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png"
@@ -243,15 +336,15 @@ def _sniff_mime_type(data: bytes) -> str | None:
     return TEXT_MIME_TYPE
 
 
-def _resolve_mime_type(data: bytes, declared_mime_type: str | None) -> str:
+def validate_detected_mime_matches_declared(data: bytes, declared_mime_type: str | None) -> str:
     declared = None
     if declared_mime_type is not None:
         declared = _validate_supported_mime_type(declared_mime_type)
 
-    sniffed = _sniff_mime_type(data)
+    sniffed = detect_mime_type_from_bytes(data)
     if sniffed is not None and sniffed not in SUPPORTED_CONTENT_MIME_TYPES:
         raise ValueError(f"Unsupported detected mime_type: {sniffed!r}.")
-    if declared and sniffed and declared != sniffed:
+    if declared and sniffed and declared != sniffed and config.ENABLE_STRICT_MIME_VALIDATION:
         raise ValueError(
             f"Declared mime_type {declared!r} does not match detected mime_type {sniffed!r}."
         )
@@ -262,14 +355,22 @@ def _resolve_mime_type(data: bytes, declared_mime_type: str | None) -> str:
     raise ValueError("Could not determine a supported mime_type for content bytes.")
 
 
+def _resolve_mime_type(data: bytes, declared_mime_type: str | None) -> str:
+    sniffed = validate_detected_mime_matches_declared(data, declared_mime_type)
+    if sniffed:
+        return sniffed
+    raise ValueError("Could not determine a supported mime_type for content bytes.")
+
+
 def resolve_payload_hash(
     data: bytes,
     mime_type: str | None,
 ) -> dict[str, Any]:
     payload = bytes(data)
+    validate_content_size(len(payload), mime_type=mime_type if mime_type in SUPPORTED_TEXT_MIME_TYPES else None)
     resolved_mime_type = _resolve_mime_type(payload, mime_type)
     if resolved_mime_type == TEXT_MIME_TYPE:
-        normalized_text = canonicalize_text_content(payload.decode("utf-8"))
+        normalized_text = validate_text_content(payload.decode("utf-8"))
         normalized_bytes = normalized_text.encode("utf-8")
         return {
             "mime_type": resolved_mime_type,
@@ -762,6 +863,7 @@ def store_content_bytes(
     payload = bytes(data)
     if max_size_bytes is None:
         max_size_bytes = config.MAX_CONTENT_FILE_SIZE_BYTES
+    validate_content_size(len(payload), mime_type=mime_type if mime_type in SUPPORTED_TEXT_MIME_TYPES else None)
     if len(payload) > max_size_bytes:
         raise ValueError(
             f"Content file exceeds MAX_CONTENT_FILE_SIZE_BYTES ({max_size_bytes} bytes)."
@@ -815,7 +917,7 @@ def store_content_bytes(
                 "storage_status": STORAGE_STATUS_VERIFIED if strict_hash_match else STORAGE_STATUS_LOCAL,
                 "byte_hash": byte_hash,
                 "file_name": existing_path.name,
-                "original_filename": os.path.basename(original_filename) if original_filename else None,
+                "original_filename": sanitize_original_filename(original_filename),
                 "hash_scheme": normalized_scheme,
             }
         raise ValueError(
@@ -868,7 +970,7 @@ def store_content_bytes(
             "storage_status": STORAGE_STATUS_VERIFIED if strict_hash_match else STORAGE_STATUS_LOCAL,
             "byte_hash": byte_hash,
             "file_name": target_path.name,
-            "original_filename": os.path.basename(original_filename) if original_filename else None,
+            "original_filename": sanitize_original_filename(original_filename),
             "hash_scheme": normalized_scheme,
         }
     finally:
@@ -913,15 +1015,17 @@ class ContentObject:
         self.created_at = float(self.created_at)
 
         if self.file_name is not None:
-            self.file_name = _validate_non_empty_string(self.file_name, "file_name")
+            self.file_name = sanitize_original_filename(self.file_name)
+            if self.file_name is None:
+                raise ValueError("Invalid filename metadata.")
         self.file_size_bytes = _validate_optional_file_size(self.file_size_bytes)
 
         if self.local_path is not None:
             self.local_path = _validate_non_empty_string(self.local_path, "local_path")
         if self.text_content is not None:
-            self.text_content = self.text_content.strip()
+            self.text_content = validate_text_content(self.text_content)
         if self.caption is not None:
-            self.caption = self.caption.strip()
+            self.caption = validate_caption(self.caption)
         self.metadata = dict(self.metadata or {})
         self.hash_scheme = _validate_hash_scheme(self.hash_scheme)
         self.verified_at = _coerce_optional_float(self.verified_at, "verified_at")
@@ -1071,13 +1175,20 @@ def content_object_from_submission_data(
 
         content_hash = calculate_submission_content_hash(image_path, text_content, submitter)
 
-    file_name = os.path.basename(image_path) if image_path else None
+    normalized_image_path = image_path
+    resolved_image_path = None
+    if image_path:
+        resolved_image_path = resolve_local_path(image_path, data_dir=data_dir)
+        if resolved_image_path and os.path.isfile(resolved_image_path):
+            normalized_image_path = resolved_image_path
+
+    file_name = os.path.basename(normalized_image_path) if normalized_image_path else None
     content_type = infer_content_type(image_path, text_content)
 
     raw_bytes = None
-    if image_path and os.path.isfile(image_path):
-        raw_bytes = Path(image_path).read_bytes()
-        detected_mime_type = _sniff_mime_type(raw_bytes)
+    if normalized_image_path and os.path.isfile(normalized_image_path):
+        raw_bytes = Path(normalized_image_path).read_bytes()
+        detected_mime_type = detect_mime_type_from_bytes(raw_bytes)
     else:
         detected_mime_type = None
 
@@ -1087,7 +1198,7 @@ def content_object_from_submission_data(
         or (TEXT_MIME_TYPE if content_type == CONTENT_TYPE_TEXT else "application/octet-stream")
     )
 
-    local_path = make_safe_local_path(image_path or None, data_dir=data_dir)
+    local_path = make_safe_local_path(normalized_image_path or image_path or None, data_dir=data_dir)
     created_at = submission_data.get("created_at")
     try:
         created_at_value = float(created_at)
@@ -1101,6 +1212,20 @@ def content_object_from_submission_data(
     }
     if raw_bytes is not None:
         metadata["byte_hash"] = compute_content_hash_bytes(raw_bytes)
+    original_filename = submission_data.get("original_filename") or submission_data.get("file_name")
+    if not original_filename and file_name and raw_bytes is not None:
+        original_filename = _recover_legacy_original_filename(
+            content_hash=content_hash.strip(),
+            file_name=file_name,
+            file_size_bytes=len(raw_bytes),
+            byte_hash=metadata.get("byte_hash"),
+            data_dir=data_dir,
+            managed_file_path=normalized_image_path,
+        )
+    if not original_filename and file_name:
+        original_filename = file_name
+    if original_filename:
+        metadata["original_filename"] = sanitize_original_filename(original_filename)
     hash_scheme = submission_data.get("hash_scheme")
     if raw_bytes is not None:
         payload_hash = resolve_payload_hash(raw_bytes, mime_type)
@@ -1115,12 +1240,12 @@ def content_object_from_submission_data(
         content_hash=content_hash.strip(),
         content_type=content_type,
         mime_type=mime_type,
-        file_name=file_name,
+        file_name=sanitize_original_filename(file_name),
         file_size_bytes=file_size_bytes,
         storage_status=storage_status or (STORAGE_STATUS_LOCAL if raw_bytes is not None else STORAGE_STATUS_MISSING),
         local_path=local_path,
-        text_content=text_content or None,
-        caption=text_content or None,
+        text_content=(text_content or None),
+        caption=(text_content or None),
         submitted_by=submitter,
         network_name=network_name,
         created_at=created_at_value,

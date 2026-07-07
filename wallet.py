@@ -122,9 +122,9 @@ class Wallet:
     @classmethod
     def from_dict(cls, data):
         """Convert a dictionary back to a Wallet object."""
-        wallet = cls()
+        wallet = cls.__new__(cls)
         wallet.public_key = data["public_key"]
-        wallet.private_key = data["private_key"]
+        wallet.private_key = data.get("private_key")
         return wallet  # ✅ Ensures wallet object is correctly reconstructed
 
     def __str__(self):

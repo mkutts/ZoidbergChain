@@ -37,6 +37,8 @@ The storage abstraction now includes lookups for common blockchain entities such
 - mint-queue membership checks
 - active-user counts over a time window
 
+Task 5.6 added operator-facing backup/export/import helpers and restore guidance in [docs/storage-operations.md](/C:/Users/mattk/ZoidbergChain/docs/storage-operations.md).
+
 Storage writes are now hardened:
 
 - JSON saves use a temporary file and atomic replace.

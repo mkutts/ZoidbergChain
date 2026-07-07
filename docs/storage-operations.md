@@ -32,8 +32,33 @@ Task 6.2 adds node-local content-file storage without changing consensus.
 - Stored file paths are derived from `content_hash`, not from the uploaded filename.
 - `storage_status` moves through `missing`, `local`, `verified`, and `remote` depending on whether metadata exists, the file is present, and hash verification has succeeded.
 - Portable exports and imports still include content metadata only. Raw content binaries stay in the local node store for now.
-- Upload/download API endpoints are deferred to Task 6.3.
+- Upload/download API endpoints are available in Task 6.3.
 - Peer content sync is deferred to Task 6.4.
+
+## Content API
+
+Task 6.3 adds safe node-local content upload and retrieval:
+
+- `POST /content/upload` accepts multipart file uploads with `submitted_by` and optional `caption`
+- `POST /content/text` accepts JSON text content uploads
+- `GET /content/{content_hash}` returns verified local content
+- `GET /content/{content_hash}/metadata` returns safe metadata only
+
+Security rules:
+
+- uploads enforce `MAX_CONTENT_FILE_SIZE_BYTES`
+- only supported MIME types are accepted
+- downloads validate `content_hash` format before lookup
+- files are always resolved from `CONTENT_STORAGE_DIR`, never from user-supplied filenames or paths
+- API responses do not expose `local_path` or internal filesystem details
+
+Recommended upload-first flow:
+
+1. upload content with `/content/upload` or `/content/text`
+2. keep the returned `content_hash` and `content_id`
+3. create a later submission that references that uploaded content
+
+Peer content sync is still deferred to Task 6.4.
 
 ## Backup
 

@@ -35,6 +35,22 @@ Task 6.1 introduces a first-class content object so meme payloads can be tracked
 - Supported MIME types in Task 6.2 are `image/jpeg`, `image/png`, `image/gif`, `image/webp`, and `text/plain`.
 - `MAX_CONTENT_FILE_SIZE_BYTES` defaults to `5 * 1024 * 1024` bytes for local development and testnet use.
 
+## API Access
+
+Task 6.3 adds public API endpoints for local content access:
+
+- `POST /content/upload`
+- `POST /content/text`
+- `GET /content/{content_hash}`
+- `GET /content/{content_hash}/metadata`
+
+Rules:
+
+- uploads validate size, MIME type, and submitter identity
+- downloads resolve content only through `content_hash`
+- public responses never expose `local_path` or other internal filesystem details
+- upload-first then submit-by-`content_hash` is supported for later submission workflows
+
 ## Storage Status Meanings
 
 - `missing`: referenced but not available locally.

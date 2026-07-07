@@ -5,7 +5,7 @@ import hmac
 from typing import Annotated, Any, Literal
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header, Query
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
@@ -16,6 +16,17 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
 
 from blockchain import Blockchain
+from content import (
+    CONTENT_TYPE_MIXED,
+    CONTENT_TYPE_TEXT,
+    SUPPORTED_CONTENT_MIME_TYPES,
+    TEXT_MIME_TYPE,
+    canonicalize_text_content,
+    compute_content_hash_bytes,
+    load_content_bytes,
+    resolve_local_path,
+    verify_content_file,
+)
 from wallet import Wallet
 from transaction import Transaction
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED
@@ -52,6 +63,7 @@ from config import (
     ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
     SUBMISSIONS_DIR,
+    MAX_CONTENT_FILE_SIZE_BYTES,
     VOTING_WINDOW_HOURS,
     allow_dev_reset_endpoints,
     allow_private_key_export,
@@ -246,6 +258,12 @@ class PeerCertificateReceive(BaseModel):
     certificate: PeerCertificatePayload
 
 
+class TextContentUpload(_StrictBodyModel):
+    text_content: Annotated[str, Field(min_length=1, max_length=MAX_SUBMISSION_TEXT_LENGTH)]
+    submitted_by: WalletPublicKey
+    caption: Annotated[str | None, Field(max_length=MAX_METADATA_FIELD_LENGTH)] = None
+
+
 def _short_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -258,6 +276,41 @@ def _wallet_public_response(public_key, wallet):
         "public_key": public_key,
         "balance": blockchain.get_balance(public_key),
     }
+
+
+def _safe_content_metadata(content_object):
+    return {
+        "content_id": content_object.content_id,
+        "content_hash": content_object.content_hash,
+        "content_type": content_object.content_type,
+        "mime_type": content_object.mime_type,
+        "file_size_bytes": content_object.file_size_bytes,
+        "storage_status": content_object.storage_status,
+        "caption": content_object.caption,
+        "submitted_by": content_object.submitted_by,
+        "created_at": content_object.created_at,
+        "network_name": content_object.network_name,
+    }
+
+
+def _public_content_upload_response(content_object):
+    metadata = _safe_content_metadata(content_object)
+    metadata["download_url"] = f"/content/{content_object.content_hash}"
+    return metadata
+
+
+def _require_registered_submitter(submitted_by):
+    if not is_valid_public_key(submitted_by, blockchain.wallets):
+        raise HTTPException(status_code=400, detail="Invalid submitter public key.")
+
+
+def _require_content_object(content_hash):
+    if not is_valid_content_hash(content_hash):
+        raise HTTPException(status_code=422, detail="content_hash must be a 64-character lowercase hexadecimal string.")
+    content_object = blockchain.get_content_object_by_hash(content_hash)
+    if content_object is None:
+        raise HTTPException(status_code=404, detail=f"Content not found: {content_hash}")
+    return content_object
 
 
 def _has_forbidden_key_fields(payload: dict[str, Any]) -> bool:
@@ -945,43 +998,169 @@ async def transaction_pool(request: Request):
     """Retrieve the current transaction pool."""
     return {"pending_transactions": blockchain.get_transaction_pool()}
 
+@app.post("/content/upload")
+@api_limit("submission_create")
+async def upload_content(
+    request: Request,
+    file: UploadFile,
+    submitted_by: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    caption: Annotated[str | None, Form(max_length=MAX_METADATA_FIELD_LENGTH)] = None,
+    content_type_hint: Annotated[str | None, Form(max_length=32)] = None,
+):
+    _require_registered_submitter(submitted_by)
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if len(file_bytes) > MAX_CONTENT_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Uploaded file exceeds max size of {MAX_CONTENT_FILE_SIZE_BYTES} bytes.",
+        )
+
+    declared_mime_type = (file.content_type or "").strip().lower() or None
+    if declared_mime_type == "application/octet-stream":
+        declared_mime_type = None
+    if declared_mime_type is not None and declared_mime_type not in SUPPORTED_CONTENT_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported mime_type for uploaded content.")
+
+    safe_original_filename = None
+    if file.filename and is_safe_filename(file.filename):
+        safe_original_filename = os.path.basename(file.filename)
+
+    try:
+        content_object = blockchain.upload_binary_content(
+            file_bytes=file_bytes,
+            submitted_by=submitted_by,
+            mime_type=declared_mime_type,
+            original_filename=safe_original_filename,
+            caption=caption,
+            content_type_hint=content_type_hint,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    blockchain.save_blockchain()
+    return _public_content_upload_response(content_object)
+
+
+@app.post("/content/text")
+@api_limit("submission_create")
+async def upload_text_content(request: Request, payload: TextContentUpload):
+    _require_registered_submitter(payload.submitted_by)
+
+    try:
+        content_object = blockchain.upload_text_content(
+            text_content=canonicalize_text_content(payload.text_content),
+            submitted_by=payload.submitted_by,
+            caption=payload.caption,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    blockchain.save_blockchain()
+    return _public_content_upload_response(content_object)
+
+
+@app.get("/content/{content_hash}/metadata")
+@api_limit("public_read")
+async def get_content_metadata(request: Request, content_hash: str):
+    content_object = _require_content_object(content_hash)
+    return {"content": _safe_content_metadata(content_object)}
+
+
+@app.get("/content/{content_hash}")
+@api_limit("public_read")
+async def download_content(request: Request, content_hash: str):
+    content_object = _require_content_object(content_hash)
+
+    if content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
+        return PlainTextResponse(content=content_object.text_content, media_type=TEXT_MIME_TYPE)
+
+    verification = verify_content_file(
+        content_object.content_hash,
+        content_object.mime_type,
+        data_dir=blockchain.storage.data_dir,
+    )
+    if not verification["exists"]:
+        raise HTTPException(status_code=404, detail=f"Content file not found for hash: {content_hash}")
+    if not verification["verified"]:
+        raise HTTPException(status_code=409, detail="Content file failed integrity verification.")
+
+    file_path = resolve_local_path(content_object.local_path, data_dir=blockchain.storage.data_dir)
+    if not file_path or not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail=f"Content file not found for hash: {content_hash}")
+
+    if content_object.mime_type == TEXT_MIME_TYPE:
+        try:
+            text_body = load_content_bytes(
+                content_object.content_hash,
+                content_object.mime_type,
+                data_dir=blockchain.storage.data_dir,
+            ).decode("utf-8")
+        except (FileNotFoundError, UnicodeDecodeError) as exc:
+            raise HTTPException(status_code=409, detail="Stored text content could not be decoded safely.") from exc
+        return PlainTextResponse(content=text_body, media_type=TEXT_MIME_TYPE)
+
+    return FileResponse(
+        path=file_path,
+        media_type=content_object.mime_type,
+        filename=content_object.file_name or os.path.basename(file_path),
+    )
+
+
 @app.post("/submit_content")
 @api_limit("submission_create")
 async def submit_content(
     request: Request,
-    image: UploadFile,
     submitter: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    image: UploadFile | None = None,
     text_content: Annotated[str | None, Form(max_length=MAX_SUBMISSION_TEXT_LENGTH)] = None,
+    content_hash: Annotated[str | None, Form(min_length=64, max_length=64, pattern=HEX_64_PATTERN)] = None,
+    content_id: Annotated[str | None, Form(min_length=32, max_length=32, pattern=HEX_32_PATTERN)] = None,
 ):
     """Submit meme content for review without minting a blockchain block."""
-    if not is_valid_public_key(submitter, blockchain.wallets):
-        raise HTTPException(status_code=400, detail="Invalid submitter public key.")
+    _require_registered_submitter(submitter)
 
-    if not image.filename or not is_safe_filename(image.filename) or not is_valid_image(image):
-        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
+    if image is not None and content_hash is not None:
+        raise HTTPException(status_code=400, detail="Provide either image upload or content_hash, not both.")
 
-    os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
-    image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(image.filename))
-    with open(image_path, "wb") as buffer:
-        buffer.write(await image.read())
+    if content_hash is not None:
+        try:
+            submission = blockchain.submit_existing_content(
+                content_hash=content_hash,
+                content_id=content_id,
+                submitter=submitter,
+                text_content=text_content or "",
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    else:
+        if image is None or not image.filename or not is_safe_filename(image.filename) or not is_valid_image(image):
+            raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
 
-    try:
-        if not os.path.isfile(image_path):
-            return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
+        os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
+        image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(image.filename))
+        with open(image_path, "wb") as buffer:
+            buffer.write(await image.read())
 
-        if not text_content:
-            text_content = extract_text(image_path)
-        if not text_content:
-            return JSONResponse(status_code=400, content={"error": "No text found in the image."})
+        try:
+            if not os.path.isfile(image_path):
+                return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
 
-        submission = blockchain.submit_content(
-            image_path=image_path,
-            text_content=text_content,
-            submitter=submitter,
-        )
-    finally:
-        if os.path.isfile(image_path):
-            os.remove(image_path)
+            if not text_content:
+                text_content = extract_text(image_path)
+            if not text_content:
+                return JSONResponse(status_code=400, content={"error": "No text found in the image."})
+
+            submission = blockchain.submit_content(
+                image_path=image_path,
+                text_content=text_content,
+                submitter=submitter,
+            )
+        finally:
+            if os.path.isfile(image_path):
+                os.remove(image_path)
 
     blockchain.save_blockchain()
     broadcast_result = broadcast_submission_to_peers(

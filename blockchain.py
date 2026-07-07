@@ -31,12 +31,19 @@ from config import (
 )
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from content import (
+    CONTENT_TYPE_IMAGE,
+    CONTENT_TYPE_MIXED,
+    CONTENT_TYPE_TEXT,
     TEXT_MIME_TYPE,
+    _validate_content_type,
     STORAGE_STATUS_LOCAL,
     STORAGE_STATUS_MISSING,
     STORAGE_STATUS_VERIFIED,
     ContentObject,
+    canonicalize_text_content,
     content_object_from_submission_data,
+    compute_content_hash_bytes,
+    compute_text_content_hash,
     ensure_content_storage_dir,
     guess_mime_type,
     resolve_local_path,
@@ -540,6 +547,172 @@ class Blockchain:
 
     def list_content_objects(self, status=None):
         return self.storage.list_content_objects(status=status, content_objects=self.content_objects)
+
+    def register_uploaded_content(
+        self,
+        *,
+        content_hash,
+        submitted_by,
+        mime_type,
+        file_size_bytes,
+        storage_status,
+        local_path=None,
+        file_name=None,
+        caption=None,
+        text_content=None,
+        content_type_hint=None,
+        created_at=None,
+        byte_hash=None,
+    ):
+        content_type = None
+        if content_type_hint:
+            content_type = _validate_content_type(content_type_hint)
+        elif mime_type == TEXT_MIME_TYPE:
+            content_type = CONTENT_TYPE_TEXT
+        elif (text_content or "").strip() or (caption or "").strip():
+            content_type = CONTENT_TYPE_MIXED
+        else:
+            content_type = CONTENT_TYPE_IMAGE
+
+        if mime_type == TEXT_MIME_TYPE and content_type == CONTENT_TYPE_IMAGE:
+            content_type = CONTENT_TYPE_TEXT
+
+        content_object = self.get_content_object_by_hash(content_hash)
+        if content_object:
+            metadata = dict(content_object.metadata or {})
+            if byte_hash:
+                metadata["byte_hash"] = byte_hash
+            content_object.mime_type = mime_type
+            content_object.file_size_bytes = file_size_bytes
+            content_object.storage_status = storage_status
+            if local_path:
+                content_object.local_path = local_path
+            if file_name:
+                content_object.file_name = file_name
+            if caption:
+                content_object.caption = caption.strip()
+            if text_content:
+                content_object.text_content = text_content.strip()
+            if content_object.content_type == CONTENT_TYPE_IMAGE and content_type == CONTENT_TYPE_MIXED:
+                content_object.content_type = CONTENT_TYPE_MIXED
+            content_object.metadata = metadata
+            return content_object
+
+        content_object = ContentObject(
+            content_hash=content_hash,
+            content_type=content_type,
+            mime_type=mime_type,
+            submitted_by=submitted_by,
+            network_name=NETWORK_NAME,
+            created_at=time.time() if created_at is None else created_at,
+            file_name=file_name,
+            file_size_bytes=file_size_bytes,
+            storage_status=storage_status,
+            local_path=local_path,
+            text_content=text_content,
+            caption=caption,
+            metadata=({"byte_hash": byte_hash} if byte_hash else {}),
+        )
+        self.content_objects.append(content_object)
+        return content_object
+
+    def upload_binary_content(
+        self,
+        *,
+        file_bytes,
+        submitted_by,
+        mime_type,
+        original_filename=None,
+        caption=None,
+        content_type_hint=None,
+    ):
+        content_hash = compute_content_hash_bytes(file_bytes)
+        normalized_text_content = None
+        stored_content = store_content_bytes(
+            content_hash,
+            file_bytes,
+            mime_type=mime_type,
+            original_filename=original_filename,
+            data_dir=self.storage.data_dir,
+        )
+        if stored_content["mime_type"] == TEXT_MIME_TYPE:
+            normalized_text_content = canonicalize_text_content(file_bytes.decode("utf-8"))
+        content_object = self.register_uploaded_content(
+            content_hash=content_hash,
+            submitted_by=submitted_by,
+            mime_type=stored_content["mime_type"],
+            file_size_bytes=stored_content["file_size_bytes"],
+            storage_status=stored_content["storage_status"],
+            local_path=stored_content["local_path"],
+            file_name=stored_content["file_name"],
+            caption=(caption or "").strip() or None,
+            text_content=normalized_text_content,
+            content_type_hint=content_type_hint,
+            byte_hash=stored_content["byte_hash"],
+        )
+        return content_object
+
+    def upload_text_content(
+        self,
+        *,
+        text_content,
+        submitted_by,
+        caption=None,
+    ):
+        normalized_text = canonicalize_text_content(text_content)
+        content_hash = compute_text_content_hash(normalized_text)
+        stored_content = store_content_bytes(
+            content_hash,
+            normalized_text.encode("utf-8"),
+            mime_type=TEXT_MIME_TYPE,
+            data_dir=self.storage.data_dir,
+        )
+        content_object = self.register_uploaded_content(
+            content_hash=content_hash,
+            submitted_by=submitted_by,
+            mime_type=TEXT_MIME_TYPE,
+            file_size_bytes=stored_content["file_size_bytes"],
+            storage_status=stored_content["storage_status"],
+            local_path=stored_content["local_path"],
+            file_name=stored_content["file_name"],
+            caption=(caption or "").strip() or None,
+            text_content=normalized_text,
+            content_type_hint=CONTENT_TYPE_TEXT,
+            byte_hash=stored_content["byte_hash"],
+        )
+        return content_object
+
+    def submit_existing_content(self, *, content_hash, submitter, text_content="", content_id=None):
+        content_object = self.get_content_object_by_hash(content_hash)
+        if content_object is None:
+            raise ValueError(f"Content not found: {content_hash}")
+
+        if content_id and content_object.content_id != content_id:
+            raise ValueError("content_id does not match content_hash.")
+
+        image_path = ""
+        if content_object.content_type in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
+            resolved_image_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
+            if not resolved_image_path or not os.path.isfile(resolved_image_path):
+                raise ValueError("Uploaded content file is not available locally.")
+            image_path = resolved_image_path
+
+        submission_text = (text_content or "").strip() or content_object.text_content or content_object.caption or ""
+        submission = Submission(
+            image_path=image_path,
+            text_content=submission_text,
+            submitter=submitter,
+            status=PENDING,
+            content_hash=content_object.content_hash,
+            content_id=content_object.content_id,
+        )
+        self.submissions.append(submission)
+        self._ensure_content_object_for_submission(
+            submission,
+            image_path=image_path,
+            text_content=submission_text,
+        )
+        return submission
 
     def update_submission_status(self, submission_id, new_status):
         submission = self.get_submission(submission_id)

@@ -129,6 +129,29 @@ def test_submission_creation_is_rate_limited_when_enabled(blockchain, submission
     assert second_response.status_code == 429
 
 
+def test_content_upload_is_rate_limited_when_enabled(blockchain, wallets, monkeypatch):
+    client, _api = _client(
+        blockchain,
+        monkeypatch,
+        ENABLE_RATE_LIMITING="true",
+        RATE_LIMIT_SUBMISSION_CREATE="1/minute",
+    )
+
+    first_response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key},
+        files={"file": ("rate-limit-1.png", b"\x89PNG\r\n\x1a\npng-test", "image/png")},
+    )
+    second_response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key},
+        files={"file": ("rate-limit-2.png", b"\x89PNG\r\n\x1a\npng-test-2", "image/png")},
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 429
+
+
 def test_voting_is_rate_limited_when_enabled(blockchain, submission_image, wallets, monkeypatch):
     client, _api = _client(
         blockchain,

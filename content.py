@@ -90,6 +90,19 @@ def compute_content_hash_bytes(data: bytes) -> str:
     return hashlib.sha256(bytes(data)).hexdigest()
 
 
+def canonicalize_text_content(text_content: str) -> str:
+    if not isinstance(text_content, str):
+        raise ValueError("text_content is required.")
+    normalized = text_content.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not normalized:
+        raise ValueError("text_content is required.")
+    return normalized
+
+
+def compute_text_content_hash(text_content: str) -> str:
+    return compute_content_hash_bytes(canonicalize_text_content(text_content).encode("utf-8"))
+
+
 def calculate_content_hash(
     *,
     content_type: str,

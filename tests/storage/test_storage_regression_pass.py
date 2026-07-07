@@ -16,6 +16,7 @@ from peer_sync import (
     sync_chain_from_peers,
 )
 from storage import JSONStorageBackend, SQLiteStorageBackend
+from content import calculate_content_id
 from submission import Submission, VOTE_ORIGINAL
 from transaction import Transaction
 from wallet import Wallet
@@ -187,9 +188,11 @@ def test_cross_backend_parity_for_query_helpers_and_active_users(backend_factory
                 "created_at": 850.0,
                 "hard_reject_reason": None,
                 "content_hash": "d" * 64,
+                "content_id": calculate_content_id("d" * 64),
                 "certificate_id": "c" * 64,
             }
         ],
+        "content_objects": [],
         "mint_queue": ["submission-a"],
         "votes": [
             {

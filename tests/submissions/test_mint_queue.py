@@ -1,6 +1,6 @@
 import pytest
 
-from submission import APPROVED, MINTED, QUEUED
+from submission import APPROVED, MINTED, PENDING, QUEUED, Submission
 
 
 def _certify_submission(blockchain, submission):
@@ -86,3 +86,26 @@ def test_invalid_mint_queue_entries(blockchain, approved_submissions):
 
     assert removed == [minted.submission_id, "missing-submission"]
     assert blockchain.mint_queue == [approved.submission_id]
+
+
+def test_legacy_submission_without_content_id_can_still_be_minted(blockchain, submission_image, wallets, monkeypatch):
+    submission = Submission.from_dict(
+        {
+            "submission_id": "legacy-mint-submission",
+            "image_path": str(submission_image),
+            "text_content": "Legacy mint meme",
+            "submitter": wallets["owner"].public_key,
+            "status": PENDING,
+            "created_at": 1_000_000,
+        }
+    )
+    blockchain.submissions.append(submission)
+    _certify_submission(blockchain, submission)
+    blockchain.add_to_mint_queue(submission.submission_id)
+    monkeypatch.setattr(blockchain, "add_block", lambda **kwargs: True)
+
+    result = blockchain.mint_next_queued_submission(miner=wallets["contributor_one"].public_key)
+
+    assert result is True
+    assert submission.content_id is not None
+    assert submission.status == MINTED

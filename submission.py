@@ -4,6 +4,8 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+from content import calculate_content_id
+
 
 PENDING = "pending"
 APPROVED = "approved"
@@ -55,6 +57,7 @@ class Submission:
     created_at: float = field(default_factory=time.time)
     hard_reject_reason: str | None = None
     content_hash: str | None = None
+    content_id: str | None = None
     certificate_id: str | None = None
 
     def __post_init__(self):
@@ -66,6 +69,10 @@ class Submission:
                 self.text_content,
                 self.submitter,
             )
+        if not self.content_id and self.content_hash:
+            self.content_id = calculate_content_id(self.content_hash)
+        elif self.content_id is not None and self.content_hash and self.content_id != calculate_content_id(self.content_hash):
+            raise ValueError("content_id does not match content_hash.")
 
     def transition_to(self, new_status):
         if new_status not in SUBMISSION_STATUSES:
@@ -86,6 +93,7 @@ class Submission:
             "created_at": self.created_at,
             "hard_reject_reason": self.hard_reject_reason,
             "content_hash": self.content_hash,
+            "content_id": self.content_id,
             "certificate_id": self.certificate_id,
         }
 
@@ -100,5 +108,6 @@ class Submission:
             created_at=data.get("created_at", time.time()),
             hard_reject_reason=data.get("hard_reject_reason"),
             content_hash=data.get("content_hash"),
+            content_id=data.get("content_id"),
             certificate_id=data.get("certificate_id"),
         )

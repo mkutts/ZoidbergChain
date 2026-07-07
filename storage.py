@@ -6,6 +6,7 @@ import os
 import sqlite3
 import shutil
 import tempfile
+import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import config
+from content import ContentObject, content_object_from_submission_data
 
 
 SUPPORTED_STORAGE_BACKENDS = {"json", "sqlite"}
@@ -21,6 +23,7 @@ _STORAGE_SECTIONS = (
     "chain",
     "wallets",
     "submissions",
+    "content_objects",
     "mint_queue",
     "votes",
     "originality_certificates",
@@ -29,6 +32,7 @@ _STORAGE_SECTIONS = (
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
     section for section in _STORAGE_SECTIONS if section != "peers"
 )
+_OPTIONAL_SQLITE_SECTIONS = {"content_objects"}
 
 
 def _utc_now_iso():
@@ -41,6 +45,8 @@ def _default_section_value(section_name):
     if section_name == "wallets":
         return {}
     if section_name == "submissions":
+        return []
+    if section_name == "content_objects":
         return []
     if section_name == "mint_queue":
         return []
@@ -204,7 +210,18 @@ def _atomic_write_json_document(
             handle.flush()
             os.fsync(handle.fileno())
 
-        os.replace(temp_path, path)
+        last_error = None
+        for attempt in range(3):
+            try:
+                os.replace(temp_path, path)
+                last_error = None
+                break
+            except PermissionError as exc:
+                last_error = exc
+                if attempt < 2:
+                    time.sleep(0.05 * (attempt + 1))
+                else:
+                    raise
 
         if not backup_path.exists():
             shutil.copy2(path, backup_path)
@@ -307,6 +324,66 @@ class StorageBackend(ABC):
         document["submissions"] = submissions
         self.save_blockchain_document(document)
 
+    def load_content_objects(self):
+        document = self.load_blockchain_document()
+        if not document:
+            return []
+        content_objects = list(document.get("content_objects", []) or [])
+        seen_hashes: set[str] = {
+            content_object.get("content_hash")
+            for content_object in content_objects
+            if isinstance(content_object, dict) and isinstance(content_object.get("content_hash"), str)
+        }
+
+        submissions = document.get("submissions", []) or []
+        for submission in submissions:
+            content_hash = self._record_value(submission, "content_hash")
+            if not isinstance(content_hash, str) or not content_hash.strip():
+                continue
+            normalized_hash = content_hash.strip()
+            if normalized_hash in seen_hashes:
+                continue
+            try:
+                content_object = content_object_from_submission_data(
+                    submission if isinstance(submission, dict) else getattr(submission, "to_dict", lambda: {})(),
+                    network_name=config.NETWORK_NAME,
+                )
+            except ValueError:
+                continue
+            content_objects.append(content_object.to_dict())
+            seen_hashes.add(normalized_hash)
+        return content_objects
+
+    def save_content_objects(self, content_objects) -> None:
+        document = self._load_or_new_blockchain_document()
+        document["content_objects"] = [
+            content_object.to_dict() if isinstance(content_object, ContentObject) else content_object
+            for content_object in content_objects or []
+        ]
+        self.save_blockchain_document(document)
+
+    def get_content_object(self, content_id, content_objects=None):
+        if not isinstance(content_id, str) or not content_id.strip():
+            return None
+        content_objects = self.load_content_objects() if content_objects is None else content_objects
+        return self._first_record_where(content_objects, "content_id", content_id.strip())
+
+    def get_content_object_by_hash(self, content_hash, content_objects=None):
+        if not isinstance(content_hash, str) or not content_hash.strip():
+            return None
+        content_objects = self.load_content_objects() if content_objects is None else content_objects
+        return self._first_record_where(content_objects, "content_hash", content_hash.strip())
+
+    def list_content_objects(self, status=None, content_objects=None):
+        content_objects = self.load_content_objects() if content_objects is None else content_objects
+        if status is None:
+            return list(content_objects or [])
+        return [
+            content_object
+            for content_object in (content_objects or [])
+            if self._record_value(content_object, "storage_status") == status
+        ]
+
     def get_submission(self, submission_id, submissions=None):
         if not isinstance(submission_id, str) or not submission_id.strip():
             return None
@@ -400,7 +477,12 @@ class StorageBackend(ABC):
         return self._first_record_where(certificates, "submission_id", submission_id.strip())
 
     def load_blockchain_state(self):
-        return self.load_blockchain_document()
+        document = self.load_blockchain_document()
+        if document is None:
+            return None
+        state = deepcopy(document)
+        state["content_objects"] = self.load_content_objects()
+        return state
 
     def save_blockchain_state(self, state: dict[str, Any]) -> None:
         self.save_blockchain_document(state)
@@ -500,7 +582,10 @@ class StorageBackend(ABC):
     def _load_or_new_blockchain_document(self) -> dict[str, Any]:
         document = self.load_blockchain_document()
         if isinstance(document, dict):
-            return deepcopy(document)
+            normalized = deepcopy(document)
+            for section_name in _STORAGE_SECTIONS:
+                normalized.setdefault(section_name, _default_section_value(section_name))
+            return normalized
         return {}
 
 
@@ -663,7 +748,11 @@ class SQLiteStorageBackend(StorageBackend):
                         label=f"SQLite section {section_name}",
                     )
 
-            missing_sections = [section for section in _STORAGE_SECTIONS if section not in seen_sections]
+            missing_sections = [
+                section
+                for section in _STORAGE_SECTIONS
+                if section not in seen_sections and section not in _OPTIONAL_SQLITE_SECTIONS
+            ]
             if missing_sections and strict:
                 missing = ", ".join(missing_sections)
                 raise StorageCorruptionError(
@@ -695,6 +784,7 @@ class SQLiteStorageBackend(StorageBackend):
             "chain": sections["chain"],
             "wallets": sections["wallets"],
             "submissions": sections["submissions"],
+            "content_objects": sections["content_objects"],
             "mint_queue": sections["mint_queue"],
             "votes": sections["votes"],
             "originality_certificates": sections["originality_certificates"],

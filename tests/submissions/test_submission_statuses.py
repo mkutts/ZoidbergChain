@@ -78,6 +78,7 @@ def test_existing_submission_dicts_without_status_remain_compatible():
 
     assert submission.submission_id == "legacy-submission"
     assert submission.status == PENDING
+    assert submission.content_id is not None
 
 
 def test_existing_blockchain_files_without_submissions_remain_compatible(isolated_data_dir):

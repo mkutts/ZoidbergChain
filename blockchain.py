@@ -30,6 +30,7 @@ from config import (
     VOTING_WINDOW_HOURS,
 )
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
+from content import ContentObject, content_object_from_submission_data
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from storage import create_storage_backend
 
@@ -69,6 +70,7 @@ class Blockchain:
         self.texts = []  # List of all validated text content
         self.image_hashes = set()  # Set to store unique image hashes
         self.submissions = []  # Submitted content waiting for review or minting
+        self.content_objects = []  # Persisted content payload metadata
         self.mint_queue = []  # Approved submissions waiting to be minted
         self.votes = []  # Recorded content votes
         self.originality_certificates = []  # Community approval certificates
@@ -114,6 +116,7 @@ class Blockchain:
                 for block in self.chain
             ],
             "submissions": [submission.to_dict() for submission in self.submissions],
+            "content_objects": [content_object.to_dict() for content_object in self.content_objects],
             "mint_queue": self.mint_queue,
             "votes": self.votes,
             "originality_certificates": [
@@ -165,12 +168,17 @@ class Blockchain:
                     Submission.from_dict(submission_data)
                     for submission_data in loaded_data.get("submissions", [])
                 ]
+                self.content_objects = [
+                    ContentObject.from_dict(content_object_data)
+                    for content_object_data in loaded_data.get("content_objects", [])
+                ]
                 self.mint_queue = loaded_data.get("mint_queue", [])
                 self.votes = loaded_data.get("votes", [])
                 self.originality_certificates = [
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
                 ]
+                self.link_content_objects_to_submissions()
                 self.link_certificates_to_submissions()
                 print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
@@ -180,19 +188,39 @@ class Blockchain:
                 print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
                 self.chain = []
                 self.wallets = {}
+                self.submissions = []
+                self.content_objects = []
+                self.mint_queue = []
+                self.votes = []
+                self.originality_certificates = []
 
         except FileNotFoundError:
             print("⚠️ Debug: No saved blockchain found. Creating new blockchain.")
             self.chain = []
             self.wallets = {}
+            self.submissions = []
+            self.content_objects = []
+            self.mint_queue = []
+            self.votes = []
+            self.originality_certificates = []
         except json.JSONDecodeError:
             print("⚠️ Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
             self.chain = []
             self.wallets = {}
+            self.submissions = []
+            self.content_objects = []
+            self.mint_queue = []
+            self.votes = []
+            self.originality_certificates = []
         except Exception as e:
             print(f"⚠️ Debug: Unexpected error loading blockchain - {e}")
             self.chain = []
             self.wallets = {}
+            self.submissions = []
+            self.content_objects = []
+            self.mint_queue = []
+            self.votes = []
+            self.originality_certificates = []
 
         return False
 
@@ -337,22 +365,65 @@ class Blockchain:
         print("Debug: Meme is original.")
         return True
 
-    def submit_content(self, image_path, text_content, submitter):
+    def _build_content_object_for_submission(self, submission, image_path="", text_content=""):
+        try:
+            return content_object_from_submission_data(
+                {
+                    "submission_id": submission.submission_id,
+                    "image_path": image_path,
+                    "text_content": text_content,
+                    "submitter": submission.submitter,
+                    "created_at": submission.created_at,
+                    "content_hash": submission.content_hash,
+                    "certificate_id": submission.certificate_id,
+                },
+                network_name=NETWORK_NAME,
+            )
+        except ValueError:
+            return None
+
+    def _ensure_content_object_for_submission(self, submission, image_path="", text_content=""):
+        content_object = self.get_content_object_by_hash(submission.content_hash)
+        if content_object:
+            if not submission.content_id:
+                submission.content_id = content_object.content_id
+            return content_object
+
+        content_object = self._build_content_object_for_submission(submission, image_path=image_path, text_content=text_content)
+        if content_object is None:
+            return None
+        self.content_objects.append(content_object)
+        submission.content_id = content_object.content_id
+        return content_object
+
+    def submit_content(self, image_path="", text_content="", submitter=""):
         """Create a pending content submission without minting a block."""
-        if not os.path.isfile(image_path):
+        if image_path and not os.path.isfile(image_path):
             raise ValueError("Invalid image path provided for the submission.")
+        if not image_path and not (text_content or "").strip():
+            raise ValueError("At least image_path or text_content is required for a submission.")
 
         submission = Submission(
-            image_path=image_path,
+            image_path=image_path or "",
             text_content=text_content,
             submitter=submitter,
             status=PENDING,
         )
         self.submissions.append(submission)
+        self._ensure_content_object_for_submission(submission, image_path=image_path or "", text_content=text_content or "")
         return submission
 
     def get_submission(self, submission_id):
         return self.storage.get_submission(submission_id, self.submissions)
+
+    def get_content_object(self, content_id):
+        return self.storage.get_content_object(content_id, self.content_objects)
+
+    def get_content_object_by_hash(self, content_hash):
+        return self.storage.get_content_object_by_hash(content_hash, self.content_objects)
+
+    def list_content_objects(self, status=None):
+        return self.storage.list_content_objects(status=status, content_objects=self.content_objects)
 
     def update_submission_status(self, submission_id, new_status):
         submission = self.get_submission(submission_id)
@@ -454,6 +525,24 @@ class Blockchain:
             if submission and submission.certificate_id != certificate.certificate_id:
                 submission.certificate_id = certificate.certificate_id
                 linked_any = True
+        return linked_any
+
+    def link_content_objects_to_submissions(self):
+        linked_any = False
+        for submission in self.submissions:
+            content_object = self.get_content_object_by_hash(submission.content_hash)
+            if content_object:
+                if submission.content_id != content_object.content_id:
+                    submission.content_id = content_object.content_id
+                    linked_any = True
+            else:
+                created_content_object = self._ensure_content_object_for_submission(
+                    submission,
+                    image_path=submission.image_path,
+                    text_content=submission.text_content,
+                )
+                if created_content_object:
+                    linked_any = True
         return linked_any
 
     def certificate_block_metadata(self, certificate):

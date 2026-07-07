@@ -12,6 +12,7 @@ from submission import (
     PENDING,
     QUEUED,
     REJECTED,
+    Submission,
     VOTE_NOT_ORIGINAL,
     VOTE_ORIGINAL,
     VOTE_UNSURE,
@@ -201,6 +202,37 @@ def test_pending_submission_has_no_certificate(blockchain, submission_image, wal
 
     assert submission.status == PENDING
     assert blockchain.get_originality_certificate_for_submission(submission.submission_id) is None
+
+
+def test_legacy_submission_without_content_id_can_still_be_certified(blockchain, submission_image, wallets):
+    submission = Submission.from_dict(
+        {
+            "submission_id": "legacy-cert-submission",
+            "image_path": str(submission_image),
+            "text_content": "Legacy certification meme",
+            "submitter": wallets["owner"].public_key,
+            "status": PENDING,
+            "created_at": APPROVED_AT,
+        }
+    )
+    blockchain.submissions.append(submission)
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+    )
+    submission.transition_to(APPROVED)
+
+    certificate = blockchain.create_originality_certificate(
+        submission.submission_id,
+        approved_at=APPROVED_AT,
+        network_name=NETWORK_NAME,
+        issuing_node_id=ISSUING_NODE_ID,
+    )
+
+    assert submission.content_id is not None
+    assert certificate.content_hash == submission.content_hash
+    assert certificate.submission_id == submission.submission_id
 
 
 def test_hard_rejected_submission_does_not_automatically_create_certificate(

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -90,6 +91,7 @@ def test_json_to_sqlite_migration_succeeds_from_valid_json_to_empty_sqlite(isola
     assert summary.chain_length == len(seeded["blockchain"].chain)
     assert summary.wallet_count == len(seeded["blockchain"].wallets)
     assert summary.submission_count == len(seeded["blockchain"].submissions)
+    assert summary.content_object_count == len(seeded["blockchain"].content_objects)
     assert summary.vote_count == len(seeded["blockchain"].votes)
     assert summary.certificate_count == len(seeded["blockchain"].originality_certificates)
     assert summary.peer_count == len(seeded["peer_store"].list_peers())
@@ -98,11 +100,32 @@ def test_json_to_sqlite_migration_succeeds_from_valid_json_to_empty_sqlite(isola
     assert len(sqlite_backend.load_chain()) == len(seeded["blockchain"].chain)
     assert len(sqlite_backend.load_wallets()) == len(seeded["blockchain"].wallets)
     assert len(sqlite_backend.load_submissions()) == len(seeded["blockchain"].submissions)
+    assert len(sqlite_backend.load_content_objects()) == len(seeded["blockchain"].content_objects)
     assert len(sqlite_backend.load_votes()) == len(seeded["blockchain"].votes)
     assert len(sqlite_backend.load_certificates()) == len(seeded["blockchain"].originality_certificates)
     assert len(sqlite_backend.load_peers()) == len(seeded["peer_store"].list_peers())
     assert sqlite_backend.load_certificates() == [certificate.to_dict() for certificate in seeded["blockchain"].originality_certificates]
     assert sqlite_backend.load_peers() == seeded["peer_store"].list_peers()
+
+
+def test_migration_handles_snapshot_without_content_objects_section(isolated_data_dir, submission_image):
+    seeded = _seed_json_state(isolated_data_dir, submission_image)
+    source_path = isolated_data_dir / "blockchain.json"
+    snapshot = json.loads(source_path.read_text(encoding="utf-8"))
+    snapshot.pop("content_objects", None)
+    source_path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+
+    target_db = isolated_data_dir / "legacy-zoidbergchain.db"
+    summary = migrate_json_to_sqlite(
+        source_json_path=source_path,
+        sqlite_db_path=target_db,
+    )
+    sqlite_backend = SQLiteStorageBackend(sqlite_db_path=str(target_db))
+
+    assert summary.content_object_count == len(seeded["blockchain"].content_objects)
+    assert sqlite_backend.load_content_objects() == [
+        content_object.to_dict() for content_object in seeded["blockchain"].content_objects
+    ]
 
 
 def test_migrated_chain_loads_from_sqlite(isolated_data_dir, submission_image):

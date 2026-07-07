@@ -25,6 +25,7 @@ _SECTION_TYPES = {
     "chain": list,
     "wallets": dict,
     "submissions": list,
+    "content_objects": list,
     "mint_queue": list,
     "votes": list,
     "originality_certificates": list,
@@ -97,6 +98,7 @@ def _load_state(backend: StorageBackend) -> dict[str, Any]:
         "chain": deepcopy(blockchain_state.get("chain", [])),
         "wallets": deepcopy(blockchain_state.get("wallets", {})),
         "submissions": deepcopy(blockchain_state.get("submissions", [])),
+        "content_objects": deepcopy(blockchain_state.get("content_objects", [])),
         "mint_queue": deepcopy(blockchain_state.get("mint_queue", [])),
         "votes": deepcopy(blockchain_state.get("votes", [])),
         "originality_certificates": deepcopy(blockchain_state.get("originality_certificates", [])),
@@ -107,7 +109,7 @@ def _load_state(backend: StorageBackend) -> dict[str, Any]:
 
 
 def _has_persisted_data(state: dict[str, Any]) -> bool:
-    for key in ("chain", "wallets", "submissions", "mint_queue", "votes", "originality_certificates", "peers"):
+    for key in ("chain", "wallets", "submissions", "content_objects", "mint_queue", "votes", "originality_certificates", "peers"):
         value = state.get(key)
         if isinstance(value, dict) and value:
             return True
@@ -261,6 +263,7 @@ def _write_state_to_backend(backend: StorageBackend, state: dict[str, Any]) -> N
         "chain": deepcopy(state.get("chain", [])),
         "wallets": deepcopy(state.get("wallets", {})),
         "submissions": deepcopy(state.get("submissions", [])),
+        "content_objects": deepcopy(state.get("content_objects", [])),
         "mint_queue": deepcopy(state.get("mint_queue", [])),
         "votes": deepcopy(state.get("votes", [])),
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),
@@ -441,6 +444,7 @@ def import_storage(
         "chain": deepcopy(state.get("chain", [])),
         "wallets": deepcopy(state.get("wallets", {})),
         "submissions": deepcopy(state.get("submissions", [])),
+        "content_objects": deepcopy(state.get("content_objects", [])),
         "mint_queue": deepcopy(state.get("mint_queue", [])),
         "votes": deepcopy(state.get("votes", [])),
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),

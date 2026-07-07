@@ -131,6 +131,7 @@ def test_export_includes_core_state_and_excludes_private_keys_by_default(backend
     assert exported["metadata"]["latest_block_hash"] == seeded["backend"].load_chain()[-1]["hash"]
     assert exported["state"]["chain"]
     assert exported["state"]["submissions"]
+    assert exported["state"]["content_objects"]
     assert exported["state"]["votes"]
     assert exported["state"]["originality_certificates"]
     assert exported["state"]["peers"]
@@ -210,6 +211,7 @@ def test_import_round_trip_into_empty_backend(backend_factory, isolated_data_dir
 
     assert import_result["written"] is True
     assert reloaded.get_submission(seeded["submission"].submission_id) is not None
+    assert reloaded.get_content_object_by_hash(seeded["submission"].content_hash) is not None
     assert reloaded.get_originality_certificate(seeded["certificate"].certificate_id) is not None
     assert reloaded.get_submission_votes(seeded["submission"].submission_id)["votes"]
     assert reloaded.get_latest_block().hash == seeded["backend"].load_chain()[-1]["hash"]

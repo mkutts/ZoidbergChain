@@ -147,6 +147,7 @@ class PeerSubmissionPayload(_StrictBodyModel):
     created_at: Annotated[float, Field(ge=0)] | None = None
     hard_reject_reason: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    content_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
 
 

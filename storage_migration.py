@@ -15,6 +15,7 @@ _SECTION_DEFAULTS = {
     "chain": [],
     "wallets": {},
     "submissions": [],
+    "content_objects": [],
     "mint_queue": [],
     "votes": [],
     "originality_certificates": [],
@@ -24,6 +25,7 @@ _SECTION_TYPES = {
     "chain": list,
     "wallets": dict,
     "submissions": list,
+    "content_objects": list,
     "mint_queue": list,
     "votes": list,
     "originality_certificates": list,
@@ -43,6 +45,7 @@ class MigrationSummary:
     chain_length: int
     wallet_count: int
     submission_count: int
+    content_object_count: int
     vote_count: int
     certificate_count: int
     peer_count: int
@@ -60,6 +63,7 @@ class MigrationSummary:
             "chain_length": self.chain_length,
             "wallet_count": self.wallet_count,
             "submission_count": self.submission_count,
+            "content_object_count": self.content_object_count,
             "vote_count": self.vote_count,
             "certificate_count": self.certificate_count,
             "peer_count": self.peer_count,
@@ -127,6 +131,24 @@ def _section_count(snapshot: dict[str, Any], section: str) -> int:
     return 0
 
 
+def _content_object_count(snapshot: dict[str, Any]) -> int:
+    content_objects = snapshot.get("content_objects", [])
+    if isinstance(content_objects, list) and content_objects:
+        return len(content_objects)
+
+    submissions = snapshot.get("submissions", [])
+    if not isinstance(submissions, list):
+        return 0
+
+    seen_hashes = set()
+    for submission in submissions:
+        if isinstance(submission, dict):
+            content_hash = submission.get("content_hash")
+            if isinstance(content_hash, str) and content_hash.strip():
+                seen_hashes.add(content_hash.strip())
+    return len(seen_hashes)
+
+
 def _latest_block_hash(snapshot: dict[str, Any]) -> str | None:
     chain = snapshot.get("chain", [])
     if not chain:
@@ -162,6 +184,7 @@ def _source_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
         "chain_length": _section_count(snapshot, "chain"),
         "wallet_count": _section_count(snapshot, "wallets"),
         "submission_count": _section_count(snapshot, "submissions"),
+        "content_object_count": _content_object_count(snapshot),
         "vote_count": _section_count(snapshot, "votes"),
         "certificate_count": _section_count(snapshot, "originality_certificates"),
         "peer_count": _section_count(snapshot, "peers"),
@@ -196,6 +219,7 @@ def _validate_migration(source_snapshot: dict[str, Any], sqlite_db_path: Path) -
         "chain_length",
         "wallet_count",
         "submission_count",
+        "content_object_count",
         "vote_count",
         "certificate_count",
         "peer_count",
@@ -256,6 +280,7 @@ def migrate_json_to_sqlite(
         chain_length=summary["chain_length"],
         wallet_count=summary["wallet_count"],
         submission_count=summary["submission_count"],
+        content_object_count=summary["content_object_count"],
         vote_count=summary["vote_count"],
         certificate_count=summary["certificate_count"],
         peer_count=summary["peer_count"],

@@ -1791,6 +1791,7 @@ def _normalize_submission_payload(submission_payload):
             "created_at",
             "hard_reject_reason",
             "content_hash",
+            "content_id",
             "certificate_id",
         ],
         MalformedSubmissionError,
@@ -1833,6 +1834,12 @@ def _normalize_submission_payload(submission_payload):
             normalized["text_content"],
             normalized["submitter"],
         )
+
+    content_id = submission_payload.get("content_id")
+    if content_id is not None:
+        if not isinstance(content_id, str) or not content_id.strip():
+            raise MalformedSubmissionError("Submission content_id must be a non-empty string.")
+        normalized["content_id"] = content_id.strip()
 
     normalized["status"] = PENDING
     normalized["hard_reject_reason"] = None

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -74,6 +76,23 @@ def calculate_content_id(content_hash: str) -> str:
     if not isinstance(content_hash, str) or not _HEX_64_PATTERN.fullmatch(content_hash.strip()):
         raise ValueError("content_hash must be a 64-character lowercase hexadecimal string.")
     return hashlib.sha256(content_hash.strip().encode("utf-8")).hexdigest()[:32]
+
+
+def guess_mime_type(file_name: str | None, default: str = "application/octet-stream") -> str:
+    if not file_name:
+        return default
+    mime_type, _encoding = mimetypes.guess_type(file_name)
+    return mime_type or default
+
+
+def infer_content_type(image_path: str | None, text_content: str | None) -> str:
+    has_image = bool(image_path)
+    has_text = bool((text_content or "").strip())
+    if has_image and has_text:
+        return CONTENT_TYPE_MIXED
+    if has_image:
+        return CONTENT_TYPE_IMAGE
+    return CONTENT_TYPE_TEXT
 
 
 def _validate_content_type(content_type: str) -> str:
@@ -264,3 +283,61 @@ class ContentObject:
             "network_name": self.network_name,
             "metadata": self.metadata,
         }
+
+
+def content_object_from_submission_data(
+    submission_data: dict[str, Any],
+    *,
+    network_name: str,
+    storage_status: str | None = None,
+) -> ContentObject:
+    if not isinstance(submission_data, dict):
+        raise ValueError("Submission data must be a dictionary.")
+
+    image_path = submission_data.get("image_path") or submission_data.get("image") or ""
+    text_content = submission_data.get("text_content") or submission_data.get("text") or ""
+    submitter = submission_data.get("submitter") or submission_data.get("miner") or ""
+    content_hash = submission_data.get("content_hash")
+    if not isinstance(content_hash, str) or not content_hash.strip():
+        from submission import calculate_submission_content_hash
+
+        content_hash = calculate_submission_content_hash(image_path, text_content, submitter)
+
+    file_name = os.path.basename(image_path) if image_path else None
+    content_type = infer_content_type(image_path, text_content)
+    mime_type = guess_mime_type(file_name) if file_name else ("text/plain" if content_type == CONTENT_TYPE_TEXT else "application/octet-stream")
+    local_path = image_path or None
+    resolved_storage_status = storage_status
+    if resolved_storage_status is None:
+        resolved_storage_status = STORAGE_STATUS_LOCAL if image_path and os.path.isfile(image_path) else STORAGE_STATUS_MISSING
+
+    created_at = submission_data.get("created_at")
+    try:
+        created_at_value = float(created_at)
+    except (TypeError, ValueError):
+        created_at_value = time.time()
+
+    file_size_bytes = None
+    if image_path and os.path.isfile(image_path):
+        try:
+            file_size_bytes = os.path.getsize(image_path)
+        except OSError:
+            file_size_bytes = None
+
+    return ContentObject(
+        content_hash=content_hash.strip(),
+        content_type=content_type,
+        mime_type=mime_type,
+        file_name=file_name,
+        file_size_bytes=file_size_bytes,
+        storage_status=resolved_storage_status,
+        local_path=local_path,
+        text_content=text_content or None,
+        caption=text_content or None,
+        submitted_by=submitter,
+        network_name=network_name,
+        created_at=created_at_value,
+        metadata={
+            "submission_id": submission_data.get("submission_id")
+        },
+    )

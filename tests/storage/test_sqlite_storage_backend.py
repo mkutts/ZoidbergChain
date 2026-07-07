@@ -7,6 +7,12 @@ import pytest
 from blockchain import Blockchain
 from peers import PeerStore
 import storage
+from content import (
+    STORAGE_STATUS_LOCAL,
+    STORAGE_STATUS_REMOTE,
+    ContentObject,
+    calculate_content_id,
+)
 from storage import SQLiteStorageBackend
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from wallet import Wallet
@@ -33,6 +39,7 @@ def test_sqlite_storage_backend_initializes_database(isolated_data_dir):
         "chain",
         "wallets",
         "submissions",
+        "content_objects",
         "mint_queue",
         "votes",
         "originality_certificates",
@@ -66,9 +73,11 @@ def test_sqlite_storage_backend_loads_existing_chain_data(isolated_data_dir):
         ],
         "wallets": {},
         "submissions": [],
+        "content_objects": [],
         "mint_queue": [],
         "votes": [],
         "originality_certificates": [],
+        "peers": [],
     }
 
     backend.save_blockchain_state(state)
@@ -110,6 +119,7 @@ def test_sqlite_storage_backend_submissions_save_reload(isolated_data_dir):
             "created_at": 1.0,
             "hard_reject_reason": None,
             "content_hash": "c" * 64,
+            "content_id": calculate_content_id("c" * 64),
             "certificate_id": None,
         }
     ]
@@ -117,6 +127,32 @@ def test_sqlite_storage_backend_submissions_save_reload(isolated_data_dir):
     backend.save_submissions(submissions)
 
     assert backend.load_submissions() == submissions
+
+
+def test_sqlite_storage_backend_content_objects_save_reload(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "content-objects")
+    text_content_object = ContentObject.from_text(
+        text_content="content object text",
+        submitted_by="wallet-a",
+        network_name="zoidberg-testnet",
+        storage_status=STORAGE_STATUS_LOCAL,
+    )
+    image_content_object = ContentObject.from_image_metadata(
+        submitted_by="wallet-b",
+        network_name="zoidberg-testnet",
+        mime_type="image/jpeg",
+        file_name="meme.jpg",
+        caption="image caption",
+        storage_status=STORAGE_STATUS_REMOTE,
+    )
+
+    backend.save_content_objects([text_content_object, image_content_object])
+
+    assert backend.load_content_objects() == [text_content_object.to_dict(), image_content_object.to_dict()]
+    assert backend.get_content_object(text_content_object.content_id) == text_content_object.to_dict()
+    assert backend.get_content_object_by_hash(image_content_object.content_hash) == image_content_object.to_dict()
+    assert backend.list_content_objects(status=STORAGE_STATUS_LOCAL) == [text_content_object.to_dict()]
+    assert backend.list_content_objects(status=STORAGE_STATUS_REMOTE) == [image_content_object.to_dict()]
 
 
 def test_sqlite_storage_backend_votes_save_reload(isolated_data_dir):
@@ -265,6 +301,7 @@ def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):
         "chain": [],
         "wallets": {},
         "submissions": [],
+        "content_objects": [],
         "mint_queue": [],
         "votes": [],
         "originality_certificates": [],
@@ -322,6 +359,7 @@ def test_sqlite_storage_backend_query_helpers_find_common_records(isolated_data_
             "created_at": 1.0,
             "hard_reject_reason": None,
             "content_hash": "c" * 64,
+            "content_id": calculate_content_id("c" * 64),
             "certificate_id": "d" * 64,
         }
     ]

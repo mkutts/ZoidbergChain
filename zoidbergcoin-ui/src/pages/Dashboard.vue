@@ -54,6 +54,113 @@
         </div>
       </section>
 
+      <section class="section-panel content-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Content Upload</p>
+            <h2>Upload First, Then Submit</h2>
+          </div>
+          <span class="workflow-chip">Content Object</span>
+        </div>
+
+        <p class="section-note">
+          Upload an image or text payload first, then reuse the returned `content_id` and `content_hash` in the submission flow.
+        </p>
+
+        <div class="form-stack">
+          <div class="field-group">
+            <label for="content-upload-file">Content File</label>
+            <input
+              id="content-upload-file"
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,.gif,.txt"
+              @change="onContentUploadFileChange"
+              class="file-input"
+            >
+          </div>
+
+          <div class="field-group">
+            <label for="content-upload-text">Text Payload</label>
+            <textarea
+              id="content-upload-text"
+              v-model.trim="contentUploadText"
+              placeholder="Optional text payload for /content/text"
+              class="input-field text-area"
+            ></textarea>
+          </div>
+
+          <div class="field-group">
+            <label for="content-caption">Caption</label>
+            <input
+              id="content-caption"
+              type="text"
+              v-model.trim="contentCaption"
+              placeholder="Optional caption or alt text"
+              class="input-field"
+            >
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button @click="uploadContent" class="btn primary" :disabled="isContentUploading">
+            {{ isContentUploading ? 'Uploading...' : 'Upload Content' }}
+          </button>
+          <button v-if="uploadedContent" @click="useUploadedContentForSubmission" class="btn secondary">
+            Use for Submission
+          </button>
+          <button v-if="uploadedContent" @click="clearUploadedContent" class="btn ghost">
+            Clear
+          </button>
+        </div>
+
+        <div v-if="contentUploadMessage || contentUploadError" class="message-stack">
+          <p v-if="contentUploadMessage" class="status-message success">{{ contentUploadMessage }}</p>
+          <p v-if="contentUploadError" class="status-message error">{{ contentUploadError }}</p>
+        </div>
+
+        <div v-if="uploadedContent" class="content-preview-card">
+          <div class="submission-header">
+            <span class="status-pill" :class="contentStatusClass(uploadedContent)">{{ contentStatusLabel(uploadedContent) }}</span>
+            <span>{{ formatDate(uploadedContent.created_at) }}</span>
+          </div>
+          <div v-if="isImageContent(uploadedContent) && uploadedContent.download_url" class="content-preview">
+            <img :src="uploadedContent.download_url" alt="Uploaded meme preview" class="content-image">
+          </div>
+          <div v-else-if="isTextContent(uploadedContent)" class="content-text-preview">
+            <pre>{{ uploadedContent.text_content || contentUploadText || 'Text preview unavailable.' }}</pre>
+          </div>
+          <div class="detail-grid">
+            <div>
+              <span>Content ID</span>
+              <strong>{{ shortenHash(uploadedContent.content_id) }}</strong>
+            </div>
+            <div>
+              <span>Content Hash</span>
+              <strong>{{ shortenHash(uploadedContent.content_hash) }}</strong>
+            </div>
+            <div>
+              <span>Content Type</span>
+              <strong>{{ uploadedContent.content_type || 'Missing' }}</strong>
+            </div>
+            <div>
+              <span>MIME Type</span>
+              <strong>{{ uploadedContent.mime_type || 'Missing' }}</strong>
+            </div>
+            <div>
+              <span>Storage Status</span>
+              <strong>{{ formatContentStatus(uploadedContent.storage_status) }}</strong>
+            </div>
+            <div>
+              <span>Caption</span>
+              <strong>{{ uploadedContent.caption || 'None' }}</strong>
+            </div>
+          </div>
+          <p v-if="uploadedContent.download_url" class="content-link-row">
+            <a :href="uploadedContent.download_url" target="_blank" rel="noreferrer">View or download content</a>
+          </p>
+        </div>
+      </section>
+
       <section class="section-panel submit-panel">
         <div class="card-heading">
           <div>
@@ -78,11 +185,21 @@
             <label for="meme-upload">Meme Image</label>
             <input type="file" id="meme-upload" accept=".jpg,.jpeg,.png,.webp" @change="uploadMeme" class="file-input">
           </div>
+
+          <div class="field-group">
+            <label for="submission-content-hash">Content Hash</label>
+            <input id="submission-content-hash" type="text" v-model.trim="submissionContentHash" placeholder="Optional content_hash from upload" class="input-field">
+          </div>
+
+          <div class="field-group">
+            <label for="submission-content-id">Content ID</label>
+            <input id="submission-content-id" type="text" v-model.trim="submissionContentId" placeholder="Optional content_id from upload" class="input-field">
+          </div>
         </div>
 
         <div class="card-actions">
           <button @click="submitMeme" class="btn primary" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Submitting...' : 'Submit for Review' }}
+            {{ isSubmitting ? 'Submitting...' : (uploadedContent ? 'Submit Uploaded Content' : 'Submit for Review') }}
           </button>
         </div>
 
@@ -97,6 +214,31 @@
             <span>{{ formatDate(lastSubmission.created_at) }}</span>
           </div>
           <p><strong>Submission ID:</strong> {{ lastSubmission.submission_id }}</p>
+          <div class="detail-grid">
+            <div>
+              <span>Content ID</span>
+              <strong>{{ shortenHash(lastSubmission.content_id) }}</strong>
+            </div>
+            <div>
+              <span>Content Hash</span>
+              <strong>{{ shortenHash(lastSubmission.content_hash) }}</strong>
+            </div>
+            <div>
+              <span>Content Type</span>
+              <strong>{{ lastSubmission.content_type || 'Missing' }}</strong>
+            </div>
+            <div>
+              <span>Storage Status</span>
+              <strong>{{ formatContentStatus(lastSubmission.storage_status) }}</strong>
+            </div>
+          </div>
+          <div v-if="hasContentPreview(lastSubmission)" class="content-preview">
+            <img v-if="isImageContent(lastSubmission) && lastSubmission.download_url" :src="lastSubmission.download_url" alt="Submitted content preview" class="content-image">
+            <pre v-else-if="isTextContent(lastSubmission)">{{ lastSubmission.text_content }}</pre>
+          </div>
+          <p v-if="lastSubmission.download_url" class="content-link-row">
+            <a :href="lastSubmission.download_url" target="_blank" rel="noreferrer">Download submitted content</a>
+          </p>
           <p class="hint">Submitted content enters community voting before it can be certified.</p>
         </div>
       </section>
@@ -137,8 +279,30 @@
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
 
+            <div v-if="hasContentPreview(submission)" class="content-preview">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Submission content preview" class="content-image">
+              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+            </div>
+
             <p class="submission-text">{{ submission.text_content }}</p>
             <p class="meta">Submitted by {{ shortenKey(submission.submitter) }}</p>
+            <div class="content-state-line">
+              <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
+              <span class="meta-chip">ID {{ shortenHash(submission.content_id) }}</span>
+              <span class="meta-chip">Hash {{ shortenHash(submission.content_hash) }}</span>
+              <span class="meta-chip">{{ submission.mime_type || submission.content_type || 'No MIME data' }}</span>
+              <button
+                v-if="submission.content_hash && needsContentSync(submission)"
+                @click="syncContent(submission.content_hash)"
+                class="btn ghost sync-btn"
+                :disabled="syncingContentHash === submission.content_hash"
+              >
+                {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
+              </button>
+              <a v-else-if="submission.download_url" :href="submission.download_url" target="_blank" rel="noreferrer" class="meta-link">
+                View Content
+              </a>
+            </div>
 
             <div class="submission-actions">
               <div class="vote-actions">
@@ -176,6 +340,11 @@
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
 
+            <div v-if="hasContentPreview(submission)" class="content-preview">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Certificate content preview" class="content-image">
+              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+            </div>
+
             <p class="submission-text">{{ submission.text_content }}</p>
             <div class="detail-grid">
               <div>
@@ -185,6 +354,10 @@
               <div>
                 <span>Certificate ID</span>
                 <strong>{{ shortenHash(getCertificate(submission)?.certificate_id) || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Content ID</span>
+                <strong>{{ shortenHash(submission.content_id || getCertificate(submission)?.content_id) }}</strong>
               </div>
               <div>
                 <span>Approval</span>
@@ -202,6 +375,24 @@
                 <span>Originality Score</span>
                 <strong>{{ formatScore(getCertificate(submission)?.originality_score) }}</strong>
               </div>
+              <div>
+                <span>Content Type</span>
+                <strong>{{ submission.content_type || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>MIME Type</span>
+                <strong>{{ submission.mime_type || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Storage Status</span>
+                <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
+              </div>
+            </div>
+            <div class="content-state-line">
+              <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
+              <a v-if="submission.download_url" :href="submission.download_url" target="_blank" rel="noreferrer" class="meta-link">
+                View Content
+              </a>
             </div>
           </article>
         </div>
@@ -222,6 +413,10 @@
               <span class="status-pill pending">{{ formatStatus(submission.status) }}</span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
+            <div v-if="hasContentPreview(submission)" class="content-preview">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Missing certificate submission preview" class="content-image">
+              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+            </div>
             <p class="submission-text">{{ submission.text_content }}</p>
             <p class="queue-warning">Originality certificate is missing. This submission is not certificate-ready and cannot be minted.</p>
 
@@ -235,6 +430,10 @@
                 <strong>{{ shortenHash(submission.content_hash) }}</strong>
               </div>
               <div>
+                <span>Content ID</span>
+                <strong>{{ shortenHash(submission.content_id) }}</strong>
+              </div>
+              <div>
                 <span>Creator Wallet</span>
                 <strong>{{ shortenKey(submission.submitter) }}</strong>
               </div>
@@ -242,6 +441,21 @@
                 <span>Certificate Status</span>
                 <strong class="text-warning">missing</strong>
               </div>
+              <div>
+                <span>Storage Status</span>
+                <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
+              </div>
+            </div>
+            <div class="content-state-line">
+              <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
+              <button
+                v-if="submission.content_hash && needsContentSync(submission)"
+                @click="syncContent(submission.content_hash)"
+                class="btn ghost sync-btn"
+                :disabled="syncingContentHash === submission.content_hash"
+              >
+                {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
+              </button>
             </div>
           </article>
         </div>
@@ -273,6 +487,10 @@
               <span class="status-pill queued">{{ formatStatus(submission.status) }}</span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
+            <div v-if="hasContentPreview(submission)" class="content-preview">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Mint queue content preview" class="content-image">
+              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+            </div>
             <p class="submission-text">{{ submission.text_content }}</p>
 
             <div class="detail-grid">
@@ -289,6 +507,18 @@
                 <strong>{{ shortenHash(getCertificate(submission)?.content_hash || submission.content_hash) }}</strong>
               </div>
               <div>
+                <span>Content ID</span>
+                <strong>{{ shortenHash(getCertificate(submission)?.content_id || submission.content_id) }}</strong>
+              </div>
+              <div>
+                <span>Content Type</span>
+                <strong>{{ submission.content_type || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>MIME Type</span>
+                <strong>{{ submission.mime_type || 'Missing' }}</strong>
+              </div>
+              <div>
                 <span>Originality Score</span>
                 <strong>{{ formatScore(getCertificate(submission)?.originality_score) }}</strong>
               </div>
@@ -296,6 +526,16 @@
                 <span>Creator Wallet</span>
                 <strong>{{ shortenKey(getCertificate(submission)?.creator_wallet || submission.submitter) }}</strong>
               </div>
+              <div>
+                <span>Storage Status</span>
+                <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
+              </div>
+            </div>
+            <div class="content-state-line">
+              <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
+              <a v-if="submission.download_url" :href="submission.download_url" target="_blank" rel="noreferrer" class="meta-link">
+                View Content
+              </a>
             </div>
 
             <p v-if="!getCertificate(submission)" class="queue-warning">Certificate required before minting.</p>
@@ -339,6 +579,12 @@
               </span>
             </div>
 
+            <div v-if="hasContentPreview(block)" class="content-preview">
+              <img v-if="isImageContent(block) && block.download_url" :src="block.download_url" alt="Block content preview" class="content-image">
+              <pre v-else-if="isTextContent(block)">{{ block.meme && block.meme.text ? block.meme.text : 'Text preview unavailable.' }}</pre>
+              <img v-else-if="block.meme && block.meme.encoded_image" :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Block meme preview" class="content-image">
+            </div>
+
             <div class="detail-grid">
               <div>
                 <span>Block Hash</span>
@@ -361,6 +607,18 @@
                 <strong>{{ shortenHash(block.content_hash) }}</strong>
               </div>
               <div v-if="block.certificate_id">
+                <span>Content ID</span>
+                <strong>{{ shortenHash(block.content_id) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Content Type</span>
+                <strong>{{ block.content_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>MIME Type</span>
+                <strong>{{ block.mime_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
                 <span>Originality Score</span>
                 <strong>{{ formatScore(block.originality_score) }}</strong>
               </div>
@@ -372,6 +630,21 @@
                 <span>Approval</span>
                 <strong>{{ formatPercent(block.approval_percentage) }}</strong>
               </div>
+              <div v-if="block.certificate_id">
+                <span>Storage Status</span>
+                <strong>{{ formatContentStatus(block.storage_status) }}</strong>
+              </div>
+            </div>
+
+            <div class="content-state-line">
+              <span v-if="block.storage_status" class="status-pill" :class="contentStatusClass(block)">{{ contentStatusLabel(block) }}</span>
+              <a v-if="block.download_url" :href="block.download_url" target="_blank" rel="noreferrer" class="meta-link">
+                View Content
+              </a>
+            </div>
+
+            <div v-if="!hasContentPreview(block) && block.meme && block.meme.encoded_image" class="meme-container">
+              <img :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="meme-image" />
             </div>
           </article>
         </div>
@@ -395,6 +668,16 @@ export default {
       wallet: '',
       voterWallet: '',
       textContent: '',
+      contentUploadFile: null,
+      contentUploadText: '',
+      contentCaption: '',
+      uploadedContent: null,
+      contentUploadMessage: '',
+      contentUploadError: '',
+      isContentUploading: false,
+      syncingContentHash: '',
+      submissionContentHash: '',
+      submissionContentId: '',
       submissions: [],
       mintQueue: [],
       recentBlocks: [],
@@ -444,6 +727,9 @@ export default {
     uploadMeme(event) {
       this.memeFile = event.target.files[0] || null;
     },
+    onContentUploadFileChange(event) {
+      this.contentUploadFile = event.target.files[0] || null;
+    },
     async refreshWorkflow() {
       this.isRefreshing = true;
       try {
@@ -467,29 +753,57 @@ export default {
         this.errorMessage = 'Please enter your submitter wallet ID.';
         return;
       }
-      if (!this.textContent) {
-        this.errorMessage = 'Please enter the meme text or caption.';
-        return;
-      }
-      if (!this.memeFile) {
-        this.errorMessage = 'Please upload a meme image.';
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('image', this.memeFile);
-      formData.append('submitter', this.wallet);
-      formData.append('text_content', this.textContent);
 
       this.isSubmitting = true;
       try {
-        const response = await apiClient.post('/submit_content', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const hasLinkedContent = Boolean(this.submissionContentHash || this.submissionContentId || this.uploadedContent);
+        let response;
+
+        if (hasLinkedContent) {
+          const formData = new FormData();
+          formData.append('submitter', this.wallet);
+          if (this.textContent) {
+            formData.append('text_content', this.textContent);
+          }
+          if (this.submissionContentHash) {
+            formData.append('content_hash', this.submissionContentHash);
+          }
+          if (this.submissionContentId) {
+            formData.append('content_id', this.submissionContentId);
+          }
+          response = await apiClient.post('/submit_content', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } else if (this.memeFile) {
+          if (!this.textContent) {
+            this.errorMessage = 'Please enter the meme text or caption.';
+            return;
+          }
+          const formData = new FormData();
+          formData.append('image', this.memeFile);
+          formData.append('submitter', this.wallet);
+          formData.append('text_content', this.textContent);
+          response = await apiClient.post('/submit_content', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } else if (this.textContent) {
+          const formData = new FormData();
+          formData.append('submitter', this.wallet);
+          formData.append('text_content', this.textContent);
+          response = await apiClient.post('/submit_content', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } else {
+          this.errorMessage = 'Please upload content or enter text before submitting.';
+          return;
+        }
+
         this.lastSubmission = response.data.submission;
         this.submitMessage = `${response.data.message || 'Content submitted successfully.'} Status: ${this.formatStatus(this.lastSubmission.status)}.`;
         this.textContent = '';
         this.memeFile = null;
+        this.submissionContentHash = '';
+        this.submissionContentId = '';
         const fileInput = document.getElementById('meme-upload');
         if (fileInput) {
           fileInput.value = '';
@@ -500,6 +814,98 @@ export default {
         this.errorMessage = getApiErrorMessage(error, 'Failed to submit meme.');
       } finally {
         this.isSubmitting = false;
+      }
+    },
+    async uploadContent() {
+      this.contentUploadMessage = '';
+      this.contentUploadError = '';
+
+      if (!this.wallet) {
+        this.contentUploadError = 'Please enter your submitter wallet ID before uploading content.';
+        return;
+      }
+
+      this.isContentUploading = true;
+      try {
+        let response;
+        if (this.contentUploadFile) {
+          const formData = new FormData();
+          formData.append('file', this.contentUploadFile);
+          formData.append('submitted_by', this.wallet);
+          if (this.contentCaption) {
+            formData.append('caption', this.contentCaption);
+          }
+          response = await apiClient.post('/content/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } else if (this.contentUploadText) {
+          response = await apiClient.post('/content/text', {
+            text_content: this.contentUploadText,
+            submitted_by: this.wallet,
+            caption: this.contentCaption || null,
+          });
+        } else {
+          this.contentUploadError = 'Choose a file or enter text before uploading content.';
+          return;
+        }
+
+        this.uploadedContent = response.data;
+        this.submissionContentHash = response.data.content_hash || '';
+        this.submissionContentId = response.data.content_id || '';
+        this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.data.storage_status)}.`;
+      } catch (error) {
+        console.error('Error uploading content:', error);
+        this.contentUploadError = getApiErrorMessage(error, 'Failed to upload content.');
+      } finally {
+        this.isContentUploading = false;
+      }
+    },
+    useUploadedContentForSubmission() {
+      if (!this.uploadedContent) {
+        return;
+      }
+      this.submissionContentHash = this.uploadedContent.content_hash || '';
+      this.submissionContentId = this.uploadedContent.content_id || '';
+      if (!this.textContent && this.uploadedContent.caption) {
+        this.textContent = this.uploadedContent.caption;
+      }
+      this.submitMessage = 'Uploaded content is ready to submit.';
+    },
+    clearUploadedContent() {
+      this.uploadedContent = null;
+      this.contentUploadMessage = '';
+      this.contentUploadError = '';
+      this.submissionContentHash = '';
+      this.submissionContentId = '';
+      this.contentUploadFile = null;
+      this.contentUploadText = '';
+      this.contentCaption = '';
+      const fileInput = document.getElementById('content-upload-file');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    },
+    async syncContent(contentHash) {
+      if (!contentHash) {
+        return;
+      }
+
+      this.syncingContentHash = contentHash;
+      this.contentUploadError = '';
+      try {
+        await apiClient.post(`/content/${contentHash}/sync`);
+        const response = await apiClient.get(`/content/${contentHash}/metadata`);
+        const content = response.data.content || null;
+        if (content) {
+          this.uploadedContent = this.uploadedContent?.content_hash === contentHash ? content : this.uploadedContent;
+        }
+        this.contentUploadMessage = 'Content synced successfully.';
+        await this.refreshWorkflow();
+      } catch (error) {
+        console.error('Error syncing content:', error);
+        this.contentUploadError = getApiErrorMessage(error, 'Failed to sync content.');
+      } finally {
+        this.syncingContentHash = '';
       }
     },
     async fetchChainSummary() {
@@ -601,6 +1007,60 @@ export default {
         submission?.submission_id
         && Object.prototype.hasOwnProperty.call(this.certificatesBySubmission, submission.submission_id),
       );
+    },
+    hasContentPreview(record) {
+      return Boolean(record?.download_url || this.isTextContent(record) || this.isImageContent(record));
+    },
+    isImageContent(record) {
+      const value = String(record?.mime_type || record?.content_type || '').toLowerCase();
+      return value.startsWith('image/');
+    },
+    isTextContent(record) {
+      const mimeType = String(record?.mime_type || '').toLowerCase();
+      const contentType = String(record?.content_type || '').toLowerCase();
+      return mimeType === 'text/plain' || contentType === 'text' || contentType === 'mixed';
+    },
+    needsContentSync(record) {
+      const status = String(record?.storage_status || '').toLowerCase();
+      return Boolean(record?.content_hash) && ['remote', 'missing', 'local'].includes(status) && !record?.download_url;
+    },
+    contentStatusLabel(record) {
+      const status = String(record?.storage_status || '').toLowerCase();
+      if (!status) {
+        return 'Content Unknown';
+      }
+      if (status === 'verified') {
+        return 'Verified Locally';
+      }
+      if (status === 'local') {
+        return 'Not Verified Locally';
+      }
+      if (status === 'remote') {
+        return 'Remote Content';
+      }
+      if (status === 'missing') {
+        return 'Missing Content';
+      }
+      return this.formatContentStatus(status);
+    },
+    contentStatusClass(record) {
+      const status = String(record?.storage_status || '').toLowerCase();
+      if (status === 'verified') {
+        return 'ready';
+      }
+      if (status === 'local') {
+        return 'pending';
+      }
+      if (status === 'remote' || status === 'missing') {
+        return 'warning-chip';
+      }
+      return '';
+    },
+    formatContentStatus(status) {
+      if (!status) {
+        return 'Missing';
+      }
+      return String(status).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
     },
     async vote(submissionId, voteType) {
       this.voteMessage = '';
@@ -785,11 +1245,19 @@ h3 {
   font-size: 1.05rem;
 }
 
+.section-note {
+  margin-bottom: 18px;
+  color: #b6bbc4;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
 .dashboard-shell {
   display: grid;
   grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
   grid-template-areas:
     "summary summary"
+    "content content"
     "submit voting"
     "approved voting"
     "missing voting"
@@ -800,6 +1268,10 @@ h3 {
 
 .summary-panel {
   grid-area: summary;
+}
+
+.content-panel {
+  grid-area: content;
 }
 
 .submit-panel {
@@ -883,6 +1355,7 @@ h3 {
 }
 
 .metric-card,
+.content-preview-card,
 .submission-result,
 .submission-card,
 .block-card,
@@ -1084,6 +1557,11 @@ h3 {
   padding: 16px;
 }
 
+.content-preview-card {
+  margin-top: 18px;
+  padding: 16px;
+}
+
 .empty-state {
   padding: 18px;
   color: #bbb;
@@ -1106,6 +1584,58 @@ h3 {
   font-size: 1rem;
   line-height: 1.5;
   word-break: break-word;
+}
+
+.content-preview {
+  margin-bottom: 14px;
+}
+
+.content-image {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.content-preview pre,
+.content-text-preview pre {
+  margin: 0;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+  color: #f1f1f1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.content-state-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.meta-chip {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d9dde3;
+  font-size: 0.8rem;
+}
+
+.meta-link {
+  color: #8eb9ff;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.sync-btn {
+  min-height: 34px;
+  padding-block: 7px;
 }
 
 .hint,
@@ -1150,6 +1680,7 @@ h3 {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "summary"
+      "content"
       "submit"
       "voting"
       "approved"

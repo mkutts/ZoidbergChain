@@ -157,7 +157,7 @@ class Blockchain:
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
-        print("✅ Debug: Blockchain and wallets saved successfully.")
+        print("Debug: Blockchain and wallets saved successfully.")
 
     def load_blockchain(self):
         """Load blockchain state from disk if it exists, ensuring wallets persist."""
@@ -193,7 +193,7 @@ class Blockchain:
 
                 self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}
 
-                print("✅ Debug: Blockchain and wallets loaded successfully from blockchain.json.")
+                print("Debug: Blockchain and wallets loaded successfully from blockchain.json.")
 
                 self.submissions = [
                     Submission.from_dict(submission_data)
@@ -212,12 +212,12 @@ class Blockchain:
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
-                print(f"✅ Debug: Blockchain length after loading - {len(self.chain)} blocks")
-                print(f"✅ Debug: Wallets loaded: {len(self.wallets)} wallets")
+                print(f"Debug: Blockchain length after loading - {len(self.chain)} blocks")
+                print(f"Debug: Wallets loaded: {len(self.wallets)} wallets")
                 return True
 
             if loaded_data is not None:
-                print("⚠️ Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
+                print("Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
                 self.chain = []
                 self.wallets = {}
                 self.submissions = []
@@ -227,7 +227,7 @@ class Blockchain:
                 self.originality_certificates = []
 
         except FileNotFoundError:
-            print("⚠️ Debug: No saved blockchain found. Creating new blockchain.")
+            print("Debug: No saved blockchain found. Creating new blockchain.")
             self.chain = []
             self.wallets = {}
             self.submissions = []
@@ -236,7 +236,7 @@ class Blockchain:
             self.votes = []
             self.originality_certificates = []
         except json.JSONDecodeError:
-            print("⚠️ Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
+            print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
             self.chain = []
             self.wallets = {}
             self.submissions = []
@@ -245,7 +245,7 @@ class Blockchain:
             self.votes = []
             self.originality_certificates = []
         except Exception as e:
-            print(f"⚠️ Debug: Unexpected error loading blockchain - {e}")
+            print(f"Debug: Unexpected error loading blockchain - {e}")
             self.chain = []
             self.wallets = {}
             self.submissions = []
@@ -295,7 +295,7 @@ class Blockchain:
         self.chain.append(genesis_block)
 
         # âœ… Debugging to verify genesis block transactions
-        print("\nðŸ” Genesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
+        print("\nGenesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
 
         print("\nGenesis wallets initialized:")
         if project_owner_wallet:
@@ -860,7 +860,7 @@ class Blockchain:
             raise ValueError("content_hash or content_id is required.")
 
         image_path = ""
-        if content_object.content_type in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
+        if content_object.content_type in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED, CONTENT_TYPE_TEXT}:
             resolved_image_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
             if resolved_image_path and os.path.isfile(resolved_image_path):
                 image_path = resolved_image_path
@@ -1331,35 +1331,59 @@ class Blockchain:
         """
         Add a block with tip distribution, enforce block size limit, and validate memes.
         """
-        # Check if the image path is valid and the file exists
-        if not os.path.isfile(image_path):
-            print(f"Debug: Image path {image_path} does not exist.")
-            raise ValueError("Invalid image path provided for the meme.")
-
         if not self.is_valid_public_key(miner):
             print(f"Debug: Invalid miner public key: {miner}")
             raise ValueError(f"Invalid public key provided for the miner.")
 
-        # Extract text content if not provided
+        file_exists = bool(image_path) and os.path.isfile(image_path)
+        file_extension = os.path.splitext(image_path)[1].lower() if image_path else ""
+        guessed_mime_type = guess_mime_type(os.path.basename(image_path), "image/jpeg") if file_exists else ""
+        is_text_payload = bool(text_content and text_content.strip()) and (
+            not file_exists
+            or guessed_mime_type == TEXT_MIME_TYPE
+            or file_extension == ".txt"
+        )
+
+        if not file_exists and not is_text_payload:
+            print(f"Debug: Image path {image_path} does not exist.")
+            raise ValueError("Invalid image path provided for the meme.")
+
+        # Extract text content if not provided.
         if not text_content:
-            print("Debug: Extracting text content from the image.")
-            text_content = extract_text(image_path)
+            if is_text_payload and file_exists:
+                print("Debug: Reading text content from the stored text payload.")
+                with open(image_path, "r", encoding="utf-8") as text_file:
+                    text_content = text_file.read()
+            else:
+                print("Debug: Extracting text content from the image.")
+                text_content = extract_text(image_path)
             if not text_content:
                 print(f"Debug: No text extracted from image {image_path}.")
                 raise ValueError("No text content could be extracted from the image.")
 
-        # âœ… Meme Validation Check
-        image_hash = hash_image(image_path)  # Compute image hash
+        # ✅ Meme Validation Check
         normalized_text = re.sub(r'[^\w\s]', '', text_content).strip().lower()  # Normalize text
+        if is_text_payload:
+            image_hash = compute_text_content_hash(text_content)
+        else:
+            image_hash = hash_image(image_path)  # Compute image hash
 
         if validate_meme:
-            if image_hash in self.image_hashes and normalized_text in self.texts:
-                print(f"âš ï¸ Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
+            if is_text_payload:
+                if normalized_text in self.texts:
+                    print(f"Debug: Duplicate text payload detected: '{normalized_text}' already exists.")
+                    raise ValueError("This meme has already been submitted.")
+            elif image_hash in self.image_hashes and normalized_text in self.texts:
+                print(f"Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
                 raise ValueError("This meme has already been submitted.")
 
-        # Encode the image as base64
-        print(f"Debug: Encoding image at path {image_path}.")
-        meme_encoded = self.encode_image(image_path)
+        # Encode the payload for block storage.
+        if is_text_payload:
+            print("Debug: Encoding text payload for block storage.")
+            meme_encoded = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
+        else:
+            print(f"Debug: Encoding image at path {image_path}.")
+            meme_encoded = self.encode_image(image_path)
 
         # âœ… Calculate meme size (base64 encoding increases size)
         meme_size_kb = len(meme_encoded) / 1024

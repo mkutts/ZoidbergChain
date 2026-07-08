@@ -131,6 +131,47 @@ def test_submit_content_rejects_mismatched_content_id_and_hash(blockchain, walle
     assert response.json()["detail"] == "content_id does not match content_hash."
 
 
+def test_text_content_submission_can_be_minted_from_content_reference(blockchain, wallets):
+    client = _client(blockchain)
+    uploaded = _upload_text_content_via_api(client, wallets["owner"].public_key, text="mintable text content")
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "submitter": wallets["owner"].public_key,
+            "content_id": uploaded["content_id"],
+        },
+    )
+
+    assert response.status_code == 200
+    submission = response.json()["submission"]
+    submission_id = submission["submission_id"]
+
+    for index in range(5):
+        blockchain.cast_submission_vote(
+            submission_id=submission_id,
+            voter=f"text-content-voter-{index}",
+            vote_type=VOTE_ORIGINAL,
+        )
+
+    evaluate_response = client.post(
+        f"/submissions/{submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert evaluate_response.status_code == 200
+    assert evaluate_response.json()["certificate"]["content_id"] == uploaded["content_id"]
+
+    mint_response = client.post(f"/mint-queue/{submission_id}/mint")
+
+    assert mint_response.status_code == 200
+    body = mint_response.json()
+    assert body["minted"] is True
+    assert body["block"]["content_id"] == uploaded["content_id"]
+    assert body["block"]["content_hash"] == uploaded["content_hash"]
+    assert body["block"]["meme"]["text"] == "mintable text content"
+
+
 def test_real_api_submit_vote_evaluate_certificate_lookup_and_mint_flow(
     blockchain,
     submission_image,

@@ -81,6 +81,12 @@
               </span>
             </div>
 
+            <div v-if="hasContentPreview(block)" class="content-preview">
+              <img v-if="isImageContent(block) && block.download_url" :src="block.download_url" alt="Block content preview" class="content-image">
+              <pre v-else-if="isTextContent(block)">{{ block.meme && block.meme.text ? block.meme.text : 'Text preview unavailable.' }}</pre>
+              <img v-else-if="block.meme && block.meme.encoded_image" :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="content-image">
+            </div>
+
             <div class="detail-grid">
               <div>
                 <span>Block Hash</span>
@@ -107,6 +113,18 @@
                 <strong>{{ shortenHash(block.content_hash) }}</strong>
               </div>
               <div v-if="block.certificate_id">
+                <span>Content ID</span>
+                <strong>{{ shortenHash(block.content_id) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Content Type</span>
+                <strong>{{ block.content_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>MIME Type</span>
+                <strong>{{ block.mime_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
                 <span>Originality Score</span>
                 <strong>{{ formatScore(block.originality_score) }}</strong>
               </div>
@@ -118,9 +136,20 @@
                 <span>Approval</span>
                 <strong>{{ formatPercent(block.approval_percentage) }}</strong>
               </div>
+              <div v-if="block.certificate_id">
+                <span>Storage Status</span>
+                <strong>{{ formatContentStatus(block.storage_status) }}</strong>
+              </div>
             </div>
 
-            <div v-if="block.meme && block.meme.encoded_image" class="meme-container">
+            <div class="content-state-line">
+              <span v-if="block.storage_status" class="status-pill" :class="contentStatusClass(block)">{{ contentStatusLabel(block) }}</span>
+              <a v-if="block.download_url" :href="block.download_url" target="_blank" rel="noreferrer" class="meta-link">
+                View Content
+              </a>
+            </div>
+
+            <div v-if="!hasContentPreview(block) && block.meme && block.meme.encoded_image" class="meme-container">
               <img :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="meme-image" />
             </div>
           </article>
@@ -201,6 +230,56 @@ export default {
         return key || 'Unknown';
       }
       return `${String(key).slice(0, 10)}...${String(key).slice(-8)}`;
+    },
+    hasContentPreview(record) {
+      return Boolean(record?.download_url || this.isTextContent(record) || this.isImageContent(record));
+    },
+    isImageContent(record) {
+      const value = String(record?.mime_type || record?.content_type || '').toLowerCase();
+      return value.startsWith('image/');
+    },
+    isTextContent(record) {
+      const mimeType = String(record?.mime_type || '').toLowerCase();
+      const contentType = String(record?.content_type || '').toLowerCase();
+      return mimeType === 'text/plain' || contentType === 'text' || contentType === 'mixed';
+    },
+    contentStatusLabel(record) {
+      const status = String(record?.storage_status || '').toLowerCase();
+      if (status === 'verified') {
+        return 'Verified Locally';
+      }
+      if (status === 'local') {
+        return 'Not Verified Locally';
+      }
+      if (status === 'remote') {
+        return 'Remote Content';
+      }
+      if (status === 'missing') {
+        return 'Missing Content';
+      }
+      if (!status) {
+        return 'Content Unknown';
+      }
+      return this.formatContentStatus(status);
+    },
+    contentStatusClass(record) {
+      const status = String(record?.storage_status || '').toLowerCase();
+      if (status === 'verified') {
+        return 'ready';
+      }
+      if (status === 'local') {
+        return 'pending';
+      }
+      if (status === 'remote' || status === 'missing') {
+        return 'warning-chip';
+      }
+      return '';
+    },
+    formatContentStatus(status) {
+      if (!status) {
+        return 'Missing';
+      }
+      return String(status).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
     },
     goToDashboard() {
       this.$router.push('/dashboard');
@@ -323,6 +402,16 @@ h3 {
   color: #8df5a6;
 }
 
+.status-pill.pending {
+  background: rgba(255, 201, 71, 0.14);
+  color: #ffd884;
+}
+
+.warning-chip {
+  background: rgba(255, 201, 71, 0.14);
+  color: #ffd884;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -330,6 +419,7 @@ h3 {
 }
 
 .metric-card,
+.content-preview-card,
 .block-card,
 .empty-state {
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -370,6 +460,44 @@ h3 {
 .block-card {
   padding: 18px;
   text-align: left;
+}
+
+.content-preview {
+  margin-bottom: 14px;
+}
+
+.content-image {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.content-preview pre {
+  margin: 0;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.32);
+  color: #f1f1f1;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.content-state-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.meta-link {
+  color: #8eb9ff;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .block-heading {

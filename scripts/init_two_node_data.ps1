@@ -18,6 +18,7 @@ $NodeBChain = Join-Path $NodeBData "blockchain.json"
 $PreviousDataDir = $env:DATA_DIR
 $PreviousNodeDataDir = $env:NODE_DATA_DIR
 $PreviousStorageBackend = $env:STORAGE_BACKEND
+$PreviousPythonIoEncoding = $env:PYTHONIOENCODING
 
 try {
     if ($Reset) {
@@ -34,6 +35,7 @@ try {
         $env:DATA_DIR = "data/node-a"
         $env:NODE_DATA_DIR = "data/node-a"
         $env:STORAGE_BACKEND = "json"
+        $env:PYTHONIOENCODING = "utf-8"
         & $Python -c "from wallet import Wallet; from blockchain import Blockchain; bc = Blockchain(Wallet(), Wallet(), Wallet()); bc.save_blockchain()"
     }
 
@@ -65,5 +67,12 @@ finally {
     }
     else {
         $env:STORAGE_BACKEND = $PreviousStorageBackend
+    }
+
+    if ($null -eq $PreviousPythonIoEncoding) {
+        Remove-Item Env:PYTHONIOENCODING -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:PYTHONIOENCODING = $PreviousPythonIoEncoding
     }
 }

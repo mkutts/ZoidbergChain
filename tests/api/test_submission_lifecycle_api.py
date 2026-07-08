@@ -66,6 +66,19 @@ def _submit_content_via_api(client, submission_image, submitter, text="Real API 
     return response.json()["submission"]
 
 
+def _upload_text_content_via_api(client, submitter, text="Upload-first text content"):
+    response = client.post(
+        "/content/text",
+        json={
+            "text_content": text,
+            "submitted_by": submitter,
+            "caption": text,
+        },
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
 def _vote_via_api(client, submission_id, voter, vote_type=VOTE_ORIGINAL):
     response = client.post(
         f"/submissions/{submission_id}/vote",
@@ -76,6 +89,46 @@ def _vote_via_api(client, submission_id, voter, vote_type=VOTE_ORIGINAL):
     )
     assert response.status_code == 200
     return response.json()["vote"]
+
+
+def test_submit_content_accepts_uploaded_content_id_and_returns_safe_metadata(blockchain, wallets):
+    client = _client(blockchain)
+    uploaded = _upload_text_content_via_api(client, wallets["owner"].public_key)
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "submitter": wallets["owner"].public_key,
+            "content_id": uploaded["content_id"],
+        },
+    )
+
+    assert response.status_code == 200
+    submission = response.json()["submission"]
+    assert submission["content_id"] == uploaded["content_id"]
+    assert submission["content_hash"] == uploaded["content_hash"]
+    assert submission["content_type"] == "text"
+    assert submission["storage_status"] == "verified"
+    assert submission["download_url"] == f"/content/{uploaded['content_hash']}"
+    assert "image_path" not in submission
+
+
+def test_submit_content_rejects_mismatched_content_id_and_hash(blockchain, wallets):
+    client = _client(blockchain)
+    first = _upload_text_content_via_api(client, wallets["owner"].public_key, text="first")
+    second = _upload_text_content_via_api(client, wallets["owner"].public_key, text="second")
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "submitter": wallets["owner"].public_key,
+            "content_id": first["content_id"],
+            "content_hash": second["content_hash"],
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "content_id does not match content_hash."
 
 
 def test_real_api_submit_vote_evaluate_certificate_lookup_and_mint_flow(

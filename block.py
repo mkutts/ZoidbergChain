@@ -25,6 +25,9 @@ class Block:
         submission_id=None,
         certificate_id=None,
         content_hash=None,
+        content_id=None,
+        content_type=None,
+        mime_type=None,
         creator_wallet=None,
         vote_hash=None,
         approval_percentage=None,
@@ -42,6 +45,9 @@ class Block:
         self.submission_id = submission_id
         self.certificate_id = certificate_id
         self.content_hash = content_hash
+        self.content_id = content_id
+        self.content_type = content_type
+        self.mime_type = mime_type
         self.creator_wallet = creator_wallet
         self.vote_hash = vote_hash
         self.approval_percentage = approval_percentage
@@ -70,6 +76,9 @@ class Block:
             "submission_id": self.submission_id,
             "certificate_id": self.certificate_id,
             "content_hash": self.content_hash,
+            "content_id": self.content_id,
+            "content_type": self.content_type,
+            "mime_type": self.mime_type,
             "creator_wallet": self.creator_wallet,
             "vote_hash": self.vote_hash,
             "approval_percentage": self.approval_percentage,

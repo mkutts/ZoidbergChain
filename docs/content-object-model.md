@@ -75,6 +75,42 @@ Rules:
 - upload-first then submit-by-`content_hash` is supported for later submission workflows
 - deeper malware scanning, moderation, or file-format inspection is not implemented yet
 
+## Submission, Certificate, And Block Linkage
+
+Task 6.7 makes content references first-class across the full certified-mint flow.
+
+Submission flows:
+
+- Upload-first flow:
+  1. upload content with `POST /content/upload` or `POST /content/text`
+  2. keep the returned `content_id` and `content_hash`
+  3. create the submission later with `POST /submit_content` and either `content_id`, `content_hash`, or both
+- Legacy text submission flow:
+  - the existing submission path still works when a user submits text directly
+  - the node creates or links a content object automatically when it can do so safely
+
+Linkage rules:
+
+- `content_hash` remains consensus-critical for submissions, certificates, and minted blocks
+- `content_id` is linkage metadata derived from `content_hash`
+- if both `content_id` and `content_hash` are supplied, they must point to the same content object
+- remote or missing content metadata can still be referenced by submissions, certificates, and blocks
+- old submissions that only carry `content_hash` still load without rewrite
+
+Certificate rules:
+
+- certificates continue to anchor on `content_hash`
+- `content_id` is included only when it is safely available
+- old certificates without `content_id` still validate
+- certificate validation does not require the local binary file
+
+Minted block rules:
+
+- certified blocks carry `submission_id`, `certificate_id`, `content_hash`, and `originality_score`
+- when available, blocks also carry `content_id`, `content_type`, and `mime_type`
+- block validation checks certificate and submission metadata consistency without requiring the local binary
+- if a local content object is marked `verified`, its payload must still match `content_hash`
+
 ## Storage Status Meanings
 
 - `missing`: referenced but not available locally.
@@ -86,6 +122,8 @@ Rules:
 
 - Peer submissions, certificates, and certified blocks may create remote content references even when the local node does not have the binary yet.
 - Missing local binaries do not invalidate otherwise valid peer metadata, certificate sync, or chain sync.
+- Peer-provided filesystem paths are never trusted or reused as local paths.
+- Peer metadata may create or update a content object as `remote` or `missing`, but content is not marked `verified` until the local node fetches and verifies the payload.
 - `sync_missing_content(...)` fetches peer metadata first, then the payload, enforces the size limit, verifies the payload hash, stores the local copy, and marks the content object `verified`.
 - Portable storage export and import still include content metadata only. Raw content bytes stay node-local until a later task expands transport or export scope.
 

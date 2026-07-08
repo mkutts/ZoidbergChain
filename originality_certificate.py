@@ -85,6 +85,8 @@ def validate_certificate_for_submission(
         raise ValueError("Originality certificate submission_id does not match submission.")
     if certificate.content_hash != submission.content_hash:
         raise ValueError("Originality certificate content_hash does not match submission.")
+    if certificate.content_id is not None and certificate.content_id != submission.content_id:
+        raise ValueError("Originality certificate content_id does not match submission.")
     if certificate.creator_wallet != submission.submitter:
         raise ValueError("Originality certificate creator_wallet does not match submission.")
     if certificate.network_name != network_name:
@@ -150,6 +152,7 @@ class OriginalityCertificate:
     network_name: str
     issuing_node_id: str
     vote_hash: str
+    content_id: str | None = None
     originality_score: float | None = None
     certificate_id: str = field(default="")
 
@@ -178,6 +181,7 @@ class OriginalityCertificate:
         return cls(
             submission_id=submission.submission_id,
             content_hash=submission.content_hash,
+            content_id=submission.content_id,
             creator_wallet=submission.submitter,
             vote_total=len(votes),
             decisive_vote_total=decisive_vote_total,
@@ -214,6 +218,7 @@ class OriginalityCertificate:
             "certificate_id": self.certificate_id,
             "submission_id": self.submission_id,
             "content_hash": self.content_hash,
+            "content_id": self.content_id,
             "creator_wallet": self.creator_wallet,
             "vote_total": self.vote_total,
             "decisive_vote_total": self.decisive_vote_total,
@@ -235,6 +240,7 @@ class OriginalityCertificate:
             certificate_id=data.get("certificate_id", ""),
             submission_id=data["submission_id"],
             content_hash=data["content_hash"],
+            content_id=data.get("content_id"),
             creator_wallet=data["creator_wallet"],
             vote_total=data["vote_total"],
             decisive_vote_total=data["decisive_vote_total"],

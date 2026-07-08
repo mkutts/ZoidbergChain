@@ -595,6 +595,44 @@ def test_receiving_peer_certificate_creates_remote_content_reference(blockchain,
     assert content_object.local_path is None
 
 
+def test_receiving_peer_block_upgrades_remote_content_metadata(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    _register_peer(client=client)
+    submission, certificate, block = _certified_peer_block(blockchain, submission_image, wallets)
+    blockchain.content_objects = []
+    blockchain.originality_certificates = []
+
+    certificate_response = client.post(
+        "/peers/certificates/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "certificate": certificate.to_dict(),
+        },
+    )
+
+    content_object = blockchain.get_content_object_by_hash(certificate.content_hash)
+    assert certificate_response.status_code == 200
+    assert content_object is not None
+    assert content_object.mime_type == "application/octet-stream"
+
+    block_response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block.to_dict(),
+            "related_submission_id": submission.submission_id,
+            "certificate": certificate.to_dict(),
+        },
+    )
+
+    content_object = blockchain.get_content_object_by_hash(block.content_hash)
+    assert block_response.status_code == 200
+    assert content_object.mime_type == block.mime_type
+    assert content_object.content_type == block.content_type
+
+
 def test_receiving_peer_block_creates_remote_content_reference(blockchain, submission_image, wallets):
     client = _client(blockchain)
     _register_peer(client=client)

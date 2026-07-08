@@ -125,6 +125,24 @@ def test_block_validation_rejects_certificate_content_hash_mismatch(
     assert blockchain.is_chain_valid(chain) is False
 
 
+def test_block_validation_rejects_certificate_content_id_mismatch(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    _submission, _certificate, block = _mint_certificate_backed_block(
+        blockchain,
+        submission_image,
+        wallets,
+    )
+    block_dict = block.to_dict()
+    block_dict["content_id"] = "0" * 32
+
+    chain = [blockchain.chain[0].to_dict(), _rehash(blockchain, block_dict)]
+
+    assert blockchain.is_chain_valid(chain) is False
+
+
 def test_block_validation_rejects_wrong_network_certificate(
     blockchain,
     submission_image,

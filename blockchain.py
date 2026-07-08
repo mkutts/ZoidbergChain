@@ -177,6 +177,9 @@ class Blockchain:
                         submission_id=block_data.get("submission_id"),
                         certificate_id=block_data.get("certificate_id"),
                         content_hash=block_data.get("content_hash"),
+                        content_id=block_data.get("content_id"),
+                        content_type=block_data.get("content_type"),
+                        mime_type=block_data.get("mime_type"),
                         creator_wallet=block_data.get("creator_wallet"),
                         vote_hash=block_data.get("vote_hash"),
                         approval_percentage=block_data.get("approval_percentage"),
@@ -404,6 +407,7 @@ class Blockchain:
                     "submitter": submission.submitter,
                     "created_at": submission.created_at,
                     "content_hash": submission.content_hash,
+                    "content_id": submission.content_id,
                     "certificate_id": submission.certificate_id,
                 },
                 network_name=NETWORK_NAME,
@@ -450,6 +454,8 @@ class Blockchain:
     ):
         content_object = self.get_content_object_by_hash(submission.content_hash)
         if content_object:
+            if submission.content_id and submission.content_id != content_object.content_id:
+                raise ValueError("content_id does not match content_hash.")
             if not submission.content_id:
                 submission.content_id = content_object.content_id
             if stored_content:
@@ -585,10 +591,20 @@ class Blockchain:
     def list_content_objects(self, status=None):
         return self.storage.list_content_objects(status=status, content_objects=self.content_objects)
 
+    def _content_type_hint_for_submission(self, image_path="", text_content=""):
+        has_image = bool(image_path)
+        has_text = bool((text_content or "").strip())
+        if has_image and has_text:
+            return CONTENT_TYPE_MIXED
+        if has_image:
+            return CONTENT_TYPE_IMAGE
+        return CONTENT_TYPE_TEXT
+
     def register_remote_content_reference(
         self,
         *,
         content_hash,
+        content_id=None,
         submitted_by=None,
         mime_type="application/octet-stream",
         content_type=CONTENT_TYPE_IMAGE,
@@ -596,11 +612,31 @@ class Blockchain:
         text_content=None,
         file_name=None,
         created_at=None,
+        storage_status=STORAGE_STATUS_REMOTE,
+        submission_id=None,
     ):
         content_object = self.get_content_object_by_hash(content_hash)
         if content_object is not None:
+            if content_id and content_object.content_id != content_id:
+                raise ValueError("content_id does not match content_hash.")
+            if mime_type and (
+                not content_object.mime_type
+                or content_object.mime_type == "application/octet-stream"
+                or content_object.mime_type == TEXT_MIME_TYPE
+            ):
+                content_object.mime_type = mime_type
+            if (
+                content_type
+                and content_object.content_type == CONTENT_TYPE_IMAGE
+                and content_type in {CONTENT_TYPE_TEXT, CONTENT_TYPE_MIXED}
+            ):
+                content_object.content_type = content_type
+            elif content_type and not content_object.content_type:
+                content_object.content_type = content_type
+            if submitted_by and content_object.submitted_by == "peer-content":
+                content_object.submitted_by = submitted_by
             if content_object.storage_status != STORAGE_STATUS_VERIFIED:
-                content_object.storage_status = STORAGE_STATUS_REMOTE
+                content_object.storage_status = storage_status
                 content_object.local_path = None
                 content_object.verified_at = None
             if content_object.hash_scheme == HASH_SCHEME_UNKNOWN:
@@ -611,6 +647,10 @@ class Blockchain:
                 content_object.text_content = text_content.strip()
             if file_name and not content_object.file_name:
                 content_object.file_name = file_name
+            if submission_id:
+                metadata = dict(content_object.metadata or {})
+                metadata.setdefault("submission_id", submission_id)
+                content_object.metadata = metadata
             return content_object
 
         content_object = ContentObject(
@@ -622,11 +662,11 @@ class Blockchain:
             created_at=time.time() if created_at is None else created_at,
             file_name=file_name,
             file_size_bytes=None,
-            storage_status=STORAGE_STATUS_REMOTE,
+            storage_status=storage_status,
             local_path=None,
             text_content=text_content,
             caption=caption,
-            metadata={},
+            metadata=({"submission_id": submission_id} if submission_id else {}),
             hash_scheme=HASH_SCHEME_UNKNOWN,
             verification_error="legacy_unverifiable",
         )
@@ -793,20 +833,37 @@ class Blockchain:
         )
         return content_object
 
-    def submit_existing_content(self, *, content_hash, submitter, text_content="", content_id=None):
-        content_object = self.get_content_object_by_hash(content_hash)
+    def submit_existing_content(self, *, content_hash=None, submitter, text_content="", content_id=None):
+        content_object = None
+        if content_id:
+            content_object = self.get_content_object(content_id)
+            if content_object is None:
+                raise ValueError(f"Content not found: {content_id}")
+        if content_hash:
+            hashed_content_object = self.get_content_object_by_hash(content_hash)
+            if content_object is not None and content_object.content_hash != content_hash:
+                raise ValueError("content_id does not match content_hash.")
+            if hashed_content_object is not None:
+                content_object = hashed_content_object
+        if content_object is None and content_hash:
+            content_object = self.register_remote_content_reference(
+                content_hash=content_hash,
+                content_id=content_id,
+                submitted_by=submitter,
+                mime_type=TEXT_MIME_TYPE if (text_content or "").strip() else "application/octet-stream",
+                content_type=self._content_type_hint_for_submission("", text_content),
+                caption=(text_content or "").strip() or None,
+                text_content=(text_content or "").strip() or None,
+                storage_status=STORAGE_STATUS_MISSING,
+            )
         if content_object is None:
-            raise ValueError(f"Content not found: {content_hash}")
-
-        if content_id and content_object.content_id != content_id:
-            raise ValueError("content_id does not match content_hash.")
+            raise ValueError("content_hash or content_id is required.")
 
         image_path = ""
         if content_object.content_type in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
             resolved_image_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
-            if not resolved_image_path or not os.path.isfile(resolved_image_path):
-                raise ValueError("Uploaded content file is not available locally.")
-            image_path = resolved_image_path
+            if resolved_image_path and os.path.isfile(resolved_image_path):
+                image_path = resolved_image_path
 
         verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
         if content_object.storage_status == STORAGE_STATUS_VERIFIED and not verification["verified"]:
@@ -831,6 +888,11 @@ class Blockchain:
             submission,
             image_path=image_path,
             text_content=submission_text,
+            storage_status=(
+                content_object.storage_status
+                if content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
+                else None
+            ),
         )
         return submission
 
@@ -967,10 +1029,17 @@ class Blockchain:
         return linked_any
 
     def certificate_block_metadata(self, certificate):
-        return {
+        submission = self.get_submission(certificate.submission_id)
+        content_object = self.get_content_object_by_hash(certificate.content_hash)
+        metadata = {
             "submission_id": certificate.submission_id,
             "certificate_id": certificate.certificate_id,
             "content_hash": certificate.content_hash,
+            "content_id": (
+                certificate.content_id
+                or (submission.content_id if submission is not None else None)
+                or (content_object.content_id if content_object is not None else None)
+            ),
             "creator_wallet": certificate.creator_wallet,
             "vote_hash": certificate.vote_hash,
             "approval_percentage": certificate.approval_percentage,
@@ -979,6 +1048,10 @@ class Blockchain:
             "approved_at": certificate.approved_at,
             "originality_score": certificate.originality_score,
         }
+        if content_object is not None:
+            metadata["content_type"] = content_object.content_type
+            metadata["mime_type"] = content_object.mime_type
+        return metadata
 
     def require_valid_certificate_for_submission(self, submission):
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
@@ -1539,6 +1612,9 @@ class Blockchain:
             "submission_id",
             "certificate_id",
             "content_hash",
+            "content_id",
+            "content_type",
+            "mime_type",
             "creator_wallet",
             "vote_hash",
             "approval_percentage",
@@ -1588,16 +1664,45 @@ class Blockchain:
             raise ValueError("Block certificate_id does not match block submission_id.")
         if certificate.content_hash != metadata["content_hash"]:
             raise ValueError("Block certificate content_hash does not match block content_hash.")
+        if metadata.get("content_id") is not None:
+            certificate_content_id = getattr(certificate, "content_id", None)
+            if certificate_content_id is not None and certificate_content_id != metadata["content_id"]:
+                raise ValueError("Block content_id does not match certificate content_id.")
 
         submission = self.get_submission(metadata["submission_id"])
-        if not submission:
-            raise ValueError("Block references a certificate-backed submission that is not known locally.")
-        validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        if submission:
+            validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+            if metadata["content_hash"] != submission.content_hash:
+                raise ValueError("Block content_hash does not match submission.")
+            if metadata.get("content_id") is not None and metadata["content_id"] != submission.content_id:
+                raise ValueError("Block content_id does not match submission.")
 
         for field_name in required_fields:
             certificate_value = getattr(certificate, field_name)
             if metadata[field_name] != certificate_value:
                 raise ValueError(f"Block certificate metadata {field_name} does not match certificate.")
+
+        content_object = self.get_content_object_by_hash(metadata["content_hash"])
+        if content_object is not None:
+            if metadata.get("content_id") is not None and metadata["content_id"] != content_object.content_id:
+                raise ValueError("Block content_id does not match content object.")
+            if metadata.get("content_type") is not None and metadata["content_type"] != content_object.content_type:
+                if not (
+                    content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
+                    and content_object.content_type == CONTENT_TYPE_IMAGE
+                    and metadata["content_type"] in {CONTENT_TYPE_MIXED, CONTENT_TYPE_TEXT}
+                ):
+                    raise ValueError("Block content_type does not match content object.")
+            if metadata.get("mime_type") is not None and metadata["mime_type"] != content_object.mime_type:
+                if not (
+                    content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
+                    and content_object.mime_type == "application/octet-stream"
+                ):
+                    raise ValueError("Block mime_type does not match content object.")
+            if content_object.storage_status == STORAGE_STATUS_VERIFIED:
+                verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+                if not verification["verified"]:
+                    raise ValueError("Verified local content file does not match block content_hash.")
 
         return True
 

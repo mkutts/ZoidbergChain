@@ -11,6 +11,7 @@ import requests
 from block import Block
 from content import (
     CONTENT_TYPE_IMAGE,
+    CONTENT_TYPE_MIXED,
     CONTENT_TYPE_TEXT,
     TEXT_MIME_TYPE,
     resolve_payload_hash,
@@ -588,6 +589,17 @@ def receive_peer_block(
         if existing_block.index == block.index:
             raise DuplicateBlockError("Block already exists.")
 
+    if block.content_hash:
+        blockchain.register_remote_content_reference(
+            content_hash=block.content_hash,
+            content_id=block.content_id,
+            submitted_by=block.creator_wallet,
+            mime_type=block.mime_type or "application/octet-stream",
+            content_type=block.content_type or CONTENT_TYPE_IMAGE,
+            storage_status="remote",
+            submission_id=related_submission_id or block.submission_id,
+        )
+
     certificate_is_known = certificate_payload is not None or (
         block.certificate_id is not None and blockchain.get_originality_certificate(block.certificate_id) is not None
     )
@@ -600,11 +612,6 @@ def receive_peer_block(
     )
 
     blockchain.chain.append(block)
-    if block.content_hash:
-        blockchain.register_remote_content_reference(
-            content_hash=block.content_hash,
-            submitted_by=block.creator_wallet,
-        )
     _remove_confirmed_pending_transactions(blockchain, block.transactions)
     minted_submission = _mark_related_submission_minted(blockchain, related_submission_id)
     blockchain.save_blockchain()
@@ -644,7 +651,9 @@ def receive_peer_certificate(
     )
     blockchain.register_remote_content_reference(
         content_hash=certificate.content_hash,
+        content_id=certificate.content_id,
         submitted_by=certificate.creator_wallet,
+        submission_id=certificate.submission_id,
     )
     return {
         "accepted": True,
@@ -737,14 +746,34 @@ def receive_peer_submission(
             }
         raise DuplicateSubmissionError("Submission already exists.")
 
-    submission = Submission.from_dict({**normalized_payload, "status": PENDING})
-    blockchain.submissions.append(submission)
-    blockchain._ensure_content_object_for_submission(
-        submission,
-        image_path=submission.image_path,
-        text_content=submission.text_content,
-        storage_status="remote",
+    submission = Submission.from_dict(
+        {
+            **normalized_payload,
+            "status": PENDING,
+            "image_path": "",
+        }
     )
+    blockchain.submissions.append(submission)
+    blockchain.register_remote_content_reference(
+        content_hash=submission.content_hash,
+        content_id=submission.content_id,
+        submitted_by=submission.submitter,
+        mime_type=(
+            TEXT_MIME_TYPE
+            if not normalized_payload.get("image_path") and submission.text_content
+            else "application/octet-stream"
+        ),
+        content_type=(
+            CONTENT_TYPE_MIXED
+            if normalized_payload.get("image_path") and submission.text_content
+            else (CONTENT_TYPE_IMAGE if normalized_payload.get("image_path") else CONTENT_TYPE_TEXT)
+        ),
+        caption=submission.text_content or None,
+        text_content=submission.text_content or None,
+        storage_status="remote",
+        submission_id=submission.submission_id,
+    )
+    blockchain.link_content_objects_to_submissions()
     blockchain.save_blockchain()
 
     return {
@@ -1360,6 +1389,12 @@ def _store_peer_certificate(
             raise MalformedCertificateError(str(exc))
 
     blockchain.originality_certificates.append(certificate)
+    blockchain.register_remote_content_reference(
+        content_hash=certificate.content_hash,
+        content_id=certificate.content_id,
+        submitted_by=certificate.creator_wallet,
+        storage_status="remote",
+    )
     if submission:
         previous_status = submission.status
         previous_certificate_id = submission.certificate_id
@@ -1396,6 +1431,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             "certificate_id",
             "submission_id",
             "content_hash",
+            "content_id",
             "creator_wallet",
             "vote_total",
             "decisive_vote_total",
@@ -1461,6 +1497,12 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             MalformedCertificateError,
             f"Certificate {field_name}",
         )
+
+    content_id = certificate_payload.get("content_id")
+    if content_id is not None:
+        if not isinstance(content_id, str) or not content_id.strip():
+            raise MalformedCertificateError("Certificate content_id must be a non-empty string.")
+        normalized["content_id"] = content_id.strip()
 
     for field_name in [
         "vote_total",
@@ -1727,6 +1769,9 @@ def _normalize_block_payload(block_payload):
             "submission_id",
             "certificate_id",
             "content_hash",
+            "content_id",
+            "content_type",
+            "mime_type",
             "creator_wallet",
             "vote_hash",
             "approval_percentage",
@@ -1790,6 +1835,9 @@ def _normalize_block_payload(block_payload):
         submission_id=block_payload.get("submission_id"),
         certificate_id=block_payload.get("certificate_id"),
         content_hash=block_payload.get("content_hash"),
+        content_id=block_payload.get("content_id"),
+        content_type=block_payload.get("content_type"),
+        mime_type=block_payload.get("mime_type"),
         creator_wallet=block_payload.get("creator_wallet"),
         vote_hash=block_payload.get("vote_hash"),
         approval_percentage=block_payload.get("approval_percentage"),
@@ -2002,16 +2050,26 @@ def _normalize_submission_payload(submission_payload):
     )
 
     normalized = {}
-    for field_name in ["submission_id", "image_path", "text_content", "submitter"]:
-        value = submission_payload.get(field_name)
-        validator = (
-            (lambda raw: isinstance(raw, str) and bool(raw.strip()))
-            if field_name in {"submission_id", "image_path", "text_content"}
-            else is_valid_wallet_public_key
-        )
-        if not isinstance(value, str) or not value.strip() or not validator(value.strip()):
-            raise MalformedSubmissionError(f"Submission {field_name} is required.")
-        normalized[field_name] = value.strip()
+    submission_id = submission_payload.get("submission_id")
+    if not isinstance(submission_id, str) or not submission_id.strip():
+        raise MalformedSubmissionError("Submission submission_id is required.")
+    normalized["submission_id"] = submission_id.strip()
+
+    image_path = submission_payload.get("image_path") or ""
+    text_content = submission_payload.get("text_content") or ""
+    if not isinstance(image_path, str) or not isinstance(text_content, str):
+        raise MalformedSubmissionError("Submission image_path and text_content must be strings when provided.")
+    normalized["image_path"] = image_path.strip()
+    normalized["text_content"] = text_content.strip()
+    if normalized["image_path"] and not normalized["text_content"] and not submission_payload.get("content_hash"):
+        raise MalformedSubmissionError("Submission text_content is required.")
+    if not normalized["image_path"] and not normalized["text_content"] and not submission_payload.get("content_hash"):
+        raise MalformedSubmissionError("Submission must include image_path, text_content, or content_hash.")
+
+    submitter = submission_payload.get("submitter")
+    if not isinstance(submitter, str) or not submitter.strip() or not is_valid_wallet_public_key(submitter.strip()):
+        raise MalformedSubmissionError("Submission submitter is required.")
+    normalized["submitter"] = submitter.strip()
 
     status = submission_payload.get("status", PENDING)
     if status not in SUBMISSION_STATUSES:
@@ -2028,9 +2086,12 @@ def _normalize_submission_payload(submission_payload):
 
     content_hash = submission_payload.get("content_hash")
     if content_hash is not None:
-        if not isinstance(content_hash, str) or not content_hash.strip():
-            raise MalformedSubmissionError("Submission content_hash must be a non-empty string.")
-        normalized["content_hash"] = content_hash.strip()
+        normalized_content_hash = content_hash.strip() if isinstance(content_hash, str) else ""
+        if not is_valid_content_hash(normalized_content_hash):
+            raise MalformedSubmissionError(
+                "Submission content_hash must be a 64-character lowercase hexadecimal string."
+            )
+        normalized["content_hash"] = normalized_content_hash
     else:
         normalized["content_hash"] = calculate_submission_content_hash(
             normalized["image_path"],
@@ -2043,6 +2104,16 @@ def _normalize_submission_payload(submission_payload):
         if not isinstance(content_id, str) or not content_id.strip():
             raise MalformedSubmissionError("Submission content_id must be a non-empty string.")
         normalized["content_id"] = content_id.strip()
+        try:
+            Submission(
+                image_path="",
+                text_content="",
+                submitter=normalized["submitter"],
+                content_hash=normalized["content_hash"],
+                content_id=normalized["content_id"],
+            )
+        except ValueError as exc:
+            raise MalformedSubmissionError(str(exc)) from exc
 
     normalized["status"] = PENDING
     normalized["hard_reject_reason"] = None

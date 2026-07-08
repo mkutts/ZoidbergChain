@@ -88,7 +88,27 @@ Recommended upload-first flow:
 
 1. upload content with `/content/upload` or `/content/text`
 2. keep the returned `content_hash` and `content_id`
-3. create a later submission that references that uploaded content
+3. create a later submission with `/submit_content` using `content_id`, `content_hash`, or both
+
+Legacy text flow:
+
+1. submit text through the existing submission path
+2. let the node create or link a content object automatically when safe
+3. continue through vote, evaluate, certificate, and mint without changing the originality scoring formula
+
+Certificate and block linkage:
+
+- originality certificates continue to use `content_hash` as the consensus-critical reference
+- certificates may also include `content_id` when it is safely available
+- certified blocks include `submission_id`, `certificate_id`, `content_hash`, and `originality_score`
+- when known locally or through synced metadata, blocks may also include `content_id`, `content_type`, and `mime_type`
+- safe submission, certificate, and block API responses expose content linkage metadata without exposing `local_path` or internal filesystem paths
+
+Consensus-validation note:
+
+- certificate sync, block sync, and chain sync do not require the local binary file when metadata is otherwise valid
+- if a local payload exists and is marked `verified`, later validation still requires that payload to match `content_hash`
+- manual sync with `POST /content/{content_hash}/sync` is the follow-up step when a node has metadata but not the payload
 
 ## Backup
 

@@ -185,6 +185,7 @@ class PeerCertificatePayload(_StrictBodyModel):
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    content_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     creator_wallet: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_total: Annotated[int, Field(ge=0)] | None = None
     decisive_vote_total: Annotated[int, Field(ge=0)] | None = None
@@ -211,6 +212,9 @@ class PeerBlockPayload(_StrictBodyModel):
     submission_id: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    content_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    content_type: Annotated[str, Field(min_length=1, max_length=32)] | None = None
+    mime_type: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     creator_wallet: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     approval_percentage: Annotated[float, Field(ge=0)] | None = None
@@ -303,6 +307,64 @@ def _safe_content_metadata(content_object):
         "created_at": content_object.created_at,
         "network_name": content_object.network_name,
     }
+
+
+def _content_download_url(content_object):
+    if content_object is None:
+        return None
+    if content_object.storage_status not in {"local", "verified"}:
+        return None
+    return f"/content/{content_object.content_hash}"
+
+
+def _serialize_submission(submission):
+    content_object = blockchain.get_content_object_by_hash(submission.content_hash) if submission.content_hash else None
+    body = {
+        "submission_id": submission.submission_id,
+        "text_content": submission.text_content,
+        "submitter": submission.submitter,
+        "status": submission.status,
+        "created_at": submission.created_at,
+        "hard_reject_reason": submission.hard_reject_reason,
+        "content_hash": submission.content_hash,
+        "content_id": submission.content_id,
+        "certificate_id": submission.certificate_id,
+    }
+    if content_object is not None:
+        body["content_type"] = content_object.content_type
+        body["storage_status"] = content_object.storage_status
+        download_url = _content_download_url(content_object)
+        if download_url:
+            body["download_url"] = download_url
+    return body
+
+
+def _serialize_certificate(certificate):
+    content_object = blockchain.get_content_object_by_hash(certificate.content_hash) if certificate.content_hash else None
+    body = certificate.to_dict()
+    if content_object is not None:
+        body["content_type"] = content_object.content_type
+        body["mime_type"] = content_object.mime_type
+        body["storage_status"] = content_object.storage_status
+        download_url = _content_download_url(content_object)
+        if download_url:
+            body["download_url"] = download_url
+    return body
+
+
+def _serialize_block(block):
+    body = block.to_dict()
+    content_hash = body.get("content_hash")
+    content_object = blockchain.get_content_object_by_hash(content_hash) if content_hash else None
+    if content_object is not None:
+        body["content_id"] = body.get("content_id") or content_object.content_id
+        body["content_type"] = body.get("content_type") or content_object.content_type
+        body["mime_type"] = body.get("mime_type") or content_object.mime_type
+        body["storage_status"] = content_object.storage_status
+        download_url = _content_download_url(content_object)
+        if download_url:
+            body["download_url"] = download_url
+    return body
 
 
 def _public_content_upload_response(content_object):
@@ -832,7 +894,7 @@ async def receive_block_from_peer(request: Request, receive_request: PeerBlockRe
 @api_limit("public_read")
 async def get_chain(request: Request):
     """Retrieve the blockchain."""
-    return {"chain": blockchain.get_chain()}
+    return {"chain": [_serialize_block(block) for block in blockchain.chain]}
 
 
 @app.get("/chain/summary")
@@ -868,11 +930,11 @@ async def chain_blocks(request: Request, from_height: int = 0):
     }
     return {
         "blocks": [
-            block.to_dict()
+            _serialize_block(block)
             for block in blocks
         ],
         "certificates": [
-            certificate.to_dict()
+            _serialize_certificate(certificate)
             for certificate in blockchain.originality_certificates
             if certificate.certificate_id in certificate_ids
         ],
@@ -909,7 +971,7 @@ async def broadcast_block(request: Request, block_hash: str):
     )
     return {
         "message": "Block broadcast attempted.",
-        "block": block.to_dict(),
+        "block": _serialize_block(block),
         "broadcast": broadcast_result,
     }
 
@@ -1219,10 +1281,10 @@ async def submit_content(
     """Submit meme content for review without minting a blockchain block."""
     _require_registered_submitter(submitter)
 
-    if image is not None and content_hash is not None:
-        raise HTTPException(status_code=400, detail="Provide either image upload or content_hash, not both.")
+    if image is not None and (content_hash is not None or content_id is not None):
+        raise HTTPException(status_code=400, detail="Provide either image upload or content linkage, not both.")
 
-    if content_hash is not None:
+    if content_hash is not None or content_id is not None:
         try:
             submission = blockchain.submit_existing_content(
                 content_hash=content_hash,
@@ -1269,7 +1331,7 @@ async def submit_content(
 
     return {
         "message": "Content submitted successfully.",
-        "submission": submission.to_dict(),
+        "submission": _serialize_submission(submission),
         "broadcast": broadcast_result,
     }
 
@@ -1277,7 +1339,7 @@ async def submit_content(
 @app.get("/submissions")
 @api_limit("public_read")
 async def get_submissions(request: Request, status: SubmissionStatusValue | None = None):
-    submissions = [submission.to_dict() for submission in blockchain.submissions]
+    submissions = [_serialize_submission(submission) for submission in blockchain.submissions]
     if status:
         submissions = [
             submission
@@ -1294,7 +1356,7 @@ async def get_submission(request: Request, submission_id: str):
     submission = blockchain.get_submission(submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
-    return {"submission": submission.to_dict()}
+    return {"submission": _serialize_submission(submission)}
 
 
 @app.get("/submissions/{submission_id}/certificate")
@@ -1310,7 +1372,7 @@ async def get_submission_certificate(request: Request, submission_id: str):
             status_code=404,
             detail=f"Originality certificate not found for submission: {submission_id}",
         )
-    return {"certificate": certificate.to_dict()}
+    return {"certificate": _serialize_certificate(certificate)}
 
 
 @app.get("/certificates/{certificate_id}")
@@ -1322,7 +1384,7 @@ async def get_certificate(request: Request, certificate_id: str):
             status_code=404,
             detail=f"Originality certificate not found: {certificate_id}",
         )
-    return {"certificate": certificate.to_dict()}
+    return {"certificate": _serialize_certificate(certificate)}
 
 
 @app.post("/dev/submissions/{submission_id}/repair-certificate")
@@ -1340,8 +1402,8 @@ async def repair_submission_certificate(request: Request, submission_id: str):
         blockchain.save_blockchain()
         return {
             "message": "Originality certificate already exists.",
-            "submission": submission.to_dict(),
-            "certificate": existing_certificate.to_dict(),
+            "submission": _serialize_submission(submission),
+            "certificate": _serialize_certificate(existing_certificate),
         }
 
     if submission.status == QUEUED:
@@ -1388,8 +1450,8 @@ async def repair_submission_certificate(request: Request, submission_id: str):
 
     return {
         "message": "Originality certificate repaired.",
-        "submission": submission.to_dict(),
-        "certificate": certificate.to_dict(),
+        "submission": _serialize_submission(submission),
+        "certificate": _serialize_certificate(certificate),
     }
 
 
@@ -1411,7 +1473,7 @@ async def broadcast_certificate(request: Request, certificate_id: str):
     )
     return {
         "message": "Originality certificate broadcast attempted.",
-        "certificate": certificate.to_dict(),
+        "certificate": _serialize_certificate(certificate),
         "broadcast": broadcast_result,
     }
 
@@ -1431,7 +1493,7 @@ async def broadcast_submission(request: Request, submission_id: str):
     )
     return {
         "message": "Submission broadcast attempted.",
-        "submission": submission.to_dict(),
+        "submission": _serialize_submission(submission),
         "broadcast": broadcast_result,
     }
 
@@ -1569,8 +1631,8 @@ async def evaluate_submission(
     return {
         "message": "Submission evaluated successfully.",
         "evaluation": evaluation,
-        "submission": (queued_submission or submission).to_dict(),
-        "certificate": certificate.to_dict() if certificate else None,
+        "submission": _serialize_submission(queued_submission or submission),
+        "certificate": _serialize_certificate(certificate) if certificate else None,
         "certificate_broadcast": certificate_broadcast,
     }
 
@@ -1662,7 +1724,7 @@ async def add_block(
 
         return {
             "message": "Block added successfully.",
-            "block": latest_block.to_dict() if latest_block else False,
+            "block": _serialize_block(latest_block) if latest_block else False,
             "broadcast": broadcast_result,
         }
     except ValueError as e:
@@ -1827,7 +1889,7 @@ async def mint_queued_submission(
     return {
         "message": "Submission minted successfully.",
         "minted": minted,
-        "submission": submission.to_dict(),
-        "block": latest_block.to_dict(),
+        "submission": _serialize_submission(submission),
+        "block": _serialize_block(latest_block),
         "broadcast": broadcast_result,
     }

@@ -188,6 +188,7 @@ Transfer model notes:
 - Old submissions, old votes, old mint queue records, and bad content records can be discarded if needed.
 - Going forward, MetaMask `0x` addresses are the real ZoidbergChain wallet identity.
 - Dev reset tools must remain disabled or guarded outside development mode.
+- Reset procedure details live in [docs/clean-reset-runbook.md](C:/Users/mattk/ZoidbergChain/docs/clean-reset-runbook.md).
 
 ## Dev-Only MetaMask Test Wallets
 
@@ -197,6 +198,9 @@ Transfer model notes:
 - Dev wallet private keys must never be exposed through production or public APIs.
 - Dev wallet generation must never be enabled in production mode.
 - A future task may add dev-only wallet generation, seeding, or faucet tooling if it helps testing.
+- Recommended local export path is `data/dev_wallets.json` or a similar ignored file under `data/`.
+- Import several of these private keys into a separate browser profile running MetaMask for multi-account UI testing.
+- Never use these wallets with real ETH, real ZOID, or public server deployments.
 
 ## Near-Term Product Interpretation
 

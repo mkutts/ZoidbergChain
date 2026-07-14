@@ -27,6 +27,10 @@ temp/
 tmp/
 *.tmp
 *.temp
+data/dev_wallets.json
+data/*dev_wallets*.json
+data/*dev_wallets*.csv
+data/backups/
 
 # Node / Vite frontend output
 node_modules/

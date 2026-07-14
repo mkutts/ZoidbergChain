@@ -5,7 +5,6 @@
 
     <WalletPanel />
 
-    <!-- Quote Section -->
     <blockquote class="quote">
       "The remedy to be applied is more speech, not enforced silence."
       <span class="author"> - Louis Brandeis</span>
@@ -13,12 +12,13 @@
 
     <div class="form-container">
       <button @click="goToDashboard" class="btn secondary">Welcome</button>
-      <button @click="generateWallet" class="btn primary">Register & Generate Wallet</button>
-      
-      <!-- Why ZoidbergCoin Button -->
+      <button v-if="showDevWalletTools" @click="generateWallet" class="btn primary">Development Wallet Tools</button>
+      <p v-if="showDevWalletTools" class="dev-wallet-note">
+        Development-only wallet generation remains available for local testing, but verified MetaMask sessions are the normal identity path.
+      </p>
+
       <button @click="goToWhyPage" class="btn secondary why-btn">Why ZoidbergCoin? ... Why not ZoidbergCoin</button>
 
-      <!-- Download White Paper Button -->
       <a :href="whitePaperURL" download class="btn primary">Download White Paper</a>
     </div>
 
@@ -45,7 +45,8 @@ export default {
       walletDetails: null,
       successMessage: '',
       errorMessage: '',
-      whitePaperURL: "/ZoidbergCoin_WhitePaper.pdf" // ✅ Path to the white paper in public folder
+      showDevWalletTools: import.meta.env.DEV,
+      whitePaperURL: '/ZoidbergCoin_WhitePaper.pdf',
     };
   },
   methods: {
@@ -55,18 +56,18 @@ export default {
       try {
         const response = await apiClient.post('/generate_wallet');
 
-        const { public_key, private_key } = response.data.wallet;
+        const { public_key: publicKey } = response.data.wallet;
         const keyExport = response.data.key_export || {};
 
         this.walletDetails = {
-          publicKey: public_key,
+          publicKey,
           exportMessage: keyExport.enabled
             ? 'Development-only private key export may be enabled on this local node, but the frontend does not display private keys. Use dev-only local tooling instead.'
             : keyExport.message || 'Private key export is disabled for this response.',
         };
         this.successMessage = response.data.message || 'Wallet generated successfully.';
       } catch (error) {
-        console.error("Error generating wallet:", error);
+        console.error('Error generating wallet:', error);
         this.errorMessage = getApiErrorMessage(error, 'Failed to generate wallet.');
       }
     },
@@ -75,13 +76,12 @@ export default {
     },
     goToWhyPage() {
       this.$router.push('/why-zoidbergcoin');
-    }
-  }
+    },
+  },
 };
 </script>
 
 <style scoped>
-/* General Layout */
 .home-container {
   display: flex;
   flex-direction: column;
@@ -95,7 +95,6 @@ export default {
   padding: 32px 16px 48px;
 }
 
-/* Title & Subtitle */
 h1 {
   font-size: 3rem;
   margin-bottom: 10px;
@@ -109,7 +108,6 @@ h1 {
   color: #bbb;
 }
 
-/* Quote */
 .quote {
   font-size: 1rem;
   font-style: italic;
@@ -119,12 +117,11 @@ h1 {
   margin-bottom: 30px;
 }
 
-/* Form Container */
 .form-container {
   background: rgba(30, 30, 30, 0.9);
   padding: 25px;
   border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.5);
+  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.5);
   width: 340px;
   display: flex;
   flex-direction: column;
@@ -132,13 +129,12 @@ h1 {
   margin-top: 20px;
 }
 
-/* Wallet Details */
 .wallet-details {
   margin-top: 20px;
   padding: 20px;
   background: rgba(50, 50, 50, 0.9);
   border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.5);
+  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.5);
   text-align: left;
   width: 360px;
 }
@@ -168,7 +164,13 @@ h1 {
   color: #ff8c8c;
 }
 
-/* Buttons */
+.dev-wallet-note {
+  margin: -8px 0 0;
+  color: #b8b8b8;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .btn {
   width: 100%;
   padding: 12px;
@@ -181,22 +183,20 @@ h1 {
   text-align: center;
 }
 
-/* Primary Button */
 .primary {
   background: linear-gradient(135deg, #ff4747 0%, #ff1616 100%);
   color: white;
-  box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.6);
+  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.6);
 }
 
 .primary:hover {
   background: linear-gradient(135deg, #ff1616 0%, #cc0000 100%);
 }
 
-/* Secondary Button */
 .secondary {
   background: linear-gradient(135deg, #4a90e2 0%, #2455a5 100%);
   color: white;
-  box-shadow: 0px 4px 10px rgba(74, 144, 226, 0.5);
+  box-shadow: 0 4px 10px rgba(74, 144, 226, 0.5);
 }
 
 .secondary:hover {

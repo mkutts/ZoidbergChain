@@ -225,3 +225,13 @@ Transfer model notes:
 - A successful verification creates an expiring verified wallet session token for that normalized `0x` address.
 - Connection alone is still not trusted identity. Verification requires both the challenge and the signed response.
 - Signed meme submissions and signed originality votes are still deferred to Task `7.4` and Task `7.5`.
+
+## Task 7.3 Verified Wallet Session Identity
+
+- Task 7.3 makes the verified MetaMask wallet session the app's current source of user identity.
+- `GET /auth/wallet/session` returns the active verified wallet session for the bearer token and confirms the normalized `0x` address tied to that session.
+- `POST /auth/wallet/logout` revokes the current verified wallet session token without affecting chain data.
+- The frontend now restores a saved verified session by checking it against the backend instead of trusting browser storage alone.
+- If the wallet account changes, the chain changes, or the session expires, the verified identity is cleared and the user must verify again.
+- Submission and voting screens may prefill or label the verified wallet identity, but they still use the existing backend fields until direct signed submissions and votes are introduced later.
+- This session model is currently in-memory on the backend, so server restarts clear active verified wallet sessions.

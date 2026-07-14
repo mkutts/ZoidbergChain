@@ -51,6 +51,44 @@ function createMemoryStorage() {
   };
 }
 
+function createAuthApi(overrides = {}) {
+  return {
+    async createChallenge(walletAddress) {
+      return {
+        wallet_address: walletAddress,
+        normalized_wallet_address: walletAddress.toLowerCase(),
+        nonce: 'nonce-1',
+        message: 'Exact challenge message',
+        expires_at: '2099-01-01T00:00:00+00:00',
+      };
+    },
+    async verifyChallenge(payload) {
+      return {
+        verified: true,
+        wallet_address: payload.wallet_address.toLowerCase(),
+        normalized_wallet_address: payload.wallet_address.toLowerCase(),
+        session_token: 'session-token-1',
+        expires_at: '2099-01-01T00:00:00+00:00',
+      };
+    },
+    async getSession() {
+      return {
+        valid: true,
+        wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+        normalized_wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+        expires_at: '2099-01-01T00:00:00+00:00',
+      };
+    },
+    async logout() {
+      return {
+        logged_out: true,
+        revoked: true,
+      };
+    },
+    ...overrides,
+  };
+}
+
 test('MetaMask unavailable state is exposed clearly', async () => {
   const manager = createWalletManager({
     getProvider: () => null,
@@ -153,7 +191,7 @@ test('verify wallet calls challenge and personal_sign and marks session verified
   const manager = createWalletManager({
     getProvider: () => provider,
     storage: createMemoryStorage(),
-    authApi: {
+    authApi: createAuthApi({
       async createChallenge(walletAddress) {
         authCalls.push(['challenge', walletAddress]);
         return {
@@ -169,11 +207,12 @@ test('verify wallet calls challenge and personal_sign and marks session verified
         return {
           verified: true,
           wallet_address: payload.wallet_address,
+          normalized_wallet_address: payload.wallet_address,
           session_token: 'session-token-1',
           expires_at: '2099-01-01T00:00:00+00:00',
         };
       },
-    },
+    }),
   });
 
   await manager.connectWallet();
@@ -189,28 +228,16 @@ test('verify wallet calls challenge and personal_sign and marks session verified
 
 test('account change clears verified state', async () => {
   const provider = new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']);
+  let logoutCalls = 0;
   const manager = createWalletManager({
     getProvider: () => provider,
     storage: createMemoryStorage(),
-    authApi: {
-      async createChallenge(walletAddress) {
-        return {
-          wallet_address: walletAddress,
-          normalized_wallet_address: walletAddress,
-          nonce: 'nonce-1',
-          message: 'Exact challenge message',
-          expires_at: '2099-01-01T00:00:00+00:00',
-        };
+    authApi: createAuthApi({
+      async logout() {
+        logoutCalls += 1;
+        return { logged_out: true, revoked: true };
       },
-      async verifyChallenge(payload) {
-        return {
-          verified: true,
-          wallet_address: payload.wallet_address,
-          session_token: 'session-token-1',
-          expires_at: '2099-01-01T00:00:00+00:00',
-        };
-      },
-    },
+    }),
   });
 
   await manager.connectWallet();
@@ -219,40 +246,30 @@ test('account change clears verified state', async () => {
 
   assert.equal(manager.state.isVerifiedSession, false);
   assert.equal(manager.state.sessionToken, '');
+  assert.equal(logoutCalls, 1);
 });
 
 test('disconnect clears verified state', async () => {
   const provider = new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']);
+  let logoutCalls = 0;
   const manager = createWalletManager({
     getProvider: () => provider,
     storage: createMemoryStorage(),
-    authApi: {
-      async createChallenge(walletAddress) {
-        return {
-          wallet_address: walletAddress,
-          normalized_wallet_address: walletAddress,
-          nonce: 'nonce-1',
-          message: 'Exact challenge message',
-          expires_at: '2099-01-01T00:00:00+00:00',
-        };
+    authApi: createAuthApi({
+      async logout() {
+        logoutCalls += 1;
+        return { logged_out: true, revoked: true };
       },
-      async verifyChallenge(payload) {
-        return {
-          verified: true,
-          wallet_address: payload.wallet_address,
-          session_token: 'session-token-1',
-          expires_at: '2099-01-01T00:00:00+00:00',
-        };
-      },
-    },
+    }),
   });
 
   await manager.connectWallet();
   await manager.verifyWallet();
-  manager.disconnectWallet();
+  await manager.disconnectWallet();
 
   assert.equal(manager.state.isVerifiedSession, false);
   assert.equal(manager.state.sessionToken, '');
+  assert.equal(logoutCalls, 1);
 });
 
 test('user rejects signature and gets a clear error', async () => {
@@ -260,20 +277,11 @@ test('user rejects signature and gets a clear error', async () => {
   const manager = createWalletManager({
     getProvider: () => provider,
     storage: createMemoryStorage(),
-    authApi: {
-      async createChallenge(walletAddress) {
-        return {
-          wallet_address: walletAddress,
-          normalized_wallet_address: walletAddress,
-          nonce: 'nonce-1',
-          message: 'Exact challenge message',
-          expires_at: '2099-01-01T00:00:00+00:00',
-        };
-      },
+    authApi: createAuthApi({
       async verifyChallenge() {
         throw new Error('verify should not be called');
       },
-    },
+    }),
   });
 
   await manager.connectWallet();
@@ -283,4 +291,86 @@ test('user rejects signature and gets a clear error', async () => {
   assert.equal(result, null);
   assert.equal(manager.state.isVerifiedSession, false);
   assert.match(manager.state.errorMessage, /signature request was rejected/i);
+});
+
+test('persisted verified session is restored through backend session introspection', async () => {
+  const storage = createMemoryStorage();
+  storage.setItem('zoidberg:last-wallet-address', '0xabcdefabcdefabcdefabcdefabcdefabcdef1234');
+  storage.setItem(
+    'zoidberg:verified-wallet-session',
+    JSON.stringify({
+      walletAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+      sessionToken: 'session-token-1',
+      expiresAt: '2099-01-01T00:00:00+00:00',
+    }),
+  );
+
+  let sessionCalls = 0;
+  const manager = createWalletManager({
+    getProvider: () => new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']),
+    storage,
+    authApi: createAuthApi({
+      async getSession() {
+        sessionCalls += 1;
+        return {
+          valid: true,
+          wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+          normalized_wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+          expires_at: '2099-01-02T00:00:00+00:00',
+        };
+      },
+    }),
+  });
+
+  await manager.detectMetaMask();
+
+  assert.equal(sessionCalls, 1);
+  assert.equal(manager.state.isVerifiedSession, true);
+  assert.equal(manager.state.verifiedWalletAddress, '0xabcdefabcdefabcdefabcdefabcdefabcdef1234');
+  assert.equal(manager.state.identitySource, 'metamask_verified');
+});
+
+test('session refresh clears verified state when backend rejects the token', async () => {
+  const provider = new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']);
+  const manager = createWalletManager({
+    getProvider: () => provider,
+    storage: createMemoryStorage(),
+    authApi: createAuthApi({
+      async getSession() {
+        const error = new Error('Session expired');
+        error.response = {
+          status: 401,
+          data: { detail: 'Session token has expired.' },
+        };
+        throw error;
+      },
+    }),
+  });
+
+  await manager.connectWallet();
+  await manager.verifyWallet();
+  const session = await manager.refreshVerifiedSession();
+
+  assert.equal(session, null);
+  assert.equal(manager.state.isVerifiedSession, false);
+  assert.equal(manager.state.sessionToken, '');
+  assert.equal(manager.state.connectionStatus, 'expired');
+  assert.match(manager.state.authError, /expired/i);
+});
+
+test('authorization header is only exposed for active verified sessions', async () => {
+  const provider = new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']);
+  const manager = createWalletManager({
+    getProvider: () => provider,
+    storage: createMemoryStorage(),
+    authApi: createAuthApi(),
+  });
+
+  await manager.connectWallet();
+  assert.deepEqual(manager.getAuthorizationHeader(), {});
+
+  await manager.verifyWallet();
+  assert.deepEqual(manager.getAuthorizationHeader(), {
+    Authorization: 'Bearer session-token-1',
+  });
 });

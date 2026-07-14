@@ -13,6 +13,48 @@ export const apiClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
+let authHeadersProvider = null;
+let sessionUnauthorizedHandler = null;
+
+apiClient.interceptors.request.use((requestConfig) => {
+  const config = { ...requestConfig };
+  const headers = {
+    ...(requestConfig?.headers || {}),
+  };
+
+  if (typeof authHeadersProvider === "function") {
+    const providedHeaders = authHeadersProvider() || {};
+    Object.assign(headers, providedHeaders);
+  }
+
+  config.headers = headers;
+  return config;
+});
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const requestUrl = String(error?.config?.url || "");
+    if (
+      error?.response?.status === 401
+      && requestUrl.includes("/auth/wallet/session")
+      && typeof sessionUnauthorizedHandler === "function"
+    ) {
+      sessionUnauthorizedHandler(error);
+    }
+    return Promise.reject(error);
+  },
+);
+
+export function configureWalletApiAuth(options = {}) {
+  authHeadersProvider = typeof options.getAuthHeaders === "function"
+    ? options.getAuthHeaders
+    : null;
+  sessionUnauthorizedHandler = typeof options.onSessionUnauthorized === "function"
+    ? options.onSessionUnauthorized
+    : null;
+}
+
 export function buildApiUrl(path) {
   if (!path) {
     return "";

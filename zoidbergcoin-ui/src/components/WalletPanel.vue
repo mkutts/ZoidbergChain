@@ -16,8 +16,9 @@
       <template v-if="wallet.state.isConnected">
         <p class="address-short">{{ shortenedAddress }}</p>
         <p class="address-full">{{ wallet.state.normalizedWalletAddress }}</p>
-        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified ZoidbergChain wallet. This session is ready for later signed login flows.</p>
-        <p v-else class="wallet-meta">Connected - verification required. This browser connection is not yet a verified ZoidbergChain session.</p>
+        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified ZoidbergChain wallet. This session is the active identity for app actions that require verified wallet ownership.</p>
+        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore wallet identity.</p>
+        <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet to use it as your ZoidbergChain identity.</p>
         <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
         <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
           Session expires at: {{ sessionExpiryLabel }}
@@ -91,6 +92,9 @@ const statusText = computed(() => {
   if (wallet.state.isVerifiedSession) {
     return 'Verified ZoidbergChain Wallet';
   }
+  if (wallet.state.connectionStatus === 'expired') {
+    return 'Verification Required Again';
+  }
   if (wallet.state.connectionStatus === 'verifying') {
     return 'Verification In Progress';
   }
@@ -110,7 +114,7 @@ const statusClass = computed(() => {
   if (wallet.state.isVerifiedSession) {
     return 'connected';
   }
-  if (wallet.state.connectionStatus === 'verifying') {
+  if (wallet.state.connectionStatus === 'expired' || wallet.state.connectionStatus === 'verifying') {
     return 'warning';
   }
   if (!wallet.state.isMetaMaskAvailable) {

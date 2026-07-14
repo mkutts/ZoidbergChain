@@ -177,9 +177,9 @@
           <div class="field-group">
             <label for="wallet">Submitter Wallet ID</label>
             <input id="wallet" type="text" v-model.trim="wallet" placeholder="Enter your public wallet key" class="input-field">
-            <div v-if="connectedWalletAddress" class="wallet-helper-row">
-              <span class="meta">Connected MetaMask address: {{ shortenConnectedWallet }}</span>
-              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForSubmitter">Use Connected Address</button>
+            <div v-if="identityWalletAddress" class="wallet-helper-row">
+              <span class="meta">{{ identityWalletLabel }}: {{ shortenIdentityWallet }}</span>
+              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForSubmitter">Use Wallet Identity</button>
             </div>
           </div>
 
@@ -211,7 +211,7 @@
         </div>
 
         <p class="hint wallet-flow-hint">
-          Signed submissions are coming in the next tasks. MetaMask connection here is only a browser-level address connection for now.
+          {{ submissionIdentityHint }}
         </p>
 
         <div v-if="submitMessage || errorMessage" class="message-stack">
@@ -269,15 +269,15 @@
           <div class="field-group">
             <label for="voter-wallet">Voter Wallet ID</label>
             <input id="voter-wallet" type="text" v-model.trim="voterWallet" placeholder="Enter voter public wallet key" class="input-field">
-            <div v-if="connectedWalletAddress" class="wallet-helper-row">
-              <span class="meta">Connected MetaMask address: {{ shortenConnectedWallet }}</span>
-              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForVoter">Use Connected Address</button>
+            <div v-if="identityWalletAddress" class="wallet-helper-row">
+              <span class="meta">{{ identityWalletLabel }}: {{ shortenIdentityWallet }}</span>
+              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForVoter">Use Wallet Identity</button>
             </div>
           </div>
         </div>
 
         <p class="hint wallet-flow-hint">
-          Signed votes are coming in the next tasks. Today&apos;s vote flow still uses the current backend fields.
+          {{ votingIdentityHint }}
         </p>
 
         <div v-if="voteMessage || voteError || evaluateMessage || evaluateError" class="message-grid">
@@ -779,11 +779,31 @@ export default {
     approvedSubmissions() {
       return this.submissions.filter((submission) => ['approved', 'queued'].includes(submission.status));
     },
-    connectedWalletAddress() {
-      return this.walletManager.state.normalizedWalletAddress;
+    identityWalletAddress() {
+      return this.walletManager.state.verifiedWalletAddress || this.walletManager.state.normalizedWalletAddress;
     },
-    shortenConnectedWallet() {
-      return this.walletManager.shortenAddress(this.connectedWalletAddress);
+    hasVerifiedWalletIdentity() {
+      return this.walletManager.state.isVerifiedSession;
+    },
+    identityWalletLabel() {
+      return this.hasVerifiedWalletIdentity
+        ? 'Verified wallet identity'
+        : 'Connected MetaMask address';
+    },
+    shortenIdentityWallet() {
+      return this.walletManager.shortenAddress(this.identityWalletAddress);
+    },
+    submissionIdentityHint() {
+      if (this.hasVerifiedWalletIdentity) {
+        return 'This verified wallet session is now the app identity for submissions. Direct signed submissions are still deferred to the next wallet tasks.';
+      }
+      return 'Connect and verify MetaMask before signed submissions are enabled. The current submission form still uses the existing backend fields for now.';
+    },
+    votingIdentityHint() {
+      if (this.hasVerifiedWalletIdentity) {
+        return 'This verified wallet session is now the app identity for votes. Direct signed vote messages are still deferred to the next wallet tasks.';
+      }
+      return 'Connect and verify MetaMask before signed votes are enabled. Today\'s vote flow still uses the current backend fields.';
     },
   },
   async created() {
@@ -792,13 +812,13 @@ export default {
   },
   methods: {
     useConnectedAddressForSubmitter() {
-      if (this.connectedWalletAddress) {
-        this.wallet = this.connectedWalletAddress;
+      if (this.identityWalletAddress) {
+        this.wallet = this.identityWalletAddress;
       }
     },
     useConnectedAddressForVoter() {
-      if (this.connectedWalletAddress) {
-        this.voterWallet = this.connectedWalletAddress;
+      if (this.identityWalletAddress) {
+        this.voterWallet = this.identityWalletAddress;
       }
     },
     async blockMinting(submission) {

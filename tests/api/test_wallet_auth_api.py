@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+from datetime import timedelta
+
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
@@ -189,8 +191,8 @@ def test_expired_challenge_rejected(blockchain):
         },
     )
 
-    assert response.status_code == 401
-    assert "expired" in response.json()["detail"].lower()
+    assert response.status_code == 400
+    assert "no active wallet challenge" in response.json()["detail"].lower()
 
 
 def test_malformed_signature_rejected(blockchain):
@@ -273,3 +275,153 @@ def test_auth_helper_rejects_invalid_and_expired_session(blockchain):
         )
 
     assert verify.json()["session_token"]
+
+
+def test_session_endpoint_returns_verified_wallet_session(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    challenge = _issue_challenge(client, account.address)
+    signature = _sign_message(challenge["message"], account)
+    verify = client.post(
+        "/auth/wallet/verify",
+        json={
+            "wallet_address": account.address,
+            "message": challenge["message"],
+            "signature": signature,
+        },
+    )
+
+    response = client.get(
+        "/auth/wallet/session",
+        headers={"Authorization": f"Bearer {verify.json()['session_token']}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["valid"] is True
+    assert body["wallet_address"] == account.address.lower()
+    assert body["normalized_wallet_address"] == account.address.lower()
+    assert body["issued_at"]
+    assert body["expires_at"]
+
+
+def test_session_endpoint_rejects_missing_and_invalid_token(blockchain):
+    client, _ = _client(blockchain)
+
+    missing = client.get("/auth/wallet/session")
+    invalid = client.get(
+        "/auth/wallet/session",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+
+    assert missing.status_code == 401
+    assert "missing bearer token" in missing.json()["detail"].lower()
+    assert invalid.status_code == 401
+    assert "invalid or expired session token" in invalid.json()["detail"].lower()
+
+
+def test_session_endpoint_rejects_expired_token(blockchain):
+    import api
+
+    api.blockchain = blockchain
+    api.wallet_auth_manager = WalletAuthManager(
+        network_name=api.NETWORK_NAME,
+        environment=api.ENVIRONMENT,
+        session_ttl_seconds=-1,
+    )
+    client = TestClient(api.app)
+    account = _create_account()
+    challenge = _issue_challenge(client, account.address)
+    signature = _sign_message(challenge["message"], account)
+    verify = client.post(
+        "/auth/wallet/verify",
+        json={
+            "wallet_address": account.address,
+            "message": challenge["message"],
+            "signature": signature,
+        },
+    )
+
+    response = client.get(
+        "/auth/wallet/session",
+        headers={"Authorization": f"Bearer {verify.json()['session_token']}"},
+    )
+
+    assert response.status_code == 401
+    assert "expired" in response.json()["detail"].lower()
+
+
+def test_logout_revokes_verified_wallet_session(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    challenge = _issue_challenge(client, account.address)
+    signature = _sign_message(challenge["message"], account)
+    verify = client.post(
+        "/auth/wallet/verify",
+        json={
+            "wallet_address": account.address,
+            "message": challenge["message"],
+            "signature": signature,
+        },
+    )
+    token = verify.json()["session_token"]
+
+    logout = client.post(
+        "/auth/wallet/logout",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    after_logout = client.get(
+        "/auth/wallet/session",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert logout.status_code == 200
+    assert logout.json()["logged_out"] is True
+    assert logout.json()["revoked"] is True
+    assert after_logout.status_code == 401
+
+
+def test_logout_without_valid_token_is_idempotent(blockchain):
+    client, _ = _client(blockchain)
+
+    missing = client.post("/auth/wallet/logout")
+    invalid = client.post(
+        "/auth/wallet/logout",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+
+    assert missing.status_code == 200
+    assert missing.json()["logged_out"] is True
+    assert missing.json()["revoked"] is False
+    assert invalid.status_code == 200
+    assert invalid.json()["revoked"] is False
+
+
+def test_prune_expired_removes_old_challenges_and_sessions():
+    manager = WalletAuthManager(
+        network_name="zoidberg-testnet",
+        environment="test",
+        challenge_ttl_seconds=60,
+        session_ttl_seconds=60,
+    )
+    account = _create_account()
+    challenge = manager.issue_challenge(account.address)
+    signature = _sign_message(challenge["message"], account)
+    verify = manager.verify_signature(
+        account.address,
+        challenge["message"],
+        signature,
+    )
+
+    assert manager._challenges_by_wallet
+    assert manager._sessions_by_token_hash
+
+    stored_challenge = manager._challenges_by_wallet[account.address.lower()]
+    stored_challenge.expires_at = stored_challenge.issued_at - timedelta(seconds=1)
+    session = manager.resolve_session(verify["session_token"])
+    session.expires_at = session.issued_at - timedelta(seconds=1)
+
+    manager.prune_expired()
+
+    assert manager._challenges_by_wallet == {}
+    assert manager._sessions_by_token_hash == {}

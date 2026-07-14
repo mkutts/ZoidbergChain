@@ -874,6 +874,34 @@ async def verify_wallet_challenge(request: Request, payload: WalletVerifyRequest
     return verification
 
 
+@app.get("/auth/wallet/session")
+@api_limit("public_read")
+async def get_wallet_session(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    wallet_address: str = Depends(_verified_wallet_dependency),
+):
+    token = (authorization or "")[len("Bearer "):].strip() if authorization else ""
+    try:
+        return wallet_auth_manager.session_payload(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@app.post("/auth/wallet/logout")
+@api_limit("public_read")
+async def logout_wallet_session(request: Request, authorization: str | None = Header(default=None)):
+    token = ""
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[len("Bearer "):].strip()
+    revoked = wallet_auth_manager.revoke_session(token)
+    return {
+        "logged_out": True,
+        "revoked": revoked,
+        "message": "Wallet session cleared.",
+    }
+
+
 @app.post("/peers/register")
 @api_limit("peer_receive")
 async def register_peer(request: Request, registration: PeerRegistration, _: None = Depends(require_peer_secret)):

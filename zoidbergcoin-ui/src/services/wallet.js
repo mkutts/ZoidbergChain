@@ -1,6 +1,6 @@
 import { reactive, readonly } from 'vue';
 import { normalizeWalletAddress, shortenWalletAddress } from '../utils/walletAddress.js';
-import { apiClient, getApiErrorMessage } from '../config/api.js';
+import { apiClient, configureWalletApiAuth, getApiErrorMessage } from '../config/api.js';
 
 const LAST_CONNECTED_ADDRESS_KEY = 'zoidberg:last-wallet-address';
 const VERIFIED_SESSION_KEY = 'zoidberg:verified-wallet-session';
@@ -36,6 +36,18 @@ function createInitialState() {
     lastConnectedAddress: '',
     sessionToken: '',
     sessionExpiresAt: '',
+    verifiedWalletAddress: '',
+    identitySource: 'none',
+    authError: '',
+    connected_wallet_address: '',
+    normalized_wallet_address: '',
+    is_connected: false,
+    is_verified_session: false,
+    session_token: '',
+    session_expires_at: '',
+    verified_wallet_address: '',
+    identity_source: 'none',
+    auth_error: '',
   };
 }
 
@@ -69,6 +81,14 @@ export function createWalletManager(options = {}) {
       const response = await apiClient.post('/auth/wallet/verify', payload);
       return response.data;
     },
+    async getSession() {
+      const response = await apiClient.get('/auth/wallet/session');
+      return response.data;
+    },
+    async logout() {
+      const response = await apiClient.post('/auth/wallet/logout');
+      return response.data;
+    },
   };
 
   let provider = null;
@@ -76,6 +96,29 @@ export function createWalletManager(options = {}) {
   let onAccountsChanged = null;
   let onChainChanged = null;
   let onDisconnect = null;
+
+  function syncIdentityFields() {
+    state.connectedWalletAddress = state.walletAddress;
+    state.connected_wallet_address = state.walletAddress;
+    state.normalized_wallet_address = state.normalizedWalletAddress;
+    state.is_connected = state.isConnected;
+    state.is_verified_session = state.isVerifiedSession;
+    state.session_token = state.sessionToken;
+    state.session_expires_at = state.sessionExpiresAt;
+    state.verified_wallet_address = state.verifiedWalletAddress;
+    state.identity_source = state.identitySource;
+    state.auth_error = state.authError;
+  }
+
+  function setIdentitySource() {
+    if (state.isVerifiedSession && state.verifiedWalletAddress) {
+      state.identitySource = 'metamask_verified';
+    } else if (state.isConnected && state.normalizedWalletAddress) {
+      state.identitySource = 'metamask_unverified';
+    } else {
+      state.identitySource = 'none';
+    }
+  }
 
   function persistAddress(address) {
     state.lastConnectedAddress = address || '';
@@ -104,6 +147,9 @@ export function createWalletManager(options = {}) {
     state.sessionToken = session?.sessionToken || '';
     state.sessionExpiresAt = session?.expiresAt || '';
     state.isVerifiedSession = Boolean(session?.sessionToken && !sessionIsExpired(session?.expiresAt));
+    state.verifiedWalletAddress = state.isVerifiedSession ? state.normalizedWalletAddress : '';
+    setIdentitySource();
+    syncIdentityFields();
 
     if (!storage) {
       return;
@@ -122,11 +168,16 @@ export function createWalletManager(options = {}) {
     );
   }
 
-  function clearVerifiedSession() {
+  function clearVerifiedSession(reason = '') {
     persistVerifiedSession(null);
+    state.authError = reason || '';
+    if (reason) {
+      state.connectionStatus = 'expired';
+    }
+    syncIdentityFields();
   }
 
-  function restoreVerifiedSession() {
+  async function restoreVerifiedSession() {
     if (!storage) {
       return;
     }
@@ -138,14 +189,24 @@ export function createWalletManager(options = {}) {
       const parsed = JSON.parse(raw);
       const normalized = normalizeWalletAddress(parsed.walletAddress);
       if (!normalized || sessionIsExpired(parsed.expiresAt)) {
-        clearVerifiedSession();
+        state.connectionStatus = 'expired';
+        clearVerifiedSession('Session expired - verify again.');
         return;
       }
       if (normalized === state.normalizedWalletAddress) {
-        persistVerifiedSession({
-          sessionToken: parsed.sessionToken,
-          expiresAt: parsed.expiresAt,
-        });
+        persistVerifiedSession({ sessionToken: parsed.sessionToken, expiresAt: parsed.expiresAt });
+        try {
+          const session = await authApi.getSession();
+          state.isVerifiedSession = Boolean(session.valid);
+          state.verifiedWalletAddress = session.normalized_wallet_address || normalized;
+          state.sessionExpiresAt = session.expires_at || parsed.expiresAt;
+          state.authError = '';
+          setIdentitySource();
+          syncIdentityFields();
+        } catch (error) {
+          state.connectionStatus = 'expired';
+          clearVerifiedSession(getApiErrorMessage(error, 'Session expired - verify again.'));
+        }
       } else {
         clearVerifiedSession();
       }
@@ -169,8 +230,11 @@ export function createWalletManager(options = {}) {
     state.walletAddress = '';
     state.normalizedWalletAddress = '';
     clearVerifiedSession();
+    state.authError = '';
     state.connectionStatus = state.isMetaMaskAvailable ? 'disconnected' : 'unavailable';
     persistAddress('');
+    setIdentitySource();
+    syncIdentityFields();
   }
 
   async function readChainId(activeProvider) {
@@ -227,8 +291,12 @@ export function createWalletManager(options = {}) {
     state.isConnected = true;
     state.connectionStatus = 'connected';
     state.errorMessage = '';
+    state.authError = '';
+    state.verifiedWalletAddress = '';
     persistAddress(normalized);
-    restoreVerifiedSession();
+    await restoreVerifiedSession();
+    setIdentitySource();
+    syncIdentityFields();
     return normalized;
   }
 
@@ -240,6 +308,9 @@ export function createWalletManager(options = {}) {
 
     onAccountsChanged = async (accounts) => {
       try {
+        if (state.sessionToken) {
+          await authApi.logout();
+        }
         await syncAccounts(accounts);
       } catch (error) {
         state.connectionStatus = 'error';
@@ -251,7 +322,10 @@ export function createWalletManager(options = {}) {
     onChainChanged = async (chainId) => {
       state.chainId = typeof chainId === 'string' ? chainId : '';
       state.errorMessage = '';
-      clearVerifiedSession();
+      if (state.sessionToken) {
+        await authApi.logout();
+      }
+      clearVerifiedSession('Network changed - verify again.');
       if (state.isConnected) {
         state.connectionStatus = 'connected';
       }
@@ -319,9 +393,16 @@ export function createWalletManager(options = {}) {
     }
   }
 
-  function disconnectWallet() {
+  async function disconnectWallet() {
     state.errorMessage = '';
     state.chainId = '';
+    if (state.sessionToken) {
+      try {
+        await authApi.logout();
+      } catch {
+        // Ignore logout errors during local state cleanup.
+      }
+    }
     applyDisconnectedState();
   }
 
@@ -334,6 +415,7 @@ export function createWalletManager(options = {}) {
 
     state.connectionStatus = 'verifying';
     state.errorMessage = '';
+    state.authError = '';
     clearVerifiedSession();
 
     try {
@@ -354,6 +436,10 @@ export function createWalletManager(options = {}) {
       });
       state.connectionStatus = 'verified';
       state.errorMessage = '';
+      state.authError = '';
+      state.verifiedWalletAddress = verification.normalized_wallet_address || state.normalizedWalletAddress;
+      setIdentitySource();
+      syncIdentityFields();
       return verification;
     } catch (error) {
       state.connectionStatus = 'error';
@@ -363,6 +449,8 @@ export function createWalletManager(options = {}) {
       } else {
         state.errorMessage = getApiErrorMessage(error, 'Wallet verification failed.');
       }
+      state.authError = state.errorMessage;
+      syncIdentityFields();
       return null;
     }
   }
@@ -376,9 +464,27 @@ export function createWalletManager(options = {}) {
       return onChainChanged(chainId);
     }
     state.chainId = typeof chainId === 'string' ? chainId : '';
-    clearVerifiedSession();
+    clearVerifiedSession('Network changed - verify again.');
     return state.chainId;
   }
+
+  function clearSessionFromUnauthorized(error) {
+    state.connectionStatus = 'expired';
+    state.errorMessage = '';
+    clearVerifiedSession(getApiErrorMessage(error, 'Session expired - verify again.'));
+  }
+
+  configureWalletApiAuth({
+    getAuthHeaders() {
+      if (!state.isVerifiedSession || !state.sessionToken || sessionIsExpired(state.sessionExpiresAt)) {
+        return {};
+      }
+      return { Authorization: `Bearer ${state.sessionToken}` };
+    },
+    onSessionUnauthorized(error) {
+      clearSessionFromUnauthorized(error);
+    },
+  });
 
   return {
     state: readonly(state),
@@ -391,10 +497,30 @@ export function createWalletManager(options = {}) {
     handleAccountsChanged,
     handleChainChanged,
     getAuthorizationHeader() {
-      if (!state.sessionToken || sessionIsExpired(state.sessionExpiresAt)) {
+      if (!state.isVerifiedSession || !state.sessionToken || sessionIsExpired(state.sessionExpiresAt)) {
         return {};
       }
       return { Authorization: `Bearer ${state.sessionToken}` };
+    },
+    async refreshVerifiedSession() {
+      if (!state.sessionToken || !state.normalizedWalletAddress) {
+        clearVerifiedSession();
+        return null;
+      }
+      try {
+        const session = await authApi.getSession();
+        state.isVerifiedSession = Boolean(session.valid);
+        state.verifiedWalletAddress = session.normalized_wallet_address || state.normalizedWalletAddress;
+        state.sessionExpiresAt = session.expires_at || state.sessionExpiresAt;
+        state.connectionStatus = state.isVerifiedSession ? 'verified' : 'expired';
+        state.authError = '';
+        setIdentitySource();
+        syncIdentityFields();
+        return session;
+      } catch (error) {
+        clearSessionFromUnauthorized(error);
+        return null;
+      }
     },
   };
 }

@@ -93,7 +93,7 @@ class WalletAuthManager:
         self._challenges_by_wallet.clear()
         self._sessions_by_token_hash.clear()
 
-    def _clear_expired(self) -> None:
+    def prune_expired(self) -> None:
         now = _utc_now()
         self._challenges_by_wallet = {
             wallet: challenge
@@ -107,7 +107,7 @@ class WalletAuthManager:
         }
 
     def issue_challenge(self, wallet_address: str) -> dict[str, str]:
-        self._clear_expired()
+        self.prune_expired()
         normalized = normalize_wallet_address(wallet_address)
         if not normalized:
             raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
@@ -134,15 +134,12 @@ class WalletAuthManager:
             "normalized_wallet_address": normalized,
             "nonce": nonce,
             "message": message,
+            "issued_at": _isoformat(issued_at),
             "expires_at": _isoformat(expires_at),
         }
 
     def verify_signature(self, wallet_address: str, message: str, signature: str) -> dict[str, str | bool]:
-        self._sessions_by_token_hash = {
-            token_hash: session
-            for token_hash, session in self._sessions_by_token_hash.items()
-            if session.expires_at > _utc_now()
-        }
+        self.prune_expired()
         normalized = normalize_wallet_address(wallet_address)
         if not normalized:
             raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
@@ -188,13 +185,15 @@ class WalletAuthManager:
         return {
             "verified": True,
             "wallet_address": normalized,
+            "normalized_wallet_address": normalized,
             "session_token": raw_token,
+            "issued_at": _isoformat(issued_at),
             "expires_at": _isoformat(expires_at),
             "message": "Wallet verified",
         }
 
     def resolve_session(self, token: str) -> WalletSession:
-        self._clear_expired()
+        self.prune_expired()
         if not isinstance(token, str) or not token.strip():
             raise ValueError("Missing session token.")
         token_hash = hashlib.sha256(token.strip().encode("utf-8")).hexdigest()
@@ -205,6 +204,24 @@ class WalletAuthManager:
             self._sessions_by_token_hash.pop(token_hash, None)
             raise ValueError("Session token has expired.")
         return session
+
+    def revoke_session(self, token: str | None) -> bool:
+        self.prune_expired()
+        if not isinstance(token, str) or not token.strip():
+            return False
+        token_hash = hashlib.sha256(token.strip().encode("utf-8")).hexdigest()
+        return self._sessions_by_token_hash.pop(token_hash, None) is not None
+
+    def session_payload(self, token: str) -> dict[str, str | bool]:
+        session = self.resolve_session(token)
+        return {
+            "valid": True,
+            "wallet_address": session.wallet_address,
+            "normalized_wallet_address": session.wallet_address,
+            "issued_at": _isoformat(session.issued_at),
+            "expires_at": _isoformat(session.expires_at),
+            "network_name": session.network_name,
+        }
 
 
 default_wallet_auth_manager = WalletAuthManager(

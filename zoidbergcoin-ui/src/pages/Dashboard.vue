@@ -14,6 +14,8 @@
       </div>
     </header>
 
+    <WalletPanel />
+
     <main class="dashboard-shell">
       <section class="section-panel summary-panel">
         <div class="card-heading">
@@ -175,6 +177,10 @@
           <div class="field-group">
             <label for="wallet">Submitter Wallet ID</label>
             <input id="wallet" type="text" v-model.trim="wallet" placeholder="Enter your public wallet key" class="input-field">
+            <div v-if="connectedWalletAddress" class="wallet-helper-row">
+              <span class="meta">Connected MetaMask address: {{ shortenConnectedWallet }}</span>
+              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForSubmitter">Use Connected Address</button>
+            </div>
           </div>
 
           <div class="field-group">
@@ -203,6 +209,10 @@
             {{ isSubmitting ? 'Submitting...' : (uploadedContent ? 'Submit Uploaded Content' : 'Submit for Review') }}
           </button>
         </div>
+
+        <p class="hint wallet-flow-hint">
+          Signed submissions are coming in the next tasks. MetaMask connection here is only a browser-level address connection for now.
+        </p>
 
         <div v-if="submitMessage || errorMessage" class="message-stack">
           <p v-if="submitMessage" class="status-message success">{{ submitMessage }}</p>
@@ -259,8 +269,16 @@
           <div class="field-group">
             <label for="voter-wallet">Voter Wallet ID</label>
             <input id="voter-wallet" type="text" v-model.trim="voterWallet" placeholder="Enter voter public wallet key" class="input-field">
+            <div v-if="connectedWalletAddress" class="wallet-helper-row">
+              <span class="meta">Connected MetaMask address: {{ shortenConnectedWallet }}</span>
+              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForVoter">Use Connected Address</button>
+            </div>
           </div>
         </div>
+
+        <p class="hint wallet-flow-hint">
+          Signed votes are coming in the next tasks. Today&apos;s vote flow still uses the current backend fields.
+        </p>
 
         <div v-if="voteMessage || voteError || evaluateMessage || evaluateError" class="message-grid">
           <p v-if="voteMessage" class="status-message success">{{ voteMessage }}</p>
@@ -693,10 +711,17 @@
 
 <script>
 import { apiClient, buildApiUrl, getApiErrorMessage } from '../config/api';
+import WalletPanel from '../components/WalletPanel.vue';
+import { useWallet } from '../services/wallet';
 
 export default {
+  components: {
+    WalletPanel,
+  },
   data() {
+    const walletManager = useWallet();
     return {
+      walletManager,
       memeFile: null,
       wallet: '',
       voterWallet: '',
@@ -754,11 +779,28 @@ export default {
     approvedSubmissions() {
       return this.submissions.filter((submission) => ['approved', 'queued'].includes(submission.status));
     },
+    connectedWalletAddress() {
+      return this.walletManager.state.normalizedWalletAddress;
+    },
+    shortenConnectedWallet() {
+      return this.walletManager.shortenAddress(this.connectedWalletAddress);
+    },
   },
   async created() {
+    await this.walletManager.detectMetaMask();
     await this.refreshWorkflow();
   },
   methods: {
+    useConnectedAddressForSubmitter() {
+      if (this.connectedWalletAddress) {
+        this.wallet = this.connectedWalletAddress;
+      }
+    },
+    useConnectedAddressForVoter() {
+      if (this.connectedWalletAddress) {
+        this.voterWallet = this.connectedWalletAddress;
+      }
+    },
     async blockMinting(submission) {
       if (!submission?.submission_id) {
         return;
@@ -1816,6 +1858,22 @@ h3 {
 
 .queue-warning {
   margin-top: 12px;
+}
+
+.wallet-helper-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.helper-btn {
+  min-height: 34px;
+  padding: 7px 12px;
+}
+
+.wallet-flow-hint {
+  margin-top: 14px;
 }
 
 .detail-grid {

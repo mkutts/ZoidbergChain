@@ -3,6 +3,8 @@
     <h1>ZoidbergCoin</h1>
     <p class="subtitle">The Meme-Centric Blockchain</p>
 
+    <WalletPanel />
+
     <!-- Quote Section -->
     <blockquote class="quote">
       "The remedy to be applied is more speech, not enforced silence."
@@ -24,18 +26,20 @@
     <p v-if="errorMessage" class="status-message error">{{ errorMessage }}</p>
 
     <div v-if="walletDetails" class="wallet-details">
-      <p v-if="walletDetails.privateKey" class="warning"><strong>Development only:</strong> Private key export is enabled for this local node.</p>
-      <p v-else class="warning">{{ walletDetails.exportMessage }}</p>
+      <p class="warning">{{ walletDetails.exportMessage }}</p>
       <p><strong>Public Key:</strong> {{ walletDetails.publicKey }}</p>
-      <p v-if="walletDetails.privateKey"><strong>Private Key:</strong> {{ walletDetails.privateKey }}</p>
     </div>
   </div>
 </template>
 
 <script>
 import { apiClient, getApiErrorMessage } from '../config/api';
+import WalletPanel from '../components/WalletPanel.vue';
 
 export default {
+  components: {
+    WalletPanel,
+  },
   data() {
     return {
       walletDetails: null,
@@ -56,9 +60,8 @@ export default {
 
         this.walletDetails = {
           publicKey: public_key,
-          privateKey: private_key || null,
           exportMessage: keyExport.enabled
-            ? 'Development-only private key export is available separately.'
+            ? 'Development-only private key export may be enabled on this local node, but the frontend does not display private keys. Use dev-only local tooling instead.'
             : keyExport.message || 'Private key export is disabled for this response.',
         };
         this.successMessage = response.data.message || 'Wallet generated successfully.';
@@ -84,11 +87,12 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
   text-align: center;
   background: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
   color: #fff;
   font-family: 'Arial', sans-serif;
+  padding: 32px 16px 48px;
 }
 
 /* Title & Subtitle */

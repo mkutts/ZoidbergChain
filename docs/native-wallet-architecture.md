@@ -209,3 +209,10 @@ Transfer model notes:
 - Native ZOID balances appear in the ZoidbergChain app or explorer first.
 - Wrapped ZOID may come later for DEX liquidity, exchange pairing, or bridge-based interoperability.
 - A later MetaMask Snap or custom wallet may support native ZOID more directly.
+
+## Task 7.1 Frontend Scope
+
+- Task 7.1 adds frontend MetaMask connection only.
+- A connected MetaMask address is not yet a backend-verified ZoidbergChain identity.
+- Task 7.2 will add the nonce challenge and backend signature verification flow.
+- Native ZOID balance still appears in the ZoidbergChain app or explorer, not in normal MetaMask.

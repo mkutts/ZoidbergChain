@@ -59,6 +59,11 @@ class Submission:
     content_hash: str | None = None
     content_id: str | None = None
     certificate_id: str | None = None
+    mint_blocked: bool = False
+    mint_block_reason: str | None = None
+    mint_blocked_at: float | None = None
+    mint_blocked_by: str | None = None
+    mint_block_notes: str | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
@@ -95,6 +100,11 @@ class Submission:
             "content_hash": self.content_hash,
             "content_id": self.content_id,
             "certificate_id": self.certificate_id,
+            "mint_blocked": self.mint_blocked,
+            "mint_block_reason": self.mint_block_reason,
+            "mint_blocked_at": self.mint_blocked_at,
+            "mint_blocked_by": self.mint_blocked_by,
+            "mint_block_notes": self.mint_block_notes,
         }
 
     @classmethod
@@ -110,4 +120,9 @@ class Submission:
             content_hash=data.get("content_hash"),
             content_id=data.get("content_id"),
             certificate_id=data.get("certificate_id"),
+            mint_blocked=data.get("mint_blocked", False),
+            mint_block_reason=data.get("mint_block_reason"),
+            mint_blocked_at=data.get("mint_blocked_at"),
+            mint_blocked_by=data.get("mint_blocked_by"),
+            mint_block_notes=data.get("mint_block_notes"),
         )

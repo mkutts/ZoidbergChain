@@ -60,18 +60,52 @@ def test_mint_removal_and_status_update(blockchain, approved_submissions, wallet
     assert second.status == QUEUED
 
 
-def test_mint_submission_requires_front_of_queue(blockchain, approved_submissions, wallets, monkeypatch):
+def test_mint_next_skips_blocked_items_and_mints_valid_submission(blockchain, approved_submissions, wallets, monkeypatch):
     first, second, _ = approved_submissions
     blockchain.add_to_mint_queue(first.submission_id)
     blockchain.add_to_mint_queue(second.submission_id)
+    blockchain.block_minting_for_submission(first.submission_id, "legacy bad item")
     monkeypatch.setattr(blockchain, "add_block", lambda **kwargs: True)
 
-    with pytest.raises(ValueError, match="front of the mint queue"):
-        blockchain.mint_submission(second.submission_id, miner=wallets["contributor_one"].public_key)
+    result = blockchain.mint_next_queued_submission(miner=wallets["contributor_one"].public_key)
 
-    assert blockchain.mint_queue == [first.submission_id, second.submission_id]
+    assert result is True
+    assert blockchain.mint_queue == [first.submission_id]
     assert first.status == QUEUED
-    assert second.status == QUEUED
+    assert first.mint_blocked is True
+    assert second.status == MINTED
+
+
+def test_specific_mint_can_target_non_front_submission(blockchain, approved_submissions, wallets, monkeypatch):
+    first, second, _ = approved_submissions
+    blockchain.add_to_mint_queue(first.submission_id)
+    blockchain.add_to_mint_queue(second.submission_id)
+    blockchain.block_minting_for_submission(first.submission_id, "legacy bad item")
+    monkeypatch.setattr(blockchain, "add_block", lambda **kwargs: True)
+
+    result = blockchain.mint_submission(second.submission_id, miner=wallets["contributor_one"].public_key)
+
+    assert result is True
+    assert blockchain.mint_queue == [first.submission_id]
+    assert first.status == QUEUED
+    assert second.status == MINTED
+
+
+def test_manual_block_and_unblock_toggle_mintability(blockchain, approved_submissions):
+    submission = approved_submissions[0]
+    blockchain.add_to_mint_queue(submission.submission_id)
+
+    blockchain.block_minting_for_submission(submission.submission_id, "legacy bad item")
+    blocked = blockchain.get_mint_queue()[0]
+    assert blocked["mintable"] is False
+    assert blocked["mint_block_reason"] == "legacy bad item"
+    assert blocked["mint_blocked"] is True
+
+    blockchain.unblock_minting_for_submission(submission.submission_id)
+    unblocked = blockchain.get_mint_queue()[0]
+    assert unblocked["mintable"] is True
+    assert unblocked["mint_block_reason"] is None
+    assert unblocked["mint_blocked"] is False
 
 
 def test_invalid_mint_queue_entries(blockchain, approved_submissions):

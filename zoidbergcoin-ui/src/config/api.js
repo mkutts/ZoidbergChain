@@ -11,6 +11,16 @@ export const apiClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
+export function buildApiUrl(path) {
+  if (!path) {
+    return "";
+  }
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+  return `${API_BASE_URL.replace(/\/$/, "")}/${String(path).replace(/^\//, "")}`;
+}
+
 export function getApiErrorMessage(error, fallback = "Something went wrong.") {
   const data = error?.response?.data;
 
@@ -41,6 +51,10 @@ export function getApiErrorMessage(error, fallback = "Something went wrong.") {
     if (objectMessage) {
       return objectMessage;
     }
+  }
+
+  if (error?.response?.statusText) {
+    return error.response.statusText;
   }
 
   if (error?.message) {

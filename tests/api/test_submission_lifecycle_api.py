@@ -131,6 +131,26 @@ def test_submit_content_rejects_mismatched_content_id_and_hash(blockchain, walle
     assert response.json()["detail"] == "content_id does not match content_hash."
 
 
+def test_submit_content_accepts_uppercase_jpg_filename(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+
+    with open(submission_image, "rb") as image_file:
+        response = client.post(
+            "/submit_content",
+            files={"image": ("Uppercase.JPG", image_file, "image/jpeg")},
+            data={
+                "submitter": wallets["owner"].public_key,
+                "text_content": "uppercase filename submission",
+            },
+        )
+
+    assert response.status_code == 200
+    submission = response.json()["submission"]
+    assert submission["content_hash"]
+    assert submission["content_id"]
+    assert submission["storage_status"] in {"local", "verified"}
+
+
 def test_text_content_submission_can_be_minted_from_content_reference(blockchain, wallets):
     client = _client(blockchain)
     uploaded = _upload_text_content_via_api(client, wallets["owner"].public_key, text="mintable text content")
@@ -170,6 +190,50 @@ def test_text_content_submission_can_be_minted_from_content_reference(blockchain
     assert body["block"]["content_id"] == uploaded["content_id"]
     assert body["block"]["content_hash"] == uploaded["content_hash"]
     assert body["block"]["meme"]["text"] == "mintable text content"
+
+
+def test_mint_queue_response_hydrates_content_metadata(blockchain, wallets):
+    client = _client(blockchain)
+    uploaded = _upload_text_content_via_api(client, wallets["owner"].public_key, text="hydrated queue content")
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "submitter": wallets["owner"].public_key,
+            "content_id": uploaded["content_id"],
+        },
+    )
+
+    assert response.status_code == 200
+    submission_id = response.json()["submission"]["submission_id"]
+
+    for index in range(5):
+        blockchain.cast_submission_vote(
+            submission_id=submission_id,
+            voter=f"queue-hydration-voter-{index}",
+            vote_type=VOTE_ORIGINAL,
+        )
+
+    evaluate_response = client.post(
+        f"/submissions/{submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert evaluate_response.status_code == 200
+
+    mint_queue_response = client.get("/mint-queue")
+    assert mint_queue_response.status_code == 200
+    mint_queue_item = mint_queue_response.json()["mint_queue"][0]
+    assert mint_queue_item["content_id"] == uploaded["content_id"]
+    assert mint_queue_item["content_hash"] == uploaded["content_hash"]
+    assert mint_queue_item["content_type"] == "text"
+    assert mint_queue_item["mime_type"] == "text/plain"
+    assert mint_queue_item["storage_status"] == "verified"
+    assert mint_queue_item["mintable"] is True
+    assert mint_queue_item["mint_block_reason"] is None
+    assert mint_queue_item["content_metadata_missing"] is False
+    assert mint_queue_item["download_url"] == f"/content/{uploaded['content_hash']}"
+    assert mint_queue_item["originality_score"] is not None
 
 
 def test_real_api_submit_vote_evaluate_certificate_lookup_and_mint_flow(
@@ -500,10 +564,82 @@ def test_mint_queue_repairs_stale_queued_submission_missing_certificate(
     response = client.get("/mint-queue")
 
     assert response.status_code == 200
-    assert response.json() == {"mint_queue": []}
-    assert blockchain.mint_queue == []
+    body = response.json()["mint_queue"][0]
+    assert body["mintable"] is False
+    assert body["mint_block_reason"] == "certificate_missing"
+    assert body["submission_id"] == submission.submission_id
+    assert blockchain.mint_queue == [submission.submission_id]
     assert submission.status == APPROVED
     assert submission.certificate_id is None
+
+
+def test_block_and_unblock_minting_updates_queue_state(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _certify_submission(blockchain, submission)
+    blockchain.add_to_mint_queue(submission.submission_id)
+
+    block_response = client.post(
+        f"/submissions/{submission.submission_id}/block-minting",
+        json={"reason": "legacy bad item", "notes": "quarantine test"},
+    )
+    assert block_response.status_code == 200
+    queue_item = client.get("/mint-queue").json()["mint_queue"][0]
+    assert queue_item["mintable"] is False
+    assert queue_item["mint_block_reason"] == "legacy bad item"
+    assert queue_item["mint_blocked"] is True
+
+    unblock_response = client.post(f"/submissions/{submission.submission_id}/unblock-minting")
+    assert unblock_response.status_code == 200
+    queue_item = client.get("/mint-queue").json()["mint_queue"][0]
+    assert queue_item["mintable"] is True
+    assert queue_item["mint_block_reason"] is None
+    assert queue_item["mint_blocked"] is False
+
+
+def test_cleanup_bad_mint_queue_items_reports_and_blocks_when_requested(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    bad_submission = _submission(blockchain, submission_image, wallets["owner"].public_key, "Bad item")
+    _certify_submission(blockchain, bad_submission)
+    blockchain.add_to_mint_queue(bad_submission.submission_id)
+    blockchain.content_objects = []
+
+    dry_run_response = client.post(
+        "/dev/mint-queue/cleanup-bad-items",
+        json={"dry_run": True, "block_unmintable": False},
+    )
+    assert dry_run_response.status_code == 200
+    dry_run_body = dry_run_response.json()
+    assert dry_run_body["blocked"] >= 1
+    assert dry_run_body["items"][0]["reason"] == "content_metadata_missing"
+    assert bad_submission.mint_blocked is False
+
+    block_response = client.post(
+        "/dev/mint-queue/cleanup-bad-items",
+        json={"dry_run": False, "block_unmintable": True},
+    )
+    assert block_response.status_code == 200
+    assert bad_submission.mint_blocked is True
+    assert bad_submission.mint_block_reason == "content_metadata_missing"
+
+
+def test_good_item_can_mint_while_bad_item_remains_blocked(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    bad_submission = _submission(blockchain, submission_image, wallets["owner"].public_key, "Bad first item")
+    _certify_submission(blockchain, bad_submission)
+    blockchain.add_to_mint_queue(bad_submission.submission_id)
+    blockchain.content_objects = []
+
+    good_submission = _submission(blockchain, submission_image, wallets["owner"].public_key, "Good second item")
+    _certify_submission(blockchain, good_submission)
+    blockchain.add_to_mint_queue(good_submission.submission_id)
+
+    response = client.post(f"/mint/{good_submission.submission_id}")
+    assert response.status_code == 200
+    assert response.json()["minted"] is True
+    assert response.json()["submission"]["status"] == MINTED
+    assert bad_submission.submission_id in blockchain.mint_queue
+    assert good_submission.submission_id not in blockchain.mint_queue
 
 
 def test_dev_repair_certificate_creates_certificate_for_old_approved_submission(

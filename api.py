@@ -20,9 +20,11 @@ from content import (
     CONTENT_TYPE_MIXED,
     CONTENT_TYPE_TEXT,
     SUPPORTED_CONTENT_MIME_TYPES,
+    SUPPORTED_IMAGE_MIME_TYPES,
     TEXT_MIME_TYPE,
     canonicalize_text_content,
     compute_content_hash_bytes,
+    detect_mime_type_from_bytes,
     load_content_bytes,
     resolve_local_path,
     sanitize_original_filename,
@@ -50,9 +52,7 @@ from validators import (
     is_valid_node_id,
     is_valid_network_name,
     is_valid_submission_id,
-    is_safe_filename,
     is_valid_amount,
-    is_valid_image,
     is_valid_public_key,
     is_valid_wallet_public_key,
 )
@@ -86,7 +86,7 @@ from config import (
     signed_peer_messages_enabled,
     require_peer_auth,
 )
-from auth import validate_api_key  # ✅ API authentication
+from auth import API_KEYS, validate_api_key  # ✅ API authentication
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -170,6 +170,11 @@ class PeerSubmissionPayload(_StrictBodyModel):
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    mint_blocked: bool | None = None
+    mint_block_reason: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
+    mint_blocked_at: Annotated[float, Field(ge=0)] | None = None
+    mint_blocked_by: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    mint_block_notes: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
 
 
 class PeerVotePayload(_StrictBodyModel):
@@ -222,6 +227,16 @@ class PeerBlockPayload(_StrictBodyModel):
     minimum_votes_required: Annotated[int, Field(ge=0)] | None = None
     approved_at: Annotated[float, Field(ge=0)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
+
+
+class MintBlockRequest(_StrictBodyModel):
+    reason: Annotated[str, Field(min_length=1, max_length=MAX_METADATA_FIELD_LENGTH)]
+    notes: Annotated[str | None, Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)] = None
+
+
+class MintQueueCleanupRequest(_StrictBodyModel):
+    dry_run: bool = True
+    block_unmintable: bool = False
 
 
 class PeerRegistration(BaseModel):
@@ -315,6 +330,41 @@ def _content_download_url(content_object):
     if content_object.storage_status not in {"local", "verified"}:
         return None
     return f"/content/{content_object.content_hash}"
+
+
+def _validate_uploaded_image_payload(image: UploadFile, file_bytes: bytes) -> tuple[str, str]:
+    try:
+        safe_original_filename = sanitize_original_filename(image.filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not safe_original_filename:
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
+
+    declared_mime_type = (image.content_type or "").strip().lower() or None
+    if declared_mime_type == "application/octet-stream":
+        declared_mime_type = None
+    if declared_mime_type is not None and declared_mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
+
+    detected_mime_type = detect_mime_type_from_bytes(file_bytes)
+    if detected_mime_type is None or detected_mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
+
+    if (
+        declared_mime_type
+        and declared_mime_type != detected_mime_type
+        and ENABLE_STRICT_MIME_VALIDATION
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Declared mime_type {declared_mime_type!r} does not match detected mime_type "
+                f"{detected_mime_type!r}."
+            ),
+        )
+
+    return safe_original_filename, detected_mime_type
 
 
 def _serialize_submission(submission):
@@ -480,6 +530,18 @@ def require_development_mode(feature_enabled=True, feature_name="Development too
             status_code=403,
             detail=f"{feature_name} is disabled.",
         )
+
+
+async def require_mint_queue_management_access(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
+    if development_tools_enabled(allow_dev_reset_endpoints()):
+        return "dev"
+    if public_api_mode_enabled():
+        if API_KEYS.get(x_api_key) == "admin":
+            return "admin"
+        raise HTTPException(status_code=403, detail="Admin API key required for mint queue management.")
+    raise HTTPException(status_code=403, detail="Mint queue management is disabled.")
 
 
 def _dev_private_key_export_enabled():
@@ -1295,13 +1357,20 @@ async def submit_content(
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
     else:
-        if image is None or not image.filename or not is_safe_filename(image.filename) or not is_valid_image(image):
+        if image is None or not image.filename:
             raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
 
+        file_bytes = await image.read()
+        try:
+            validate_content_size(len(file_bytes))
+            safe_original_filename, _detected_mime_type = _validate_uploaded_image_payload(image, file_bytes)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
-        image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(image.filename))
+        image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(safe_original_filename))
         with open(image_path, "wb") as buffer:
-            buffer.write(await image.read())
+            buffer.write(file_bytes)
 
         try:
             if not os.path.isfile(image_path):
@@ -1672,17 +1741,24 @@ async def add_block(
     print(f"Debug: Owner balance before block: {getattr(blockchain, 'owner_balance', 'NOT SET')}")
 
     # Validate image format
-    if not image.filename or not is_safe_filename(image.filename) or not is_valid_image(image):
+    if not image.filename:
         raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
+
+    file_bytes = await image.read()
+    try:
+        validate_content_size(len(file_bytes))
+        safe_original_filename, _detected_mime_type = _validate_uploaded_image_payload(image, file_bytes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
         # Create the temp directory if it doesn't exist
         os.makedirs("temp", exist_ok=True)
 
         # Save the uploaded image
-        image_path = f"temp/{os.path.basename(image.filename)}"
+        image_path = f"temp/{os.path.basename(safe_original_filename)}"
         with open(image_path, "wb") as buffer:
-            buffer.write(await image.read())
+            buffer.write(file_bytes)
 
         # Debug: Check if the file exists
         if not os.path.isfile(image_path):
@@ -1819,19 +1895,22 @@ async def voting_threshold(request: Request):
 
 @app.get("/mint-queue")
 @api_limit("public_read")
-async def mint_queue(request: Request):
+async def mint_queue(
+    request: Request,
+    include_blocked: bool = Query(True),
+    mintable_only: bool = Query(False),
+):
     changed = False
     if blockchain.link_certificates_to_submissions():
         changed = True
     if sync_approved_submissions_to_mint_queue():
         changed = True
-    if blockchain.remove_invalid_mint_queue_entries():
-        changed = True
     if changed:
         blockchain.save_blockchain()
-    return {"mint_queue": blockchain.get_mint_queue()}
+    return {"mint_queue": blockchain.get_mint_queue(include_blocked=include_blocked, mintable_only=mintable_only)}
 
 
+@app.post("/mint/{submission_id}")
 @app.post("/mint-queue/{submission_id}/mint")
 @api_limit("mint")
 async def mint_queued_submission(
@@ -1844,17 +1923,7 @@ async def mint_queued_submission(
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
     if submission.status == HARD_REJECTED:
         raise HTTPException(status_code=400, detail="Hard rejected submissions cannot be minted.")
-    if submission.status == MINTED:
-        raise HTTPException(status_code=400, detail="Submission has already been minted.")
-    if submission.status in {PENDING, REJECTED}:
-        raise HTTPException(status_code=400, detail="Only approved unminted submissions can be minted.")
-
     try:
-        if submission.status == APPROVED:
-            submission = blockchain.add_to_mint_queue(submission_id)
-        if submission.status != QUEUED:
-            raise ValueError("Only approved unminted submissions can be minted.")
-
         minted = blockchain.mint_submission(
             submission_id,
             miner=miner,
@@ -1867,6 +1936,7 @@ async def mint_queued_submission(
             raise HTTPException(status_code=404, detail=message)
         raise HTTPException(status_code=400, detail=message)
 
+    submission = blockchain.get_submission(submission_id) or submission
     latest_block = blockchain.get_latest_block()
     certificate = (
         blockchain.get_originality_certificate(latest_block.certificate_id)
@@ -1893,3 +1963,66 @@ async def mint_queued_submission(
         "block": _serialize_block(latest_block),
         "broadcast": broadcast_result,
     }
+
+
+@app.post("/submissions/{submission_id}/block-minting")
+@api_limit("dev_endpoint")
+async def block_submission_minting(
+    request: Request,
+    submission_id: str,
+    payload: MintBlockRequest,
+    role: str = Depends(require_mint_queue_management_access),
+):
+    try:
+        submission = blockchain.block_minting_for_submission(
+            submission_id,
+            reason=payload.reason,
+            notes=payload.notes,
+            blocked_by=role,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        message = str(exc)
+        if message.startswith("Submission not found"):
+            raise HTTPException(status_code=404, detail=message) from exc
+        raise HTTPException(status_code=400, detail=message) from exc
+
+    return {
+        "message": "Submission minting blocked successfully.",
+        "submission": _serialize_submission(submission),
+    }
+
+
+@app.post("/submissions/{submission_id}/unblock-minting")
+@api_limit("dev_endpoint")
+async def unblock_submission_minting(
+    request: Request,
+    submission_id: str,
+    role: str = Depends(require_mint_queue_management_access),
+):
+    try:
+        submission = blockchain.unblock_minting_for_submission(submission_id)
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        message = str(exc)
+        if message.startswith("Submission not found"):
+            raise HTTPException(status_code=404, detail=message) from exc
+        raise HTTPException(status_code=400, detail=message) from exc
+
+    return {
+        "message": "Submission minting unblocked successfully.",
+        "submission": _serialize_submission(submission),
+    }
+
+
+@app.post("/dev/mint-queue/cleanup-bad-items")
+@api_limit("dev_endpoint")
+async def cleanup_bad_mint_queue_items(
+    request: Request,
+    payload: MintQueueCleanupRequest,
+    role: str = Depends(require_mint_queue_management_access),
+):
+    report = blockchain.cleanup_bad_mint_queue_items(block_unmintable=payload.block_unmintable and not payload.dry_run)
+    if payload.block_unmintable and not payload.dry_run:
+        blockchain.save_blockchain()
+    return report

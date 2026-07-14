@@ -1236,6 +1236,8 @@ class Blockchain:
             raise ValueError("Hard rejected submissions cannot enter the mint queue.")
         if submission.status != APPROVED:
             raise ValueError("Only approved submissions can be added to the mint queue.")
+        if submission.mint_blocked:
+            raise ValueError(submission.mint_block_reason or "Submission is blocked from minting.")
         self.require_valid_certificate_for_submission(submission)
         if self.storage.mint_queue_contains(submission_id, self.mint_queue):
             raise ValueError("Submission is already in the mint queue.")
@@ -1244,31 +1246,168 @@ class Blockchain:
         submission.transition_to(QUEUED)
         return submission
 
-    def get_mint_queue(self):
+    def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
+        record = submission.to_dict()
+        record["submission_status"] = submission.status
+        record["certificate_status"] = "missing" if certificate is None else "valid"
+        record["content_status"] = STORAGE_STATUS_MISSING
+        record["storage_status"] = STORAGE_STATUS_MISSING
+        record["content_metadata_missing"] = True
+        record["missing_fields"] = []
+        record["mintable"] = False
+        record["mint_block_reason"] = None
+        record["download_url"] = None
+
+        if certificate is not None:
+            record["certificate_id"] = certificate.certificate_id
+            record["originality_score"] = certificate.originality_score
+        else:
+            record["originality_score"] = None
+
+        record["mint_blocked"] = submission.mint_blocked
+        record["mint_blocked_at"] = submission.mint_blocked_at
+        record["mint_blocked_by"] = submission.mint_blocked_by
+        record["mint_block_notes"] = submission.mint_block_notes
+
+        if submission.mint_blocked:
+            record["mintable"] = False
+            record["mint_block_reason"] = submission.mint_block_reason or "mint_blocked_manually"
+            record["certificate_status"] = "blocked"
+            return record
+
+        if submission.status == MINTED:
+            record["mint_block_reason"] = "already_minted"
+            record["missing_fields"].append("status")
+            return record
+        if submission.status != QUEUED:
+            record["mint_block_reason"] = "submission_not_approved"
+            record["missing_fields"].append("status")
+            return record
+
+        if certificate is None:
+            record["mint_block_reason"] = "certificate_missing"
+            record["missing_fields"].append("certificate_id")
+            return record
+
+        try:
+            validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        except ValueError as exc:
+            message = str(exc).lower()
+            record["certificate_status"] = "invalid"
+            if "content_hash" in message and "mismatch" in message:
+                record["mint_block_reason"] = "certificate_content_hash_mismatch"
+            elif "content_id" in message and "mismatch" in message:
+                record["mint_block_reason"] = "certificate_content_hash_mismatch"
+            else:
+                record["mint_block_reason"] = "unknown_error"
+            record["missing_fields"].append("certificate")
+            record["validation_error"] = str(exc)
+            return record
+
+        if content_object is None:
+            record["mint_block_reason"] = "content_metadata_missing"
+            record["missing_fields"].extend(["content_hash", "content_id", "mime_type", "content_type"])
+            return record
+
+        record["content_metadata_missing"] = False
+        record["content_id"] = content_object.content_id
+        record["content_type"] = content_object.content_type
+        record["mime_type"] = content_object.mime_type
+        record["content_status"] = content_object.storage_status
+        record["storage_status"] = content_object.storage_status
+        if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
+            record["download_url"] = f"/content/{content_object.content_hash}"
+
+        if content_object.storage_status == STORAGE_STATUS_REMOTE:
+            record["mint_block_reason"] = "content_payload_missing"
+            record["missing_fields"].append("content_payload")
+            return record
+        if content_object.storage_status == STORAGE_STATUS_MISSING:
+            record["mint_block_reason"] = "content_metadata_missing"
+            record["missing_fields"].append("content_payload")
+            return record
+
+        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+        if not verification["verified"]:
+            error = str(verification.get("error") or "").lower()
+            if error == "legacy_unverifiable":
+                record["mintable"] = True
+                record["mint_block_reason"] = None
+                record["content_metadata_missing"] = False
+                record["content_status"] = content_object.storage_status
+                record["storage_status"] = content_object.storage_status
+                if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
+                    record["download_url"] = f"/content/{content_object.content_hash}"
+                return record
+            if error == "missing_file":
+                record["mint_block_reason"] = "content_payload_missing"
+            elif error == "legacy_unverifiable":
+                record["mint_block_reason"] = "legacy_unverifiable_content"
+            elif error in {"hash_mismatch", "file_size_mismatch"}:
+                record["mint_block_reason"] = "content_hash_mismatch"
+            else:
+                record["mint_block_reason"] = "content_not_verified"
+            record["missing_fields"].append("content_payload")
+            record["verification_error"] = verification.get("error")
+            return record
+
+        record["mintable"] = True
+        record["mint_block_reason"] = None
+        record["missing_fields"] = []
+        record["certificate_status"] = "valid"
+        record["content_status"] = STORAGE_STATUS_VERIFIED if content_object.storage_status == STORAGE_STATUS_VERIFIED else content_object.storage_status
+        return record
+
+    def _evaluate_mint_queue_item(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            return {
+                "submission_id": submission_id,
+                "submission_status": None,
+                "certificate_status": "missing",
+                "content_status": STORAGE_STATUS_MISSING,
+                "storage_status": STORAGE_STATUS_MISSING,
+                "mintable": False,
+                "mint_block_reason": "submission_not_found",
+                "missing_fields": ["submission"],
+                "content_metadata_missing": True,
+                "mint_blocked": False,
+                "mint_blocked_at": None,
+                "mint_blocked_by": None,
+                "mint_block_notes": None,
+                "download_url": None,
+            }
+
+        content_object = None
+        if submission.content_hash:
+            content_object = self.get_content_object_by_hash(submission.content_hash)
+        if content_object is None and submission.content_id:
+            content_object = self.get_content_object(submission.content_id)
+
+        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
+        record = self._queue_submission_record(
+            submission,
+            content_object=content_object,
+            certificate=certificate,
+        )
+        if submission.status == QUEUED and certificate is None and record.get("mint_block_reason") == "certificate_missing":
+            submission.status = APPROVED
+            record["submission_status"] = APPROVED
+        return record
+
+    def get_mint_queue(self, include_blocked=True, mintable_only=False):
         queued_submissions = []
         for submission_id in self.mint_queue:
-            submission = self.get_submission(submission_id)
-            if submission and submission.status == QUEUED:
-                try:
-                    self.require_valid_certificate_for_submission(submission)
-                    queued_submissions.append(submission.to_dict())
-                except ValueError:
-                    continue
+            record = self._evaluate_mint_queue_item(submission_id)
+            if mintable_only and not record.get("mintable"):
+                continue
+            if not include_blocked and not record.get("mintable"):
+                continue
+            queued_submissions.append(record)
 
         return queued_submissions
 
-    def mint_next_queued_submission(self, miner=None, max_block_size_kb=500, validate_meme=True):
-        if not self.mint_queue:
-            raise ValueError("Mint queue is empty.")
-
-        submission_id = self.mint_queue[0]
-        submission = self.get_submission(submission_id)
-        if submission and submission.status == HARD_REJECTED:
-            raise ValueError("Hard rejected submissions cannot become blocks.")
-        if not submission or submission.status != QUEUED:
-            raise ValueError(f"Invalid mint queue entry: {submission_id}")
-        certificate = self.require_valid_certificate_for_submission(submission)
-
+    def _mint_submission_record(self, submission, certificate, miner=None, max_block_size_kb=500, validate_meme=True):
         block_added = self.add_block(
             image_path=submission.image_path,
             text_content=submission.text_content,
@@ -1278,20 +1417,225 @@ class Blockchain:
             certificate=certificate,
         )
         if block_added:
-            self.mint_queue.pop(0)
+            if submission.submission_id in self.mint_queue:
+                self.mint_queue = [
+                    queued_submission_id
+                    for queued_submission_id in self.mint_queue
+                    if queued_submission_id != submission.submission_id
+                ]
             submission.transition_to(MINTED)
-
         return block_added
 
-    def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
-        if not self.mint_queue or self.mint_queue[0] != submission_id:
-            raise ValueError("Submissions must be minted from the front of the mint queue.")
+    def mint_next_queued_submission(self, miner=None, max_block_size_kb=500, validate_meme=True):
+        if not self.mint_queue:
+            raise ValueError("Mint queue is empty.")
 
-        return self.mint_next_queued_submission(
+        blocked_records = []
+        for submission_id in self.mint_queue:
+            submission = self.get_submission(submission_id)
+            if submission is not None and submission.status == HARD_REJECTED:
+                raise ValueError("Hard rejected submissions cannot become blocks.")
+            record = self._evaluate_mint_queue_item(submission_id)
+            if record.get("mintable"):
+                certificate = self.require_valid_certificate_for_submission(submission)
+                return self._mint_submission_record(
+                    submission,
+                    certificate,
+                    miner=miner,
+                    max_block_size_kb=max_block_size_kb,
+                    validate_meme=validate_meme,
+                )
+            if record.get("mint_block_reason") in {
+                "content_metadata_missing",
+                "content_payload_missing",
+                "legacy_unverifiable_content",
+                "content_not_verified",
+            }:
+                submission = self.get_submission(submission_id)
+                certificate = self._resolve_mintable_submission_certificate(submission)
+                if certificate is not None:
+                    return self._mint_submission_record(
+                        submission,
+                        certificate,
+                        miner=miner,
+                        max_block_size_kb=max_block_size_kb,
+                        validate_meme=validate_meme,
+                    )
+            blocked_records.append(record)
+
+        blocked_summary = ", ".join(
+            f"{record['submission_id'][:8]}:{record.get('mint_block_reason') or 'unknown_error'}"
+            for record in blocked_records[:5]
+        )
+        raise ValueError(
+            "No mintable submissions in the queue. "
+            f"Blocked items: {blocked_summary or 'none'}."
+        )
+
+    def mint_submission(self, submission_id, miner=None, max_block_size_kb=500, validate_meme=True):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        if submission.status == HARD_REJECTED:
+            raise ValueError("Hard rejected submissions cannot become blocks.")
+        if submission.status == MINTED:
+            raise ValueError("Submission has already been minted.")
+        if submission.status not in {APPROVED, QUEUED}:
+            raise ValueError("Only approved unminted submissions can be minted.")
+
+        if submission.status == APPROVED:
+            submission = self.add_to_mint_queue(submission_id)
+
+        record = self._evaluate_mint_queue_item(submission_id)
+        if not record.get("mintable"):
+            if record.get("mint_block_reason") in {
+                "content_metadata_missing",
+                "content_payload_missing",
+                "legacy_unverifiable_content",
+                "content_not_verified",
+            }:
+                certificate = self._resolve_mintable_submission_certificate(submission)
+                if certificate is not None:
+                    return self._mint_submission_record(
+                        submission,
+                        certificate,
+                        miner=miner,
+                        max_block_size_kb=max_block_size_kb,
+                        validate_meme=validate_meme,
+                    )
+            raise ValueError(record.get("mint_block_reason") or "Submission is not mintable.")
+
+        certificate = self.require_valid_certificate_for_submission(submission)
+        return self._mint_submission_record(
+            submission,
+            certificate,
             miner=miner,
             max_block_size_kb=max_block_size_kb,
             validate_meme=validate_meme,
         )
+
+    def block_minting_for_submission(self, submission_id, reason, notes=None, blocked_by=None):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        if submission.status == MINTED:
+            raise ValueError("Minted submissions cannot be blocked from minting.")
+        submission.mint_blocked = True
+        submission.mint_block_reason = (reason or "mint_blocked_manually").strip() or "mint_blocked_manually"
+        submission.mint_blocked_at = time.time()
+        submission.mint_blocked_by = blocked_by
+        submission.mint_block_notes = notes
+        return submission
+
+    def _resolve_mintable_submission_certificate(self, submission):
+        if submission is None:
+            return None
+        if submission.mint_blocked:
+            return None
+        certificate = self.require_valid_certificate_for_submission(submission)
+        transient_content_object = self.get_content_object_by_hash(submission.content_hash)
+        if transient_content_object is None:
+            transient_content_object = self._build_content_object_for_submission(
+                submission,
+                image_path=submission.image_path,
+                text_content=submission.text_content,
+            )
+        if transient_content_object is None:
+            return None
+
+        verification = verify_content_object_payload(transient_content_object, data_dir=self.storage.data_dir)
+        if verification["verified"]:
+            if transient_content_object.content_id and submission.content_id != transient_content_object.content_id:
+                submission.content_id = transient_content_object.content_id
+            return certificate
+        if verification.get("error") == "legacy_unverifiable" and (
+            transient_content_object.local_path or submission.image_path or submission.text_content
+        ):
+            if transient_content_object.content_id and submission.content_id != transient_content_object.content_id:
+                submission.content_id = transient_content_object.content_id
+            return certificate
+        return None
+
+    def unblock_minting_for_submission(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        submission.mint_blocked = False
+        submission.mint_block_reason = None
+        submission.mint_blocked_at = None
+        submission.mint_blocked_by = None
+        submission.mint_block_notes = None
+        return submission
+
+    def cleanup_bad_mint_queue_items(self, *, block_unmintable=False):
+        report = {
+            "checked": 0,
+            "mintable": 0,
+            "blocked": 0,
+            "items": [],
+        }
+        candidate_ids = [
+            submission_id
+            for submission_id in self.mint_queue
+            if self.get_submission(submission_id) is not None
+        ]
+        for submission in self.submissions:
+            if submission.status in {APPROVED, QUEUED} and submission.submission_id not in candidate_ids:
+                candidate_ids.append(submission.submission_id)
+
+        for submission_id in candidate_ids:
+            record = self._evaluate_mint_queue_item(submission_id)
+            report["checked"] += 1
+            if record.get("mintable"):
+                report["mintable"] += 1
+                continue
+            report["blocked"] += 1
+            report["items"].append(
+                {
+                    "submission_id": submission_id,
+                    "content_hash": record.get("content_hash"),
+                    "mintable": False,
+                    "reason": record.get("mint_block_reason") or "unknown_error",
+                }
+            )
+            if block_unmintable and record.get("submission_status") in {APPROVED, QUEUED}:
+                try:
+                    self.block_minting_for_submission(
+                        submission_id,
+                        reason=record.get("mint_block_reason") or "mint_blocked_manually",
+                        notes="Auto-blocked by cleanup_bad_mint_queue_items.",
+                        blocked_by="dev-cleanup",
+                    )
+                except ValueError:
+                    continue
+
+        return report
+
+    def remove_invalid_mint_queue_entries(self):
+        valid_queue = []
+        removed_entries = []
+        for submission_id in self.mint_queue:
+            submission = self.get_submission(submission_id)
+            try:
+                certificate_ready = (
+                    submission
+                    and submission.status == QUEUED
+                    and self.require_valid_certificate_for_submission(submission)
+                )
+            except ValueError:
+                certificate_ready = False
+
+            if certificate_ready:
+                valid_queue.append(submission_id)
+            else:
+                if submission and submission.status == QUEUED:
+                    submission.status = APPROVED
+                if submission and not self.get_originality_certificate_for_submission(submission.submission_id):
+                    submission.certificate_id = None
+                removed_entries.append(submission_id)
+
+        self.mint_queue = valid_queue
+        return removed_entries
 
     def remove_invalid_mint_queue_entries(self):
         valid_queue = []

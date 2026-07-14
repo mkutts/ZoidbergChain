@@ -82,7 +82,7 @@
             </div>
 
             <div v-if="hasContentPreview(block)" class="content-preview">
-              <img v-if="isImageContent(block) && block.download_url" :src="block.download_url" alt="Block content preview" class="content-image">
+              <img v-if="isImageContent(block) && block.download_url" :src="contentUrl(block.download_url)" alt="Block content preview" class="content-image">
               <pre v-else-if="isTextContent(block)">{{ block.meme && block.meme.text ? block.meme.text : 'Text preview unavailable.' }}</pre>
               <img v-else-if="block.meme && block.meme.encoded_image" :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="content-image">
             </div>
@@ -144,7 +144,7 @@
 
             <div class="content-state-line">
               <span v-if="block.storage_status" class="status-pill" :class="contentStatusClass(block)">{{ contentStatusLabel(block) }}</span>
-              <a v-if="block.download_url" :href="block.download_url" target="_blank" rel="noreferrer" class="meta-link">
+              <a v-if="block.download_url" :href="contentUrl(block.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
@@ -160,7 +160,7 @@
 </template>
 
 <script>
-import { apiClient, getApiErrorMessage } from '../config/api';
+import { apiClient, buildApiUrl, getApiErrorMessage } from '../config/api';
 
 export default {
   data() {
@@ -176,6 +176,9 @@ export default {
     await this.refreshExplorer();
   },
   methods: {
+    contentUrl(path) {
+      return buildApiUrl(path);
+    },
     async refreshExplorer() {
       this.isLoading = true;
       await Promise.all([this.fetchChainSummary(), this.fetchChain()]);

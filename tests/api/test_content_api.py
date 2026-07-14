@@ -85,6 +85,21 @@ def test_binary_upload_succeeds_and_returns_safe_metadata(blockchain, wallets, f
     assert "local_path" not in body
 
 
+def test_binary_upload_accepts_uppercase_jpg_extension(blockchain, wallets):
+    client = _client(blockchain)
+
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": wallets["owner"].public_key, "caption": "uppercase jpg"},
+        files={"file": ("Fancy Upload.JPG", JPEG_BYTES, "image/jpeg")},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mime_type"] == "image/jpeg"
+    assert body["storage_status"] == "verified"
+
+
 def test_text_plain_upload_succeeds(blockchain, wallets):
     client = _client(blockchain)
 
@@ -222,6 +237,19 @@ def test_unsupported_upload_mime_type_is_rejected(blockchain, wallets):
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Unsupported mime_type for uploaded content."
+
+
+def test_submit_content_rejects_invalid_image_type_with_clear_error(blockchain, wallets):
+    client = _client(blockchain)
+
+    response = client.post(
+        "/submit_content",
+        data={"submitter": wallets["owner"].public_key, "text_content": "bad image"},
+        files={"image": ("bad.pdf", b"%PDF-1.7", "application/pdf")},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid image format. Allowed formats: jpg, jpeg, png, webp"
 
 
 def test_path_traversal_filename_is_ignored(blockchain, wallets):

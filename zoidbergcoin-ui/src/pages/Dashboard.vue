@@ -119,12 +119,13 @@
         </div>
 
         <div v-if="uploadedContent" class="content-preview-card">
+          <p v-if="uploadedContentPreviewError" class="status-message error">{{ uploadedContentPreviewError }}</p>
           <div class="submission-header">
             <span class="status-pill" :class="contentStatusClass(uploadedContent)">{{ contentStatusLabel(uploadedContent) }}</span>
             <span>{{ formatDate(uploadedContent.created_at) }}</span>
           </div>
           <div v-if="isImageContent(uploadedContent) && uploadedContent.download_url" class="content-preview">
-            <img :src="uploadedContent.download_url" alt="Uploaded meme preview" class="content-image">
+            <img :src="contentUrl(uploadedContent.download_url)" alt="Uploaded meme preview" class="content-image">
           </div>
           <div v-else-if="isTextContent(uploadedContent)" class="content-text-preview">
             <pre>{{ uploadedContent.text_content || contentUploadText || 'Text preview unavailable.' }}</pre>
@@ -156,7 +157,7 @@
             </div>
           </div>
           <p v-if="uploadedContent.download_url" class="content-link-row">
-            <a :href="uploadedContent.download_url" target="_blank" rel="noreferrer">View or download content</a>
+            <a :href="contentUrl(uploadedContent.download_url)" target="_blank" rel="noreferrer">View or download content</a>
           </p>
         </div>
       </section>
@@ -233,11 +234,11 @@
             </div>
           </div>
           <div v-if="hasContentPreview(lastSubmission)" class="content-preview">
-            <img v-if="isImageContent(lastSubmission) && lastSubmission.download_url" :src="lastSubmission.download_url" alt="Submitted content preview" class="content-image">
+            <img v-if="isImageContent(lastSubmission) && lastSubmission.download_url" :src="contentUrl(lastSubmission.download_url)" alt="Submitted content preview" class="content-image">
             <pre v-else-if="isTextContent(lastSubmission)">{{ lastSubmission.text_content }}</pre>
           </div>
           <p v-if="lastSubmission.download_url" class="content-link-row">
-            <a :href="lastSubmission.download_url" target="_blank" rel="noreferrer">Download submitted content</a>
+            <a :href="contentUrl(lastSubmission.download_url)" target="_blank" rel="noreferrer">Download submitted content</a>
           </p>
           <p class="hint">Submitted content enters community voting before it can be certified.</p>
         </div>
@@ -280,7 +281,7 @@
             </div>
 
             <div v-if="hasContentPreview(submission)" class="content-preview">
-              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Submission content preview" class="content-image">
+            <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Submission content preview" class="content-image">
               <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
             </div>
 
@@ -299,7 +300,7 @@
               >
                 {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
               </button>
-              <a v-else-if="submission.download_url" :href="submission.download_url" target="_blank" rel="noreferrer" class="meta-link">
+              <a v-else-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
@@ -341,7 +342,7 @@
             </div>
 
             <div v-if="hasContentPreview(submission)" class="content-preview">
-              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Certificate content preview" class="content-image">
+            <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Certificate content preview" class="content-image">
               <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
             </div>
 
@@ -390,7 +391,7 @@
             </div>
             <div class="content-state-line">
               <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
-              <a v-if="submission.download_url" :href="submission.download_url" target="_blank" rel="noreferrer" class="meta-link">
+              <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
@@ -414,7 +415,7 @@
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
             <div v-if="hasContentPreview(submission)" class="content-preview">
-              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Missing certificate submission preview" class="content-image">
+            <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Missing certificate submission preview" class="content-image">
               <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
@@ -482,13 +483,15 @@
         </div>
 
         <div v-else class="queue-list">
-          <article v-for="submission in mintQueue" :key="submission.submission_id" class="submission-card queue-item">
+          <article v-for="(submission, index) in mintQueue" :key="submission.submission_id" class="submission-card queue-item">
             <div class="submission-header">
-              <span class="status-pill queued">{{ formatStatus(submission.status) }}</span>
+              <span class="status-pill" :class="submission.mintable ? 'ready' : 'warning-chip'">
+                {{ submission.mintable ? 'Mintable' : 'Blocked' }}
+              </span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
             <div v-if="hasContentPreview(submission)" class="content-preview">
-              <img v-if="isImageContent(submission) && submission.download_url" :src="submission.download_url" alt="Mint queue content preview" class="content-image">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Mint queue content preview" class="content-image">
               <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
@@ -512,11 +515,11 @@
               </div>
               <div>
                 <span>Content Type</span>
-                <strong>{{ submission.content_type || 'Missing' }}</strong>
+                <strong>{{ formatContentField(submission.content_type, submission.content_metadata_missing) }}</strong>
               </div>
               <div>
                 <span>MIME Type</span>
-                <strong>{{ submission.mime_type || 'Missing' }}</strong>
+                <strong>{{ formatContentField(submission.mime_type, submission.content_metadata_missing) }}</strong>
               </div>
               <div>
                 <span>Originality Score</span>
@@ -528,23 +531,53 @@
               </div>
               <div>
                 <span>Storage Status</span>
-                <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
+                <strong>{{ formatContentField(formatContentStatus(submission.storage_status), submission.content_metadata_missing) }}</strong>
+              </div>
+              <div>
+                <span>Certificate Status</span>
+                <strong>{{ formatCertificateStatus(submission.certificate_status) }}</strong>
               </div>
             </div>
             <div class="content-state-line">
               <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
-              <a v-if="submission.download_url" :href="submission.download_url" target="_blank" rel="noreferrer" class="meta-link">
+              <span class="meta-chip">Content ID {{ shortenHash(submission.content_id) }}</span>
+              <span class="meta-chip">Hash {{ shortenHash(submission.content_hash) }}</span>
+              <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
+              <button
+                v-if="submission.content_hash && needsContentSync(submission)"
+                @click="syncContent(submission.content_hash)"
+                class="btn ghost sync-btn"
+                :disabled="syncingContentHash === submission.content_hash"
+              >
+                {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
+              </button>
             </div>
 
-            <p v-if="!getCertificate(submission)" class="queue-warning">Certificate required before minting.</p>
+            <p v-if="submission.mint_block_reason" class="queue-warning">
+              {{ formatMintReason(submission.mint_block_reason) }}
+            </p>
 
             <div class="card-actions">
               <button
+                v-if="showMintQueueTools && submission.submission_id && !submission.mint_blocked"
+                @click="blockMinting(submission)"
+                class="btn ghost"
+              >
+                Quarantine
+              </button>
+              <button
+                v-if="showMintQueueTools && submission.mint_blocked"
+                @click="unblockMinting(submission)"
+                class="btn ghost"
+              >
+                Unblock
+              </button>
+              <button
                 @click="mintSubmission(submission.submission_id)"
                 class="btn primary"
-                :disabled="!getCertificate(submission) || mintingSubmissionId === submission.submission_id"
+                :disabled="!submission.mintable || mintingSubmissionId === submission.submission_id"
               >
                 {{ mintingSubmissionId === submission.submission_id ? 'Minting...' : 'Mint Block' }}
               </button>
@@ -580,7 +613,7 @@
             </div>
 
             <div v-if="hasContentPreview(block)" class="content-preview">
-              <img v-if="isImageContent(block) && block.download_url" :src="block.download_url" alt="Block content preview" class="content-image">
+              <img v-if="isImageContent(block) && block.download_url" :src="contentUrl(block.download_url)" alt="Block content preview" class="content-image">
               <pre v-else-if="isTextContent(block)">{{ block.meme && block.meme.text ? block.meme.text : 'Text preview unavailable.' }}</pre>
               <img v-else-if="block.meme && block.meme.encoded_image" :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Block meme preview" class="content-image">
             </div>
@@ -638,7 +671,7 @@
 
             <div class="content-state-line">
               <span v-if="block.storage_status" class="status-pill" :class="contentStatusClass(block)">{{ contentStatusLabel(block) }}</span>
-              <a v-if="block.download_url" :href="block.download_url" target="_blank" rel="noreferrer" class="meta-link">
+              <a v-if="block.download_url" :href="contentUrl(block.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
@@ -659,7 +692,7 @@
 </template>
 
 <script>
-import { apiClient, getApiErrorMessage } from '../config/api';
+import { apiClient, buildApiUrl, getApiErrorMessage } from '../config/api';
 
 export default {
   data() {
@@ -672,6 +705,7 @@ export default {
       contentUploadText: '',
       contentCaption: '',
       uploadedContent: null,
+      uploadedContentPreviewError: '',
       contentUploadMessage: '',
       contentUploadError: '',
       isContentUploading: false,
@@ -702,6 +736,7 @@ export default {
       isSummaryLoading: false,
       isRefreshing: false,
       mintingSubmissionId: '',
+      showMintQueueTools: import.meta.env.DEV,
     };
   },
   computed: {
@@ -724,8 +759,56 @@ export default {
     await this.refreshWorkflow();
   },
   methods: {
+    async blockMinting(submission) {
+      if (!submission?.submission_id) {
+        return;
+      }
+      try {
+        const response = await apiClient.post(`/submissions/${submission.submission_id}/block-minting`, {
+          reason: submission.mint_block_reason || 'legacy bad queue item',
+          notes: 'Quarantined from the mint queue UI.',
+        });
+        this.mintMessage = response.data.message || 'Submission minting blocked successfully.';
+        await this.fetchMintQueue();
+      } catch (error) {
+        console.error('Error blocking minting:', error);
+        this.mintError = getApiErrorMessage(error, 'Failed to quarantine submission.');
+      }
+    },
+    async unblockMinting(submission) {
+      if (!submission?.submission_id) {
+        return;
+      }
+      try {
+        const response = await apiClient.post(`/submissions/${submission.submission_id}/unblock-minting`);
+        this.mintMessage = response.data.message || 'Submission minting unblocked successfully.';
+        await this.fetchMintQueue();
+      } catch (error) {
+        console.error('Error unblocking minting:', error);
+        this.mintError = getApiErrorMessage(error, 'Failed to unblock submission.');
+      }
+    },
     uploadMeme(event) {
       this.memeFile = event.target.files[0] || null;
+    },
+    contentUrl(path) {
+      return buildApiUrl(path);
+    },
+    async verifyUploadedContentPreview(contentHash) {
+      this.uploadedContentPreviewError = '';
+      if (!contentHash) {
+        return;
+      }
+
+      try {
+        await apiClient.get(`/content/${contentHash}`, { responseType: 'arraybuffer' });
+      } catch (error) {
+        console.error('Error verifying uploaded content preview:', error);
+        this.uploadedContentPreviewError = getApiErrorMessage(
+          error,
+          'Preview could not be loaded. Open the content link to inspect the backend response.',
+        );
+      }
     },
     onContentUploadFileChange(event) {
       this.contentUploadFile = event.target.files[0] || null;
@@ -775,14 +858,28 @@ export default {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
         } else if (this.memeFile) {
-          if (!this.textContent) {
-            this.errorMessage = 'Please enter the meme text or caption.';
-            return;
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', this.memeFile);
+          uploadFormData.append('submitted_by', this.wallet);
+          if (this.textContent) {
+            uploadFormData.append('caption', this.textContent);
+          }
+          const uploadResponse = await apiClient.post('/content/upload', uploadFormData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          this.uploadedContent = uploadResponse.data;
+          this.submissionContentHash = uploadResponse.data.content_hash || '';
+          this.submissionContentId = uploadResponse.data.content_id || '';
+          if (this.isImageContent(this.uploadedContent)) {
+            await this.verifyUploadedContentPreview(this.uploadedContent.content_hash);
           }
           const formData = new FormData();
-          formData.append('image', this.memeFile);
           formData.append('submitter', this.wallet);
-          formData.append('text_content', this.textContent);
+          formData.append('content_hash', this.submissionContentHash);
+          formData.append('content_id', this.submissionContentId);
+          if (this.textContent) {
+            formData.append('text_content', this.textContent);
+          }
           response = await apiClient.post('/submit_content', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
@@ -849,10 +946,15 @@ export default {
           return;
         }
 
-        this.uploadedContent = response.data;
-        this.submissionContentHash = response.data.content_hash || '';
-        this.submissionContentId = response.data.content_id || '';
-        this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.data.storage_status)}.`;
+      this.uploadedContent = response.data;
+      this.submissionContentHash = response.data.content_hash || '';
+      this.submissionContentId = response.data.content_id || '';
+      if (this.isImageContent(this.uploadedContent)) {
+        await this.verifyUploadedContentPreview(this.uploadedContent.content_hash);
+      } else {
+        this.uploadedContentPreviewError = '';
+      }
+      this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.data.storage_status)}.`;
       } catch (error) {
         console.error('Error uploading content:', error);
         this.contentUploadError = getApiErrorMessage(error, 'Failed to upload content.');
@@ -866,6 +968,11 @@ export default {
       }
       this.submissionContentHash = this.uploadedContent.content_hash || '';
       this.submissionContentId = this.uploadedContent.content_id || '';
+      this.memeFile = null;
+      const fileInput = document.getElementById('meme-upload');
+      if (fileInput) {
+        fileInput.value = '';
+      }
       if (!this.textContent && this.uploadedContent.caption) {
         this.textContent = this.uploadedContent.caption;
       }
@@ -880,6 +987,7 @@ export default {
       this.contentUploadFile = null;
       this.contentUploadText = '';
       this.contentCaption = '';
+      this.uploadedContentPreviewError = '';
       const fileInput = document.getElementById('content-upload-file');
       if (fileInput) {
         fileInput.value = '';
@@ -898,6 +1006,11 @@ export default {
         const content = response.data.content || null;
         if (content) {
           this.uploadedContent = this.uploadedContent?.content_hash === contentHash ? content : this.uploadedContent;
+          if (this.isImageContent(content)) {
+            await this.verifyUploadedContentPreview(content.content_hash);
+          } else {
+            this.uploadedContentPreviewError = '';
+          }
         }
         this.contentUploadMessage = 'Content synced successfully.';
         await this.refreshWorkflow();
@@ -941,7 +1054,9 @@ export default {
       this.isQueueLoading = true;
       this.mintError = '';
       try {
-        const response = await apiClient.get('/mint-queue');
+        const response = await apiClient.get('/mint-queue', {
+          params: { include_blocked: true },
+        });
         this.mintQueue = response.data.mint_queue || [];
         if (loadCertificates) {
           await this.loadVisibleCertificates(true);
@@ -1025,6 +1140,9 @@ export default {
       return Boolean(record?.content_hash) && ['remote', 'missing', 'local'].includes(status) && !record?.download_url;
     },
     contentStatusLabel(record) {
+      if (record?.content_metadata_missing) {
+        return 'Content Metadata Missing';
+      }
       const status = String(record?.storage_status || '').toLowerCase();
       if (!status) {
         return 'Content Unknown';
@@ -1044,6 +1162,9 @@ export default {
       return this.formatContentStatus(status);
     },
     contentStatusClass(record) {
+      if (record?.content_metadata_missing) {
+        return 'warning-chip';
+      }
       const status = String(record?.storage_status || '').toLowerCase();
       if (status === 'verified') {
         return 'ready';
@@ -1056,11 +1177,53 @@ export default {
       }
       return '';
     },
+    formatContentField(value, metadataMissing = false) {
+      if (metadataMissing) {
+        return 'Content metadata missing';
+      }
+      if (value === null || value === undefined || value === '') {
+        return 'Missing';
+      }
+      return value;
+    },
+    formatCertificateStatus(status) {
+      if (!status) {
+        return 'Certificate missing';
+      }
+      return String(status).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    },
+    formatMintReason(reason) {
+      const normalized = String(reason || '').toLowerCase();
+      const labels = {
+        submission_not_found: 'Submission not found.',
+        submission_not_approved: 'Submission is not approved for minting.',
+        certificate_missing: 'Certificate missing.',
+        certificate_content_hash_mismatch: 'Certificate content hash mismatch.',
+        content_metadata_missing: 'Content metadata missing.',
+        content_payload_missing: 'Cannot mint: content payload is not verified on this node. Upload or sync the content first.',
+        content_not_verified: 'Cannot mint: content payload is not verified on this node. Upload or sync the content first.',
+        content_hash_mismatch: 'Content hash mismatch.',
+        already_minted: 'Submission has already been minted.',
+        mint_blocked_manually: 'Minting is manually blocked.',
+        legacy_unverifiable_content: 'Legacy content cannot be verified locally.',
+        unknown_error: 'Minting is blocked for an unknown reason.',
+      };
+      return labels[normalized] || String(reason || 'Minting is blocked.');
+    },
     formatContentStatus(status) {
       if (!status) {
         return 'Missing';
       }
       return String(status).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    },
+    mintDisabledReason(submission, index) {
+      if (!submission) {
+        return 'Cannot mint: queue item is missing.';
+      }
+      if (!submission.mintable) {
+        return this.formatMintReason(submission.mint_block_reason || 'unknown_error');
+      }
+      return '';
     },
     async vote(submissionId, voteType) {
       this.voteMessage = '';
@@ -1116,14 +1279,14 @@ export default {
       this.mintError = '';
 
       const submission = this.mintQueue.find((item) => item.submission_id === submissionId);
-      if (!this.getCertificate(submission)) {
-        this.mintError = 'Certificate required before minting.';
+      if (!submission?.mintable) {
+        this.mintError = this.formatMintReason(submission?.mint_block_reason || 'unknown_error');
         return;
       }
 
       this.mintingSubmissionId = submissionId;
       try {
-        const response = await apiClient.post(`/mint-queue/${submissionId}/mint`);
+        const response = await apiClient.post(`/mint/${submissionId}`);
         const certificateId = response.data.block?.certificate_id;
         this.mintMessage = `${response.data.message || 'Submission minted successfully.'} Block #${response.data.block?.index ?? 'created'}${certificateId ? ` with certificate ${this.shortenHash(certificateId)}.` : '.'}`;
         await this.refreshWorkflow();

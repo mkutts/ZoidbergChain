@@ -16,9 +16,22 @@
       <template v-if="wallet.state.isConnected">
         <p class="address-short">{{ shortenedAddress }}</p>
         <p class="address-full">{{ wallet.state.normalizedWalletAddress }}</p>
-        <p class="wallet-meta">Signature verification coming next. This browser connection is not a verified ZoidbergChain session yet.</p>
+        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified ZoidbergChain wallet. This session is ready for later signed login flows.</p>
+        <p v-else class="wallet-meta">Connected - verification required. This browser connection is not yet a verified ZoidbergChain session.</p>
         <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
+        <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
+          Session expires at: {{ sessionExpiryLabel }}
+        </p>
         <div class="wallet-actions">
+          <button
+            v-if="!wallet.state.isVerifiedSession"
+            type="button"
+            class="wallet-btn primary"
+            @click="verify"
+            :disabled="wallet.state.connectionStatus === 'verifying'"
+          >
+            {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Wallet' }}
+          </button>
           <button type="button" class="wallet-btn secondary" @click="copyAddress">
             {{ copyButtonLabel }}
           </button>
@@ -63,10 +76,26 @@ const wallet = useWallet();
 const copyButtonLabel = ref('Copy Full Address');
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
+const sessionExpiryLabel = computed(() => {
+  if (!wallet.state.sessionExpiresAt) {
+    return '';
+  }
+  const parsed = Date.parse(wallet.state.sessionExpiresAt);
+  if (Number.isNaN(parsed)) {
+    return wallet.state.sessionExpiresAt;
+  }
+  return new Date(parsed).toLocaleString();
+});
 
 const statusText = computed(() => {
+  if (wallet.state.isVerifiedSession) {
+    return 'Verified ZoidbergChain Wallet';
+  }
+  if (wallet.state.connectionStatus === 'verifying') {
+    return 'Verification In Progress';
+  }
   if (wallet.state.isConnected) {
-    return 'Connected';
+    return 'Connected - Verification Required';
   }
   if (!wallet.state.isMetaMaskAvailable) {
     return 'MetaMask Unavailable';
@@ -78,8 +107,11 @@ const statusText = computed(() => {
 });
 
 const statusClass = computed(() => {
-  if (wallet.state.isConnected) {
+  if (wallet.state.isVerifiedSession) {
     return 'connected';
+  }
+  if (wallet.state.connectionStatus === 'verifying') {
+    return 'warning';
   }
   if (!wallet.state.isMetaMaskAvailable) {
     return 'warning';
@@ -89,6 +121,10 @@ const statusClass = computed(() => {
 
 async function connect() {
   await wallet.connectWallet();
+}
+
+async function verify() {
+  await wallet.verifyWallet();
 }
 
 function disconnect() {

@@ -216,3 +216,12 @@ Transfer model notes:
 - A connected MetaMask address is not yet a backend-verified ZoidbergChain identity.
 - Task 7.2 will add the nonce challenge and backend signature verification flow.
 - Native ZOID balance still appears in the ZoidbergChain app or explorer, not in normal MetaMask.
+
+## Task 7.2 Verified Wallet Login
+
+- Task 7.2 adds backend challenge-response verification for MetaMask wallet login.
+- `POST /auth/wallet/challenge` issues a single-use, expiring login challenge for a `0x` wallet address.
+- `POST /auth/wallet/verify` verifies an Ethereum `personal_sign` signature against the stored challenge message.
+- A successful verification creates an expiring verified wallet session token for that normalized `0x` address.
+- Connection alone is still not trusted identity. Verification requires both the challenge and the signed response.
+- Signed meme submissions and signed originality votes are still deferred to Task `7.4` and Task `7.5`.

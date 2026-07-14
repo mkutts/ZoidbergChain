@@ -7,6 +7,7 @@ MAX_SUBMISSION_TEXT_LENGTH = 4096
 MAX_METADATA_FIELD_LENGTH = 256
 MAX_URL_LENGTH = 2048
 PUBLIC_KEY_PATTERN = r"^[a-f0-9]{66}$"
+ETHEREUM_ADDRESS_PATTERN = r"^0x[a-fA-F0-9]{40}$"
 NODE_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$"
 NETWORK_NAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,63}$"
 HEX_32_PATTERN = r"^[a-f0-9]{32}$"
@@ -30,6 +31,10 @@ def is_valid_network_name(network_name: str) -> bool:
 
 def is_valid_wallet_public_key(public_key: str) -> bool:
     return bool(isinstance(public_key, str) and re.match(PUBLIC_KEY_PATTERN, public_key.strip()))
+
+
+def is_valid_ethereum_address(address: str) -> bool:
+    return bool(isinstance(address, str) and re.match(ETHEREUM_ADDRESS_PATTERN, address.strip()))
 
 
 def is_valid_submission_id(submission_id: str) -> bool:

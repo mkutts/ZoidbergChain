@@ -1,11 +1,13 @@
 import axios from "axios";
 
-const DEFAULT_API_BASE_URL = import.meta.env.PROD
+const IMPORT_META_ENV = import.meta?.env || {};
+
+const DEFAULT_API_BASE_URL = IMPORT_META_ENV.PROD
   ? "https://zoidbergcoin.com"
   : "http://127.0.0.1:8000";
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
+  IMPORT_META_ENV.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

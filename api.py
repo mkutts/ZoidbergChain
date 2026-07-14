@@ -38,6 +38,7 @@ from transaction import Transaction
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED
 from utils import extract_text
 from validators import (
+    ETHEREUM_ADDRESS_PATTERN,
     HEX_32_PATTERN,
     HEX_64_PATTERN,
     MAX_METADATA_FIELD_LENGTH,
@@ -53,6 +54,7 @@ from validators import (
     is_valid_network_name,
     is_valid_submission_id,
     is_valid_amount,
+    is_valid_ethereum_address,
     is_valid_public_key,
     is_valid_wallet_public_key,
 )
@@ -87,6 +89,12 @@ from config import (
     require_peer_auth,
 )
 from auth import API_KEYS, validate_api_key  # ✅ API authentication
+from wallet_auth import (
+    WalletAuthManager,
+    get_verified_wallet_from_request,
+    normalize_wallet_address,
+    resolve_verified_wallet_from_authorization,
+)
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -143,6 +151,7 @@ BlockHashValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max
 ContentHashValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)]
 VoteTypeValue = Literal["original", "not_original", "unsure"]
 SubmissionStatusValue = Literal["pending", "approved", "rejected", "minted", "queued", "hard_rejected"]
+EthereumWalletAddressValue = Annotated[str, Field(pattern=ETHEREUM_ADDRESS_PATTERN, min_length=42, max_length=42)]
 
 
 class _StrictBodyModel(BaseModel):
@@ -290,6 +299,16 @@ class TextContentUpload(_StrictBodyModel):
     text_content: Annotated[str, Field(min_length=1)]
     submitted_by: WalletPublicKey
     caption: Annotated[str | None, Field(max_length=MAX_CAPTION_LENGTH)] = None
+
+
+class WalletChallengeRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+
+
+class WalletVerifyRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    message: Annotated[str, Field(min_length=1, max_length=4096)]
+    signature: Annotated[str, Field(min_length=1, max_length=4096)]
 
 
 def _short_key(public_key):
@@ -614,6 +633,7 @@ def log_startup_security_config():
 @asynccontextmanager
 async def lifespan(app):
     log_startup_security_config()
+    wallet_auth_manager.clear()
     yield
 
 
@@ -652,6 +672,10 @@ def api_limit(category):
 
 
 peer_store = PeerStore()
+wallet_auth_manager = WalletAuthManager(
+    network_name=NETWORK_NAME,
+    environment=ENVIRONMENT,
+)
 
 
 def sync_approved_submissions_to_mint_queue():
@@ -665,6 +689,10 @@ def sync_approved_submissions_to_mint_queue():
                 if "certificate" not in str(e).lower():
                     raise
     return queued_any
+
+
+def _verified_wallet_dependency(authorization: str | None = Header(default=None)):
+    return resolve_verified_wallet_from_authorization(authorization, manager=wallet_auth_manager)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -728,6 +756,7 @@ blockchain = Blockchain(project_owner, contributor1, contributor2)
 def _reset_blockchain_to_genesis():
     global project_owner, contributor1, contributor2, blockchain
     blockchain.storage.delete_blockchain_document()
+    wallet_auth_manager.clear()
 
     project_owner = Wallet()
     contributor1 = Wallet()
@@ -805,6 +834,44 @@ async def node_info(request: Request):
         "latest_block_hash": latest_block.hash,
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
     }
+
+
+@app.post("/auth/wallet/challenge")
+@api_limit("wallet_create")
+async def create_wallet_challenge(request: Request, payload: WalletChallengeRequest):
+    if not is_valid_ethereum_address(payload.wallet_address):
+        raise HTTPException(status_code=400, detail="Invalid wallet address. Expected an Ethereum-style 0x address.")
+    try:
+        challenge = wallet_auth_manager.issue_challenge(payload.wallet_address)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return challenge
+
+
+@app.post("/auth/wallet/verify")
+@api_limit("wallet_create")
+async def verify_wallet_challenge(request: Request, payload: WalletVerifyRequest):
+    if not is_valid_ethereum_address(payload.wallet_address):
+        raise HTTPException(status_code=400, detail="Invalid wallet address. Expected an Ethereum-style 0x address.")
+    normalized = normalize_wallet_address(payload.wallet_address)
+    if normalized is None:
+        raise HTTPException(status_code=400, detail="Invalid wallet address. Expected an Ethereum-style 0x address.")
+
+    try:
+        verification = wallet_auth_manager.verify_signature(
+            payload.wallet_address,
+            payload.message,
+            payload.signature,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 400
+        if "expired" in detail.lower() or "already been used" in detail.lower():
+            status_code = 401
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    return verification
 
 
 @app.post("/peers/register")

@@ -48,14 +48,17 @@ from submission import (
     calculate_submission_content_hash,
 )
 from transaction import Transaction
+from wallet_auth import hash_wallet_message, normalize_wallet_address, recover_signed_wallet_address
 from validators import (
     MAX_METADATA_FIELD_LENGTH,
     is_valid_block_hash,
     is_valid_certificate_id,
     is_valid_content_hash,
+    is_valid_ethereum_address,
     is_valid_network_name,
     is_valid_node_id,
     is_valid_submission_id,
+    is_valid_user_wallet_identity,
     is_valid_wallet_public_key,
 )
 
@@ -680,8 +683,11 @@ def receive_peer_vote(
         raise WrongNetworkError("Registered peer belongs to a different network.")
 
     normalized_vote = _normalize_vote_payload(vote_payload)
-    if not blockchain.get_submission(normalized_vote["submission_id"]):
+    submission = blockchain.get_submission(normalized_vote["submission_id"])
+    if not submission:
         raise UnknownSubmissionError(f"Submission not found: {normalized_vote['submission_id']}")
+    if normalized_vote.get("content_hash") and submission.content_hash != normalized_vote["content_hash"]:
+        raise MalformedVoteError("Vote content_hash does not match submission.")
 
     existing_vote = _find_existing_vote(
         blockchain,
@@ -704,6 +710,19 @@ def receive_peer_vote(
             vote_type=normalized_vote["vote_type"],
             created_at=normalized_vote["created_at"],
         )
+        for key in [
+            "content_hash",
+            "voter_wallet_address",
+            "signature_scheme",
+            "vote_signature",
+            "vote_message",
+            "signed_message_hash",
+            "vote_nonce",
+            "signed_at",
+            "identity_source",
+        ]:
+            if normalized_vote.get(key) is not None:
+                vote[key] = normalized_vote.get(key)
     except ValueError as e:
         raise MalformedVoteError(str(e))
 
@@ -862,6 +881,19 @@ def broadcast_vote_to_peers(
         "vote_type": vote.get("vote_type"),
         "created_at": vote.get("created_at"),
     }
+    for key in [
+        "content_hash",
+        "voter_wallet_address",
+        "signature_scheme",
+        "vote_signature",
+        "vote_message",
+        "signed_message_hash",
+        "vote_nonce",
+        "signed_at",
+        "identity_source",
+    ]:
+        if vote.get(key) is not None:
+            payload[key] = vote.get(key)
     results = []
 
     for peer in peer_store.list_active_peers(network_name=network_name):
@@ -1799,7 +1831,7 @@ def _normalize_block_payload(block_payload):
 
     miner = block_payload["miner"]
     miner_value = miner.strip() if isinstance(miner, str) else ""
-    if not miner_value or (miner_value not in {"GENESIS", "REWARD_POOL"} and not is_valid_wallet_public_key(miner_value)):
+    if not miner_value or (miner_value not in {"GENESIS", "REWARD_POOL"} and not is_valid_user_wallet_identity(miner_value)):
         raise MalformedBlockError("Block miner is required.")
 
     block_hash = block_payload["hash"]
@@ -1869,9 +1901,9 @@ def _normalize_transaction_payload(transaction_payload):
         raise MalformedBlockError("Block transaction recipient is required.")
     sender_value = transaction_payload["sender"].strip()
     recipient_value = transaction_payload["recipient"].strip()
-    if sender_value not in {"GENESIS", "REWARD_POOL"} and not is_valid_wallet_public_key(sender_value):
+    if sender_value not in {"GENESIS", "REWARD_POOL"} and not is_valid_user_wallet_identity(sender_value):
         raise MalformedBlockError("Block transaction sender is required.")
-    if not is_valid_wallet_public_key(recipient_value):
+    if not is_valid_user_wallet_identity(recipient_value):
         raise MalformedBlockError("Block transaction recipient is required.")
 
     amount_value = transaction_payload["amount"]
@@ -1994,7 +2026,23 @@ def _normalize_vote_payload(vote_payload):
 
     _reject_forbidden_fields(
         vote_payload,
-        ["submission_id", "voter", "vote_type", "vote_value", "created_at", "vote_timestamp"],
+        [
+            "submission_id",
+            "voter",
+            "vote_type",
+            "vote_value",
+            "content_hash",
+            "voter_wallet_address",
+            "signature_scheme",
+            "vote_signature",
+            "vote_message",
+            "signed_message_hash",
+            "vote_nonce",
+            "signed_at",
+            "identity_source",
+            "created_at",
+            "vote_timestamp",
+        ],
         MalformedVoteError,
         "Vote payload",
     )
@@ -2002,10 +2050,18 @@ def _normalize_vote_payload(vote_payload):
     normalized = {}
     for field_name in ["submission_id", "voter"]:
         value = vote_payload.get(field_name)
-        validator = lambda raw: isinstance(raw, str) and bool(raw.strip()) if field_name == "submission_id" else is_valid_wallet_public_key
+        validator = (
+            (lambda raw: isinstance(raw, str) and bool(raw.strip()))
+            if field_name == "submission_id"
+            else is_valid_user_wallet_identity
+        )
         if not isinstance(value, str) or not value.strip() or not validator(value.strip()):
             raise MalformedVoteError(f"Vote {field_name} is required.")
-        normalized[field_name] = value.strip()
+        if field_name == "voter":
+            normalized_wallet = normalize_wallet_address(value.strip())
+            normalized[field_name] = normalized_wallet or value.strip()
+        else:
+            normalized[field_name] = value.strip()
 
     vote_type = vote_payload.get("vote_type", vote_payload.get("vote_value"))
     if not isinstance(vote_type, str) or not vote_type.strip():
@@ -2024,6 +2080,53 @@ def _normalize_vote_payload(vote_payload):
     if not math.isfinite(created_at) or created_at < 0:
         raise MalformedVoteError("Vote created_at must be a valid timestamp.")
     normalized["created_at"] = created_at
+
+    content_hash = vote_payload.get("content_hash")
+    if content_hash is not None:
+        normalized_content_hash = content_hash.strip() if isinstance(content_hash, str) else ""
+        if not is_valid_content_hash(normalized_content_hash):
+            raise MalformedVoteError("Vote content_hash must be a 64-character lowercase hexadecimal string.")
+        normalized["content_hash"] = normalized_content_hash
+
+    normalized["voter_wallet_address"] = vote_payload.get("voter_wallet_address")
+    normalized["signature_scheme"] = vote_payload.get("signature_scheme")
+    normalized["vote_signature"] = vote_payload.get("vote_signature")
+    normalized["vote_message"] = vote_payload.get("vote_message")
+    normalized["signed_message_hash"] = vote_payload.get("signed_message_hash")
+    normalized["vote_nonce"] = vote_payload.get("vote_nonce")
+    normalized["signed_at"] = vote_payload.get("signed_at")
+    normalized["identity_source"] = vote_payload.get("identity_source")
+
+    voter_wallet_address = normalized["voter_wallet_address"]
+    normalized_wallet_address = normalize_wallet_address(voter_wallet_address) if isinstance(voter_wallet_address, str) else None
+    if normalized_wallet_address:
+        normalized["voter_wallet_address"] = normalized_wallet_address
+
+    if normalized["vote_signature"] or normalized["vote_message"]:
+        if normalized["signature_scheme"] != "personal_sign":
+            raise MalformedVoteError("Vote signature_scheme must be personal_sign.")
+        if not isinstance(normalized["vote_message"], str) or not normalized["vote_message"].strip():
+            raise MalformedVoteError("Vote vote_message is required when signature metadata is provided.")
+        if not isinstance(normalized["vote_signature"], str) or not normalized["vote_signature"].strip():
+            raise MalformedVoteError("Vote vote_signature is required when signature metadata is provided.")
+
+        try:
+            recovered_wallet = recover_signed_wallet_address(
+                normalized["vote_message"],
+                normalized["vote_signature"],
+            )
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
+
+        if recovered_wallet != normalized["voter"]:
+            raise MalformedVoteError("Vote signature does not match voter.")
+        if normalized["voter_wallet_address"] is None:
+            normalized["voter_wallet_address"] = recovered_wallet
+        elif normalized["voter_wallet_address"] != recovered_wallet:
+            raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
+        if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(normalized["vote_message"]):
+            raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
+
     return normalized
 
 
@@ -2049,6 +2152,14 @@ def _normalize_submission_payload(submission_payload):
             "mint_blocked_at",
             "mint_blocked_by",
             "mint_block_notes",
+            "creator_wallet_address",
+            "signature_scheme",
+            "submission_signature",
+            "submission_message",
+            "signed_message_hash",
+            "submission_nonce",
+            "signed_at",
+            "identity_source",
         ],
         MalformedSubmissionError,
         "Submission payload",
@@ -2072,9 +2183,11 @@ def _normalize_submission_payload(submission_payload):
         raise MalformedSubmissionError("Submission must include image_path, text_content, or content_hash.")
 
     submitter = submission_payload.get("submitter")
-    if not isinstance(submitter, str) or not submitter.strip() or not is_valid_wallet_public_key(submitter.strip()):
+    submitter_value = submitter.strip() if isinstance(submitter, str) else ""
+    normalized_submitter_wallet = normalize_wallet_address(submitter_value) if submitter_value else None
+    if not submitter_value or not (is_valid_wallet_public_key(submitter_value) or normalized_submitter_wallet):
         raise MalformedSubmissionError("Submission submitter is required.")
-    normalized["submitter"] = submitter.strip()
+    normalized["submitter"] = normalized_submitter_wallet or submitter_value
 
     status = submission_payload.get("status", PENDING)
     if status not in SUBMISSION_STATUSES:
@@ -2122,4 +2235,43 @@ def _normalize_submission_payload(submission_payload):
 
     normalized["status"] = PENDING
     normalized["hard_reject_reason"] = None
+    normalized["creator_wallet_address"] = submission_payload.get("creator_wallet_address") or normalized["submitter"]
+    normalized["signature_scheme"] = submission_payload.get("signature_scheme")
+    normalized["submission_signature"] = submission_payload.get("submission_signature")
+    normalized["submission_message"] = submission_payload.get("submission_message")
+    normalized["signed_message_hash"] = submission_payload.get("signed_message_hash")
+    normalized["submission_nonce"] = submission_payload.get("submission_nonce")
+    normalized["signed_at"] = submission_payload.get("signed_at")
+    normalized["identity_source"] = submission_payload.get("identity_source")
+
+    creator_wallet_address = normalized["creator_wallet_address"]
+    creator_wallet_normalized = normalize_wallet_address(creator_wallet_address) if isinstance(creator_wallet_address, str) else None
+    if creator_wallet_address and creator_wallet_normalized:
+        normalized["creator_wallet_address"] = creator_wallet_normalized
+
+    if normalized["submission_signature"] or normalized["submission_message"]:
+        if normalized["signature_scheme"] != "personal_sign":
+            raise MalformedSubmissionError("Submission signature_scheme must be personal_sign.")
+        if not isinstance(normalized["submission_message"], str) or not normalized["submission_message"].strip():
+            raise MalformedSubmissionError("Submission submission_message is required when signature metadata is provided.")
+        if not isinstance(normalized["submission_signature"], str) or not normalized["submission_signature"].strip():
+            raise MalformedSubmissionError("Submission submission_signature is required when signature metadata is provided.")
+
+        try:
+            recovered_wallet = recover_signed_wallet_address(
+                normalized["submission_message"],
+                normalized["submission_signature"],
+            )
+        except ValueError as exc:
+            raise MalformedSubmissionError(str(exc)) from exc
+
+        if recovered_wallet != normalized["submitter"]:
+            raise MalformedSubmissionError("Submission signature does not match submitter.")
+        if normalized["creator_wallet_address"] != recovered_wallet:
+            raise MalformedSubmissionError("Submission creator_wallet_address does not match submitter.")
+
+        signed_message_hash = normalized.get("signed_message_hash")
+        if signed_message_hash and signed_message_hash != hash_wallet_message(normalized["submission_message"]):
+            raise MalformedSubmissionError("Submission signed_message_hash does not match submission_message.")
+
     return normalized

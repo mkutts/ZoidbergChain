@@ -60,6 +60,7 @@ from content import (
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from storage import create_storage_backend
+from validators import is_valid_ethereum_address
 
 
 def _hash_number(value):
@@ -2189,6 +2190,8 @@ class Blockchain:
     
     def is_valid_public_key(self, public_key):
         """Check if the given public key is valid."""
+        if is_valid_ethereum_address(str(public_key or "").strip()):
+            return True
         if public_key in self.wallets:
             return True
         print(f"Debug: Invalid public key: {public_key}")

@@ -37,6 +37,10 @@ def is_valid_ethereum_address(address: str) -> bool:
     return bool(isinstance(address, str) and re.match(ETHEREUM_ADDRESS_PATTERN, address.strip()))
 
 
+def is_valid_user_wallet_identity(value: str) -> bool:
+    return is_valid_wallet_public_key(value) or is_valid_ethereum_address(value)
+
+
 def is_valid_submission_id(submission_id: str) -> bool:
     return bool(isinstance(submission_id, str) and re.match(HEX_32_PATTERN, submission_id.strip()))
 

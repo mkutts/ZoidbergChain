@@ -64,6 +64,14 @@ class Submission:
     mint_blocked_at: float | None = None
     mint_blocked_by: str | None = None
     mint_block_notes: str | None = None
+    creator_wallet_address: str | None = None
+    signature_scheme: str | None = None
+    submission_signature: str | None = None
+    submission_message: str | None = None
+    signed_message_hash: str | None = None
+    submission_nonce: str | None = None
+    signed_at: str | None = None
+    identity_source: str | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
@@ -78,6 +86,8 @@ class Submission:
             self.content_id = calculate_content_id(self.content_hash)
         elif self.content_id is not None and self.content_hash and self.content_id != calculate_content_id(self.content_hash):
             raise ValueError("content_id does not match content_hash.")
+        if not self.creator_wallet_address:
+            self.creator_wallet_address = self.submitter
 
     def transition_to(self, new_status):
         if new_status not in SUBMISSION_STATUSES:
@@ -105,6 +115,14 @@ class Submission:
             "mint_blocked_at": self.mint_blocked_at,
             "mint_blocked_by": self.mint_blocked_by,
             "mint_block_notes": self.mint_block_notes,
+            "creator_wallet_address": self.creator_wallet_address,
+            "signature_scheme": self.signature_scheme,
+            "submission_signature": self.submission_signature,
+            "submission_message": self.submission_message,
+            "signed_message_hash": self.signed_message_hash,
+            "submission_nonce": self.submission_nonce,
+            "signed_at": self.signed_at,
+            "identity_source": self.identity_source,
         }
 
     @classmethod
@@ -125,4 +143,12 @@ class Submission:
             mint_blocked_at=data.get("mint_blocked_at"),
             mint_blocked_by=data.get("mint_blocked_by"),
             mint_block_notes=data.get("mint_block_notes"),
+            creator_wallet_address=data.get("creator_wallet_address"),
+            signature_scheme=data.get("signature_scheme"),
+            submission_signature=data.get("submission_signature"),
+            submission_message=data.get("submission_message"),
+            signed_message_hash=data.get("signed_message_hash"),
+            submission_nonce=data.get("submission_nonce"),
+            signed_at=data.get("signed_at"),
+            identity_source=data.get("identity_source"),
         )

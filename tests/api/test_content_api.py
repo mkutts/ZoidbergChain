@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from eth_account import Account
 
 from blockchain import Blockchain
 from peers import PeerStore
@@ -98,6 +99,20 @@ def test_binary_upload_accepts_uppercase_jpg_extension(blockchain, wallets):
     body = response.json()
     assert body["mime_type"] == "image/jpeg"
     assert body["storage_status"] == "verified"
+
+
+def test_binary_upload_accepts_metamask_0x_submitter(blockchain):
+    client = _client(blockchain)
+    account = Account.create()
+
+    response = client.post(
+        "/content/upload",
+        data={"submitted_by": account.address, "caption": "wallet upload"},
+        files={"file": ("wallet-upload.png", PNG_BYTES, "image/png")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["submitted_by"] == account.address.lower()
 
 
 def test_text_plain_upload_succeeds(blockchain, wallets):

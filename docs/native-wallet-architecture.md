@@ -28,6 +28,7 @@ The long-term chain identity is:
 
 - Wrapped ZOID is a possible future external representation of ZOID.
 - It may later exist for DEX liquidity, exchange pairing, or bridge-based interoperability.
+- It is intended to be backed 1:1 by native ZOID when that bridge/liquidity model is introduced.
 - Wrapped ZOID is not the same thing as the initial native ZOID ledger balance.
 
 ### ERC-20 Token
@@ -63,6 +64,7 @@ The long-term chain identity is:
 - New votes must be signed by the voting wallet.
 - Mining rewards are credited to the verified submitter wallet address.
 - Native transfers will be MetaMask-signed.
+- Native transfers will later evolve into full transaction validation, mempool behavior, and block inclusion.
 - Wrapped ZOID is a later bridge/liquidity feature.
 - Old dev wallets/test records may be reset.
 
@@ -89,7 +91,7 @@ Normal MetaMask does not initially show the native ZOID balance. The balance liv
 
 ## Signed Meme Submissions
 
-Every new meme submission must be signed by the submitting MetaMask wallet.
+Every new meme submission must be signed by the submitting MetaMask wallet after the clean reset and Task `7.4`.
 
 Draft message shape:
 
@@ -108,9 +110,37 @@ Draft message shape:
 Submission signing rules:
 
 - The signature proves the wallet submitted a specific `content_hash`.
+- The submission challenge is created by `POST /auth/wallet/submission-challenge` after a verified wallet session already exists.
+- The challenge message is signed with MetaMask `personal_sign`.
 - Backend verifies the signature before accepting the submission.
 - The creator wallet is derived from the verified signer.
 - Frontend should not allow arbitrary creator wallet entry after this is implemented.
+- The verified wallet session from Task `7.3` is the prerequisite identity layer, but the submission itself still requires a direct per-submission signature.
+- Submission nonces are single-use and expiring.
+- Replay attempts, modified messages, mismatched content references, and signer/session mismatches are rejected.
+
+Submission challenge request shape:
+
+```json
+{
+  "wallet_address": "0x...",
+  "content_hash": "...",
+  "content_id": "...",
+  "caption": "..."
+}
+```
+
+Submission request shape:
+
+```json
+{
+  "wallet_address": "0x...",
+  "content_hash": "...",
+  "content_id": "...",
+  "message": "...",
+  "signature": "..."
+}
+```
 
 Approved meaning of the signature:
 
@@ -118,7 +148,7 @@ Approved meaning of the signature:
 
 ## Signed Originality Votes
 
-Every vote must be signed by the voting MetaMask wallet.
+Every originality vote must be signed by the voting MetaMask wallet after the clean reset and Task `7.5`.
 
 Draft message shape:
 
@@ -141,6 +171,11 @@ Voting rules:
 - One vote per wallet per submission.
 - The signature proves the wallet voted on that specific submission.
 - Vote options remain `original`, `not_original`, or `unsure`.
+- The verified wallet session from Task `7.3` is the prerequisite identity layer, but the vote itself still requires a direct per-vote signature.
+- Direct signed vote messages become required in Task `7.5` after the clean reset for all new originality votes.
+- The voting wallet is the verified MetaMask `0x` session wallet and is not user-editable.
+- The vote challenge must bind the wallet, submission, content hash, selected vote, network, issued time, expiry, and nonce into one single-use message.
+- Replay attempts, signer mismatches, wallet/session mismatches, submission mismatches, and modified vote messages are rejected.
 
 Approved meaning of the signature:
 
@@ -153,6 +188,7 @@ Approved meaning of the signature:
 - The reward is native ZOID on the ZoidbergChain ledger.
 - The current reward remains the current configured block reward, which is `5 ZOID` in [config.py](C:/Users/mattk/ZoidbergChain/config.py:8) unless configuration changes later.
 - No ERC-20 or wrapped token minting is part of Task 7.
+- Wrapped ZOID, when introduced later, is intended as a bridge/liquidity feature backed 1:1 by native ZOID rather than as a replacement for native rewards.
 
 ## Native Transfer Model
 
@@ -177,7 +213,7 @@ Draft transfer message shape:
 Transfer model notes:
 
 - Task 7 introduces and defines MetaMask-signed transfer messages.
-- Task 8 hardens balances, nonces, replay protection, fees, mempool behavior, and block inclusion.
+- After the initial message-signing phase, the transfer model evolves into fuller transaction validation, nonce handling, replay protection, fees, mempool behavior, and block inclusion.
 - Native ZOID transfers are not ERC-20 transfers.
 
 ## Clean Reset / Legacy Strategy
@@ -185,6 +221,7 @@ Transfer model notes:
 - Current users and wallets are test artifacts.
 - Clean reset is allowed before MetaMask identity becomes standard.
 - Old backend or dev wallets do not need to be preserved as a long-term requirement.
+- Old backend or dev wallets are disposable test artifacts and do not require long-term compatibility.
 - Old submissions, old votes, old mint queue records, and bad content records can be discarded if needed.
 - Going forward, MetaMask `0x` addresses are the real ZoidbergChain wallet identity.
 - Dev reset tools must remain disabled or guarded outside development mode.
@@ -224,7 +261,8 @@ Transfer model notes:
 - `POST /auth/wallet/verify` verifies an Ethereum `personal_sign` signature against the stored challenge message.
 - A successful verification creates an expiring verified wallet session token for that normalized `0x` address.
 - Connection alone is still not trusted identity. Verification requires both the challenge and the signed response.
-- Signed meme submissions and signed originality votes are still deferred to Task `7.4` and Task `7.5`.
+- Signed meme submissions become required in Task `7.4`.
+- Signed originality votes become required in Task `7.5`.
 
 ## Task 7.3 Verified Wallet Session Identity
 
@@ -235,3 +273,60 @@ Transfer model notes:
 - If the wallet account changes, the chain changes, or the session expires, the verified identity is cleared and the user must verify again.
 - Submission and voting screens may prefill or label the verified wallet identity, but they still use the existing backend fields until direct signed submissions and votes are introduced later.
 - This session model is currently in-memory on the backend, so server restarts clear active verified wallet sessions.
+- Task `7.3` is the prerequisite identity layer for the direct signed submission and vote requirements that begin in Task `7.4` and Task `7.5`.
+
+## Task 7.4 Signed Submission Flow
+
+- Task `7.4` requires a verified wallet session plus a direct MetaMask signature for each new submission.
+- `POST /auth/wallet/submission-challenge` issues an expiring single-use submission challenge bound to:
+  - the verified `0x` wallet
+  - the current network name
+  - the specific `content_hash`
+  - the specific `content_id` when provided
+  - the submission caption when provided
+- `POST /submit_content` now verifies:
+  - the bearer token for the verified wallet session
+  - the exact signed challenge message
+  - the recovered signer address
+  - the content reference integrity
+  - nonce freshness and single-use replay protection
+- The stored submission creator is derived from the verified signer rather than user-entered form data.
+- Signed submission audit metadata is stored with the submission record, including:
+  - creator wallet address
+  - signature scheme
+  - submission signature
+  - signed message hash
+  - submission nonce
+  - signed timestamp
+  - identity source
+- Vote signing is still deferred to Task `7.5`.
+
+## Task 7.5 Signed Originality Vote Flow
+
+- Task `7.5` requires a verified wallet session plus a direct MetaMask signature for each new originality vote.
+- `POST /auth/wallet/vote-challenge` issues an expiring single-use vote challenge bound to:
+  - the verified `0x` wallet
+  - the current network name
+  - the specific submission id
+  - the specific submission content hash
+  - the selected vote value
+- `POST /submissions/{submission_id}/vote` now verifies:
+  - the bearer token for the verified wallet session
+  - the exact signed challenge message
+  - the recovered signer address
+  - the submission/content reference integrity
+  - nonce freshness and single-use replay protection
+- The stored voter identity is derived from the verified signer rather than user-entered wallet data.
+- One wallet may cast only one vote per submission under the existing originality rules.
+- The submission creator may not vote on that same submission.
+- Signed vote audit metadata is stored with the vote record, including:
+  - voter wallet address
+  - content hash
+  - signature scheme
+  - vote signature
+  - vote message
+  - signed message hash
+  - vote nonce
+  - signed timestamp
+  - identity source
+- Outside development mode, legacy or unsigned vote submission paths are no longer the normal voting path.

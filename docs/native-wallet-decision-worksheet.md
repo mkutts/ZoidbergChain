@@ -2,7 +2,11 @@
 
 Task 7.0A creates a decision worksheet only.
 
-This document is intended to help Matt choose the long-term wallet and token architecture for ZoidbergChain without locking any implementation direction yet.
+This document is retained as historical planning context.
+
+Final architecture decisions have now been recorded in [docs/native-wallet-architecture.md](C:/Users/mattk/ZoidbergChain/docs/native-wallet-architecture.md).
+
+This worksheet should no longer be treated as an open decision list.
 
 Constraints for this worksheet:
 
@@ -15,7 +19,7 @@ Constraints for this worksheet:
 - No storage defaults are changed here.
 - No frontend redesign is proposed here.
 
-Every section ends with a placeholder for an explicit owner decision.
+The options below remain useful as background on tradeoffs, but the final direction has been chosen in the approved architecture document.
 
 ## 1. Big Architecture Question
 
@@ -200,7 +204,9 @@ Impact on uniqueness of Meme Proof of Originality:
 - Strong preservation of project uniqueness.
 - Keeps Meme Proof of Originality anchored to ZoidbergChain while borrowing only wallet signatures from Ethereum tooling.
 
-Decision needed from Matt:
+Approved decision:
+
+Native ZOID remains the primary asset on ZoidbergChain, with wrapped ZOID reserved for a later bridge/liquidity phase. MetaMask is used as a signing and identity layer rather than as proof that ZOID is ERC-20-first or that the chain must become EVM-compatible.
 
 
 ## 2. MetaMask Role
@@ -258,7 +264,9 @@ Tradeoffs:
 - Keeps the near-term scope smaller.
 - Defers a specialized integration path until the core chain model is clearer.
 
-Decision needed from Matt:
+Approved decision:
+
+MetaMask is used for verified identity, login challenge signing, submission signing, vote signing, and the first phase of native transfer message signing. A full custom MetaMask network or Snap remains a later optional extension rather than the current requirement.
 
 
 ## 3. ZOID Reward Model
@@ -287,7 +295,9 @@ Decision needed from Matt:
 - A later bridge or wrapper can convert part or all of that value into an external form.
 - Flexible, but requires future supply-governance clarity.
 
-Decision needed from Matt:
+Approved decision:
+
+Meme-mining rewards are recorded as native ZOID on the ZoidbergChain ledger and credited to the submitter's verified MetaMask `0x` address. Wrapped ZOID is a later bridge/liquidity feature, ideally backed 1:1 by native ZOID.
 
 
 ## 4. Wallet Address Model
@@ -341,7 +351,9 @@ Tradeoffs:
 - Could unify multiple signing systems under one visible address family.
 - Adds design scope and migration work.
 
-Decision needed from Matt:
+Approved decision:
+
+Ethereum-style MetaMask `0x` addresses are the native ZoidbergChain account format going forward. Old and dev wallet formats are treated as disposable test artifacts rather than a long-term compatibility target.
 
 
 ## 5. Submission Identity
@@ -364,7 +376,9 @@ Decision needed from Matt:
 - Reserve stricter submission proof for a later phase.
 - Helps phase rollout, but may create migration and consistency questions.
 
-Decision needed from Matt:
+Approved decision:
+
+Direct signed submissions become required in Task `7.4` after verified wallet sessions exist. After the clean reset, all new meme submissions must be signed by the submitting MetaMask `0x` wallet.
 
 
 ## 6. Voting Identity
@@ -387,7 +401,9 @@ Decision needed from Matt:
 - Add stronger anti-Sybil policy later if needed.
 - Flexible, but defers some abuse-resistance decisions.
 
-Decision needed from Matt:
+Approved decision:
+
+Direct signed votes become required in Task `7.5`. After the clean reset, all new originality votes must be signed by the voting MetaMask `0x` wallet.
 
 
 ## 7. Transfer Model
@@ -418,7 +434,9 @@ Future options only. Do not implement in this task.
 - External transfer and market mobility come later through wrapped or bridged assets.
 - Defers exchange-oriented plumbing until the native asset model is stable.
 
-Decision needed from Matt:
+Approved decision:
+
+Native transfers will start as MetaMask-signed transfer messages and later evolve into fuller transaction validation, mempool handling, and block inclusion. This worksheet still does not implement transfer behavior.
 
 
 ## 8. Legacy Wallet Strategy
@@ -444,22 +462,22 @@ Decision needed from Matt:
 - New user-facing actions follow the new identity policy.
 - Often the simplest transition model, but it creates a clear before/after split.
 
-Decision needed from Matt:
+Approved decision:
+
+Old and dev wallets are disposable test artifacts. Historical data may remain readable when useful, but normal user-facing identity going forward is the MetaMask `0x` account model after the clean reset.
 
 
-## 9. Suggested Decision Checklist
+## 9. Approved Decision Checklist
 
-Matt can fill this out after reviewing the options above.
-
-- ZOID will be native / ERC-20 / hybrid:
-- MetaMask will be used for:
-- User wallet address format:
-- Submissions require:
-- Votes require:
-- Rewards are recorded as:
-- Transfers will be implemented as:
-- Legacy wallets will be handled by:
-- Wrapped ZOID will be considered when:
+- ZOID will be native / ERC-20 / hybrid: Native-first with later wrapped ZOID for bridge/liquidity use.
+- MetaMask will be used for: verified identity, login challenge signing, submission signing, vote signing, and the first phase of native transfer signing.
+- User wallet address format: Ethereum-style MetaMask `0x` addresses as the native ZoidbergChain account format.
+- Submissions require: direct signed submission messages beginning in Task `7.4` after verified wallet sessions exist.
+- Votes require: direct signed vote messages beginning in Task `7.5`.
+- Rewards are recorded as: native ZOID credited to the submitter's verified MetaMask `0x` address.
+- Transfers will be implemented as: MetaMask-signed native transfer messages first, then fuller transaction validation, mempool handling, and block inclusion later.
+- Legacy wallets will be handled by: treating old and dev wallets as disposable test artifacts without long-term compatibility guarantees.
+- Wrapped ZOID will be considered when: bridge/liquidity work is introduced, ideally with 1:1 backing by native ZOID.
 
 ## 10. No Code Changes
 
@@ -467,4 +485,4 @@ This task is documentation-only.
 
 - No code paths are changed.
 - No tests are required unless code is touched.
-- This worksheet is intentionally non-binding until explicit approval is given.
+- This worksheet is now historical reference material because explicit approval has been recorded in the approved architecture document.

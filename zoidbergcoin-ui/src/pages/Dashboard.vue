@@ -175,11 +175,11 @@
 
         <div class="form-stack">
           <div class="field-group">
-            <label for="wallet">Submitter Wallet ID</label>
-            <input id="wallet" type="text" v-model.trim="wallet" placeholder="Enter your public wallet key" class="input-field">
-            <div v-if="identityWalletAddress" class="wallet-helper-row">
-              <span class="meta">{{ identityWalletLabel }}: {{ shortenIdentityWallet }}</span>
-              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForSubmitter">Use Wallet Identity</button>
+            <label>Creator Wallet</label>
+            <div class="derived-wallet-panel">
+              <strong v-if="submissionWalletAddress">{{ submissionWalletAddress }}</strong>
+              <strong v-else>Connect and verify MetaMask to derive the creator wallet.</strong>
+              <span class="meta">New submissions derive the creator wallet from the verified MetaMask signer.</span>
             </div>
           </div>
 
@@ -205,8 +205,8 @@
         </div>
 
         <div class="card-actions">
-          <button @click="submitMeme" class="btn primary" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Submitting...' : (uploadedContent ? 'Submit Uploaded Content' : 'Submit for Review') }}
+          <button @click="submitMeme" class="btn primary" :disabled="isSubmitting || !canSubmitSignedContent">
+            {{ submitButtonLabel }}
           </button>
         </div>
 
@@ -267,11 +267,11 @@
 
         <div class="voter-wallet">
           <div class="field-group">
-            <label for="voter-wallet">Voter Wallet ID</label>
-            <input id="voter-wallet" type="text" v-model.trim="voterWallet" placeholder="Enter voter public wallet key" class="input-field">
-            <div v-if="identityWalletAddress" class="wallet-helper-row">
-              <span class="meta">{{ identityWalletLabel }}: {{ shortenIdentityWallet }}</span>
-              <button type="button" class="btn ghost helper-btn" @click="useConnectedAddressForVoter">Use Wallet Identity</button>
+            <label>Voter Wallet</label>
+            <div class="derived-wallet-panel">
+              <strong v-if="voteWalletAddress">{{ voteWalletAddress }}</strong>
+              <strong v-else>Connect and verify MetaMask to derive the voter wallet.</strong>
+              <span class="meta">New votes derive the voter wallet from the verified MetaMask signer.</span>
             </div>
           </div>
         </div>
@@ -324,10 +324,19 @@
             </div>
 
             <div class="submission-actions">
+              <p v-if="currentWalletVoteForSubmission(submission)" class="meta">
+                Your vote: {{ formatStatus(currentWalletVoteForSubmission(submission).vote_type) }}
+              </p>
               <div class="vote-actions">
-                <button @click="vote(submission.submission_id, 'original')" class="btn vote">Original</button>
-                <button @click="vote(submission.submission_id, 'not_original')" class="btn vote">Not Original</button>
-                <button @click="vote(submission.submission_id, 'unsure')" class="btn vote">Unsure</button>
+                <button @click="vote(submission.submission_id, 'original')" class="btn vote" :disabled="voteDisabled(submission)">
+                  Original
+                </button>
+                <button @click="vote(submission.submission_id, 'not_original')" class="btn vote" :disabled="voteDisabled(submission)">
+                  Not Original
+                </button>
+                <button @click="vote(submission.submission_id, 'unsure')" class="btn vote" :disabled="voteDisabled(submission)">
+                  Unsure
+                </button>
               </div>
               <button @click="evaluateSubmission(submission.submission_id)" class="btn evaluate">
                 Evaluate
@@ -723,8 +732,6 @@ export default {
     return {
       walletManager,
       memeFile: null,
-      wallet: '',
-      voterWallet: '',
       textContent: '',
       contentUploadFile: null,
       contentUploadText: '',
@@ -742,6 +749,7 @@ export default {
       recentBlocks: [],
       chainSummary: null,
       certificatesBySubmission: {},
+      votesBySubmission: {},
       lastSubmission: null,
       submitMessage: '',
       errorMessage: '',
@@ -782,6 +790,12 @@ export default {
     identityWalletAddress() {
       return this.walletManager.state.verifiedWalletAddress || this.walletManager.state.normalizedWalletAddress;
     },
+    submissionWalletAddress() {
+      return this.walletManager.state.verifiedWalletAddress || '';
+    },
+    voteWalletAddress() {
+      return this.walletManager.state.verifiedWalletAddress || '';
+    },
     hasVerifiedWalletIdentity() {
       return this.walletManager.state.isVerifiedSession;
     },
@@ -793,17 +807,38 @@ export default {
     shortenIdentityWallet() {
       return this.walletManager.shortenAddress(this.identityWalletAddress);
     },
+    canSubmitSignedContent() {
+      return this.hasVerifiedWalletIdentity;
+    },
+    submitButtonLabel() {
+      if (this.isSubmitting) {
+        return 'Submitting...';
+      }
+      if (!this.walletManager.state.isConnected) {
+        return 'Connect MetaMask To Submit';
+      }
+      if (!this.hasVerifiedWalletIdentity) {
+        return 'Verify Wallet Before Submitting';
+      }
+      return this.uploadedContent ? 'Sign And Submit Content' : 'Upload Then Sign Submission';
+    },
     submissionIdentityHint() {
       if (this.hasVerifiedWalletIdentity) {
-        return 'This verified wallet session is now the app identity for submissions. Direct signed submissions are still deferred to the next wallet tasks.';
+        return 'This verified wallet session is now the app identity for submissions. Task 7.4 requires a direct MetaMask signature for each new submission.';
       }
-      return 'Connect and verify MetaMask before signed submissions are enabled. The current submission form still uses the existing backend fields for now.';
+      if (!this.walletManager.state.isConnected) {
+        return 'Connect MetaMask to submit new content from a native ZoidbergChain 0x wallet identity.';
+      }
+      return 'Verify wallet before submitting. New normal submissions now require a verified session plus a direct MetaMask signature.';
     },
     votingIdentityHint() {
       if (this.hasVerifiedWalletIdentity) {
-        return 'This verified wallet session is now the app identity for votes. Direct signed vote messages are still deferred to the next wallet tasks.';
+        return 'This verified wallet session is now the app identity for votes. Task 7.5 requires a direct MetaMask signature for each originality vote.';
       }
-      return 'Connect and verify MetaMask before signed votes are enabled. Today\'s vote flow still uses the current backend fields.';
+      if (!this.walletManager.state.isConnected) {
+        return 'Connect MetaMask to cast originality votes from a native ZoidbergChain 0x wallet identity.';
+      }
+      return 'Verify wallet before voting. New normal votes now require a verified session plus a direct MetaMask signature.';
     },
   },
   async created() {
@@ -811,16 +846,6 @@ export default {
     await this.refreshWorkflow();
   },
   methods: {
-    useConnectedAddressForSubmitter() {
-      if (this.identityWalletAddress) {
-        this.wallet = this.identityWalletAddress;
-      }
-    },
-    useConnectedAddressForVoter() {
-      if (this.identityWalletAddress) {
-        this.voterWallet = this.identityWalletAddress;
-      }
-    },
     async blockMinting(submission) {
       if (!submission?.submission_id) {
         return;
@@ -894,68 +919,75 @@ export default {
       this.errorMessage = '';
       this.lastSubmission = null;
 
-      if (!this.wallet) {
-        this.errorMessage = 'Please enter your submitter wallet ID.';
+      if (!this.walletManager.state.isConnected) {
+        this.errorMessage = 'Connect MetaMask to submit content.';
+        return;
+      }
+
+      if (!this.hasVerifiedWalletIdentity || !this.submissionWalletAddress) {
+        this.errorMessage = 'Verify wallet before submitting.';
         return;
       }
 
       this.isSubmitting = true;
       try {
-        const hasLinkedContent = Boolean(this.submissionContentHash || this.submissionContentId || this.uploadedContent);
-        let response;
+        let preparedContent = this.uploadedContent;
+        if (!preparedContent && (this.memeFile || this.textContent)) {
+          preparedContent = await this.uploadSubmissionContent();
+          this.uploadedContent = preparedContent;
+          this.submissionContentHash = preparedContent.content_hash || '';
+          this.submissionContentId = preparedContent.content_id || '';
+          if (this.isImageContent(preparedContent)) {
+            await this.verifyUploadedContentPreview(preparedContent.content_hash);
+          }
+        }
 
-        if (hasLinkedContent) {
-          const formData = new FormData();
-          formData.append('submitter', this.wallet);
-          if (this.textContent) {
-            formData.append('text_content', this.textContent);
-          }
-          if (this.submissionContentHash) {
-            formData.append('content_hash', this.submissionContentHash);
-          }
-          if (this.submissionContentId) {
-            formData.append('content_id', this.submissionContentId);
-          }
-          response = await apiClient.post('/submit_content', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-        } else if (this.memeFile) {
-          const uploadFormData = new FormData();
-          uploadFormData.append('file', this.memeFile);
-          uploadFormData.append('submitted_by', this.wallet);
-          if (this.textContent) {
-            uploadFormData.append('caption', this.textContent);
-          }
-          const uploadResponse = await apiClient.post('/content/upload', uploadFormData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-          this.uploadedContent = uploadResponse.data;
-          this.submissionContentHash = uploadResponse.data.content_hash || '';
-          this.submissionContentId = uploadResponse.data.content_id || '';
-          if (this.isImageContent(this.uploadedContent)) {
-            await this.verifyUploadedContentPreview(this.uploadedContent.content_hash);
-          }
-          const formData = new FormData();
-          formData.append('submitter', this.wallet);
-          formData.append('content_hash', this.submissionContentHash);
-          formData.append('content_id', this.submissionContentId);
-          if (this.textContent) {
-            formData.append('text_content', this.textContent);
-          }
-          response = await apiClient.post('/submit_content', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-        } else if (this.textContent) {
-          const formData = new FormData();
-          formData.append('submitter', this.wallet);
-          formData.append('text_content', this.textContent);
-          response = await apiClient.post('/submit_content', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-        } else {
+        const finalContentHash = this.submissionContentHash || preparedContent?.content_hash || '';
+        const finalContentId = this.submissionContentId || preparedContent?.content_id || '';
+
+        if (!finalContentHash && !finalContentId) {
           this.errorMessage = 'Please upload content or enter text before submitting.';
           return;
         }
+
+        const challengeResponse = await apiClient.post('/auth/wallet/submission-challenge', {
+          wallet_address: this.submissionWalletAddress,
+          content_hash: finalContentHash,
+          content_id: finalContentId || null,
+          caption: this.textContent || preparedContent?.caption || this.contentCaption || null,
+        });
+
+        if (typeof window === 'undefined' || !window.ethereum?.request) {
+          this.errorMessage = 'MetaMask is unavailable for signing right now.';
+          return;
+        }
+
+        let signature;
+        try {
+          signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [challengeResponse.data.message, this.walletManager.state.walletAddress],
+          });
+        } catch (error) {
+          if (error?.code === 4001) {
+            this.errorMessage = 'Signature request was rejected in MetaMask.';
+            return;
+          }
+          throw error;
+        }
+
+        const formData = new FormData();
+        formData.append('wallet_address', this.submissionWalletAddress);
+        formData.append('content_hash', finalContentHash);
+        if (finalContentId) {
+          formData.append('content_id', finalContentId);
+        }
+        formData.append('message', challengeResponse.data.message);
+        formData.append('signature', signature);
+
+        const response = await apiClient.post('/submit_content', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
 
         this.lastSubmission = response.data.submission;
         this.submitMessage = `${response.data.message || 'Content submitted successfully.'} Status: ${this.formatStatus(this.lastSubmission.status)}.`;
@@ -979,44 +1011,33 @@ export default {
       this.contentUploadMessage = '';
       this.contentUploadError = '';
 
-      if (!this.wallet) {
-        this.contentUploadError = 'Please enter your submitter wallet ID before uploading content.';
+      if (!this.walletManager.state.isConnected) {
+        this.contentUploadError = 'Connect MetaMask before uploading content.';
+        return;
+      }
+
+      if (!this.hasVerifiedWalletIdentity || !this.submissionWalletAddress) {
+        this.contentUploadError = 'Verify wallet before uploading content.';
         return;
       }
 
       this.isContentUploading = true;
       try {
-        let response;
-        if (this.contentUploadFile) {
-          const formData = new FormData();
-          formData.append('file', this.contentUploadFile);
-          formData.append('submitted_by', this.wallet);
-          if (this.contentCaption) {
-            formData.append('caption', this.contentCaption);
-          }
-          response = await apiClient.post('/content/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-        } else if (this.contentUploadText) {
-          response = await apiClient.post('/content/text', {
-            text_content: this.contentUploadText,
-            submitted_by: this.wallet,
-            caption: this.contentCaption || null,
-          });
-        } else {
-          this.contentUploadError = 'Choose a file or enter text before uploading content.';
-          return;
-        }
+        const response = await this.uploadSubmissionContent({
+          file: this.contentUploadFile,
+          text: this.contentUploadText,
+          caption: this.contentCaption,
+        });
 
-      this.uploadedContent = response.data;
-      this.submissionContentHash = response.data.content_hash || '';
-      this.submissionContentId = response.data.content_id || '';
+      this.uploadedContent = response;
+      this.submissionContentHash = response.content_hash || '';
+      this.submissionContentId = response.content_id || '';
       if (this.isImageContent(this.uploadedContent)) {
         await this.verifyUploadedContentPreview(this.uploadedContent.content_hash);
       } else {
         this.uploadedContentPreviewError = '';
       }
-      this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.data.storage_status)}.`;
+      this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.storage_status)}.`;
       } catch (error) {
         console.error('Error uploading content:', error);
         this.contentUploadError = getApiErrorMessage(error, 'Failed to upload content.');
@@ -1054,6 +1075,39 @@ export default {
       if (fileInput) {
         fileInput.value = '';
       }
+    },
+    async uploadSubmissionContent(options = {}) {
+      const file = options.file ?? this.memeFile;
+      const text = options.text ?? this.textContent;
+      const caption = options.caption ?? this.textContent ?? this.contentCaption;
+
+      if (!this.submissionWalletAddress) {
+        throw new Error('Verify wallet before uploading content.');
+      }
+
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('submitted_by', this.submissionWalletAddress);
+        if (caption) {
+          formData.append('caption', caption);
+        }
+        const response = await apiClient.post('/content/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+      }
+
+      if (text) {
+        const response = await apiClient.post('/content/text', {
+          text_content: text,
+          submitted_by: this.submissionWalletAddress,
+          caption: caption || null,
+        });
+        return response.data;
+      }
+
+      throw new Error('Choose a file or enter text before uploading content.');
     },
     async syncContent(contentHash) {
       if (!contentHash) {
@@ -1102,6 +1156,7 @@ export default {
       try {
         const response = await apiClient.get('/submissions');
         this.submissions = response.data.submissions || [];
+        await this.loadVisibleVotes();
         if (loadCertificates) {
           await this.loadVisibleCertificates(true);
         }
@@ -1155,6 +1210,27 @@ export default {
         return null;
       }
     },
+    async fetchVotesForSubmission(submissionId) {
+      try {
+        const response = await apiClient.get(`/submissions/${submissionId}/votes`);
+        return response.data?.votes || [];
+      } catch (error) {
+        if (error?.response?.status === 404) {
+          return [];
+        }
+        throw error;
+      }
+    },
+    async loadVisibleVotes() {
+      const pendingIds = this.pendingSubmissions.map((submission) => submission.submission_id);
+      const nextVotesBySubmission = {};
+
+      await Promise.all(pendingIds.map(async (submissionId) => {
+        nextVotesBySubmission[submissionId] = await this.fetchVotesForSubmission(submissionId);
+      }));
+
+      this.votesBySubmission = nextVotesBySubmission;
+    },
     async loadVisibleCertificates(force = false) {
       this.certificateError = '';
       const ids = new Set();
@@ -1178,6 +1254,22 @@ export default {
         return null;
       }
       return this.certificatesBySubmission[submission.submission_id] || null;
+    },
+    currentWalletVoteForSubmission(submission) {
+      if (!submission?.submission_id || !this.voteWalletAddress) {
+        return null;
+      }
+      const votes = this.votesBySubmission[submission.submission_id] || [];
+      return votes.find((vote) => vote.voter === this.voteWalletAddress) || null;
+    },
+    voteDisabled(submission) {
+      if (!this.walletManager.state.isConnected || !this.hasVerifiedWalletIdentity || !this.voteWalletAddress) {
+        return true;
+      }
+      if (submission?.submitter === this.voteWalletAddress) {
+        return true;
+      }
+      return Boolean(this.currentWalletVoteForSubmission(submission));
     },
     certificateLookupComplete(submission) {
       return Boolean(
@@ -1291,16 +1383,61 @@ export default {
       this.voteMessage = '';
       this.voteError = '';
 
-      if (!this.voterWallet) {
-        this.voteError = 'Please enter your voter wallet ID before voting.';
+      if (!this.walletManager.state.isConnected) {
+        this.voteError = 'Connect MetaMask to vote.';
+        return;
+      }
+      if (!this.hasVerifiedWalletIdentity || !this.voteWalletAddress) {
+        this.voteError = 'Verify wallet before voting.';
         return;
       }
 
-      const formData = new FormData();
-      formData.append('voter', this.voterWallet);
-      formData.append('vote_type', voteType);
+      const submission = this.submissions.find((item) => item.submission_id === submissionId);
+      if (!submission) {
+        this.voteError = 'Submission not found for voting.';
+        return;
+      }
+      if (submission.submitter === this.voteWalletAddress) {
+        this.voteError = 'Submission creator cannot vote on their own submission.';
+        return;
+      }
+      if (this.currentWalletVoteForSubmission(submission)) {
+        this.voteError = 'This wallet has already voted on that submission.';
+        return;
+      }
 
       try {
+        const challengeResponse = await apiClient.post('/auth/wallet/vote-challenge', {
+          wallet_address: this.voteWalletAddress,
+          submission_id: submissionId,
+          vote: voteType,
+        });
+
+        if (typeof window === 'undefined' || !window.ethereum?.request) {
+          this.voteError = 'MetaMask is unavailable for signing right now.';
+          return;
+        }
+
+        let signature;
+        try {
+          signature = await window.ethereum.request({
+            method: 'personal_sign',
+            params: [challengeResponse.data.message, this.walletManager.state.walletAddress],
+          });
+        } catch (error) {
+          if (error?.code === 4001) {
+            this.voteError = 'Signature request was rejected in MetaMask.';
+            return;
+          }
+          throw error;
+        }
+
+        const formData = new FormData();
+        formData.append('wallet_address', this.voteWalletAddress);
+        formData.append('vote_type', voteType);
+        formData.append('message', challengeResponse.data.message);
+        formData.append('signature', signature);
+
         const response = await apiClient.post(`/submissions/${submissionId}/vote`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
@@ -1628,6 +1765,19 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.derived-wallet-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid rgba(255, 71, 71, 0.4);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: #fff;
+  overflow-wrap: anywhere;
 }
 
 .field-group label {

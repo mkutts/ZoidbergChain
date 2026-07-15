@@ -92,6 +92,7 @@ from auth import API_KEYS, validate_api_key  # ✅ API authentication
 from wallet_auth import (
     WalletAuthManager,
     get_verified_wallet_from_request,
+    hash_wallet_message,
     normalize_wallet_address,
     resolve_verified_wallet_from_authorization,
 )
@@ -184,6 +185,14 @@ class PeerSubmissionPayload(_StrictBodyModel):
     mint_blocked_at: Annotated[float, Field(ge=0)] | None = None
     mint_blocked_by: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     mint_block_notes: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
+    creator_wallet_address: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    signature_scheme: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    submission_signature: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    submission_message: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    signed_message_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    submission_nonce: Annotated[str, Field(min_length=1, max_length=256)] | None = None
+    signed_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
 
 
 class PeerVotePayload(_StrictBodyModel):
@@ -191,6 +200,15 @@ class PeerVotePayload(_StrictBodyModel):
     voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_type: str | None = None
     vote_value: str | None = None
+    content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    voter_wallet_address: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    signature_scheme: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    vote_signature: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    vote_message: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    signed_message_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_nonce: Annotated[str, Field(min_length=1, max_length=256)] | None = None
+    signed_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     created_at: Annotated[float, Field(ge=0)] | None = None
     vote_timestamp: Annotated[float, Field(ge=0)] | None = None
 
@@ -273,6 +291,15 @@ class PeerVoteReceive(BaseModel):
     voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_type: str | None = None
     vote_value: str | None = None
+    content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    voter_wallet_address: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    signature_scheme: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    vote_signature: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    vote_message: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
+    signed_message_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_nonce: Annotated[str, Field(min_length=1, max_length=256)] | None = None
+    signed_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     created_at: Annotated[float, Field(ge=0)] | None = None
     vote_timestamp: Annotated[float, Field(ge=0)] | None = None
 
@@ -297,7 +324,7 @@ class PeerCertificateReceive(BaseModel):
 
 class TextContentUpload(_StrictBodyModel):
     text_content: Annotated[str, Field(min_length=1)]
-    submitted_by: WalletPublicKey
+    submitted_by: Annotated[str, Field(min_length=1, max_length=128)]
     caption: Annotated[str | None, Field(max_length=MAX_CAPTION_LENGTH)] = None
 
 
@@ -309,6 +336,19 @@ class WalletVerifyRequest(_StrictBodyModel):
     wallet_address: EthereumWalletAddressValue
     message: Annotated[str, Field(min_length=1, max_length=4096)]
     signature: Annotated[str, Field(min_length=1, max_length=4096)]
+
+
+class WalletSubmissionChallengeRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    content_hash: ContentHashValue
+    content_id: Annotated[str | None, Field(min_length=32, max_length=32, pattern=HEX_32_PATTERN)] = None
+    caption: Annotated[str | None, Field(max_length=MAX_CAPTION_LENGTH)] = None
+
+
+class WalletVoteChallengeRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    submission_id: SubmissionIdValue
+    vote: VoteTypeValue
 
 
 def _short_key(public_key):
@@ -392,6 +432,11 @@ def _serialize_submission(submission):
         "submission_id": submission.submission_id,
         "text_content": submission.text_content,
         "submitter": submission.submitter,
+        "creator_wallet_address": submission.creator_wallet_address or submission.submitter,
+        "identity_source": submission.identity_source,
+        "signature_scheme": submission.signature_scheme,
+        "signed_at": submission.signed_at,
+        "signed_message_hash": submission.signed_message_hash,
         "status": submission.status,
         "created_at": submission.created_at,
         "hard_reject_reason": submission.hard_reject_reason,
@@ -455,6 +500,47 @@ def _require_registered_submitter(submitted_by):
         raise HTTPException(status_code=400, detail="Invalid submitter public key.")
 
 
+def _normalize_supported_user_identity(identity: str, *, field_name: str = "wallet identity") -> str:
+    candidate = str(identity or "").strip()
+    normalized_wallet = normalize_wallet_address(candidate)
+    if normalized_wallet:
+        return normalized_wallet
+    if is_valid_public_key(candidate, blockchain.wallets):
+        return candidate
+    raise HTTPException(
+        status_code=400,
+        detail=f"Invalid {field_name}. Expected a registered development public key or an Ethereum-style 0x address.",
+    )
+
+
+def _require_content_reference(content_hash: str | None, content_id: str | None):
+    normalized_hash = (content_hash or "").strip() or None
+    normalized_id = (content_id or "").strip() or None
+
+    content_object = None
+    if normalized_id:
+        content_object = blockchain.get_content_object(normalized_id)
+        if content_object is None:
+            raise HTTPException(status_code=404, detail=f"Content not found: {normalized_id}")
+    if normalized_hash:
+        hashed_content_object = blockchain.get_content_object_by_hash(normalized_hash)
+        if content_object is not None and hashed_content_object is not None and hashed_content_object.content_id != content_object.content_id:
+            raise HTTPException(status_code=400, detail="content_id does not match content_hash.")
+        if hashed_content_object is not None:
+            content_object = hashed_content_object
+        elif content_object is None:
+            raise HTTPException(status_code=404, detail=f"Content not found: {normalized_hash}")
+
+    if content_object is None:
+        raise HTTPException(status_code=400, detail="content_hash or content_id is required.")
+
+    if normalized_hash and content_object.content_hash != normalized_hash:
+        raise HTTPException(status_code=400, detail="content_hash does not match stored content.")
+    if normalized_id and content_object.content_id != normalized_id:
+        raise HTTPException(status_code=400, detail="content_id does not match content_hash.")
+    return content_object
+
+
 def _require_content_object(content_hash):
     if not is_valid_content_hash(content_hash):
         raise HTTPException(status_code=422, detail="content_hash must be a 64-character lowercase hexadecimal string.")
@@ -479,7 +565,8 @@ def _validate_unregistered_peer_submission_shape(receive_request: PeerSubmission
         raise HTTPException(status_code=422, detail="Submission image_path is required.")
     if not isinstance(payload.get("text_content"), str) or not payload["text_content"].strip():
         raise HTTPException(status_code=422, detail="Submission text_content is required.")
-    if not is_valid_wallet_public_key(payload.get("submitter", "")):
+    submitter = str(payload.get("submitter", "")).strip()
+    if not (is_valid_wallet_public_key(submitter) or is_valid_ethereum_address(submitter)):
         raise HTTPException(status_code=422, detail="Submission submitter is required.")
 
 
@@ -489,7 +576,8 @@ def _validate_unregistered_peer_vote_shape(receive_request: PeerVoteReceive):
         raise HTTPException(status_code=422, detail="Vote payload contains forbidden or unexpected fields.")
     if not isinstance(payload.get("submission_id"), str) or not payload["submission_id"].strip():
         raise HTTPException(status_code=422, detail="Vote submission_id is required.")
-    if not is_valid_wallet_public_key(payload.get("voter", "")):
+    voter = str(payload.get("voter", "")).strip()
+    if not (is_valid_wallet_public_key(voter) or is_valid_ethereum_address(voter)):
         raise HTTPException(status_code=422, detail="Vote voter is required.")
     if payload.get("vote_type") not in {"original", "not_original", "unsure"}:
         raise HTTPException(status_code=422, detail="Vote vote_type is required.")
@@ -874,6 +962,67 @@ async def verify_wallet_challenge(request: Request, payload: WalletVerifyRequest
     return verification
 
 
+@app.post("/auth/wallet/submission-challenge")
+@api_limit("submission_create")
+async def create_wallet_submission_challenge(
+    request: Request,
+    payload: WalletSubmissionChallengeRequest,
+    wallet_address: str = Depends(_verified_wallet_dependency),
+):
+    normalized_wallet = normalize_wallet_address(payload.wallet_address)
+    if normalized_wallet is None or normalized_wallet != wallet_address:
+        raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+
+    content_object = _require_content_reference(payload.content_hash, payload.content_id)
+    safe_caption = validate_caption(payload.caption)
+
+    try:
+        challenge = wallet_auth_manager.issue_submission_challenge(
+            wallet_address=wallet_address,
+            content_hash=content_object.content_hash,
+            content_id=content_object.content_id,
+            caption=safe_caption,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return challenge
+
+
+@app.post("/auth/wallet/vote-challenge")
+@api_limit("submission_create")
+async def create_wallet_vote_challenge(
+    request: Request,
+    payload: WalletVoteChallengeRequest,
+    wallet_address: str = Depends(_verified_wallet_dependency),
+):
+    normalized_wallet = normalize_wallet_address(payload.wallet_address)
+    if normalized_wallet is None or normalized_wallet != wallet_address:
+        raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+
+    submission = blockchain.get_submission(payload.submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail=f"Submission not found: {payload.submission_id}")
+    if blockchain.is_submission_voting_locked(submission):
+        raise HTTPException(status_code=400, detail="Finalized or certified submissions cannot receive votes.")
+    if wallet_address == submission.submitter:
+        raise HTTPException(status_code=400, detail="Submission creator cannot vote on their own submission.")
+    if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes):
+        raise HTTPException(status_code=400, detail="Wallet has already voted on this submission.")
+
+    try:
+        challenge = wallet_auth_manager.issue_vote_challenge(
+            wallet_address=wallet_address,
+            submission_id=payload.submission_id,
+            content_hash=submission.content_hash or "",
+            vote_type=payload.vote,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return challenge
+
+
 @app.get("/auth/wallet/session")
 @api_limit("public_read")
 async def get_wallet_session(
@@ -971,6 +1120,15 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
                 "voter": receive_request.voter,
                 "vote_type": receive_request.vote_type,
                 "vote_value": receive_request.vote_value,
+                "content_hash": receive_request.content_hash,
+                "voter_wallet_address": receive_request.voter_wallet_address,
+                "signature_scheme": receive_request.signature_scheme,
+                "vote_signature": receive_request.vote_signature,
+                "vote_message": receive_request.vote_message,
+                "signed_message_hash": receive_request.signed_message_hash,
+                "vote_nonce": receive_request.vote_nonce,
+                "signed_at": receive_request.signed_at,
+                "identity_source": receive_request.identity_source,
                 "created_at": receive_request.created_at,
                 "vote_timestamp": receive_request.vote_timestamp,
             },
@@ -1242,11 +1400,11 @@ async def transaction_pool(request: Request):
 async def upload_content(
     request: Request,
     file: UploadFile,
-    submitted_by: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    submitted_by: Annotated[str, Form(..., min_length=1, max_length=128)],
     caption: Annotated[str | None, Form(max_length=MAX_CAPTION_LENGTH)] = None,
     content_type_hint: Annotated[str | None, Form(max_length=32)] = None,
 ):
-    _require_registered_submitter(submitted_by)
+    submitted_by = _normalize_supported_user_identity(submitted_by, field_name="submitted_by")
 
     file_bytes = await file.read()
     try:
@@ -1285,12 +1443,12 @@ async def upload_content(
 @app.post("/content/text")
 @api_limit("submission_create")
 async def upload_text_content(request: Request, payload: TextContentUpload):
-    _require_registered_submitter(payload.submitted_by)
+    submitted_by = _normalize_supported_user_identity(payload.submitted_by, field_name="submitted_by")
 
     try:
         content_object = blockchain.upload_text_content(
             text_content=validate_text_content(payload.text_content),
-            submitted_by=payload.submitted_by,
+            submitted_by=submitted_by,
             caption=validate_caption(payload.caption),
         )
     except ValueError as exc:
@@ -1429,61 +1587,132 @@ async def sync_content_from_peers_endpoint(request: Request, content_hash: str):
 @api_limit("submission_create")
 async def submit_content(
     request: Request,
-    submitter: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
+    authorization: str | None = Header(default=None),
+    submitter: Annotated[str | None, Form(min_length=1, max_length=128)] = None,
+    wallet_address: Annotated[str | None, Form(min_length=42, max_length=42, pattern=ETHEREUM_ADDRESS_PATTERN)] = None,
+    message: Annotated[str | None, Form(min_length=1, max_length=4096)] = None,
+    signature: Annotated[str | None, Form(min_length=1, max_length=4096)] = None,
     image: UploadFile | None = None,
     text_content: Annotated[str | None, Form(max_length=MAX_SUBMISSION_TEXT_LENGTH)] = None,
     content_hash: Annotated[str | None, Form(min_length=64, max_length=64, pattern=HEX_64_PATTERN)] = None,
     content_id: Annotated[str | None, Form(min_length=32, max_length=32, pattern=HEX_32_PATTERN)] = None,
 ):
     """Submit meme content for review without minting a blockchain block."""
-    _require_registered_submitter(submitter)
+    signed_submission_requested = any(
+        value is not None and str(value).strip()
+        for value in [authorization, wallet_address, message, signature, content_hash, content_id]
+    ) and not (submitter and not authorization and not wallet_address and not message and not signature)
 
-    if image is not None and (content_hash is not None or content_id is not None):
-        raise HTTPException(status_code=400, detail="Provide either image upload or content linkage, not both.")
-
-    if content_hash is not None or content_id is not None:
+    if signed_submission_requested:
         try:
+            verified_wallet = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+        except HTTPException as exc:
+            raise HTTPException(status_code=401, detail=exc.detail) from exc
+
+        if image is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="Direct file submission is no longer supported here. Upload content first, then create a signed submission.",
+            )
+        if not message:
+            raise HTTPException(status_code=400, detail="signed submission message is required.")
+        if not signature:
+            raise HTTPException(status_code=400, detail="signature is required.")
+
+        content_object = _require_content_reference(content_hash, content_id)
+        normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
+        if normalized_wallet is None or normalized_wallet != verified_wallet:
+            raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+
+        try:
+            verification = wallet_auth_manager.verify_submission_signature(
+                wallet_address=verified_wallet,
+                message=message,
+                signature=signature,
+                content_hash=content_object.content_hash,
+                content_id=content_object.content_id,
+            )
             submission = blockchain.submit_existing_content(
-                content_hash=content_hash,
-                content_id=content_id,
-                submitter=submitter,
+                content_hash=content_object.content_hash,
+                content_id=content_object.content_id,
+                submitter=verified_wallet,
                 text_content=text_content or "",
             )
         except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+            detail = str(exc)
+            status_code = 400
+            if "expired" in detail.lower() or "already been used" in detail.lower():
+                status_code = 401
+            raise HTTPException(status_code=status_code, detail=detail) from exc
+
+        submission.creator_wallet_address = verified_wallet
+        submission.signature_scheme = str(verification["signature_scheme"])
+        submission.submission_signature = str(verification["submission_signature"])
+        submission.submission_message = str(verification["submission_message"])
+        submission.signed_message_hash = str(verification["signed_message_hash"])
+        submission.submission_nonce = str(verification["nonce"])
+        submission.signed_at = str(verification["signed_at"])
+        submission.identity_source = str(verification["identity_source"])
     else:
-        if image is None or not image.filename:
-            raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
-
-        file_bytes = await image.read()
-        try:
-            validate_content_size(len(file_bytes))
-            safe_original_filename, _detected_mime_type = _validate_uploaded_image_payload(image, file_bytes)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-        os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
-        image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(safe_original_filename))
-        with open(image_path, "wb") as buffer:
-            buffer.write(file_bytes)
-
-        try:
-            if not os.path.isfile(image_path):
-                return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
-
-            if not text_content:
-                text_content = extract_text(image_path)
-            if not text_content:
-                return JSONResponse(status_code=400, content={"error": "No text found in the image."})
-
-            submission = blockchain.submit_content(
-                image_path=image_path,
-                text_content=text_content,
-                submitter=submitter,
+        if not is_development():
+            raise HTTPException(
+                status_code=401,
+                detail="MetaMask-signed submissions are required outside development mode.",
             )
-        finally:
-            if os.path.isfile(image_path):
-                os.remove(image_path)
+        if not submitter:
+            raise HTTPException(status_code=422, detail="submitter is required for the development-only submission path.")
+
+        submitter = _normalize_supported_user_identity(submitter, field_name="submitter")
+
+        if image is not None and (content_hash is not None or content_id is not None):
+            raise HTTPException(status_code=400, detail="Provide either image upload or content linkage, not both.")
+
+        if content_hash is not None or content_id is not None:
+            try:
+                submission = blockchain.submit_existing_content(
+                    content_hash=content_hash,
+                    content_id=content_id,
+                    submitter=submitter,
+                    text_content=text_content or "",
+                )
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+        else:
+            if image is None or not image.filename:
+                raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
+
+            file_bytes = await image.read()
+            try:
+                validate_content_size(len(file_bytes))
+                safe_original_filename, _detected_mime_type = _validate_uploaded_image_payload(image, file_bytes)
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+            os.makedirs(SUBMISSIONS_DIR, exist_ok=True)
+            image_path = os.path.join(SUBMISSIONS_DIR, os.path.basename(safe_original_filename))
+            with open(image_path, "wb") as buffer:
+                buffer.write(file_bytes)
+
+            try:
+                if not os.path.isfile(image_path):
+                    return JSONResponse(status_code=400, content={"error": "Failed to save the uploaded image."})
+
+                if not text_content:
+                    text_content = extract_text(image_path)
+                if not text_content:
+                    return JSONResponse(status_code=400, content={"error": "No text found in the image."})
+
+                submission = blockchain.submit_content(
+                    image_path=image_path,
+                    text_content=text_content,
+                    submitter=submitter,
+                )
+            finally:
+                if os.path.isfile(image_path):
+                    os.remove(image_path)
 
     blockchain.save_blockchain()
     broadcast_result = broadcast_submission_to_peers(
@@ -1666,23 +1895,94 @@ async def broadcast_submission(request: Request, submission_id: str):
 async def vote_on_submission(
     request: Request,
     submission_id: str,
-    voter: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
     vote_type: Annotated[VoteTypeValue, Form(...)],
+    authorization: str | None = Header(default=None),
+    voter: Annotated[str | None, Form(min_length=1, max_length=128)] = None,
+    wallet_address: Annotated[str | None, Form(min_length=42, max_length=42, pattern=ETHEREUM_ADDRESS_PATTERN)] = None,
+    message: Annotated[str | None, Form(min_length=1, max_length=4096)] = None,
+    signature: Annotated[str | None, Form(min_length=1, max_length=4096)] = None,
 ):
-    if not is_valid_public_key(voter, blockchain.wallets):
-        raise HTTPException(status_code=400, detail="Invalid voter public key.")
+    signed_vote_requested = any(
+        value is not None and str(value).strip()
+        for value in [authorization, wallet_address, message, signature]
+    ) and not (voter and not authorization and not wallet_address and not message and not signature)
 
-    try:
-        vote = blockchain.cast_submission_vote(
-            submission_id=submission_id,
-            voter=voter,
-            vote_type=vote_type,
-        )
-    except ValueError as e:
-        message = str(e)
-        if message.startswith("Submission not found"):
-            raise HTTPException(status_code=404, detail=message)
-        raise HTTPException(status_code=400, detail=message)
+    if signed_vote_requested:
+        try:
+            verified_wallet = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+        except HTTPException as exc:
+            raise HTTPException(status_code=401, detail=exc.detail) from exc
+
+        if not message:
+            raise HTTPException(status_code=400, detail="signed vote message is required.")
+        if not signature:
+            raise HTTPException(status_code=400, detail="signature is required.")
+
+        submission = blockchain.get_submission(submission_id)
+        if not submission:
+            raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
+
+        normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
+        if normalized_wallet is None or normalized_wallet != verified_wallet:
+            raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+
+        try:
+            verification = wallet_auth_manager.verify_vote_signature(
+                wallet_address=verified_wallet,
+                message=message,
+                signature=signature,
+                submission_id=submission_id,
+                content_hash=submission.content_hash or "",
+                vote_type=vote_type,
+            )
+            vote = blockchain.cast_submission_vote(
+                submission_id=submission_id,
+                voter=verified_wallet,
+                vote_type=vote_type,
+            )
+        except ValueError as e:
+            detail = str(e)
+            status_code = 400
+            if detail.startswith("Submission not found"):
+                status_code = 404
+            elif "expired" in detail.lower() or "already been used" in detail.lower():
+                status_code = 401
+            raise HTTPException(status_code=status_code, detail=detail) from e
+
+        vote["voter_wallet_address"] = verified_wallet
+        vote["content_hash"] = submission.content_hash
+        vote["signature_scheme"] = str(verification["signature_scheme"])
+        vote["vote_signature"] = str(verification["vote_signature"])
+        vote["vote_message"] = str(verification["vote_message"])
+        vote["signed_message_hash"] = str(verification["signed_message_hash"])
+        vote["vote_nonce"] = str(verification["nonce"])
+        vote["signed_at"] = str(verification["signed_at"])
+        vote["identity_source"] = str(verification["identity_source"])
+    else:
+        if not is_development():
+            raise HTTPException(
+                status_code=401,
+                detail="MetaMask-signed votes are required outside development mode.",
+            )
+        if not voter:
+            raise HTTPException(status_code=422, detail="voter is required for the development-only vote path.")
+        if not is_valid_public_key(voter, blockchain.wallets):
+            raise HTTPException(status_code=400, detail="Invalid voter public key.")
+
+        try:
+            vote = blockchain.cast_submission_vote(
+                submission_id=submission_id,
+                voter=voter,
+                vote_type=vote_type,
+            )
+        except ValueError as e:
+            message_text = str(e)
+            if message_text.startswith("Submission not found"):
+                raise HTTPException(status_code=404, detail=message_text)
+            raise HTTPException(status_code=400, detail=message_text)
 
     blockchain.save_blockchain()
     broadcast_result = broadcast_vote_to_peers(

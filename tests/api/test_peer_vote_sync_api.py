@@ -1,8 +1,11 @@
 import requests
 from fastapi.testclient import TestClient
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 from peers import PeerStore
 from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE
+from wallet_auth import hash_wallet_message
 
 
 def _client(blockchain):
@@ -50,6 +53,11 @@ def _vote_payload(
         "vote_type": vote_type,
         "created_at": created_at,
     }
+
+
+def _sign_message(message, account):
+    signed = Account.sign_message(encode_defunct(text=message), account.key)
+    return signed.signature.hex()
 
 
 def test_receiving_valid_peer_vote(blockchain, submission_image, wallets):
@@ -263,6 +271,39 @@ def test_creator_cannot_vote_through_peer_endpoint(blockchain, submission_image,
     assert response.status_code == 400
     assert response.json()["detail"] == "Submission creator cannot vote on their own submission."
     assert blockchain.votes == []
+
+
+def test_receiving_signed_peer_vote_preserves_signature_metadata(blockchain, submission_image):
+    client = _client(blockchain)
+    _register_peer()
+    submitter = Account.create()
+    voter = Account.create()
+    submission = _submission(blockchain, submission_image, submitter.address.lower())
+    vote_message = "Peer vote signed message"
+    vote_signature = _sign_message(vote_message, voter)
+
+    response = client.post(
+        "/peers/votes/receive",
+        json={
+            **_vote_payload(submission.submission_id, voter.address.lower(), vote_type=VOTE_NOT_ORIGINAL),
+            "content_hash": submission.content_hash,
+            "voter_wallet_address": voter.address.lower(),
+            "signature_scheme": "personal_sign",
+            "vote_signature": vote_signature,
+            "vote_message": vote_message,
+            "signed_message_hash": hash_wallet_message(vote_message),
+            "vote_nonce": "peer-vote-nonce-1",
+            "signed_at": "2026-07-14T00:00:00+00:00",
+            "identity_source": "metamask_signed",
+        },
+    )
+
+    assert response.status_code == 200
+    stored_vote = blockchain.votes[0]
+    assert stored_vote["voter"] == voter.address.lower()
+    assert stored_vote["voter_wallet_address"] == voter.address.lower()
+    assert stored_vote["signature_scheme"] == "personal_sign"
+    assert stored_vote["identity_source"] == "metamask_signed"
 
 
 def test_local_vote_broadcasts_without_failing_if_one_peer_is_down(

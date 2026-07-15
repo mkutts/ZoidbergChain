@@ -1,5 +1,8 @@
 from fastapi.testclient import TestClient
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
+from wallet_auth import WalletAuthManager
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -9,6 +12,7 @@ from submission import (
     REJECTED,
     VOTE_NOT_ORIGINAL,
     VOTE_ORIGINAL,
+    VOTE_UNSURE,
 )
 
 
@@ -16,6 +20,10 @@ def _client(blockchain):
     import api
 
     api.blockchain = blockchain
+    api.wallet_auth_manager = WalletAuthManager(
+        network_name=api.NETWORK_NAME,
+        environment=api.ENVIRONMENT,
+    )
     return TestClient(api.app)
 
 
@@ -52,6 +60,68 @@ def _generate_wallet_via_api(client):
     return response.json()["wallet"]["public_key"]
 
 
+def _create_metamask_account():
+    return Account.create()
+
+
+def _sign_message(message, account):
+    signed = Account.sign_message(encode_defunct(text=message), account.key)
+    return signed.signature.hex()
+
+
+def _verify_wallet_session(client, account):
+    challenge = client.post("/auth/wallet/challenge", json={"wallet_address": account.address})
+    assert challenge.status_code == 200
+    message = challenge.json()["message"]
+    verify = client.post(
+        "/auth/wallet/verify",
+        json={
+            "wallet_address": account.address,
+            "message": message,
+            "signature": _sign_message(message, account),
+        },
+    )
+    assert verify.status_code == 200
+    return {"Authorization": f"Bearer {verify.json()['session_token']}"}
+
+
+def _request_submission_challenge(client, account, headers, content_hash, content_id=None, caption=None):
+    response = client.post(
+        "/auth/wallet/submission-challenge",
+        json={
+            "wallet_address": account.address,
+            "content_hash": content_hash,
+            "content_id": content_id,
+            "caption": caption,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def _submit_signed_content_via_api(client, account, headers, content_hash, content_id=None, caption=None):
+    challenge = _request_submission_challenge(
+        client,
+        account,
+        headers,
+        content_hash=content_hash,
+        content_id=content_id,
+        caption=caption,
+    )
+    data = {
+        "wallet_address": account.address,
+        "content_hash": content_hash,
+        "message": challenge["message"],
+        "signature": _sign_message(challenge["message"], account),
+    }
+    if content_id:
+        data["content_id"] = content_id
+    response = client.post("/submit_content", data=data, headers=headers)
+    assert response.status_code == 200
+    return response.json()["submission"]
+
+
 def _submit_content_via_api(client, submission_image, submitter, text="Real API lifecycle meme"):
     with open(submission_image, "rb") as image_file:
         response = client.post(
@@ -79,6 +149,131 @@ def _upload_text_content_via_api(client, submitter, text="Upload-first text cont
     return response.json()
 
 
+def test_signed_submission_accepts_uploaded_content_and_derives_creator_from_verified_wallet(blockchain):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_text_content_via_api(client, account.address, text="signed text content")
+
+    submission = _submit_signed_content_via_api(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="signed text content",
+    )
+
+    assert submission["submitter"] == account.address.lower()
+    assert submission["creator_wallet_address"] == account.address.lower()
+    assert submission["identity_source"] == "metamask_signed"
+    assert submission["signature_scheme"] == "personal_sign"
+    assert submission["signed_message_hash"]
+
+
+def test_signed_submission_rejects_missing_signature(blockchain):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_text_content_via_api(client, account.address, text="signed missing signature")
+    challenge = _request_submission_challenge(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="signed missing signature",
+    )
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "wallet_address": account.address,
+            "content_hash": uploaded["content_hash"],
+            "content_id": uploaded["content_id"],
+            "message": challenge["message"],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert "signature is required" in response.json()["detail"].lower()
+
+
+def test_signed_submission_rejects_wrong_wallet_signature(blockchain):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    wrong_account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_text_content_via_api(client, account.address, text="wrong wallet signature")
+    challenge = _request_submission_challenge(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="wrong wallet signature",
+    )
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "wallet_address": account.address,
+            "content_hash": uploaded["content_hash"],
+            "content_id": uploaded["content_id"],
+            "message": challenge["message"],
+            "signature": _sign_message(challenge["message"], wrong_account),
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert "does not match the verified session wallet" in response.json()["detail"].lower()
+
+
+def test_signed_submission_rejects_replayed_nonce(blockchain):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_text_content_via_api(client, account.address, text="replayed nonce")
+    challenge = _request_submission_challenge(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="replayed nonce",
+    )
+    signature = _sign_message(challenge["message"], account)
+
+    first = client.post(
+        "/submit_content",
+        data={
+            "wallet_address": account.address,
+            "content_hash": uploaded["content_hash"],
+            "content_id": uploaded["content_id"],
+            "message": challenge["message"],
+            "signature": signature,
+        },
+        headers=headers,
+    )
+    second = client.post(
+        "/submit_content",
+        data={
+            "wallet_address": account.address,
+            "content_hash": uploaded["content_hash"],
+            "content_id": uploaded["content_id"],
+            "message": challenge["message"],
+            "signature": signature,
+        },
+        headers=headers,
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 401
+    assert "already been used" in second.json()["detail"].lower()
+
+
 def _vote_via_api(client, submission_id, voter, vote_type=VOTE_ORIGINAL):
     response = client.post(
         f"/submissions/{submission_id}/vote",
@@ -86,6 +281,36 @@ def _vote_via_api(client, submission_id, voter, vote_type=VOTE_ORIGINAL):
             "voter": voter,
             "vote_type": vote_type,
         },
+    )
+    assert response.status_code == 200
+    return response.json()["vote"]
+
+
+def _request_vote_challenge(client, account, headers, submission_id, vote_type=VOTE_ORIGINAL):
+    response = client.post(
+        "/auth/wallet/vote-challenge",
+        json={
+            "wallet_address": account.address,
+            "submission_id": submission_id,
+            "vote": vote_type,
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def _vote_signed_via_api(client, submission_id, account, headers, vote_type=VOTE_ORIGINAL):
+    challenge = _request_vote_challenge(client, account, headers, submission_id, vote_type=vote_type)
+    response = client.post(
+        f"/submissions/{submission_id}/vote",
+        data={
+            "wallet_address": account.address,
+            "vote_type": vote_type,
+            "message": challenge["message"],
+            "signature": _sign_message(challenge["message"], account),
+        },
+        headers=headers,
     )
     assert response.status_code == 200
     return response.json()["vote"]
@@ -292,6 +517,126 @@ def test_real_api_submit_vote_evaluate_certificate_lookup_and_mint_flow(
     assert minted["block"]["submission_id"] == submission_id
     assert minted["block"]["certificate_id"] == certificate_id
     assert minted["block"]["originality_score"] == certificate["originality_score"]
+
+
+def test_signed_submission_vote_evaluate_certificate_lookup_and_mint_flow(blockchain):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    voters = [_generate_wallet_via_api(client) for _ in range(5)]
+    uploaded = _upload_text_content_via_api(client, account.address, text="signed full flow")
+    submission = _submit_signed_content_via_api(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="signed full flow",
+    )
+    submission_id = submission["submission_id"]
+
+    for _ in voters:
+        voter_account = _create_metamask_account()
+        voter_headers = _verify_wallet_session(client, voter_account)
+        _vote_signed_via_api(client, submission_id, voter_account, voter_headers, VOTE_ORIGINAL)
+
+    evaluate_response = client.post(
+        f"/submissions/{submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert evaluate_response.status_code == 200
+    certificate = evaluate_response.json()["certificate"]
+    assert certificate["creator_wallet"] == account.address.lower()
+
+    mint_response = client.post(f"/mint-queue/{submission_id}/mint")
+    assert mint_response.status_code == 200
+    assert mint_response.json()["minted"] is True
+
+
+def test_signed_vote_derives_voter_from_verified_wallet(blockchain):
+    client = _client(blockchain)
+    submitter = _create_metamask_account()
+    submitter_headers = _verify_wallet_session(client, submitter)
+    uploaded = _upload_text_content_via_api(client, submitter.address, text="signed vote base")
+    submission = _submit_signed_content_via_api(
+        client,
+        submitter,
+        submitter_headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="signed vote base",
+    )
+
+    voter_account = _create_metamask_account()
+    voter_headers = _verify_wallet_session(client, voter_account)
+    vote = _vote_signed_via_api(client, submission["submission_id"], voter_account, voter_headers, VOTE_UNSURE)
+
+    assert vote["voter"] == voter_account.address.lower()
+    assert vote["voter_wallet_address"] == voter_account.address.lower()
+    assert vote["identity_source"] == "metamask_signed"
+    assert vote["signature_scheme"] == "personal_sign"
+    assert vote["signed_message_hash"]
+
+
+def test_signed_vote_rejects_duplicate_vote(blockchain):
+    client = _client(blockchain)
+    submitter = _create_metamask_account()
+    submitter_headers = _verify_wallet_session(client, submitter)
+    uploaded = _upload_text_content_via_api(client, submitter.address, text="duplicate vote base")
+    submission = _submit_signed_content_via_api(
+        client,
+        submitter,
+        submitter_headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="duplicate vote base",
+    )
+
+    voter_account = _create_metamask_account()
+    voter_headers = _verify_wallet_session(client, voter_account)
+    first_vote = _vote_signed_via_api(client, submission["submission_id"], voter_account, voter_headers, VOTE_ORIGINAL)
+
+    assert first_vote["vote_type"] == VOTE_ORIGINAL
+    second_challenge = client.post(
+        "/auth/wallet/vote-challenge",
+        json={
+            "wallet_address": voter_account.address,
+            "submission_id": submission["submission_id"],
+            "vote": VOTE_ORIGINAL,
+        },
+        headers=voter_headers,
+    )
+    assert second_challenge.status_code == 400
+    assert "already voted" in second_challenge.json()["detail"].lower()
+
+
+def test_signed_vote_rejects_creator_self_vote(blockchain):
+    client = _client(blockchain)
+    submitter = _create_metamask_account()
+    submitter_headers = _verify_wallet_session(client, submitter)
+    uploaded = _upload_text_content_via_api(client, submitter.address, text="self vote base")
+    submission = _submit_signed_content_via_api(
+        client,
+        submitter,
+        submitter_headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="self vote base",
+    )
+
+    response = client.post(
+        "/auth/wallet/vote-challenge",
+        json={
+            "wallet_address": submitter.address,
+            "submission_id": submission["submission_id"],
+            "vote": VOTE_ORIGINAL,
+        },
+        headers=submitter_headers,
+    )
+
+    assert response.status_code == 400
+    assert "cannot vote on their own submission" in response.json()["detail"].lower()
 
 
 def test_evaluate_approved_submission_enters_mint_queue(blockchain, submission_image, wallets):

@@ -1,8 +1,11 @@
 import requests
 from fastapi.testclient import TestClient
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 from peers import PeerStore
 from submission import APPROVED, MINTED, PENDING, REJECTED, Submission
+from wallet_auth import hash_wallet_message
 
 
 def _client(blockchain):
@@ -48,6 +51,11 @@ def _receive_payload(submission, origin_node_id="peer-node-1", network_name="zoi
         "network_name": network_name,
         "submission": submission,
     }
+
+
+def _sign_message(message, account):
+    signed = Account.sign_message(encode_defunct(text=message), account.key)
+    return signed.signature.hex()
 
 
 def test_receiving_valid_peer_submission(blockchain, wallets):
@@ -128,6 +136,39 @@ def test_receive_peer_submission_rejects_duplicate_content_hash(blockchain, wall
     assert response.status_code == 409
     assert response.json()["detail"] == "Submission already exists."
     assert len(blockchain.submissions) == 1
+
+
+def test_receive_peer_signed_submission_preserves_signature_metadata(blockchain):
+    client = _client(blockchain)
+    _register_peer()
+    account = Account.create()
+    submission = Submission(
+        submission_id="peer-signed-submission-1",
+        image_path="",
+        text_content="Peer signed submission",
+        submitter=account.address.lower(),
+        status=PENDING,
+        created_at=1_000_001.0,
+        creator_wallet_address=account.address.lower(),
+        signature_scheme="personal_sign",
+        submission_message="Peer signed submission message",
+        submission_nonce="peer-nonce-1",
+        signed_at="2026-07-14T00:00:00+00:00",
+        identity_source="metamask_signed",
+    )
+    submission.submission_signature = _sign_message(submission.submission_message, account)
+    submission.signed_message_hash = hash_wallet_message(submission.submission_message)
+
+    response = client.post("/peers/submissions/receive", json=_receive_payload(submission.to_dict()))
+
+    assert response.status_code == 200
+    stored = blockchain.submissions[0]
+    assert stored.submitter == account.address.lower()
+    assert stored.creator_wallet_address == account.address.lower()
+    assert stored.signature_scheme == "personal_sign"
+    assert stored.submission_signature == submission.submission_signature
+    assert stored.signed_message_hash == submission.signed_message_hash
+    assert stored.identity_source == "metamask_signed"
 
 
 def test_receive_peer_submission_does_not_downgrade_later_statuses(blockchain, wallets):

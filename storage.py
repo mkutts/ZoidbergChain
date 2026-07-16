@@ -26,11 +26,12 @@ _STORAGE_SECTIONS = (
     "content_objects",
     "mint_queue",
     "votes",
+    "transfer_intents",
     "originality_certificates",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section != "peers"
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents"}
 )
 _OPTIONAL_SQLITE_SECTIONS = {"content_objects"}
 
@@ -51,6 +52,8 @@ def _default_section_value(section_name):
     if section_name == "mint_queue":
         return []
     if section_name == "votes":
+        return []
+    if section_name == "transfer_intents":
         return []
     if section_name == "originality_certificates":
         return []
@@ -479,6 +482,23 @@ class StorageBackend(ABC):
         votes = self.load_votes() if votes is None else votes
         return self._records_where(votes, "submission_id", submission_id.strip())
 
+    def load_transfer_intents(self):
+        document = self.load_blockchain_document()
+        if not document:
+            return []
+        return document.get("transfer_intents", [])
+
+    def save_transfer_intents(self, transfer_intents) -> None:
+        document = self._load_or_new_blockchain_document()
+        document["transfer_intents"] = transfer_intents
+        self.save_blockchain_document(document)
+
+    def get_transfer_intent(self, transfer_id, transfer_intents=None):
+        if not isinstance(transfer_id, str) or not transfer_id.strip():
+            return None
+        transfer_intents = self.load_transfer_intents() if transfer_intents is None else transfer_intents
+        return self._first_record_where(transfer_intents, "transfer_id", transfer_id.strip())
+
     def load_certificates(self):
         document = self.load_blockchain_document()
         if not document:
@@ -608,11 +628,15 @@ class StorageBackend(ABC):
     def _load_or_new_blockchain_document(self) -> dict[str, Any]:
         document = self.load_blockchain_document()
         if isinstance(document, dict):
-            normalized = deepcopy(document)
-            for section_name in _STORAGE_SECTIONS:
-                normalized.setdefault(section_name, _default_section_value(section_name))
-            return normalized
+            return self._normalize_blockchain_document(document)
         return {}
+
+    @staticmethod
+    def _normalize_blockchain_document(document: dict[str, Any]) -> dict[str, Any]:
+        normalized = deepcopy(document)
+        for section_name in _STORAGE_SECTIONS:
+            normalized.setdefault(section_name, _default_section_value(section_name))
+        return normalized
 
 
 class JSONStorageBackend(StorageBackend):
@@ -642,6 +666,7 @@ class JSONStorageBackend(StorageBackend):
         return document
 
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
+        document = self._normalize_blockchain_document(document)
         backup_path = _backup_path_for(self.blockchain_file)
         create_backup = False
         if os.path.exists(self.blockchain_file) and not self._blockchain_recovered_from_backup:
@@ -813,6 +838,7 @@ class SQLiteStorageBackend(StorageBackend):
             "content_objects": sections["content_objects"],
             "mint_queue": sections["mint_queue"],
             "votes": sections["votes"],
+            "transfer_intents": sections["transfer_intents"],
             "originality_certificates": sections["originality_certificates"],
             "peers": sections["peers"],
         }

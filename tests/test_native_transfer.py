@@ -29,7 +29,7 @@ def _payload(**overrides):
         "from_address": _wallet_address(),
         "to_address": _wallet_address(),
         "amount": "1.5",
-        "nonce": 1,
+        "nonce": "nonce-1",
         "fee": "0",
         "timestamp": "2026-07-15T15:30:00Z",
         "memo": "native transfer preview",
@@ -173,6 +173,7 @@ def test_transfer_statuses_are_defined_for_future_flow():
     assert NATIVE_TRANSFER_STATUSES == (
         "draft",
         "signed",
+        "signed_pending",
         "pending",
         "rejected",
         "included",

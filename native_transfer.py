@@ -5,12 +5,9 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from validators import is_valid_network_name
-from wallet_auth import (
-    hash_wallet_message,
-    normalize_wallet_address,
-    recover_signed_wallet_address,
-)
 
 
 NATIVE_TRANSFER_ACTION = "transfer_zoid"
@@ -18,6 +15,7 @@ NATIVE_TRANSFER_SIGNATURE_SCHEME = "personal_sign"
 NATIVE_TRANSFER_STATUSES = (
     "draft",
     "signed",
+    "signed_pending",
     "pending",
     "rejected",
     "included",
@@ -27,6 +25,37 @@ NATIVE_ZOID_MAX_DECIMAL_PLACES = 6
 MAX_TRANSFER_MEMO_LENGTH = 280
 
 
+def normalize_wallet_address(wallet_address: str) -> str | None:
+    candidate = str(wallet_address or "").strip()
+    if len(candidate) != 42 or not candidate.startswith("0x"):
+        return None
+    hex_part = candidate[2:]
+    if not hex_part or any(ch not in "0123456789abcdefABCDEF" for ch in hex_part):
+        return None
+    return f"0x{hex_part.lower()}"
+
+
+def hash_wallet_message(message: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(str(message or "").encode("utf-8")).hexdigest()
+
+
+def recover_signed_wallet_address(message: str, signature: str) -> str:
+    try:
+        recovered = Account.recover_message(
+            encode_defunct(text=message),
+            signature=signature,
+        )
+    except Exception as exc:
+        raise ValueError("Malformed signature or unsupported signature payload.") from exc
+
+    recovered_normalized = normalize_wallet_address(recovered)
+    if not recovered_normalized:
+        raise ValueError("Recovered signature address is invalid.")
+    return recovered_normalized
+
+
 @dataclass(frozen=True)
 class NativeTransferMessage:
     action: str
@@ -34,7 +63,7 @@ class NativeTransferMessage:
     from_address: str
     to_address: str
     amount: str
-    nonce: int
+    nonce: str
     fee: str
     timestamp: str
     memo: str | None = None
@@ -137,6 +166,20 @@ def parse_transfer_timestamp(value: str) -> str:
     return parsed.astimezone(timezone.utc).isoformat()
 
 
+def parse_transfer_nonce(value: Any) -> str:
+    if isinstance(value, bool):
+        raise ValueError("nonce is required and must be a string or integer.")
+    if isinstance(value, int):
+        if value < 0:
+            raise ValueError("nonce cannot be negative.")
+        return str(value)
+
+    candidate = str(value or "").strip()
+    if not candidate:
+        raise ValueError("nonce is required.")
+    return candidate
+
+
 def _normalize_transfer_status(status: str | None) -> str:
     candidate = str(status or "draft").strip().lower()
     if candidate not in NATIVE_TRANSFER_STATUSES:
@@ -190,11 +233,7 @@ def validate_native_transfer_message(
     amount = parse_native_zoid_amount(payload.get("amount"), allow_zero=False)
     fee = parse_native_zoid_amount(payload.get("fee", "0"), allow_zero=True)
 
-    nonce_value = payload.get("nonce")
-    if isinstance(nonce_value, bool) or not isinstance(nonce_value, int):
-        raise ValueError("nonce is required and must be an integer.")
-    if nonce_value < 0:
-        raise ValueError("nonce cannot be negative.")
+    nonce_value = parse_transfer_nonce(payload.get("nonce"))
 
     timestamp = parse_transfer_timestamp(payload.get("timestamp"))
     memo = _normalize_transfer_memo(payload.get("memo"))

@@ -6,6 +6,14 @@ Task 7.7 defines the native ZOID transfer message model only.
 - Task 8 hardens balances, nonces, replay protection, mempool behavior, fees, and block inclusion.
 - This task does not execute transfers, mutate balances, or include transfers in blocks.
 
+Task 7.8 extends that model into signed pending transfer intents.
+
+- `POST /auth/wallet/transfer-challenge` issues the exact backend-built message for MetaMask signing.
+- `POST /transfers/submit` stores a signed transfer intent as a non-final pending record.
+- `GET /transfers/{transfer_id}` and `GET /wallets/{wallet_address}/transfers` expose safe read-only transfer intent history.
+- Pending transfer intents do not mutate native balances yet.
+- Peer propagation, mempool behavior, replay hardening, balance settlement, and block inclusion remain deferred to Task 8.
+
 ## Purpose
 
 Native ZOID transfers are ZoidbergChain-native messages, not Ethereum or ERC-20 token transfers.
@@ -107,12 +115,35 @@ Task 7.7 adds reusable signature verification helpers for future transfer submis
 - The helper does not mark a transfer final.
 - The helper does not replace future nonce, balance, replay, or mempool checks.
 
+## Task 7.8 Pending Submission Flow
+
+Task 7.8 turns the transfer model into a signed pending intent flow, not a final settlement flow.
+
+1. A verified MetaMask wallet requests `POST /auth/wallet/transfer-challenge`.
+2. The backend validates the verified `from_address`, normalizes fields, generates a single-use expiring nonce, and returns the exact signing message.
+3. MetaMask signs that exact backend message with `personal_sign`.
+4. The client submits the signed payload to `POST /transfers/submit`.
+5. The backend verifies:
+   - verified session ownership
+   - signer recovery matches `from_address`
+   - request fields still match the stored challenge
+   - nonce is still active and unused
+6. The backend stores a non-final transfer intent record with status `signed_pending`.
+
+Signed pending means:
+
+- the transfer intent was signed and accepted for future processing
+- balances are not reduced yet
+- no mempool or block inclusion happens yet
+- no ERC-20 transfer has happened
+
 ## Transfer Status Model
 
 The future transfer lifecycle statuses are:
 
 - `draft`
 - `signed`
+- `signed_pending`
 - `pending`
 - `rejected`
 - `included`
@@ -124,9 +155,7 @@ Task 7.7 defines these statuses for future use only. It does not implement a liv
 
 Deferred to Task 7.8:
 
-- signed transfer submission endpoint or handler
-- verified-session coupling for live transfer requests
-- transfer draft or pending persistence behavior
+- none; Task 7.8 implements the initial signed pending intent submission path
 
 Deferred to Task 8:
 

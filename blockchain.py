@@ -16,6 +16,7 @@ from wallet import Wallet
 from utils import hash_image
 from utils import extract_text
 import json
+from decimal import Decimal
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
@@ -102,6 +103,7 @@ class Blockchain:
         self.content_objects = []  # Persisted content payload metadata
         self.mint_queue = []  # Approved submissions waiting to be minted
         self.votes = []  # Recorded content votes
+        self.transfer_intents = []  # Signed pending native transfer intents
         self.originality_certificates = []  # Community approval certificates
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -149,6 +151,7 @@ class Blockchain:
             "content_objects": [content_object.to_dict() for content_object in self.content_objects],
             "mint_queue": self.mint_queue,
             "votes": self.votes,
+            "transfer_intents": self.transfer_intents,
             "originality_certificates": [
                 certificate.to_dict()
                 for certificate in self.originality_certificates
@@ -212,6 +215,7 @@ class Blockchain:
                 ]
                 self.mint_queue = loaded_data.get("mint_queue", [])
                 self.votes = loaded_data.get("votes", [])
+                self.transfer_intents = loaded_data.get("transfer_intents", [])
                 self.originality_certificates = [
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
@@ -231,6 +235,7 @@ class Blockchain:
                 self.content_objects = []
                 self.mint_queue = []
                 self.votes = []
+                self.transfer_intents = []
                 self.originality_certificates = []
 
         except FileNotFoundError:
@@ -241,6 +246,7 @@ class Blockchain:
             self.content_objects = []
             self.mint_queue = []
             self.votes = []
+            self.transfer_intents = []
             self.originality_certificates = []
         except json.JSONDecodeError:
             print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
@@ -250,6 +256,7 @@ class Blockchain:
             self.content_objects = []
             self.mint_queue = []
             self.votes = []
+            self.transfer_intents = []
             self.originality_certificates = []
         except Exception as e:
             print(f"Debug: Unexpected error loading blockchain - {e}")
@@ -259,6 +266,7 @@ class Blockchain:
             self.content_objects = []
             self.mint_queue = []
             self.votes = []
+            self.transfer_intents = []
             self.originality_certificates = []
 
         return False
@@ -1116,6 +1124,75 @@ class Blockchain:
                 }
             )
         return reward_records
+
+    def create_signed_transfer_intent(
+        self,
+        *,
+        from_address,
+        to_address,
+        amount,
+        fee,
+        memo,
+        network,
+        signature_scheme,
+        signature,
+        signed_message_hash,
+        transfer_nonce,
+        signed_at,
+        status="signed_pending",
+        created_at=None,
+    ):
+        record = {
+            "transfer_id": os.urandom(16).hex(),
+            "from_address": self._normalize_native_wallet_identity(from_address),
+            "to_address": self._normalize_native_wallet_identity(to_address),
+            "amount": str(amount),
+            "fee": str(fee),
+            "memo": str(memo or "").strip() or None,
+            "network": str(network),
+            "signature_scheme": str(signature_scheme),
+            "signature": str(signature),
+            "signed_message_hash": str(signed_message_hash),
+            "transfer_nonce": str(transfer_nonce),
+            "signed_at": str(signed_at),
+            "status": str(status),
+            "created_at": created_at if created_at is not None else time.time(),
+        }
+        if not record["from_address"] or not record["to_address"]:
+            raise ValueError("Transfer intent wallet addresses are invalid.")
+        self.transfer_intents.append(record)
+        return record
+
+    def get_transfer_intent(self, transfer_id):
+        return self.storage.get_transfer_intent(transfer_id, self.transfer_intents)
+
+    def get_transfer_intents_for_wallet(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        return [
+            record
+            for record in self.transfer_intents
+            if self._normalize_native_wallet_identity(record.get("from_address")) == normalized_wallet
+            or self._normalize_native_wallet_identity(record.get("to_address")) == normalized_wallet
+        ]
+
+    def get_pending_outgoing_transfer_amount(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return "0"
+        pending_statuses = {"signed_pending", "pending", "draft_signed", "signed"}
+        total = Decimal("0")
+        for record in self.transfer_intents:
+            if record.get("status") not in pending_statuses:
+                continue
+            if self._normalize_native_wallet_identity(record.get("from_address")) != normalized_wallet:
+                continue
+            total += Decimal(str(record.get("amount") or "0"))
+        normalized_total = format(total.normalize(), "f")
+        if "." in normalized_total:
+            normalized_total = normalized_total.rstrip("0").rstrip(".")
+        return normalized_total if normalized_total and normalized_total != "-0" else "0"
 
     def require_valid_certificate_for_submission(self, submission):
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)

@@ -96,6 +96,7 @@ from wallet_auth import (
     normalize_wallet_address,
     resolve_verified_wallet_from_authorization,
 )
+from native_transfer import MAX_TRANSFER_MEMO_LENGTH
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -356,6 +357,24 @@ class WalletVoteChallengeRequest(_StrictBodyModel):
     vote: VoteTypeValue
 
 
+class WalletTransferChallengeRequest(_StrictBodyModel):
+    from_address: EthereumWalletAddressValue
+    to_address: EthereumWalletAddressValue
+    amount: Annotated[str, Field(min_length=1, max_length=64)]
+    fee: Annotated[str, Field(min_length=1, max_length=64)] = "0"
+    memo: Annotated[str | None, Field(max_length=MAX_TRANSFER_MEMO_LENGTH)] = None
+
+
+class WalletTransferSubmitRequest(_StrictBodyModel):
+    from_address: EthereumWalletAddressValue
+    to_address: EthereumWalletAddressValue
+    amount: Annotated[str, Field(min_length=1, max_length=64)]
+    fee: Annotated[str, Field(min_length=1, max_length=64)] = "0"
+    memo: Annotated[str | None, Field(max_length=MAX_TRANSFER_MEMO_LENGTH)] = None
+    message: Annotated[str, Field(min_length=1, max_length=4096)]
+    signature: Annotated[str, Field(min_length=1, max_length=4096)]
+
+
 def _short_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -484,6 +503,26 @@ def _serialize_block(block):
         if download_url:
             body["download_url"] = download_url
     return body
+
+
+def _serialize_transfer_intent(transfer_intent):
+    return {
+        "transfer_id": transfer_intent.get("transfer_id"),
+        "status": transfer_intent.get("status"),
+        "from_address": transfer_intent.get("from_address"),
+        "to_address": transfer_intent.get("to_address"),
+        "amount": transfer_intent.get("amount"),
+        "fee": transfer_intent.get("fee"),
+        "memo": transfer_intent.get("memo"),
+        "network": transfer_intent.get("network"),
+        "signature_scheme": transfer_intent.get("signature_scheme"),
+        "signed_message_hash": transfer_intent.get("signed_message_hash"),
+        "transfer_nonce": transfer_intent.get("transfer_nonce"),
+        "signed_at": transfer_intent.get("signed_at"),
+        "created_at": transfer_intent.get("created_at"),
+        "settlement_state": "non_final",
+        "status_detail": "Pending transaction processing. Balances are not reduced yet.",
+    }
 
 
 def _public_content_upload_response(content_object):
@@ -1028,6 +1067,31 @@ async def create_wallet_vote_challenge(
     return challenge
 
 
+@app.post("/auth/wallet/transfer-challenge")
+@api_limit("wallet_create")
+async def create_wallet_transfer_challenge(
+    request: Request,
+    payload: WalletTransferChallengeRequest,
+    wallet_address: str = Depends(_verified_wallet_dependency),
+):
+    normalized_from = normalize_wallet_address(payload.from_address)
+    if normalized_from is None or normalized_from != wallet_address:
+        raise HTTPException(status_code=403, detail="from_address must match the verified wallet session.")
+
+    try:
+        challenge = wallet_auth_manager.issue_transfer_challenge(
+            from_address=wallet_address,
+            to_address=payload.to_address,
+            amount=payload.amount,
+            fee=payload.fee,
+            memo=payload.memo,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return challenge
+
+
 @app.get("/auth/wallet/session")
 @api_limit("public_read")
 async def get_wallet_session(
@@ -1054,6 +1118,62 @@ async def logout_wallet_session(request: Request, authorization: str | None = He
         "revoked": revoked,
         "message": "Wallet session cleared.",
     }
+
+
+@app.post("/transfers/submit")
+@api_limit("wallet_create")
+async def submit_transfer_intent(
+    request: Request,
+    payload: WalletTransferSubmitRequest,
+    wallet_address: str = Depends(_verified_wallet_dependency),
+):
+    normalized_from = normalize_wallet_address(payload.from_address)
+    if normalized_from is None or normalized_from != wallet_address:
+        raise HTTPException(status_code=403, detail="from_address must match the verified wallet session.")
+
+    starting_balance = blockchain.get_native_balance(wallet_address)
+    try:
+        verification = wallet_auth_manager.verify_transfer_signature(
+            wallet_address=wallet_address,
+            from_address=payload.from_address,
+            to_address=payload.to_address,
+            amount=payload.amount,
+            fee=payload.fee,
+            memo=payload.memo,
+            message=payload.message,
+            signature=payload.signature,
+        )
+        transfer_intent = blockchain.create_signed_transfer_intent(
+            from_address=str(verification["from_address"]),
+            to_address=str(verification["to_address"]),
+            amount=str(verification["amount"]),
+            fee=str(verification["fee"]),
+            memo=str(verification["memo"] or ""),
+            network=NETWORK_NAME,
+            signature_scheme=str(verification["signature_scheme"]),
+            signature=str(verification["transfer_signature"]),
+            signed_message_hash=str(verification["signed_message_hash"]),
+            transfer_nonce=str(verification["nonce"]),
+            signed_at=str(verification["signed_at"]),
+            status="signed_pending",
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 400
+        if "expired" in detail.lower() or "already been used" in detail.lower():
+            status_code = 401
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+    ending_balance = blockchain.get_native_balance(wallet_address)
+    if ending_balance != starting_balance:
+        raise HTTPException(status_code=500, detail="Transfer intent submission must not mutate balances.")
+
+    body = _serialize_transfer_intent(transfer_intent)
+    body["message"] = (
+        "Signed transfer submitted. Settlement is not active until transaction processing is enabled."
+    )
+    return body
 
 
 @app.post("/peers/register")
@@ -2266,11 +2386,15 @@ async def get_native_wallet_balance(request: Request, wallet_address: str):
     try:
         normalized_wallet = _normalize_supported_user_identity(wallet_address, field_name="wallet address")
         balance = blockchain.get_native_balance(normalized_wallet)
+        pending_outgoing = blockchain.get_pending_outgoing_transfer_amount(normalized_wallet)
         return {
             "wallet_address": normalized_wallet,
             "native_balance": str(balance),
+            "pending_outgoing": pending_outgoing,
+            "available_balance": str(balance),
             "symbol": COIN_NAME,
             "network_name": NETWORK_NAME,
+            "note": "Pending transfers are not settled until transaction processing is enabled.",
         }
     except HTTPException:
         raise
@@ -2296,6 +2420,41 @@ async def get_native_wallet_rewards(request: Request, wallet_address: str):
     except Exception as e:
         logging.error("ERROR retrieving rewards for wallet %s: %s", _short_key(wallet_address), e)
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/wallets/{wallet_address}/transfers")
+@api_limit("public_read")
+async def get_wallet_transfer_intents(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_supported_user_identity(wallet_address, field_name="wallet address")
+        transfers = [
+            _serialize_transfer_intent(record)
+            for record in blockchain.get_transfer_intents_for_wallet(normalized_wallet)
+        ]
+        transfers.sort(key=lambda record: record.get("created_at") or 0, reverse=True)
+        return {
+            "wallet_address": normalized_wallet,
+            "network_name": NETWORK_NAME,
+            "transfers": transfers,
+            "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving transfer intents for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/transfers/{transfer_id}")
+@api_limit("public_read")
+async def get_transfer_intent(request: Request, transfer_id: str):
+    transfer_intent = blockchain.get_transfer_intent(transfer_id)
+    if not transfer_intent:
+        raise HTTPException(status_code=404, detail=f"Transfer intent not found: {transfer_id}")
+    return {
+        "transfer": _serialize_transfer_intent(transfer_intent),
+        "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+    }
 
 @app.get("/get_reward_pool_balance")
 @api_limit("public_read")

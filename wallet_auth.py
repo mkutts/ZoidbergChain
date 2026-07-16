@@ -8,6 +8,11 @@ from datetime import datetime, timedelta, timezone
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from fastapi import Header, HTTPException
+from native_transfer import (
+    build_transfer_signing_message,
+    validate_native_transfer_message,
+    verify_transfer_signature as verify_signed_native_transfer_message,
+)
 
 
 ETHEREUM_ADDRESS_PATTERN = r"^0x[a-fA-F0-9]{40}$"
@@ -55,6 +60,21 @@ class VoteChallenge:
     content_hash: str
     vote_type: str
     nonce: str
+    message: str
+    issued_at: datetime
+    expires_at: datetime
+    used: bool = False
+
+
+@dataclass
+class TransferChallenge:
+    from_address: str
+    to_address: str
+    amount: str
+    fee: str
+    memo: str | None
+    nonce: str
+    timestamp: str
     message: str
     issued_at: datetime
     expires_at: datetime
@@ -197,12 +217,14 @@ class WalletAuthManager:
         self._sessions_by_token_hash: dict[str, WalletSession] = {}
         self._submission_challenges_by_message_hash: dict[str, SubmissionChallenge] = {}
         self._vote_challenges_by_message_hash: dict[str, VoteChallenge] = {}
+        self._transfer_challenges_by_message_hash: dict[str, TransferChallenge] = {}
 
     def clear(self) -> None:
         self._challenges_by_wallet.clear()
         self._sessions_by_token_hash.clear()
         self._submission_challenges_by_message_hash.clear()
         self._vote_challenges_by_message_hash.clear()
+        self._transfer_challenges_by_message_hash.clear()
 
     def prune_expired(self) -> None:
         now = _utc_now()
@@ -224,6 +246,11 @@ class WalletAuthManager:
         self._vote_challenges_by_message_hash = {
             message_hash: challenge
             for message_hash, challenge in self._vote_challenges_by_message_hash.items()
+            if challenge.expires_at > now
+        }
+        self._transfer_challenges_by_message_hash = {
+            message_hash: challenge
+            for message_hash, challenge in self._transfer_challenges_by_message_hash.items()
             if challenge.expires_at > now
         }
 
@@ -534,6 +561,162 @@ class WalletAuthManager:
             "signed_at": _isoformat(signed_at),
             "identity_source": "metamask_signed",
             "message": "Vote signature verified",
+        }
+
+    def issue_transfer_challenge(
+        self,
+        *,
+        from_address: str,
+        to_address: str,
+        amount: str,
+        fee: str = "0",
+        memo: str | None = None,
+    ) -> dict[str, str | dict[str, str]]:
+        self.prune_expired()
+        normalized_from = normalize_wallet_address(from_address)
+        if not normalized_from:
+            raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
+
+        issued_at = _utc_now()
+        expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
+        nonce = secrets.token_urlsafe(24)
+        timestamp = _isoformat(issued_at)
+        transfer_message = validate_native_transfer_message(
+            {
+                "action": "transfer_zoid",
+                "network": self.network_name,
+                "from_address": normalized_from,
+                "to_address": to_address,
+                "amount": amount,
+                "nonce": nonce,
+                "fee": fee,
+                "timestamp": timestamp,
+                "memo": memo,
+                "status": "draft",
+            },
+            network_name=self.network_name,
+        )
+        message = build_transfer_signing_message(transfer_message)
+        challenge = TransferChallenge(
+            from_address=transfer_message.from_address,
+            to_address=transfer_message.to_address,
+            amount=transfer_message.amount,
+            fee=transfer_message.fee,
+            memo=transfer_message.memo,
+            nonce=transfer_message.nonce,
+            timestamp=transfer_message.timestamp,
+            message=message,
+            issued_at=issued_at,
+            expires_at=expires_at,
+        )
+        self._transfer_challenges_by_message_hash[hash_wallet_message(message)] = challenge
+        return {
+            "from_address": challenge.from_address,
+            "to_address": challenge.to_address,
+            "amount": challenge.amount,
+            "fee": challenge.fee,
+            "memo": challenge.memo or "",
+            "nonce": challenge.nonce,
+            "message": challenge.message,
+            "issued_at": _isoformat(challenge.issued_at),
+            "expires_at": _isoformat(challenge.expires_at),
+            "transfer_preview": {
+                "from_address": challenge.from_address,
+                "to_address": challenge.to_address,
+                "amount": challenge.amount,
+                "fee": challenge.fee,
+                "network": self.network_name,
+            },
+        }
+
+    def verify_transfer_signature(
+        self,
+        *,
+        wallet_address: str,
+        from_address: str,
+        to_address: str,
+        amount: str,
+        fee: str,
+        memo: str | None,
+        message: str,
+        signature: str,
+    ) -> dict[str, str | bool]:
+        self.prune_expired()
+        normalized_wallet = normalize_wallet_address(wallet_address)
+        if not normalized_wallet:
+            raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
+        normalized_from = normalize_wallet_address(from_address)
+        if not normalized_from:
+            raise ValueError("from_address must be a valid Ethereum-style 0x address.")
+        if normalized_wallet != normalized_from:
+            raise ValueError("Transfer challenge wallet does not match the verified session wallet.")
+        if not isinstance(signature, str) or not signature.strip():
+            raise ValueError("Missing signature.")
+        if not isinstance(message, str) or not message.strip():
+            raise ValueError("Missing signed transfer message.")
+
+        message_hash = hash_wallet_message(message)
+        challenge = self._transfer_challenges_by_message_hash.get(message_hash)
+        if challenge is None:
+            raise ValueError("No active transfer challenge found for this message.")
+        if challenge.used:
+            raise ValueError("Transfer challenge has already been used.")
+        if challenge.expires_at <= _utc_now():
+            raise ValueError("Transfer challenge has expired.")
+        if message != challenge.message:
+            raise ValueError("Transfer challenge message does not match the stored challenge.")
+        if challenge.from_address != normalized_wallet:
+            raise ValueError("Transfer challenge wallet does not match the verified session wallet.")
+
+        requested_transfer = validate_native_transfer_message(
+            {
+                "action": "transfer_zoid",
+                "network": self.network_name,
+                "from_address": normalized_from,
+                "to_address": to_address,
+                "amount": amount,
+                "nonce": challenge.nonce,
+                "fee": fee,
+                "timestamp": challenge.timestamp,
+                "memo": memo,
+                "status": "signed_pending",
+            },
+            network_name=self.network_name,
+        )
+        if requested_transfer.to_address != challenge.to_address:
+            raise ValueError("Transfer to_address does not match the signed challenge.")
+        if requested_transfer.amount != challenge.amount:
+            raise ValueError("Transfer amount does not match the signed challenge.")
+        if requested_transfer.fee != challenge.fee:
+            raise ValueError("Transfer fee does not match the signed challenge.")
+        if (requested_transfer.memo or None) != challenge.memo:
+            raise ValueError("Transfer memo does not match the signed challenge.")
+
+        verification = verify_signed_native_transfer_message(
+            message,
+            signature,
+            normalized_from,
+        )
+        challenge.used = True
+        signed_at = _utc_now()
+        return {
+            "verified": True,
+            "from_address": challenge.from_address,
+            "to_address": challenge.to_address,
+            "amount": challenge.amount,
+            "fee": challenge.fee,
+            "memo": challenge.memo or "",
+            "nonce": challenge.nonce,
+            "timestamp": challenge.timestamp,
+            "signature_scheme": verification.signature_scheme,
+            "transfer_signature": signature.strip(),
+            "transfer_message": challenge.message,
+            "signed_message_hash": verification.signed_message_hash,
+            "issued_at": _isoformat(challenge.issued_at),
+            "expires_at": _isoformat(challenge.expires_at),
+            "signed_at": _isoformat(signed_at),
+            "identity_source": "metamask_signed",
+            "message": "Transfer signature verified",
         }
 
     def resolve_session(self, token: str) -> WalletSession:

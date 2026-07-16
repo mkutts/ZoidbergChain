@@ -195,29 +195,12 @@ Approved meaning of the signature:
 
 ## Native Transfer Model
 
-Task 7 defines MetaMask-signed native transfer messages as the initial transfer model. It does not implement full transaction hardening yet.
+Task 7.7 defines the canonical native ZOID transfer message model only. It does not execute transfers, mutate balances, include transfers in blocks, or implement mempool behavior yet.
 
-Draft transfer message shape:
-
-```json
-{
-  "action": "transfer_zoid",
-  "network": "zoidberg-testnet-1",
-  "from_address": "0x...",
-  "to_address": "0x...",
-  "amount": "10",
-  "nonce": 1,
-  "fee": "0",
-  "timestamp": "...",
-  "signature": "..."
-}
-```
-
-Transfer model notes:
-
-- Task 7 introduces and defines MetaMask-signed transfer messages.
-- After the initial message-signing phase, the transfer model evolves into fuller transaction validation, nonce handling, replay protection, fees, mempool behavior, and block inclusion.
-- Native ZOID transfers are not ERC-20 transfers.
+- Native transfers are MetaMask-signed ZoidbergChain messages, not ERC-20 transfers.
+- Task 7.8 is the planned transfer-submission step.
+- Task 8 is the planned hardening step for balances, replay protection, mempool behavior, fees, and block inclusion.
+- The detailed transfer payload, canonical signing message, provisional decimal strategy, and future transfer statuses are documented in [docs/native-transfer-message-model.md](C:/Users/mattk/ZoidbergChain/docs/native-transfer-message-model.md).
 
 ## Clean Reset / Legacy Strategy
 

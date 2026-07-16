@@ -141,197 +141,43 @@
     "submissions": [
         {
             "submission_id": "82913769332c458abee824172ec68c0a",
-            "image_path": "temp\\submissions\\ZoidbergCoin_Logo.webp",
+            "image_path": "temp/submissions/ZoidbergCoin_Logo.webp",
             "text_content": "Task 1 manual verification meme",
             "submitter": "036725dd21d8b645f4caeb7f35e2711657b1b5449ef2bc2b3042cd90ff6408f0e8",
             "status": "minted",
             "created_at": 1782789717.0715106,
             "hard_reject_reason": null,
-            "content_hash": "a2a59eaa40238bd4ac70d64b0486f006e236238812f34ea1934f17bbdb082d91",
-            "content_id": "fe72c0f2d0422fd35018dd584c35f668",
-            "certificate_id": null,
-            "mint_blocked": false,
-            "mint_block_reason": null,
-            "mint_blocked_at": null,
-            "mint_blocked_by": null,
-            "mint_block_notes": null,
-            "creator_wallet_address": "036725dd21d8b645f4caeb7f35e2711657b1b5449ef2bc2b3042cd90ff6408f0e8",
-            "signature_scheme": null,
-            "submission_signature": null,
-            "submission_message": null,
-            "signed_message_hash": null,
-            "submission_nonce": null,
-            "signed_at": null,
-            "identity_source": null
+            "content_hash": "a2a59eaa40238bd4ac70d64b0486f006e236238812f34ea1934f17bbdb082d91"
         },
         {
             "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
-            "image_path": "temp\\submissions\\images.jpg",
+            "image_path": "temp/submissions/images.jpg",
             "text_content": "hey now",
             "submitter": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
             "status": "rejected",
             "created_at": 1782837483.1216776,
             "hard_reject_reason": null,
-            "content_hash": "983886ddf3faaaab49480e7ae170d7048e354b915ff9ab90df0577d9cbe3da30",
-            "content_id": "e5cbf063204f7ad869572b849c71bc9c",
-            "certificate_id": null,
-            "mint_blocked": false,
-            "mint_block_reason": null,
-            "mint_blocked_at": null,
-            "mint_blocked_by": null,
-            "mint_block_notes": null,
-            "creator_wallet_address": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "signature_scheme": null,
-            "submission_signature": null,
-            "submission_message": null,
-            "signed_message_hash": null,
-            "submission_nonce": null,
-            "signed_at": null,
-            "identity_source": null
+            "content_hash": "983886ddf3faaaab49480e7ae170d7048e354b915ff9ab90df0577d9cbe3da30"
         },
         {
             "submission_id": "e2a6a64f5b8949bf8287b2e209b397ef",
-            "image_path": "temp\\submissions\\images.jpg",
+            "image_path": "temp/submissions/images.jpg",
             "text_content": "HI",
             "submitter": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
             "status": "minted",
             "created_at": 1782851503.3180444,
             "hard_reject_reason": null,
-            "content_hash": "dcc7d95c9f28f1125c4e969cef75da5ab18cfae2f03df175f309f73ab6d8aede",
-            "content_id": "d6963988ddc9a581be0c226e9dbc4790",
-            "certificate_id": null,
-            "mint_blocked": false,
-            "mint_block_reason": null,
-            "mint_blocked_at": null,
-            "mint_blocked_by": null,
-            "mint_block_notes": null,
-            "creator_wallet_address": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "signature_scheme": null,
-            "submission_signature": null,
-            "submission_message": null,
-            "signed_message_hash": null,
-            "submission_nonce": null,
-            "signed_at": null,
-            "identity_source": null
+            "content_hash": "dcc7d95c9f28f1125c4e969cef75da5ab18cfae2f03df175f309f73ab6d8aede"
         },
         {
             "submission_id": "6fa742d5e7324f25a1b204f64d89e208",
-            "image_path": "temp\\submissions\\zoidberg.jpg",
+            "image_path": ".\\temp\\submissions\\zoidberg.jpg",
             "text_content": "two node submission",
             "submitter": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "status": "rejected",
+            "status": "pending",
             "created_at": 1782855464.3879857,
             "hard_reject_reason": null,
-            "content_hash": "1d42f506e6191a9294d560f40a389dabf912a1cb36863cce75ba65dcd9759c63",
-            "content_id": "1f7e550d3c83ddf9d328122745a229a2",
-            "certificate_id": null,
-            "mint_blocked": false,
-            "mint_block_reason": null,
-            "mint_blocked_at": null,
-            "mint_blocked_by": null,
-            "mint_block_notes": null,
-            "creator_wallet_address": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "signature_scheme": null,
-            "submission_signature": null,
-            "submission_message": null,
-            "signed_message_hash": null,
-            "submission_nonce": null,
-            "signed_at": null,
-            "identity_source": null
-        }
-    ],
-    "content_objects": [
-        {
-            "content_id": "fe72c0f2d0422fd35018dd584c35f668",
-            "content_hash": "a2a59eaa40238bd4ac70d64b0486f006e236238812f34ea1934f17bbdb082d91",
-            "content_type": "mixed",
-            "mime_type": "image/webp",
-            "file_name": "ZoidbergCoin_Logo.webp",
-            "file_size_bytes": 196562,
-            "storage_status": "local",
-            "local_path": "temp\\submissions\\ZoidbergCoin_Logo.webp",
-            "text_content": "Task 1 manual verification meme",
-            "caption": "Task 1 manual verification meme",
-            "submitted_by": "036725dd21d8b645f4caeb7f35e2711657b1b5449ef2bc2b3042cd90ff6408f0e8",
-            "created_at": 1782789717.0715106,
-            "network_name": "zoidberg-testnet",
-            "metadata": {
-                "submission_id": "82913769332c458abee824172ec68c0a",
-                "byte_hash": "453e815a92b06e0756573c47bae3d7bfab7360789d166b2676854382a9eaa975",
-                "original_filename": "ZoidbergCoin_Logo.webp"
-            },
-            "hash_scheme": "legacy",
-            "verified_at": null,
-            "verification_error": "legacy_unverifiable"
-        },
-        {
-            "content_id": "e5cbf063204f7ad869572b849c71bc9c",
-            "content_hash": "983886ddf3faaaab49480e7ae170d7048e354b915ff9ab90df0577d9cbe3da30",
-            "content_type": "mixed",
-            "mime_type": "image/jpeg",
-            "file_name": "images.jpg",
-            "file_size_bytes": 30108,
-            "storage_status": "local",
-            "local_path": "temp\\submissions\\images.jpg",
-            "text_content": "hey now",
-            "caption": "hey now",
-            "submitted_by": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "created_at": 1782837483.1216776,
-            "network_name": "zoidberg-testnet",
-            "metadata": {
-                "submission_id": "3bcd03dcea4e4c3f91fc7e76c987554f",
-                "byte_hash": "28ef3f73aa6fd0fcb0bdd0c89470ea6081bfd8d2279d473d8643340db7b1ef12",
-                "original_filename": "images.jpg"
-            },
-            "hash_scheme": "legacy",
-            "verified_at": null,
-            "verification_error": "legacy_unverifiable"
-        },
-        {
-            "content_id": "d6963988ddc9a581be0c226e9dbc4790",
-            "content_hash": "dcc7d95c9f28f1125c4e969cef75da5ab18cfae2f03df175f309f73ab6d8aede",
-            "content_type": "mixed",
-            "mime_type": "image/jpeg",
-            "file_name": "images.jpg",
-            "file_size_bytes": 30108,
-            "storage_status": "local",
-            "local_path": "temp\\submissions\\images.jpg",
-            "text_content": "HI",
-            "caption": "HI",
-            "submitted_by": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "created_at": 1782851503.3180444,
-            "network_name": "zoidberg-testnet",
-            "metadata": {
-                "submission_id": "e2a6a64f5b8949bf8287b2e209b397ef",
-                "byte_hash": "28ef3f73aa6fd0fcb0bdd0c89470ea6081bfd8d2279d473d8643340db7b1ef12",
-                "original_filename": "images.jpg"
-            },
-            "hash_scheme": "legacy",
-            "verified_at": null,
-            "verification_error": "legacy_unverifiable"
-        },
-        {
-            "content_id": "1f7e550d3c83ddf9d328122745a229a2",
-            "content_hash": "1d42f506e6191a9294d560f40a389dabf912a1cb36863cce75ba65dcd9759c63",
-            "content_type": "mixed",
-            "mime_type": "image/jpeg",
-            "file_name": "zoidberg.jpg",
-            "file_size_bytes": 57343,
-            "storage_status": "local",
-            "local_path": "temp\\submissions\\zoidberg.jpg",
-            "text_content": "two node submission",
-            "caption": "two node submission",
-            "submitted_by": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
-            "created_at": 1782855464.3879857,
-            "network_name": "zoidberg-testnet",
-            "metadata": {
-                "submission_id": "6fa742d5e7324f25a1b204f64d89e208",
-                "byte_hash": "dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7",
-                "original_filename": "zoidberg.jpg"
-            },
-            "hash_scheme": "legacy",
-            "verified_at": null,
-            "verification_error": "legacy_unverifiable"
+            "content_hash": "1d42f506e6191a9294d560f40a389dabf912a1cb36863cce75ba65dcd9759c63"
         }
     ],
     "mint_queue": [],
@@ -427,8 +273,6 @@
             "created_at": 1782851584.3299282
         }
     ],
-    "transfer_intents": [],
-    "originality_certificates": [],
     "wallets": {
         "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1": {
             "public_key": "035da91d171ea60276d7a7274cd38f27945c33a5468d609de5d10060bec4b936e1",
@@ -461,19 +305,6 @@
         "03ef91b34c1697fa291ce3e946feffddf15d5340853367926e966e29711690b8ac": {
             "public_key": "03ef91b34c1697fa291ce3e946feffddf15d5340853367926e966e29711690b8ac",
             "private_key": "6dd99c84784243a704010608a3872a7ce12ce6c4c66ffef470170177555e64a1"
-        },
-        "03dec8799f996e8fc91564bd290f258d0de5c4dd719513764e70d5b9d0dbae6ba5": {
-            "public_key": "03dec8799f996e8fc91564bd290f258d0de5c4dd719513764e70d5b9d0dbae6ba5",
-            "private_key": "6f6c4729886f74a7c2296b2a151b2acd6c418d6ab6ad8d60153eb3bb24a5207f"
-        },
-        "0219f7b91b220ef37e0cc0ddbecaa7e36afa484b553ba024498ae072e9a51fb94e": {
-            "public_key": "0219f7b91b220ef37e0cc0ddbecaa7e36afa484b553ba024498ae072e9a51fb94e",
-            "private_key": "3562f2f8682877c004a9e76ddf3db8f6912b94bc5bd209c22174e339b96e389a"
-        },
-        "033b31bea4ef30303712e705d317f1f7a1717dd3ac27bf41341928cb7848e7e50c": {
-            "public_key": "033b31bea4ef30303712e705d317f1f7a1717dd3ac27bf41341928cb7848e7e50c",
-            "private_key": "1f03f6572a3dfb6906136ac236ff958b08a54bbf75506730d947441fcb552b58"
         }
-    },
-    "peers": []
+    }
 }

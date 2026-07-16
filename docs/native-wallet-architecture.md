@@ -224,6 +224,21 @@ Task 7.7 defines the canonical native ZOID transfer message model only. It does 
 - Transfer inclusion in meme-mined blocks must not change Meme Proof of Originality or originality scoring.
 - Wrapped ZOID remains a later bridge or liquidity feature and is not part of this native transaction-settlement plan.
 
+## Task 7.10 Wallet And Transfer UI
+
+- Task 7.10 cleans up the wallet-facing UI without changing settlement behavior.
+- The verified wallet panel clearly shows:
+  - connected wallet address
+  - verified or unverified session state
+  - native ZOID balance on ZoidbergChain
+  - reward history for meme-mining rewards
+  - signed transfer-intent history
+- The UI explicitly reminds users that native ZOID does not appear in normal MetaMask yet.
+- The UI must not imply that MetaMask stores the native ZOID balance.
+- Transfer records are labeled as signed transfer intents with pending transaction processing and not settled yet.
+- Pending transfer intents do not reduce the displayed final native balance unless a separate safe available-balance field is provided.
+- Submission and voting flows continue to use the verified MetaMask wallet identity rather than old development-wallet assumptions.
+
 ## Clean Reset / Legacy Strategy
 
 - Current users and wallets are test artifacts.

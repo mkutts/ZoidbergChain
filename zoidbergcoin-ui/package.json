@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node ./scripts/dev.mjs",
     "build": "node ./scripts/build.mjs",
-    "test": "node --test src/utils/walletAddress.test.js src/services/wallet.test.js src/services/nativeTransfer.test.js",
+    "test": "node --test src/utils/walletAddress.test.js src/utils/nativeWalletUi.test.js src/services/wallet.test.js src/services/nativeTransfer.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

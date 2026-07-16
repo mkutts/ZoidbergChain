@@ -4,7 +4,7 @@
       <p class="wallet-label">Wallet Connection</p>
       <h2>MetaMask For ZoidbergChain Signing</h2>
       <p class="wallet-note">
-        MetaMask provides the signing key. ZOID is native to ZoidbergChain and will not appear in normal MetaMask yet.
+        MetaMask provides the signing key. Native ZOID lives on ZoidbergChain and does not appear in normal MetaMask yet.
       </p>
     </div>
 
@@ -16,19 +16,57 @@
       <template v-if="wallet.state.isConnected">
         <p class="address-short">{{ shortenedAddress }}</p>
         <p class="address-full">{{ wallet.state.normalizedWalletAddress }}</p>
-        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified ZoidbergChain wallet. This session is the active identity for app actions that require verified wallet ownership.</p>
-        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore wallet identity.</p>
-        <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet to use it as your ZoidbergChain identity.</p>
+        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified ZoidbergChain wallet. This session is the active identity for MetaMask-signed submissions, votes, and transfer intents.</p>
+        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore the active ZoidbergChain wallet identity.</p>
+        <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet before using it as a ZoidbergChain wallet identity.</p>
         <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
         <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
           Session expires at: {{ sessionExpiryLabel }}
         </p>
+
         <div v-if="wallet.state.isVerifiedSession" class="native-balance-card">
           <span class="native-balance-label">Native ZOID balance on ZoidbergChain</span>
           <strong class="native-balance-value">{{ nativeBalanceLabel }}</strong>
-          <p class="wallet-meta">This balance is tracked by ZoidbergChain and does not appear in normal MetaMask.</p>
-          <p v-if="pendingOutgoingLabel" class="wallet-meta">Pending outgoing transfer intents: {{ pendingOutgoingLabel }}</p>
+          <div v-if="balanceSummaryRows.length" class="wallet-summary-list">
+            <div v-for="row in balanceSummaryRows" :key="row.label" class="wallet-summary-row">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+            </div>
+          </div>
+          <p class="wallet-meta">Native ZOID does not appear in normal MetaMask yet.</p>
+          <p class="wallet-meta">{{ balanceNote }}</p>
         </div>
+
+        <div v-if="wallet.state.isVerifiedSession" class="reward-card">
+          <div class="history-header">
+            <span class="native-balance-label">Native ZOID Reward History</span>
+            <button
+              type="button"
+              class="wallet-btn secondary compact"
+              @click="refreshRewardHistory"
+              :disabled="isRewardHistoryLoading"
+            >
+              {{ isRewardHistoryLoading ? 'Refreshing Rewards...' : 'Refresh Rewards' }}
+            </button>
+          </div>
+          <p v-if="rewardError" class="wallet-error">{{ rewardError }}</p>
+          <p v-else-if="!rewardHistory.length" class="wallet-meta">No native ZOID rewards yet.</p>
+          <ul v-else class="history-list">
+            <li v-for="reward in rewardHistory" :key="reward.block_hash || reward.submission_id || reward.minted_at" class="history-card">
+              <div class="history-title-row">
+                <strong>{{ reward.reward_amount }} {{ nativeBalanceSymbol }}</strong>
+                <span>{{ formatDateTime(reward.minted_at) || 'Unknown time' }}</span>
+              </div>
+              <div class="history-grid">
+                <div v-for="item in rewardSummary(reward)" :key="`${reward.block_hash || reward.submission_id}-${item.label}`">
+                  <span>{{ item.label }}</span>
+                  <strong>{{ formatHistoryValue(item.value) }}</strong>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
         <div class="transfer-card">
           <span class="native-balance-label">Native ZOID Transfer Preview</span>
           <template v-if="wallet.state.isVerifiedSession">
@@ -70,15 +108,55 @@
             <p v-if="transferSuccessMessage" class="wallet-meta transfer-success">{{ transferSuccessMessage }}</p>
             <p v-if="transferError" class="wallet-error">{{ transferError }}</p>
             <div class="transfer-history">
-              <p class="wallet-meta transfer-history-title">Recent Transfer Intents</p>
+              <p class="wallet-meta transfer-history-title">Signed Transfer Intent History</p>
               <p v-if="!transferHistory.length" class="wallet-meta">No signed transfer intents yet.</p>
-              <ul v-else class="transfer-history-list">
-                <li v-for="transfer in transferHistory" :key="transfer.transfer_id" class="transfer-history-item">
-                  <strong>{{ transfer.status }}</strong>
-                  <span>{{ wallet.shortenAddress(transfer.from_address) }} → {{ wallet.shortenAddress(transfer.to_address) }}</span>
-                  <span>{{ transfer.amount }} ZOID</span>
-                </li>
-              </ul>
+              <template v-else>
+                <p class="wallet-meta">Pending transaction processing. These records are not settled yet.</p>
+                <ul class="history-list">
+                  <li v-for="transfer in transferHistory" :key="transfer.transfer_id" class="history-card">
+                    <div class="history-title-row">
+                      <strong>{{ transferStatusLabel(transfer.status) }}</strong>
+                      <span>{{ transferDirection(transfer) }}</span>
+                    </div>
+                    <div class="history-grid">
+                      <div>
+                        <span>Transfer ID</span>
+                        <strong>{{ shortenTransferId(transfer.transfer_id) }}</strong>
+                      </div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{{ transfer.status }}</strong>
+                      </div>
+                      <div>
+                        <span>From Wallet</span>
+                        <strong>{{ wallet.shortenAddress(transfer.from_address) }}</strong>
+                      </div>
+                      <div>
+                        <span>To Wallet</span>
+                        <strong>{{ wallet.shortenAddress(transfer.to_address) }}</strong>
+                      </div>
+                      <div>
+                        <span>Amount</span>
+                        <strong>{{ transfer.amount }} {{ nativeBalanceSymbol }}</strong>
+                      </div>
+                      <div>
+                        <span>Fee</span>
+                        <strong>{{ transfer.fee }} {{ nativeBalanceSymbol }}</strong>
+                      </div>
+                      <div>
+                        <span>Signed At</span>
+                        <strong>{{ formatDateTime(transferTimestamp(transfer)) || 'Unknown time' }}</strong>
+                      </div>
+                      <div>
+                        <span>Settlement</span>
+                        <strong>Not settled yet</strong>
+                      </div>
+                    </div>
+                    <p v-if="transfer.memo" class="wallet-meta history-note">Memo: {{ transfer.memo }}</p>
+                    <p class="wallet-meta history-note">Pending transaction processing. This signed transfer intent has not moved balances yet.</p>
+                  </li>
+                </ul>
+              </template>
             </div>
           </template>
           <template v-else-if="wallet.state.isConnected">
@@ -88,6 +166,7 @@
             <p class="wallet-meta">Connect MetaMask to prepare a native ZOID transfer.</p>
           </template>
         </div>
+
         <div class="wallet-actions">
           <button
             v-if="!wallet.state.isVerifiedSession"
@@ -149,14 +228,24 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useWallet } from '../services/wallet';
 import { apiClient, getApiErrorMessage } from '../config/api';
 import { createNativeTransferService, TRANSFER_PENDING_WARNING } from '../services/nativeTransfer.js';
+import {
+  buildNativeBalanceSummary,
+  buildRewardSummary,
+  describeTransferIntentDirection,
+  describeTransferIntentStatus,
+  formatTransferIntentTimestamp,
+} from '../utils/nativeWalletUi.js';
 
 const wallet = useWallet();
 const copyButtonLabel = ref('Copy Full Address');
 const nativeBalance = ref(null);
-const pendingOutgoing = ref('');
 const nativeBalanceSymbol = ref('ZOID');
+const balancePayload = ref({});
 const isBalanceLoading = ref(false);
 const balanceError = ref('');
+const rewardHistory = ref([]);
+const rewardError = ref('');
+const isRewardHistoryLoading = ref(false);
 const isTransferSubmitting = ref(false);
 const isTransferHistoryLoading = ref(false);
 const transferError = ref('');
@@ -174,18 +263,23 @@ const transferService = createNativeTransferService({
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);
+const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
+  native_balance: nativeBalance.value,
+  pending_outgoing: balancePayload.value.pending_outgoing,
+  pending_incoming: balancePayload.value.pending_incoming,
+  available_balance: balancePayload.value.available_balance,
+  symbol: nativeBalanceSymbol.value,
+}));
 const nativeBalanceLabel = computed(() => {
   if (nativeBalance.value === null || nativeBalance.value === undefined || nativeBalance.value === '') {
     return '--';
   }
   return `${nativeBalance.value} ${nativeBalanceSymbol.value}`;
 });
-const pendingOutgoingLabel = computed(() => {
-  if (!pendingOutgoing.value || pendingOutgoing.value === '0') {
-    return '';
-  }
-  return `${pendingOutgoing.value} ${nativeBalanceSymbol.value}`;
-});
+const balanceNote = computed(() => (
+  balancePayload.value.note
+  || 'Pending transfer intents do not affect balance until transaction processing is enabled.'
+));
 const sessionExpiryLabel = computed(() => {
   if (!wallet.state.sessionExpiresAt) {
     return '';
@@ -240,6 +334,8 @@ async function verify() {
   const verification = await wallet.verifyWallet();
   if (verification) {
     await refreshNativeBalance();
+    await refreshRewardHistory();
+    await refreshTransferHistory();
   }
 }
 
@@ -247,7 +343,14 @@ function disconnect() {
   wallet.disconnectWallet();
   copyButtonLabel.value = 'Copy Full Address';
   nativeBalance.value = null;
+  nativeBalanceSymbol.value = 'ZOID';
+  balancePayload.value = {};
+  rewardHistory.value = [];
+  rewardError.value = '';
   balanceError.value = '';
+  transferHistory.value = [];
+  transferError.value = '';
+  transferSuccessMessage.value = '';
 }
 
 async function copyAddress() {
@@ -265,6 +368,8 @@ async function copyAddress() {
 async function refreshNativeBalance() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
     nativeBalance.value = null;
+    nativeBalanceSymbol.value = 'ZOID';
+    balancePayload.value = {};
     balanceError.value = '';
     return;
   }
@@ -274,28 +379,52 @@ async function refreshNativeBalance() {
   try {
     const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/balance`);
     nativeBalance.value = response.data.native_balance;
-    pendingOutgoing.value = response.data.pending_outgoing || '0';
     nativeBalanceSymbol.value = response.data.symbol || 'ZOID';
+    balancePayload.value = response.data || {};
   } catch (error) {
     nativeBalance.value = null;
-    pendingOutgoing.value = '';
+    nativeBalanceSymbol.value = 'ZOID';
+    balancePayload.value = {};
     balanceError.value = getApiErrorMessage(error, 'Failed to load native ZOID balance.');
   } finally {
     isBalanceLoading.value = false;
   }
 }
 
+async function refreshRewardHistory() {
+  if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
+    rewardHistory.value = [];
+    rewardError.value = '';
+    return;
+  }
+
+  isRewardHistoryLoading.value = true;
+  rewardError.value = '';
+  try {
+    const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/rewards`);
+    rewardHistory.value = Array.isArray(response.data.rewards) ? response.data.rewards : [];
+  } catch (error) {
+    rewardHistory.value = [];
+    rewardError.value = getApiErrorMessage(error, 'Failed to load native ZOID reward history.');
+  } finally {
+    isRewardHistoryLoading.value = false;
+  }
+}
+
 async function refreshTransferHistory() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
     transferHistory.value = [];
+    transferError.value = '';
     return;
   }
 
   isTransferHistoryLoading.value = true;
+  transferError.value = '';
   try {
     const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/transfers`);
     transferHistory.value = Array.isArray(response.data.transfers) ? response.data.transfers : [];
   } catch (error) {
+    transferHistory.value = [];
     transferError.value = getApiErrorMessage(error, 'Failed to load transfer intent history.');
   } finally {
     isTransferHistoryLoading.value = false;
@@ -319,7 +448,8 @@ async function submitTransferIntent() {
       amount: transferForm.value.amount,
       memo: transferForm.value.memo,
     });
-    transferSuccessMessage.value = `Signed transfer intent submitted. Transfer ${result.transfer_id} is pending transaction processing.`;
+    transferSuccessMessage.value = `Signed transfer intent submitted. Transfer ${result.transfer_id} is pending transaction processing and is not settled yet.`;
+    transferForm.value.toAddress = '';
     transferForm.value.amount = '';
     transferForm.value.memo = '';
     await refreshTransferHistory();
@@ -331,6 +461,48 @@ async function submitTransferIntent() {
   }
 }
 
+function rewardSummary(reward) {
+  return buildRewardSummary(reward);
+}
+
+function transferDirection(transfer) {
+  return describeTransferIntentDirection(transfer, wallet.state.verifiedWalletAddress);
+}
+
+function transferStatusLabel(status) {
+  return describeTransferIntentStatus(status);
+}
+
+function transferTimestamp(transfer) {
+  return formatTransferIntentTimestamp(transfer);
+}
+
+function shortenTransferId(value) {
+  if (!value) {
+    return 'Missing';
+  }
+  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-8)}` : value;
+}
+
+function formatHistoryValue(value) {
+  if (value === null || value === undefined || value === '') {
+    return 'Missing';
+  }
+  const stringValue = String(value);
+  return stringValue.length > 24 ? `${stringValue.slice(0, 12)}...${stringValue.slice(-10)}` : stringValue;
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return '';
+  }
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return String(value);
+  }
+  return new Date(parsed).toLocaleString();
+}
+
 function handleBalanceRefreshEvent() {
   refreshNativeBalance();
 }
@@ -340,14 +512,18 @@ watch(
   async ([isVerified, verifiedWalletAddress]) => {
     if (!isVerified || !verifiedWalletAddress) {
       nativeBalance.value = null;
-      pendingOutgoing.value = '';
+      nativeBalanceSymbol.value = 'ZOID';
+      balancePayload.value = {};
       balanceError.value = '';
+      rewardHistory.value = [];
+      rewardError.value = '';
       transferHistory.value = [];
       transferError.value = '';
       transferSuccessMessage.value = '';
       return;
     }
     await refreshNativeBalance();
+    await refreshRewardHistory();
     await refreshTransferHistory();
   },
   { immediate: true },
@@ -515,6 +691,34 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
+.wallet-summary-list,
+.history-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.wallet-summary-row,
+.history-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.wallet-summary-row span,
+.history-grid span {
+  color: #b8b8b8;
+  font-size: 0.82rem;
+}
+
+.wallet-summary-row strong,
+.history-grid strong {
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.reward-card,
 .transfer-card {
   margin-top: 12px;
   padding: 12px;
@@ -558,15 +762,30 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-.transfer-history-list {
-  margin: 10px 0 0;
-  padding-left: 18px;
-  color: #d7dce3;
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
 }
 
-.transfer-history-item {
+.history-list {
   display: grid;
-  gap: 4px;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-card {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(19, 19, 19, 0.55);
+}
+
+.history-note {
+  margin-top: 10px;
 }
 
 .wallet-btn {
@@ -601,9 +820,21 @@ onBeforeUnmount(() => {
   border-color: rgba(255, 255, 255, 0.16);
 }
 
+.compact {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
 @media (max-width: 900px) {
   .wallet-panel {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wallet-summary-row,
+  .history-title-row,
+  .history-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

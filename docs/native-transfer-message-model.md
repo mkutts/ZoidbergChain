@@ -13,6 +13,7 @@ Task 7.8 extends that model into signed pending transfer intents.
 - `GET /transfers/{transfer_id}` and `GET /wallets/{wallet_address}/transfers` expose safe read-only transfer intent history.
 - Pending transfer intents do not mutate native balances yet.
 - Peer propagation, mempool behavior, replay hardening, balance settlement, and block inclusion remain deferred to Task 8.
+- Task 7.9 defines the design path from transfer intents to settled native transactions in [docs/native-transaction-layer-plan.md](C:/Users/mattk/ZoidbergChain/docs/native-transaction-layer-plan.md).
 
 ## Purpose
 
@@ -137,6 +138,15 @@ Signed pending means:
 - no mempool or block inclusion happens yet
 - no ERC-20 transfer has happened
 
+Task 7.9 clarifies the next future states after `signed_pending`:
+
+- `validated_pending`
+- `mempool`
+- `included`
+- `settled`
+
+Those states are planned but not implemented in Task 7.8.
+
 ## Transfer Status Model
 
 The future transfer lifecycle statuses are:
@@ -165,3 +175,5 @@ Deferred to Task 8:
 - mempool behavior
 - block inclusion
 - final denomination and smallest-unit policy
+- transaction id generation
+- peer transaction gossip

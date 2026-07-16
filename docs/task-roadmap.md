@@ -21,6 +21,16 @@ This roadmap captures the current documented task sequence for the native wallet
 ## Future Tasks
 
 - Task 8 Native transaction hardening
+- 8.1 Transaction ID + canonical transaction record
+- 8.2 Nonce tracking and replay protection
+- 8.3 Balance sufficiency / available balance
+- 8.4 Mempool storage and validation
+- 8.5 Peer transaction gossip
+- 8.6 Include validated transfers in meme-mined blocks
+- 8.7 Block validation with transfers
+- 8.8 Wallet balances and transfer history
+- 8.9 Two-node transfer test
+- 8.10 Transaction layer security pass
 - Task 9 Node identity/open network prep
 - Task 10 Public testnet deployment
 - Task 11 Wallet UX / MetaMask Snap or custom wallet

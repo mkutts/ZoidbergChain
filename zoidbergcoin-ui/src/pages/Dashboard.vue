@@ -687,6 +687,18 @@
                 <strong>{{ shortenKey(block.creator_wallet) }}</strong>
               </div>
               <div v-if="block.certificate_id">
+                <span>Reward Type</span>
+                <strong>{{ block.reward_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Reward Recipient</span>
+                <strong>{{ shortenKey(block.reward_recipient) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Reward Amount</span>
+                <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
                 <span>Approval</span>
                 <strong>{{ formatPercent(block.approval_percentage) }}</strong>
               </div>
@@ -1487,7 +1499,12 @@ export default {
       try {
         const response = await apiClient.post(`/mint/${submissionId}`);
         const certificateId = response.data.block?.certificate_id;
-        this.mintMessage = `${response.data.message || 'Submission minted successfully.'} Block #${response.data.block?.index ?? 'created'}${certificateId ? ` with certificate ${this.shortenHash(certificateId)}.` : '.'}`;
+        const rewardRecipient = response.data.reward_recipient || response.data.block?.reward_recipient;
+        const rewardAmount = response.data.reward_amount ?? response.data.block?.reward_amount;
+        this.mintMessage = `${response.data.message || 'Submission minted successfully.'} Block #${response.data.block?.index ?? 'created'}${certificateId ? ` with certificate ${this.shortenHash(certificateId)}` : ''}${rewardRecipient ? `, reward recipient ${this.shortenKey(rewardRecipient)}` : ''}${rewardAmount !== null && rewardAmount !== undefined ? `, reward ${rewardAmount} ZOID.` : '.'}`;
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('zoidberg-wallet-balance-refresh'));
+        }
         await this.refreshWorkflow();
       } catch (error) {
         console.error('Error minting submission:', error);

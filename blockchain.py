@@ -60,7 +60,8 @@ from content import (
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from storage import create_storage_backend
-from validators import is_valid_ethereum_address
+from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
+from wallet_auth import normalize_wallet_address
 
 
 def _hash_number(value):
@@ -188,6 +189,11 @@ class Blockchain:
                         minimum_votes_required=block_data.get("minimum_votes_required"),
                         approved_at=block_data.get("approved_at"),
                         originality_score=block_data.get("originality_score"),
+                        reward_type=block_data.get("reward_type"),
+                        reward_recipient=block_data.get("reward_recipient"),
+                        reward_amount=block_data.get("reward_amount"),
+                        reward_source=block_data.get("reward_source"),
+                        minted_at=block_data.get("minted_at"),
                     )
                     for block_data in loaded_data["chain"]
                 ]
@@ -1054,6 +1060,63 @@ class Blockchain:
             metadata["mime_type"] = content_object.mime_type
         return metadata
 
+    def _normalize_native_wallet_identity(self, wallet_address):
+        candidate = str(wallet_address or "").strip()
+        normalized_wallet = normalize_wallet_address(candidate)
+        if normalized_wallet:
+            return normalized_wallet
+        if candidate and is_valid_user_wallet_identity(candidate):
+            return candidate
+        return None
+
+    def resolve_meme_reward_recipient(self, submission, certificate):
+        for candidate in [
+            getattr(submission, "creator_wallet_address", None),
+            getattr(certificate, "creator_wallet", None),
+            getattr(submission, "submitter", None),
+        ]:
+            normalized = self._normalize_native_wallet_identity(candidate)
+            if normalized:
+                return normalized
+        raise ValueError("Minting reward recipient is missing or invalid for this submission.")
+
+    def build_meme_reward_metadata(self, submission, certificate, *, minted_at):
+        reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
+        return {
+            "reward_type": "meme_mining_reward",
+            "reward_recipient": reward_recipient,
+            "reward_amount": float(MEME_BLOCK_REWARD),
+            "reward_source": "reward_pool",
+            "minted_at": minted_at,
+        }
+
+    def get_reward_records_for_wallet(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+
+        reward_records = []
+        for block in self.chain:
+            reward_type = getattr(block, "reward_type", None)
+            reward_recipient = self._normalize_native_wallet_identity(getattr(block, "reward_recipient", None))
+            if reward_type != "meme_mining_reward" or reward_recipient != normalized_wallet:
+                continue
+            reward_records.append(
+                {
+                    "reward_type": reward_type,
+                    "reward_recipient": reward_recipient,
+                    "reward_amount": getattr(block, "reward_amount", None),
+                    "reward_source": getattr(block, "reward_source", None),
+                    "submission_id": getattr(block, "submission_id", None),
+                    "certificate_id": getattr(block, "certificate_id", None),
+                    "content_hash": getattr(block, "content_hash", None),
+                    "block_hash": getattr(block, "hash", None),
+                    "block_height": getattr(block, "index", None),
+                    "minted_at": getattr(block, "minted_at", getattr(block, "timestamp", None)),
+                }
+            )
+        return reward_records
+
     def require_valid_certificate_for_submission(self, submission):
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
@@ -1409,6 +1472,7 @@ class Blockchain:
         return queued_submissions
 
     def _mint_submission_record(self, submission, certificate, miner=None, max_block_size_kb=500, validate_meme=True):
+        reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
         block_added = self.add_block(
             image_path=submission.image_path,
             text_content=submission.text_content,
@@ -1416,6 +1480,7 @@ class Blockchain:
             max_block_size_kb=max_block_size_kb,
             validate_meme=validate_meme,
             certificate=certificate,
+            reward_recipient=reward_recipient,
         )
         if block_added:
             if submission.submission_id in self.mint_queue:
@@ -1672,6 +1737,7 @@ class Blockchain:
         max_block_size_kb=500,
         validate_meme=True,
         certificate=None,
+        reward_recipient=None,
     ):
         """
         Add a block with tip distribution, enforce block size limit, and validate memes.
@@ -1809,20 +1875,46 @@ class Blockchain:
             print("Error: Insufficient funds in the reward pool.")
             return False
 
-        reward_transaction = Transaction("REWARD_POOL", miner, mining_reward)
+        reward_receiver = reward_recipient or miner
+        if reward_receiver not in {"GENESIS", "REWARD_POOL"}:
+            normalized_reward_receiver = self._normalize_native_wallet_identity(reward_receiver)
+            if normalized_reward_receiver is None:
+                raise ValueError("Minting reward recipient is missing or invalid for this submission.")
+            reward_receiver = normalized_reward_receiver
+
+        reward_transaction = Transaction("REWARD_POOL", reward_receiver, mining_reward)
         self.reward_pool -= mining_reward
 
         # Create the new block
         latest_block = self.get_latest_block()
+        minted_at = time.time()
+        reward_metadata = {}
+        if certificate is not None:
+            certificate_submission = self.get_submission(certificate.submission_id)
+            if certificate_submission is None:
+                raise ValueError(f"Submission not found: {certificate.submission_id}")
+            reward_metadata = self.build_meme_reward_metadata(
+                certificate_submission,
+                certificate,
+                minted_at=minted_at,
+            )
         new_block = Block(
             index=latest_block.index + 1,
             previous_hash=latest_block.hash,
-            timestamp=time.time(),
+            timestamp=minted_at,
             transactions=[reward_transaction] + valid_transactions,
             meme={"encoded_image": meme_encoded, "text": text_content},
             miner=miner,
             **(self.certificate_block_metadata(certificate) if certificate else {}),
+            **reward_metadata,
         )
+        if certificate is not None:
+            new_block.reward_type = "meme_mining_reward"
+            new_block.reward_recipient = reward_transaction.recipient
+            new_block.reward_amount = float(mining_reward)
+            new_block.reward_source = "reward_pool"
+            new_block.minted_at = minted_at
+            new_block.hash = new_block.calculate_hash()
         self.chain.append(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
 
@@ -1991,6 +2083,11 @@ class Blockchain:
             "minimum_votes_required",
             "approved_at",
             "originality_score",
+            "reward_type",
+            "reward_recipient",
+            "reward_amount",
+            "reward_source",
+            "minted_at",
         ]
         meme = block_dict.get("meme") if isinstance(block_dict.get("meme"), dict) else {}
         metadata = {}
@@ -2051,6 +2148,35 @@ class Blockchain:
             if metadata[field_name] != certificate_value:
                 raise ValueError(f"Block certificate metadata {field_name} does not match certificate.")
 
+        reward_fields_present = any(
+            metadata.get(field_name) is not None
+            for field_name in ["reward_type", "reward_recipient", "reward_amount", "reward_source", "minted_at"]
+        )
+        if reward_fields_present:
+            reward_required_fields = [
+                "reward_type",
+                "reward_recipient",
+                "reward_amount",
+                "reward_source",
+                "minted_at",
+            ]
+            for field_name in reward_required_fields:
+                if metadata.get(field_name) is None:
+                    raise ValueError(f"Block reward metadata missing {field_name}.")
+            if metadata["reward_type"] != "meme_mining_reward":
+                raise ValueError("Block reward_type is invalid.")
+            if metadata["reward_source"] != "reward_pool":
+                raise ValueError("Block reward_source is invalid.")
+            normalized_reward_recipient = self._normalize_native_wallet_identity(metadata["reward_recipient"])
+            if normalized_reward_recipient is None:
+                raise ValueError("Block reward_recipient is invalid.")
+            if float(metadata["reward_amount"]) != float(MEME_BLOCK_REWARD):
+                raise ValueError("Block reward_amount does not match configured reward.")
+            if submission:
+                expected_reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
+                if normalized_reward_recipient != expected_reward_recipient:
+                    raise ValueError("Block reward_recipient does not match submission creator wallet.")
+
         content_object = self.get_content_object_by_hash(metadata["content_hash"])
         if content_object is not None:
             if metadata.get("content_id") is not None and metadata["content_id"] != content_object.content_id:
@@ -2099,16 +2225,24 @@ class Blockchain:
 
         return True
 
-    def get_balance(self, public_key):
-        """Calculate balance based on transaction history and tips (NO FEES)."""
+    def get_native_balance(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return 0
         balance = 0
         for block in self.chain:
             for transaction in block.transactions:
-                if transaction.sender == public_key:
+                sender = self._normalize_native_wallet_identity(transaction.sender) or transaction.sender
+                recipient = self._normalize_native_wallet_identity(transaction.recipient) or transaction.recipient
+                if sender == normalized_wallet:
                     balance -= transaction.amount + transaction.tip  # âœ… Deduct amount + tip (NO FEE)
-                if transaction.recipient == public_key:
+                if recipient == normalized_wallet:
                     balance += transaction.amount + transaction.tip
         return balance
+
+    def get_balance(self, public_key):
+        """Calculate balance based on on-chain native transactions."""
+        return self.get_native_balance(public_key)
 
     def add_transaction(self, transaction):
         try:

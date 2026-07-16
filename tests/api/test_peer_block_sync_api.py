@@ -97,10 +97,11 @@ def _certified_peer_block(blockchain, submission_image, wallets):
     submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
     _certify_submission(blockchain, submission)
     blockchain.add_to_mint_queue(submission.submission_id)
-    assert blockchain.mint_next_queued_submission(
+    minted_block = blockchain.mint_next_queued_submission(
         miner=wallets["contributor_one"].public_key,
         validate_meme=False,
-    ) is True
+    )
+    assert minted_block is not False
     block = blockchain.get_latest_block()
     blockchain.chain = original_chain
     return submission, block
@@ -175,6 +176,32 @@ def test_receiving_direct_extending_block_with_mismatched_originality_score_is_r
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Block certificate metadata originality_score does not match certificate."
+    assert len(blockchain.chain) == 1
+
+
+def test_receiving_direct_extending_block_with_mismatched_reward_recipient_is_rejected(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    _submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    block_dict = block.to_dict()
+    block_dict["reward_recipient"] = wallets["contributor_two"].public_key
+    _rehash(blockchain, block_dict)
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block_dict,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Block reward_recipient does not match submission creator wallet."
     assert len(blockchain.chain) == 1
 
 

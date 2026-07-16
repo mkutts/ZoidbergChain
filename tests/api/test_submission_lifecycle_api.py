@@ -523,6 +523,7 @@ def test_signed_submission_vote_evaluate_certificate_lookup_and_mint_flow(blockc
     client = _client(blockchain)
     account = _create_metamask_account()
     headers = _verify_wallet_session(client, account)
+    minter = _generate_wallet_via_api(client)
     voters = [_generate_wallet_via_api(client) for _ in range(5)]
     uploaded = _upload_text_content_via_api(client, account.address, text="signed full flow")
     submission = _submit_signed_content_via_api(
@@ -549,9 +550,39 @@ def test_signed_submission_vote_evaluate_certificate_lookup_and_mint_flow(blockc
     certificate = evaluate_response.json()["certificate"]
     assert certificate["creator_wallet"] == account.address.lower()
 
-    mint_response = client.post(f"/mint-queue/{submission_id}/mint")
+    mint_response = client.post(
+        f"/mint-queue/{submission_id}/mint",
+        data={"miner": minter},
+    )
     assert mint_response.status_code == 200
-    assert mint_response.json()["minted"] is True
+    minted = mint_response.json()
+    assert minted["minted"] is True
+    assert minted["reward_type"] == "meme_mining_reward"
+    assert minted["reward_recipient"] == account.address.lower()
+    assert float(minted["reward_amount"]) == 5.0
+    assert minted["block"]["reward_recipient"] == account.address.lower()
+    assert float(minted["block"]["reward_amount"]) == 5.0
+    assert minted["block"]["miner"] == minter
+
+    balance_response = client.get(f"/wallets/{account.address.lower()}/balance")
+    rewards_response = client.get(f"/wallets/{account.address.lower()}/rewards")
+    assert balance_response.status_code == 200
+    assert float(balance_response.json()["native_balance"]) >= 5.0
+    assert rewards_response.status_code == 200
+    assert rewards_response.json()["rewards"][0]["reward_recipient"] == account.address.lower()
+    assert float(rewards_response.json()["rewards"][0]["reward_amount"]) == 5.0
+
+
+def test_native_wallet_balance_endpoint_returns_zero_for_unknown_wallet(blockchain):
+    client = _client(blockchain)
+    unknown_account = _create_metamask_account()
+
+    response = client.get(f"/wallets/{unknown_account.address}/balance")
+
+    assert response.status_code == 200
+    assert response.json()["wallet_address"] == unknown_account.address.lower()
+    assert response.json()["native_balance"] == "0"
+    assert response.json()["symbol"] == "ZoidbergCoin"
 
 
 def test_signed_vote_derives_voter_from_verified_wallet(blockchain):

@@ -189,6 +189,9 @@ Approved meaning of the signature:
 - The current reward remains the current configured block reward, which is `5 ZOID` in [config.py](C:/Users/mattk/ZoidbergChain/config.py:8) unless configuration changes later.
 - No ERC-20 or wrapped token minting is part of Task 7.
 - Wrapped ZOID, when introduced later, is intended as a bridge/liquidity feature backed 1:1 by native ZOID rather than as a replacement for native rewards.
+- The minting user or node operator is not automatically the reward recipient. The reward recipient is the signed submission creator wallet.
+- Reward accounting is persisted through the minted block itself, including reward type, reward recipient, reward amount, reward source, and minted timestamp.
+- Native wallet balances are read from ZoidbergChain state and explorer APIs rather than from normal MetaMask asset display.
 
 ## Native Transfer Model
 
@@ -330,3 +333,24 @@ Transfer model notes:
   - signed timestamp
   - identity source
 - Outside development mode, legacy or unsigned vote submission paths are no longer the normal voting path.
+
+## Task 7.6 Native Reward Crediting
+
+- Task `7.6` credits the native meme-mining reward to the signed submission creator wallet when a certified submission is minted into a block.
+- The reward recipient is derived from the stored signed submission creator wallet identity rather than from the user who clicked mint.
+- `POST /mint/{submission_id}` and `POST /mint-queue/{submission_id}/mint` now return reward metadata including:
+  - reward type
+  - reward recipient
+  - reward amount
+  - block hash
+  - block height
+- Minted certified blocks now persist reward audit metadata including:
+  - reward type
+  - reward recipient
+  - reward amount
+  - reward source
+  - minted timestamp
+- `GET /wallets/{wallet_address}/balance` returns the native ZoidbergChain wallet balance for that identity.
+- `GET /wallets/{wallet_address}/rewards` returns the wallet's meme-mining reward history.
+- Native ZOID still appears in the ZoidbergChain app or explorer rather than in normal MetaMask asset balances.
+- Native transfers, mempool behavior, and wrapped ZOID remain deferred to later tasks.

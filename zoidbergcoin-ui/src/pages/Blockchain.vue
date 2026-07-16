@@ -133,6 +133,18 @@
                 <strong>{{ shortenKey(block.creator_wallet) }}</strong>
               </div>
               <div v-if="block.certificate_id">
+                <span>Reward Type</span>
+                <strong>{{ block.reward_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Reward Recipient</span>
+                <strong>{{ shortenKey(block.reward_recipient) }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
+                <span>Reward Amount</span>
+                <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
+              </div>
+              <div v-if="block.certificate_id">
                 <span>Approval</span>
                 <strong>{{ formatPercent(block.approval_percentage) }}</strong>
               </div>

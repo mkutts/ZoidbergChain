@@ -1811,6 +1811,11 @@ def _normalize_block_payload(block_payload):
             "minimum_votes_required",
             "approved_at",
             "originality_score",
+            "reward_type",
+            "reward_recipient",
+            "reward_amount",
+            "reward_source",
+            "minted_at",
         ],
         MalformedBlockError,
         "Block payload",
@@ -1877,6 +1882,11 @@ def _normalize_block_payload(block_payload):
         minimum_votes_required=block_payload.get("minimum_votes_required"),
         approved_at=block_payload.get("approved_at"),
         originality_score=block_payload.get("originality_score"),
+        reward_type=block_payload.get("reward_type"),
+        reward_recipient=block_payload.get("reward_recipient"),
+        reward_amount=block_payload.get("reward_amount"),
+        reward_source=block_payload.get("reward_source"),
+        minted_at=block_payload.get("minted_at"),
     )
 
 

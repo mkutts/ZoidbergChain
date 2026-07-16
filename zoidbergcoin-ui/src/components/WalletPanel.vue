@@ -23,6 +23,11 @@
         <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
           Session expires at: {{ sessionExpiryLabel }}
         </p>
+        <div v-if="wallet.state.isVerifiedSession" class="native-balance-card">
+          <span class="native-balance-label">Native ZOID balance on ZoidbergChain</span>
+          <strong class="native-balance-value">{{ nativeBalanceLabel }}</strong>
+          <p class="wallet-meta">This balance is tracked by ZoidbergChain and does not appear in normal MetaMask.</p>
+        </div>
         <div class="wallet-actions">
           <button
             v-if="!wallet.state.isVerifiedSession"
@@ -35,6 +40,15 @@
           </button>
           <button type="button" class="wallet-btn secondary" @click="copyAddress">
             {{ copyButtonLabel }}
+          </button>
+          <button
+            v-if="wallet.state.isVerifiedSession"
+            type="button"
+            class="wallet-btn secondary"
+            @click="refreshNativeBalance"
+            :disabled="isBalanceLoading"
+          >
+            {{ isBalanceLoading ? 'Refreshing Balance...' : 'Refresh Balance' }}
           </button>
           <button type="button" class="wallet-btn ghost" @click="disconnect">
             Disconnect
@@ -65,18 +79,30 @@
       </template>
 
       <p v-if="wallet.state.errorMessage" class="wallet-error">{{ wallet.state.errorMessage }}</p>
+      <p v-if="balanceError" class="wallet-error">{{ balanceError }}</p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useWallet } from '../services/wallet';
+import { apiClient, getApiErrorMessage } from '../config/api';
 
 const wallet = useWallet();
 const copyButtonLabel = ref('Copy Full Address');
+const nativeBalance = ref(null);
+const nativeBalanceSymbol = ref('ZOID');
+const isBalanceLoading = ref(false);
+const balanceError = ref('');
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
+const nativeBalanceLabel = computed(() => {
+  if (nativeBalance.value === null || nativeBalance.value === undefined || nativeBalance.value === '') {
+    return '--';
+  }
+  return `${nativeBalance.value} ${nativeBalanceSymbol.value}`;
+});
 const sessionExpiryLabel = computed(() => {
   if (!wallet.state.sessionExpiresAt) {
     return '';
@@ -128,12 +154,17 @@ async function connect() {
 }
 
 async function verify() {
-  await wallet.verifyWallet();
+  const verification = await wallet.verifyWallet();
+  if (verification) {
+    await refreshNativeBalance();
+  }
 }
 
 function disconnect() {
   wallet.disconnectWallet();
   copyButtonLabel.value = 'Copy Full Address';
+  nativeBalance.value = null;
+  balanceError.value = '';
 }
 
 async function copyAddress() {
@@ -148,8 +179,55 @@ async function copyAddress() {
   }, 1200);
 }
 
+async function refreshNativeBalance() {
+  if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
+    nativeBalance.value = null;
+    balanceError.value = '';
+    return;
+  }
+
+  isBalanceLoading.value = true;
+  balanceError.value = '';
+  try {
+    const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/balance`);
+    nativeBalance.value = response.data.native_balance;
+    nativeBalanceSymbol.value = response.data.symbol || 'ZOID';
+  } catch (error) {
+    nativeBalance.value = null;
+    balanceError.value = getApiErrorMessage(error, 'Failed to load native ZOID balance.');
+  } finally {
+    isBalanceLoading.value = false;
+  }
+}
+
+function handleBalanceRefreshEvent() {
+  refreshNativeBalance();
+}
+
+watch(
+  () => [wallet.state.isVerifiedSession, wallet.state.verifiedWalletAddress],
+  async ([isVerified, verifiedWalletAddress]) => {
+    if (!isVerified || !verifiedWalletAddress) {
+      nativeBalance.value = null;
+      balanceError.value = '';
+      return;
+    }
+    await refreshNativeBalance();
+  },
+  { immediate: true },
+);
+
 onMounted(async () => {
   await wallet.detectMetaMask();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('zoidberg-wallet-balance-refresh', handleBalanceRefreshEvent);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('zoidberg-wallet-balance-refresh', handleBalanceRefreshEvent);
+  }
 });
 </script>
 
@@ -275,6 +353,30 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.native-balance-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(141, 245, 166, 0.2);
+  border-radius: 8px;
+  background: rgba(141, 245, 166, 0.08);
+}
+
+.native-balance-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #b8b8b8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.native-balance-value {
+  display: block;
+  color: #8df5a6;
+  font-size: 1.35rem;
+  line-height: 1.2;
 }
 
 .wallet-btn {

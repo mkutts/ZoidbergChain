@@ -254,6 +254,11 @@ class PeerBlockPayload(_StrictBodyModel):
     minimum_votes_required: Annotated[int, Field(ge=0)] | None = None
     approved_at: Annotated[float, Field(ge=0)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
+    reward_type: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    reward_recipient: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    reward_amount: Annotated[float, Field(ge=0)] | None = None
+    reward_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    minted_at: Annotated[float, Field(ge=0)] | None = None
 
 
 class MintBlockRequest(_StrictBodyModel):
@@ -2254,6 +2259,44 @@ async def get_balance(
         logging.error("ERROR retrieving balance for wallet %s: %s", _short_key(public_key), e)
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
+
+@app.get("/wallets/{wallet_address}/balance")
+@api_limit("public_read")
+async def get_native_wallet_balance(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_supported_user_identity(wallet_address, field_name="wallet address")
+        balance = blockchain.get_native_balance(normalized_wallet)
+        return {
+            "wallet_address": normalized_wallet,
+            "native_balance": str(balance),
+            "symbol": COIN_NAME,
+            "network_name": NETWORK_NAME,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native balance for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/wallets/{wallet_address}/rewards")
+@api_limit("public_read")
+async def get_native_wallet_rewards(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_supported_user_identity(wallet_address, field_name="wallet address")
+        rewards = blockchain.get_reward_records_for_wallet(normalized_wallet)
+        return {
+            "wallet_address": normalized_wallet,
+            "symbol": COIN_NAME,
+            "network_name": NETWORK_NAME,
+            "rewards": rewards,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving rewards for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
 @app.get("/get_reward_pool_balance")
 @api_limit("public_read")
 async def get_reward_pool_balance(request: Request):
@@ -2356,6 +2399,11 @@ async def mint_queued_submission(
         "minted": minted,
         "submission": _serialize_submission(submission),
         "block": _serialize_block(latest_block),
+        "block_hash": latest_block.hash,
+        "block_height": latest_block.index,
+        "reward_recipient": latest_block.reward_recipient,
+        "reward_amount": latest_block.reward_amount,
+        "reward_type": latest_block.reward_type,
         "broadcast": broadcast_result,
     }
 

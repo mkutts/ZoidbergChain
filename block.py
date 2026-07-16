@@ -35,6 +35,11 @@ class Block:
         minimum_votes_required=None,
         approved_at=None,
         originality_score=None,
+        reward_type=None,
+        reward_recipient=None,
+        reward_amount=None,
+        reward_source=None,
+        minted_at=None,
     ):
         self.index = index
         self.previous_hash = previous_hash
@@ -55,6 +60,11 @@ class Block:
         self.minimum_votes_required = minimum_votes_required
         self.approved_at = approved_at
         self.originality_score = originality_score
+        self.reward_type = reward_type
+        self.reward_recipient = reward_recipient
+        self.reward_amount = reward_amount
+        self.reward_source = reward_source
+        self.minted_at = minted_at
         self.hash = hash or self.calculate_hash()
 
     def to_dict(self):
@@ -86,6 +96,11 @@ class Block:
             "minimum_votes_required": self.minimum_votes_required,
             "approved_at": self.approved_at,
             "originality_score": self.originality_score,
+            "reward_type": self.reward_type,
+            "reward_recipient": self.reward_recipient,
+            "reward_amount": self.reward_amount,
+            "reward_source": self.reward_source,
+            "minted_at": self.minted_at,
         }
         return {
             key: value

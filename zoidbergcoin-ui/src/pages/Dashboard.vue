@@ -731,7 +731,7 @@
 </template>
 
 <script>
-import { apiClient, buildApiUrl, getApiErrorMessage } from '../config/api';
+import { apiClient, buildApiUrl, getApiErrorMessage, publicApiClient } from '../config/api';
 import WalletPanel from '../components/WalletPanel.vue';
 import { useWallet } from '../services/wallet';
 
@@ -893,20 +893,13 @@ export default {
     contentUrl(path) {
       return buildApiUrl(path);
     },
-    async verifyUploadedContentPreview(contentHash) {
+    resetUploadedPreviewState(content) {
       this.uploadedContentPreviewError = '';
-      if (!contentHash) {
+      if (!content?.download_url) {
         return;
       }
-
-      try {
-        await apiClient.get(`/content/${contentHash}`, { responseType: 'arraybuffer' });
-      } catch (error) {
-        console.error('Error verifying uploaded content preview:', error);
-        this.uploadedContentPreviewError = getApiErrorMessage(
-          error,
-          'Preview could not be loaded. Open the content link to inspect the backend response.',
-        );
+      if (!this.hasContentPreview(content)) {
+        this.uploadedContentPreviewError = 'Preview is unavailable for this content.';
       }
     },
     onContentUploadFileChange(event) {
@@ -949,9 +942,7 @@ export default {
           this.uploadedContent = preparedContent;
           this.submissionContentHash = preparedContent.content_hash || '';
           this.submissionContentId = preparedContent.content_id || '';
-          if (this.isImageContent(preparedContent)) {
-            await this.verifyUploadedContentPreview(preparedContent.content_hash);
-          }
+          this.resetUploadedPreviewState(preparedContent);
         }
 
         const finalContentHash = this.submissionContentHash || preparedContent?.content_hash || '';
@@ -1044,11 +1035,7 @@ export default {
       this.uploadedContent = response;
       this.submissionContentHash = response.content_hash || '';
       this.submissionContentId = response.content_id || '';
-      if (this.isImageContent(this.uploadedContent)) {
-        await this.verifyUploadedContentPreview(this.uploadedContent.content_hash);
-      } else {
-        this.uploadedContentPreviewError = '';
-      }
+      this.resetUploadedPreviewState(this.uploadedContent);
       this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.storage_status)}.`;
       } catch (error) {
         console.error('Error uploading content:', error);
@@ -1134,11 +1121,7 @@ export default {
         const content = response.data.content || null;
         if (content) {
           this.uploadedContent = this.uploadedContent?.content_hash === contentHash ? content : this.uploadedContent;
-          if (this.isImageContent(content)) {
-            await this.verifyUploadedContentPreview(content.content_hash);
-          } else {
-            this.uploadedContentPreviewError = '';
-          }
+          this.resetUploadedPreviewState(content);
         }
         this.contentUploadMessage = 'Content synced successfully.';
         await this.refreshWorkflow();
@@ -1369,6 +1352,7 @@ export default {
         content_payload_missing: 'Cannot mint: content payload is not verified on this node. Upload or sync the content first.',
         content_not_verified: 'Cannot mint: content payload is not verified on this node. Upload or sync the content first.',
         content_hash_mismatch: 'Content hash mismatch.',
+        no_text_content_extracted: 'Cannot mint: no text content could be extracted from the image. Add text before submission or quarantine this item.',
         already_minted: 'Submission has already been minted.',
         mint_blocked_manually: 'Minting is manually blocked.',
         legacy_unverifiable_content: 'Legacy content cannot be verified locally.',

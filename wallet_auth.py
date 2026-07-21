@@ -182,13 +182,17 @@ def build_wallet_vote_message(
 
 
 def hash_wallet_message(message: str) -> str:
-    return hashlib.sha256(str(message or "").encode("utf-8")).hexdigest()
+    return hashlib.sha256(canonicalize_wallet_message(message).encode("utf-8")).hexdigest()
+
+
+def canonicalize_wallet_message(message: str) -> str:
+    return str(message or "").replace("\r\n", "\n").replace("\r", "\n")
 
 
 def recover_signed_wallet_address(message: str, signature: str) -> str:
     try:
         recovered = Account.recover_message(
-            encode_defunct(text=message),
+            encode_defunct(text=canonicalize_wallet_message(message)),
             signature=signature,
         )
     except Exception as exc:
@@ -409,7 +413,8 @@ class WalletAuthManager:
             raise ValueError("Submission challenge has already been used.")
         if challenge.expires_at <= _utc_now():
             raise ValueError("Submission challenge has expired.")
-        if message != challenge.message:
+        normalized_message = canonicalize_wallet_message(message)
+        if normalized_message != canonicalize_wallet_message(challenge.message):
             raise ValueError("Submission challenge message does not match the stored challenge.")
         if challenge.wallet_address != normalized:
             raise ValueError("Submission challenge wallet does not match the verified session wallet.")
@@ -420,7 +425,7 @@ class WalletAuthManager:
         if challenge.content_id != normalized_content_id:
             raise ValueError("Submission content_id does not match the signed challenge.")
 
-        recovered_normalized = recover_signed_wallet_address(message, signature)
+        recovered_normalized = recover_signed_wallet_address(normalized_message, signature)
         if recovered_normalized != normalized:
             raise ValueError("Signature does not match the verified session wallet.")
 
@@ -436,7 +441,7 @@ class WalletAuthManager:
             "nonce": challenge.nonce,
             "signature_scheme": "personal_sign",
             "submission_signature": signature.strip(),
-            "submission_message": challenge.message,
+            "submission_message": canonicalize_wallet_message(challenge.message),
             "signed_message_hash": message_hash,
             "issued_at": _isoformat(challenge.issued_at),
             "expires_at": _isoformat(challenge.expires_at),
@@ -527,7 +532,8 @@ class WalletAuthManager:
             raise ValueError("Vote challenge has already been used.")
         if challenge.expires_at <= _utc_now():
             raise ValueError("Vote challenge has expired.")
-        if message != challenge.message:
+        normalized_message = canonicalize_wallet_message(message)
+        if normalized_message != canonicalize_wallet_message(challenge.message):
             raise ValueError("Vote challenge message does not match the stored challenge.")
         if challenge.wallet_address != normalized:
             raise ValueError("Vote challenge wallet does not match the verified session wallet.")
@@ -538,7 +544,7 @@ class WalletAuthManager:
         if vote_type.strip() != challenge.vote_type:
             raise ValueError("Vote type does not match the signed challenge.")
 
-        recovered_normalized = recover_signed_wallet_address(message, signature)
+        recovered_normalized = recover_signed_wallet_address(normalized_message, signature)
         if recovered_normalized != normalized:
             raise ValueError("Signature does not match the verified session wallet.")
 
@@ -554,7 +560,7 @@ class WalletAuthManager:
             "nonce": challenge.nonce,
             "signature_scheme": "personal_sign",
             "vote_signature": signature.strip(),
-            "vote_message": challenge.message,
+            "vote_message": canonicalize_wallet_message(challenge.message),
             "signed_message_hash": message_hash,
             "issued_at": _isoformat(challenge.issued_at),
             "expires_at": _isoformat(challenge.expires_at),

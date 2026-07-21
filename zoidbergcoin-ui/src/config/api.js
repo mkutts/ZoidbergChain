@@ -1,15 +1,23 @@
 import axios from "axios";
 
 const IMPORT_META_ENV = import.meta?.env || {};
+const BROWSER_LOCATION = typeof window !== "undefined" ? window.location : null;
+const DEV_API_HOST = BROWSER_LOCATION?.hostname === "localhost"
+  ? "localhost"
+  : "127.0.0.1";
 
 const DEFAULT_API_BASE_URL = IMPORT_META_ENV.PROD
   ? "https://zoidbergcoin.com"
-  : "http://127.0.0.1:8000";
+  : `http://${DEV_API_HOST}:8000`;
 
 export const API_BASE_URL =
   IMPORT_META_ENV.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
 
 export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+});
+
+export const publicApiClient = axios.create({
   baseURL: API_BASE_URL,
 });
 

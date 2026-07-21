@@ -1497,6 +1497,19 @@ class Blockchain:
         record["missing_fields"] = []
         record["certificate_status"] = "valid"
         record["content_status"] = STORAGE_STATUS_VERIFIED if content_object.storage_status == STORAGE_STATUS_VERIFIED else content_object.storage_status
+
+        is_text_payload = (
+            content_object.mime_type == TEXT_MIME_TYPE
+            or content_object.content_type == CONTENT_TYPE_TEXT
+        )
+        if not is_text_payload and not str(submission.text_content or "").strip():
+            file_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
+            extracted_text = extract_text(file_path) if file_path and os.path.isfile(file_path) else ""
+            if not str(extracted_text or "").strip():
+                record["mintable"] = False
+                record["mint_block_reason"] = "no_text_content_extracted"
+                record["missing_fields"].append("text_content")
+
         return record
 
     def _evaluate_mint_queue_item(self, submission_id):

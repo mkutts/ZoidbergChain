@@ -149,6 +149,20 @@ def _upload_text_content_via_api(client, submitter, text="Upload-first text cont
     return response.json()
 
 
+def _upload_image_content_via_api(client, submitter, image_path, filename="upload-first.jpg", mime_type="image/jpeg", caption=None):
+    with open(image_path, "rb") as image_file:
+        response = client.post(
+            "/content/upload",
+            data={
+                "submitted_by": submitter,
+                **({"caption": caption} if caption is not None else {}),
+            },
+            files={"file": (filename, image_file, mime_type)},
+        )
+    assert response.status_code == 200
+    return response.json()
+
+
 def test_signed_submission_accepts_uploaded_content_and_derives_creator_from_verified_wallet(blockchain):
     client = _client(blockchain)
     account = _create_metamask_account()
@@ -272,6 +286,40 @@ def test_signed_submission_rejects_replayed_nonce(blockchain):
     assert first.status_code == 200
     assert second.status_code == 401
     assert "already been used" in second.json()["detail"].lower()
+
+
+def test_signed_submission_accepts_browser_normalized_newlines(blockchain):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_text_content_via_api(client, account.address, text="newline normalization")
+    challenge = _request_submission_challenge(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+        caption="newline normalization",
+    )
+
+    browser_message = challenge["message"].replace("\n", "\r\n")
+
+    response = client.post(
+        "/submit_content",
+        data={
+            "wallet_address": account.address,
+            "content_hash": uploaded["content_hash"],
+            "content_id": uploaded["content_id"],
+            "message": browser_message,
+            "signature": _sign_message(challenge["message"], account),
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    submission = response.json()["submission"]
+    assert submission["submitter"] == account.address.lower()
+    assert submission["identity_source"] == "metamask_signed"
 
 
 def _vote_via_api(client, submission_id, voter, vote_type=VOTE_ORIGINAL):
@@ -459,6 +507,42 @@ def test_mint_queue_response_hydrates_content_metadata(blockchain, wallets):
     assert mint_queue_item["content_metadata_missing"] is False
     assert mint_queue_item["download_url"] == f"/content/{uploaded['content_hash']}"
     assert mint_queue_item["originality_score"] is not None
+
+
+def test_mint_queue_blocks_signed_image_without_extractable_text(blockchain, submission_image, monkeypatch):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_image_content_via_api(client, account.address, submission_image)
+    submission = _submit_signed_content_via_api(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+    )
+
+    monkeypatch.setattr("blockchain.extract_text", lambda _path: "")
+
+    for index in range(5):
+        blockchain.cast_submission_vote(
+            submission_id=submission["submission_id"],
+            voter=f"queue-no-text-voter-{index}",
+            vote_type=VOTE_ORIGINAL,
+        )
+
+    evaluate_response = client.post(
+        f"/submissions/{submission['submission_id']}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+
+    assert evaluate_response.status_code == 200
+
+    mint_queue_response = client.get("/mint-queue")
+    assert mint_queue_response.status_code == 200
+    mint_queue_item = mint_queue_response.json()["mint_queue"][0]
+    assert mint_queue_item["mintable"] is False
+    assert mint_queue_item["mint_block_reason"] == "no_text_content_extracted"
 
 
 def test_real_api_submit_vote_evaluate_certificate_lookup_and_mint_flow(

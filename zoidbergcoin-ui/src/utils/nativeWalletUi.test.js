@@ -86,7 +86,7 @@ test('buildRewardSummary exposes reward history fields cleanly', () => {
     minted_at: '2026-07-16T00:00:00+00:00',
   });
 
-  assert.equal(summary[0].label, 'Reward Amount');
+  assert.equal(summary[0].label, 'Native ZOID Reward Amount');
   assert.equal(summary[1].value, 'meme_mining_reward');
   assert.equal(summary[6].value, '2026-07-16T00:00:00+00:00');
 });

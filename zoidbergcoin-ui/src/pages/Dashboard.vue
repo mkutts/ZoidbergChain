@@ -175,11 +175,11 @@
 
         <div class="form-stack">
           <div class="field-group">
-            <label>Creator Wallet</label>
+            <label>Creator Account</label>
             <div class="derived-wallet-panel">
               <strong v-if="submissionWalletAddress">{{ submissionWalletAddress }}</strong>
-              <strong v-else>Connect and verify MetaMask to derive the creator wallet.</strong>
-              <span class="meta">New submissions derive the creator wallet from the verified MetaMask signer.</span>
+              <strong v-else>Connect and verify MetaMask to derive the creator account.</strong>
+              <span class="meta">New submissions derive the creator account from the verified MetaMask signer.</span>
             </div>
           </div>
 
@@ -267,11 +267,11 @@
 
         <div class="voter-wallet">
           <div class="field-group">
-            <label>Voter Wallet</label>
+            <label>Voter Account</label>
             <div class="derived-wallet-panel">
               <strong v-if="voteWalletAddress">{{ voteWalletAddress }}</strong>
-              <strong v-else>Connect and verify MetaMask to derive the voter wallet.</strong>
-              <span class="meta">New votes derive the voter wallet from the verified MetaMask signer.</span>
+              <strong v-else>Connect and verify MetaMask to derive the voter account.</strong>
+              <span class="meta">New votes derive the voter account from the verified MetaMask signer.</span>
             </div>
           </div>
         </div>
@@ -462,7 +462,7 @@
                 <strong>{{ shortenHash(submission.content_id) }}</strong>
               </div>
               <div>
-                <span>Creator Wallet</span>
+                <span>Creator Account</span>
                 <strong>{{ shortenKey(submission.submitter) }}</strong>
               </div>
               <div>
@@ -553,7 +553,7 @@
                 <strong>{{ formatScore(getCertificate(submission)?.originality_score) }}</strong>
               </div>
               <div>
-                <span>Creator Wallet</span>
+                <span>Creator Account</span>
                 <strong>{{ shortenKey(getCertificate(submission)?.creator_wallet || submission.submitter) }}</strong>
               </div>
               <div>
@@ -683,7 +683,7 @@
                 <strong>{{ formatScore(block.originality_score) }}</strong>
               </div>
               <div v-if="block.certificate_id">
-                <span>Creator Wallet</span>
+                <span>Creator Account</span>
                 <strong>{{ shortenKey(block.creator_wallet) }}</strong>
               </div>
               <div v-if="block.certificate_id">
@@ -691,11 +691,11 @@
                 <strong>{{ block.reward_type || 'Missing' }}</strong>
               </div>
               <div v-if="block.certificate_id">
-                <span>Reward Recipient</span>
+                <span>Native Reward Recipient</span>
                 <strong>{{ shortenKey(block.reward_recipient) }}</strong>
               </div>
               <div v-if="block.certificate_id">
-                <span>Reward Amount</span>
+                <span>Native ZOID Reward Amount</span>
                 <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
               </div>
               <div v-if="block.certificate_id">

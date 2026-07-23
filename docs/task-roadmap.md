@@ -17,6 +17,7 @@ This roadmap captures the current documented task sequence for the native wallet
 - 7.8 MetaMask-signed native transfers
 - 7.9 Mempool + transaction inclusion plan
 - 7.10 Wallet balance and transaction UI
+- 7.12 Wallet/account terminology cleanup + native account view
 
 ## Future Tasks
 

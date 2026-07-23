@@ -129,7 +129,7 @@
                 <strong>{{ formatScore(block.originality_score) }}</strong>
               </div>
               <div v-if="block.certificate_id">
-                <span>Creator Wallet</span>
+                <span>Creator Account</span>
                 <strong>{{ shortenKey(block.creator_wallet) }}</strong>
               </div>
               <div v-if="block.certificate_id">
@@ -137,11 +137,11 @@
                 <strong>{{ block.reward_type || 'Missing' }}</strong>
               </div>
               <div v-if="block.certificate_id">
-                <span>Reward Recipient</span>
+                <span>Native Reward Recipient</span>
                 <strong>{{ shortenKey(block.reward_recipient) }}</strong>
               </div>
               <div v-if="block.certificate_id">
-                <span>Reward Amount</span>
+                <span>Native ZOID Reward Amount</span>
                 <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
               </div>
               <div v-if="block.certificate_id">

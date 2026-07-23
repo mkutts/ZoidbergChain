@@ -209,7 +209,7 @@ Task 7.7 defines the canonical native ZOID transfer message model only. It does 
 - Task 7.8 adds MetaMask-signed native transfer intent submission as a local non-final record.
 - `POST /auth/wallet/transfer-challenge` issues the exact transfer-signing message for the verified wallet.
 - `POST /transfers/submit` stores the signed result as a `signed_pending` transfer intent.
-- `GET /transfers/{transfer_id}` and `GET /wallets/{wallet_address}/transfers` expose safe transfer-intent history.
+- `GET /transfers/{transfer_id}` and `GET /accounts/{wallet_address}/transfers` expose safe transfer-intent history for the native account model.
 - Signed transfer intents do not settle funds yet.
 - Signed transfer intents do not reduce final native balance yet.
 - Signed transfer intents are not yet peer-propagated or block-included.
@@ -370,7 +370,19 @@ Task 7.7 defines the canonical native ZOID transfer message model only. It does 
   - reward amount
   - reward source
   - minted timestamp
-- `GET /wallets/{wallet_address}/balance` returns the native ZoidbergChain wallet balance for that identity.
-- `GET /wallets/{wallet_address}/rewards` returns the wallet's meme-mining reward history.
+- `GET /accounts/{wallet_address}` returns the native ZoidbergChain account summary for that identity.
+- `GET /accounts/{wallet_address}/rewards` returns the native account's meme-mining reward history.
 - Native ZOID still appears in the ZoidbergChain app or explorer rather than in normal MetaMask asset balances.
 - Native transfers, mempool behavior, and wrapped ZOID remain deferred to later tasks.
+
+## Task 7.12 Native Account Cleanup
+
+- Task `7.12` clarifies that MetaMask-backed `0x` addresses are the normal native ZoidbergChain account format.
+- The frontend should describe these identities as native accounts or native account addresses instead of implying the old generated server-wallet model.
+- `GET /accounts/{wallet_address}` is the preferred native account summary endpoint.
+- `GET /accounts/{wallet_address}/submissions` returns signed submission history for that account.
+- `GET /accounts/{wallet_address}/votes` returns signed vote history for that account.
+- `GET /accounts/{wallet_address}/rewards` returns native ZOID reward history for that account.
+- `GET /accounts/{wallet_address}/transfers` returns signed transfer-intent history for that account.
+- These account endpoints do not require prior registration in the development wallet list.
+- Development-only server-wallet endpoints remain available only as local test tooling and should not be treated as the main user account registry.

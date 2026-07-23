@@ -1,10 +1,10 @@
 <template>
   <section class="wallet-panel">
     <div class="wallet-copy">
-      <p class="wallet-label">Wallet Connection</p>
-      <h2>MetaMask For ZoidbergChain Signing</h2>
+      <p class="wallet-label">Native Account</p>
+      <h2>MetaMask-backed ZoidbergChain wallet</h2>
       <p class="wallet-note">
-        MetaMask provides the signing key. Native ZOID lives on ZoidbergChain and does not appear in normal MetaMask yet.
+        MetaMask provides the signing key for your native ZoidbergChain account. Native ZOID lives on ZoidbergChain and does not appear in normal MetaMask yet.
       </p>
     </div>
 
@@ -16,9 +16,9 @@
       <template v-if="wallet.state.isConnected">
         <p class="address-short">{{ shortenedAddress }}</p>
         <p class="address-full">{{ wallet.state.normalizedWalletAddress }}</p>
-        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified ZoidbergChain wallet. This session is the active identity for MetaMask-signed submissions, votes, and transfer intents.</p>
-        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore the active ZoidbergChain wallet identity.</p>
-        <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet before using it as a ZoidbergChain wallet identity.</p>
+        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified MetaMask-backed ZoidbergChain wallet. This session is the active native account identity for signed submissions, votes, rewards, and future transfer intents.</p>
+        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore the active native ZoidbergChain account identity.</p>
+        <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet before using it as a native ZoidbergChain account identity.</p>
         <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
         <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
           Session expires at: {{ sessionExpiryLabel }}
@@ -39,7 +39,30 @@
 
         <div v-if="wallet.state.isVerifiedSession" class="reward-card">
           <div class="history-header">
-            <span class="native-balance-label">Native ZOID Reward History</span>
+            <span class="native-balance-label">Native ZoidbergChain account activity</span>
+            <button
+              type="button"
+              class="wallet-btn secondary compact"
+              @click="refreshAccountData"
+              :disabled="isBalanceLoading || isRewardHistoryLoading || isTransferHistoryLoading"
+            >
+              {{ isBalanceLoading || isRewardHistoryLoading || isTransferHistoryLoading ? 'Refreshing Account...' : 'Refresh Account Data' }}
+            </button>
+          </div>
+          <div v-if="accountSummaryRows.length" class="wallet-summary-list">
+            <div v-for="row in accountSummaryRows" :key="row.label" class="wallet-summary-row">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+            </div>
+          </div>
+          <p class="wallet-meta">
+            Native accounts do not need to be pre-registered in the old dev wallet list. Your verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance.
+          </p>
+        </div>
+
+        <div v-if="wallet.state.isVerifiedSession" class="reward-card">
+          <div class="history-header">
+            <span class="native-balance-label">Native ZOID reward history</span>
             <button
               type="button"
               class="wallet-btn secondary compact"
@@ -72,11 +95,11 @@
           <template v-if="wallet.state.isVerifiedSession">
             <p class="wallet-meta">{{ transferWarning }}</p>
             <label class="transfer-field">
-              <span>From Wallet</span>
+              <span>From Native Account</span>
               <input :value="wallet.state.verifiedWalletAddress" type="text" readonly />
             </label>
             <label class="transfer-field">
-              <span>To Wallet</span>
+              <span>To Native Account</span>
               <input v-model="transferForm.toAddress" type="text" placeholder="0x..." />
             </label>
             <label class="transfer-field">
@@ -128,11 +151,11 @@
                         <strong>{{ transfer.status }}</strong>
                       </div>
                       <div>
-                        <span>From Wallet</span>
+                        <span>From Native Account</span>
                         <strong>{{ wallet.shortenAddress(transfer.from_address) }}</strong>
                       </div>
                       <div>
-                        <span>To Wallet</span>
+                        <span>To Native Account</span>
                         <strong>{{ wallet.shortenAddress(transfer.to_address) }}</strong>
                       </div>
                       <div>
@@ -184,7 +207,7 @@
             v-if="wallet.state.isVerifiedSession"
             type="button"
             class="wallet-btn secondary"
-            @click="refreshNativeBalance"
+            @click="refreshAccountSummary"
             :disabled="isBalanceLoading"
           >
             {{ isBalanceLoading ? 'Refreshing Balance...' : 'Refresh Balance' }}
@@ -197,7 +220,7 @@
 
       <template v-else>
         <p class="wallet-meta">
-          MetaMask is used to sign ZoidbergChain actions. Native ZOID balances live in the ZoidbergChain app.
+          MetaMask is used to sign ZoidbergChain actions. Native ZOID balances live in the ZoidbergChain app, not in the old development-only server wallet list.
         </p>
         <p v-if="wallet.state.lastConnectedAddress" class="wallet-meta">
           Last connected address: {{ wallet.shortenAddress(wallet.state.lastConnectedAddress) }}
@@ -238,9 +261,7 @@ import {
 
 const wallet = useWallet();
 const copyButtonLabel = ref('Copy Full Address');
-const nativeBalance = ref(null);
-const nativeBalanceSymbol = ref('ZOID');
-const balancePayload = ref({});
+const accountSummary = ref(null);
 const isBalanceLoading = ref(false);
 const balanceError = ref('');
 const rewardHistory = ref([]);
@@ -263,21 +284,34 @@ const transferService = createNativeTransferService({
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);
+const nativeBalanceSymbol = computed(() => accountSummary.value?.symbol || 'ZOID');
 const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
-  native_balance: nativeBalance.value,
-  pending_outgoing: balancePayload.value.pending_outgoing,
-  pending_incoming: balancePayload.value.pending_incoming,
-  available_balance: balancePayload.value.available_balance,
+  native_balance: accountSummary.value?.native_balance,
+  pending_outgoing: accountSummary.value?.pending_outgoing,
+  pending_incoming: accountSummary.value?.pending_incoming,
+  available_balance: accountSummary.value?.available_balance,
   symbol: nativeBalanceSymbol.value,
 }));
+const accountSummaryRows = computed(() => {
+  const summary = accountSummary.value || {};
+  return [
+    { label: 'Native Account Type', value: summary.account_type === 'metamask_native' ? 'MetaMask-backed ZoidbergChain wallet' : 'Unknown' },
+    { label: 'Network', value: summary.network_name || 'Unknown' },
+    { label: 'Submissions', value: summary.submission_count ?? 0 },
+    { label: 'Votes', value: summary.vote_count ?? 0 },
+    { label: 'Rewards', value: summary.reward_count ?? 0 },
+    { label: 'Pending Transfer Intents', value: summary.pending_transfer_count ?? 0 },
+  ];
+});
 const nativeBalanceLabel = computed(() => {
-  if (nativeBalance.value === null || nativeBalance.value === undefined || nativeBalance.value === '') {
+  const balance = accountSummary.value?.native_balance;
+  if (balance === null || balance === undefined || balance === '') {
     return '--';
   }
-  return `${nativeBalance.value} ${nativeBalanceSymbol.value}`;
+  return `${balance} ${nativeBalanceSymbol.value}`;
 });
 const balanceNote = computed(() => (
-  balancePayload.value.note
+  accountSummary.value?.note
   || 'Pending transfer intents do not affect balance until transaction processing is enabled.'
 ));
 const sessionExpiryLabel = computed(() => {
@@ -333,18 +367,14 @@ async function connect() {
 async function verify() {
   const verification = await wallet.verifyWallet();
   if (verification) {
-    await refreshNativeBalance();
-    await refreshRewardHistory();
-    await refreshTransferHistory();
+    await refreshAccountData();
   }
 }
 
 function disconnect() {
   wallet.disconnectWallet();
   copyButtonLabel.value = 'Copy Full Address';
-  nativeBalance.value = null;
-  nativeBalanceSymbol.value = 'ZOID';
-  balancePayload.value = {};
+  accountSummary.value = null;
   rewardHistory.value = [];
   rewardError.value = '';
   balanceError.value = '';
@@ -365,11 +395,9 @@ async function copyAddress() {
   }, 1200);
 }
 
-async function refreshNativeBalance() {
+async function refreshAccountSummary() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
-    nativeBalance.value = null;
-    nativeBalanceSymbol.value = 'ZOID';
-    balancePayload.value = {};
+    accountSummary.value = null;
     balanceError.value = '';
     return;
   }
@@ -377,14 +405,10 @@ async function refreshNativeBalance() {
   isBalanceLoading.value = true;
   balanceError.value = '';
   try {
-    const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/balance`);
-    nativeBalance.value = response.data.native_balance;
-    nativeBalanceSymbol.value = response.data.symbol || 'ZOID';
-    balancePayload.value = response.data || {};
+    const response = await apiClient.get(`/accounts/${wallet.state.verifiedWalletAddress}`);
+    accountSummary.value = response.data || null;
   } catch (error) {
-    nativeBalance.value = null;
-    nativeBalanceSymbol.value = 'ZOID';
-    balancePayload.value = {};
+    accountSummary.value = null;
     balanceError.value = getApiErrorMessage(error, 'Failed to load native ZOID balance.');
   } finally {
     isBalanceLoading.value = false;
@@ -401,7 +425,7 @@ async function refreshRewardHistory() {
   isRewardHistoryLoading.value = true;
   rewardError.value = '';
   try {
-    const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/rewards`);
+    const response = await apiClient.get(`/accounts/${wallet.state.verifiedWalletAddress}/rewards`);
     rewardHistory.value = Array.isArray(response.data.rewards) ? response.data.rewards : [];
   } catch (error) {
     rewardHistory.value = [];
@@ -421,7 +445,7 @@ async function refreshTransferHistory() {
   isTransferHistoryLoading.value = true;
   transferError.value = '';
   try {
-    const response = await apiClient.get(`/wallets/${wallet.state.verifiedWalletAddress}/transfers`);
+    const response = await apiClient.get(`/accounts/${wallet.state.verifiedWalletAddress}/transfers`);
     transferHistory.value = Array.isArray(response.data.transfers) ? response.data.transfers : [];
   } catch (error) {
     transferHistory.value = [];
@@ -453,12 +477,20 @@ async function submitTransferIntent() {
     transferForm.value.amount = '';
     transferForm.value.memo = '';
     await refreshTransferHistory();
-    await refreshNativeBalance();
+    await refreshAccountSummary();
   } catch (error) {
     transferError.value = error?.message || 'Native transfer intent submission failed.';
   } finally {
     isTransferSubmitting.value = false;
   }
+}
+
+async function refreshAccountData() {
+  await Promise.all([
+    refreshAccountSummary(),
+    refreshRewardHistory(),
+    refreshTransferHistory(),
+  ]);
 }
 
 function rewardSummary(reward) {
@@ -504,16 +536,14 @@ function formatDateTime(value) {
 }
 
 function handleBalanceRefreshEvent() {
-  refreshNativeBalance();
+  refreshAccountSummary();
 }
 
 watch(
   () => [wallet.state.isVerifiedSession, wallet.state.verifiedWalletAddress],
   async ([isVerified, verifiedWalletAddress]) => {
     if (!isVerified || !verifiedWalletAddress) {
-      nativeBalance.value = null;
-      nativeBalanceSymbol.value = 'ZOID';
-      balancePayload.value = {};
+      accountSummary.value = null;
       balanceError.value = '';
       rewardHistory.value = [];
       rewardError.value = '';
@@ -522,9 +552,7 @@ watch(
       transferSuccessMessage.value = '';
       return;
     }
-    await refreshNativeBalance();
-    await refreshRewardHistory();
-    await refreshTransferHistory();
+    await refreshAccountData();
   },
   { immediate: true },
 );

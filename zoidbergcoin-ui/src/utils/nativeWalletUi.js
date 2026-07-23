@@ -70,7 +70,7 @@ export function formatTransferIntentTimestamp(transfer) {
 
 export function buildRewardSummary(reward) {
   return [
-    { label: 'Reward Amount', value: reward?.reward_amount ?? 'Missing' },
+    { label: 'Native ZOID Reward Amount', value: reward?.reward_amount ?? 'Missing' },
     { label: 'Reward Type', value: reward?.reward_type || 'Missing' },
     { label: 'Submission ID', value: reward?.submission_id || 'Missing' },
     { label: 'Certificate ID', value: reward?.certificate_id || 'Missing' },

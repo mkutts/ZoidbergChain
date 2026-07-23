@@ -61,6 +61,7 @@ from validators import (
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     COIN_NAME,
+    TICKER,
     ENABLE_RATE_LIMITING,
     PEER_SIGNATURE_WINDOW_SECONDS,
     ENVIRONMENT,
@@ -525,6 +526,37 @@ def _serialize_transfer_intent(transfer_intent):
     }
 
 
+def _serialize_account_submission(submission):
+    body = _serialize_submission(submission)
+    return {
+        "submission_id": body.get("submission_id"),
+        "content_hash": body.get("content_hash"),
+        "content_id": body.get("content_id"),
+        "status": body.get("status"),
+        "certificate_id": body.get("certificate_id"),
+        "creator_wallet_address": body.get("creator_wallet_address"),
+        "created_at": body.get("created_at"),
+        "signed": bool(body.get("signature_scheme") or body.get("identity_source") == "metamask_signed"),
+        "signed_at": body.get("signed_at"),
+        "signature_scheme": body.get("signature_scheme"),
+    }
+
+
+def _serialize_account_vote(vote):
+    return {
+        "submission_id": vote.get("submission_id"),
+        "vote": vote.get("vote_type"),
+        "vote_type": vote.get("vote_type"),
+        "content_hash": vote.get("content_hash"),
+        "voter_wallet_address": vote.get("voter_wallet_address") or vote.get("voter"),
+        "created_at": vote.get("created_at"),
+        "signed": bool(vote.get("signature_scheme") or vote.get("identity_source") == "metamask_signed"),
+        "signed_at": vote.get("signed_at"),
+        "signature_scheme": vote.get("signature_scheme"),
+        "identity_source": vote.get("identity_source"),
+    }
+
+
 def _public_content_upload_response(content_object):
     metadata = _safe_content_metadata(content_object)
     metadata["download_url"] = f"/content/{content_object.content_hash}"
@@ -555,6 +587,103 @@ def _normalize_supported_user_identity(identity: str, *, field_name: str = "wall
         status_code=400,
         detail=f"Invalid {field_name}. Expected a registered development public key or an Ethereum-style 0x address.",
     )
+
+
+def _normalize_native_account_address(identity: str, *, field_name: str = "wallet address") -> str:
+    normalized_wallet = normalize_wallet_address(str(identity or "").strip())
+    if normalized_wallet:
+        return normalized_wallet
+    raise HTTPException(
+        status_code=400,
+        detail=f"Invalid {field_name}. Expected an Ethereum-style 0x address.",
+    )
+
+
+def _submission_wallet_matches(submission, normalized_wallet: str) -> bool:
+    for candidate in [
+        getattr(submission, "creator_wallet_address", None),
+        getattr(submission, "submitter", None),
+    ]:
+        if normalize_wallet_address(str(candidate or "").strip()) == normalized_wallet:
+            return True
+    return False
+
+
+def _vote_wallet_matches(vote: dict[str, Any], normalized_wallet: str) -> bool:
+    for candidate in [
+        vote.get("voter_wallet_address"),
+        vote.get("voter"),
+    ]:
+        if normalize_wallet_address(str(candidate or "").strip()) == normalized_wallet:
+            return True
+    return False
+
+
+def _get_account_submissions(normalized_wallet: str):
+    submissions = [
+        submission
+        for submission in blockchain.submissions
+        if _submission_wallet_matches(submission, normalized_wallet)
+    ]
+    submissions.sort(key=lambda submission: getattr(submission, "created_at", 0) or 0, reverse=True)
+    return submissions
+
+
+def _get_account_votes(normalized_wallet: str):
+    votes = [
+        vote
+        for vote in blockchain.votes
+        if _vote_wallet_matches(vote, normalized_wallet)
+    ]
+    votes.sort(key=lambda vote: vote.get("created_at") or 0, reverse=True)
+    return votes
+
+
+def _get_account_rewards(normalized_wallet: str):
+    rewards = blockchain.get_reward_records_for_wallet(normalized_wallet)
+    rewards.sort(key=lambda reward: reward.get("minted_at") or 0, reverse=True)
+    return rewards
+
+
+def _get_account_transfers(normalized_wallet: str):
+    transfers = [
+        _serialize_transfer_intent(record)
+        for record in blockchain.get_transfer_intents_for_wallet(normalized_wallet)
+    ]
+    transfers.sort(key=lambda record: record.get("created_at") or 0, reverse=True)
+    return transfers
+
+
+def _count_pending_transfer_intents(transfers: list[dict[str, Any]]) -> int:
+    pending_statuses = {"signed_pending", "pending", "draft_signed", "signed", "validated_pending", "mempool"}
+    return sum(1 for transfer in transfers if str(transfer.get("status") or "").strip().lower() in pending_statuses)
+
+
+def _build_account_summary(normalized_wallet: str):
+    submissions = _get_account_submissions(normalized_wallet)
+    votes = _get_account_votes(normalized_wallet)
+    rewards = _get_account_rewards(normalized_wallet)
+    transfers = _get_account_transfers(normalized_wallet)
+    balance = blockchain.get_native_balance(normalized_wallet)
+    pending_outgoing = blockchain.get_pending_outgoing_transfer_amount(normalized_wallet)
+    return {
+        "wallet_address": normalized_wallet,
+        "normalized_wallet_address": normalized_wallet,
+        "account_type": "metamask_native",
+        "network_name": NETWORK_NAME,
+        "native_balance": str(balance),
+        "pending_outgoing": pending_outgoing,
+        "available_balance": str(balance),
+        "symbol": TICKER,
+        "submission_count": len(submissions),
+        "vote_count": len(votes),
+        "reward_count": len(rewards),
+        "pending_transfer_count": _count_pending_transfer_intents(transfers),
+        "note": (
+            "Native accounts do not need to be pre-registered in the old development-only server wallet list. "
+            "A verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance."
+        ),
+    }
 
 
 def _require_content_reference(content_hash: str | None, content_id: str | None):
@@ -1485,11 +1614,12 @@ async def add_transaction(
 @api_limit("public_read")
 async def get_wallets(request: Request):
     """
-    Retrieve registered wallets using public-safe fields only.
+    Retrieve development-only server wallets using public-safe fields only.
     """
     try:
         return {
-            "message": "Registered wallets retrieved successfully.",
+            "message": "Development-only server wallets retrieved successfully.",
+            "warning": "Development-only server wallets are local test tools and are not the native ZoidbergChain account registry for MetaMask users.",
             "wallets": [
                 _wallet_public_response(key, wallet)
                 for key, wallet in blockchain.wallets.items()
@@ -1505,6 +1635,7 @@ async def get_dev_wallets(request: Request):
     _require_dev_private_key_export()
     return {
         "warning": DEV_ENDPOINT_WARNING,
+        "message": "Development-only server wallets with private-key export.",
         "wallets": [
             {
                 **_wallet_public_response(key, wallet),
@@ -2333,7 +2464,7 @@ async def add_block(
 @api_limit("wallet_create")
 async def generate_wallet(request: Request):  # ✅ No more API key validation
     """
-    Generate a new wallet.
+    Generate a development-only server wallet.
     """
     wallet = Wallet()
     blockchain.wallets[wallet.public_key] = wallet  # Register the wallet in the blockchain
@@ -2342,7 +2473,8 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
     blockchain.save_blockchain()
 
     response = {
-        "message": "Wallet generated successfully.",
+        "message": "Development-only server wallet generated successfully.",
+        "warning": "This endpoint creates local test wallets only. MetaMask-backed 0x addresses are the normal native ZoidbergChain account model.",
         "wallet": _wallet_public_response(wallet.public_key, wallet),
     }
     if _dev_private_key_export_enabled():
@@ -2357,6 +2489,105 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
             "message": "Private key export is disabled for this environment.",
         }
     return response
+
+
+@app.get("/accounts/{wallet_address}")
+@api_limit("public_read")
+async def get_native_account_summary(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        return _build_account_summary(normalized_wallet)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account summary for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/accounts/{wallet_address}/submissions")
+@api_limit("public_read")
+async def get_native_account_submissions(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        submissions = [
+            _serialize_account_submission(submission)
+            for submission in _get_account_submissions(normalized_wallet)
+        ]
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "account_type": "metamask_native",
+            "network_name": NETWORK_NAME,
+            "submissions": submissions,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account submissions for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/accounts/{wallet_address}/votes")
+@api_limit("public_read")
+async def get_native_account_votes(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        votes = [
+            _serialize_account_vote(vote)
+            for vote in _get_account_votes(normalized_wallet)
+        ]
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "account_type": "metamask_native",
+            "network_name": NETWORK_NAME,
+            "votes": votes,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account votes for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/accounts/{wallet_address}/rewards")
+@api_limit("public_read")
+async def get_native_account_rewards(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "account_type": "metamask_native",
+            "symbol": TICKER,
+            "network_name": NETWORK_NAME,
+            "rewards": _get_account_rewards(normalized_wallet),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account rewards for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/accounts/{wallet_address}/transfers")
+@api_limit("public_read")
+async def get_native_account_transfers(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "account_type": "metamask_native",
+            "network_name": NETWORK_NAME,
+            "transfers": _get_account_transfers(normalized_wallet),
+            "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account transfers for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 @app.get("/get_balance")
 @api_limit("public_read")

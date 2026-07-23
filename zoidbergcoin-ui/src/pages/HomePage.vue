@@ -12,7 +12,7 @@
 
     <div class="form-container">
       <button @click="goToDashboard" class="btn secondary">Welcome</button>
-      <button v-if="showDevWalletTools" @click="generateWallet" class="btn primary">Development Wallet Tools</button>
+      <button v-if="showDevWalletTools" @click="generateWallet" class="btn primary">Development-Only Server Wallet</button>
       <p v-if="showDevWalletTools" class="dev-wallet-note">
         Development-only wallet generation remains available for local testing, but verified MetaMask sessions are the normal identity path.
       </p>
@@ -65,10 +65,10 @@ export default {
             ? 'Development-only private key export may be enabled on this local node, but the frontend does not display private keys. Use dev-only local tooling instead.'
             : keyExport.message || 'Private key export is disabled for this response.',
         };
-        this.successMessage = response.data.message || 'Wallet generated successfully.';
+        this.successMessage = response.data.message || 'Development-only server wallet generated successfully.';
       } catch (error) {
         console.error('Error generating wallet:', error);
-        this.errorMessage = getApiErrorMessage(error, 'Failed to generate wallet.');
+        this.errorMessage = getApiErrorMessage(error, 'Failed to generate development-only server wallet.');
       }
     },
     goToDashboard() {

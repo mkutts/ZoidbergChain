@@ -92,7 +92,8 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
         network="zoidberg-testnet",
         signature_scheme="personal_sign",
         signature="0xdeadbeef",
-        signed_message_hash="hash-native-account-test",
+        signed_message="native account test signed message",
+        signed_message_hash="a" * 64,
         transfer_nonce="native-account-transfer-nonce",
         signed_at="2026-07-23T12:00:00+00:00",
     )

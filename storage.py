@@ -27,11 +27,12 @@ _STORAGE_SECTIONS = (
     "mint_queue",
     "votes",
     "transfer_intents",
+    "native_transactions",
     "originality_certificates",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents"}
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions"}
 )
 _OPTIONAL_SQLITE_SECTIONS = {"content_objects"}
 
@@ -54,6 +55,8 @@ def _default_section_value(section_name):
     if section_name == "votes":
         return []
     if section_name == "transfer_intents":
+        return []
+    if section_name == "native_transactions":
         return []
     if section_name == "originality_certificates":
         return []
@@ -499,6 +502,23 @@ class StorageBackend(ABC):
         transfer_intents = self.load_transfer_intents() if transfer_intents is None else transfer_intents
         return self._first_record_where(transfer_intents, "transfer_id", transfer_id.strip())
 
+    def load_native_transactions(self):
+        document = self.load_blockchain_document()
+        if not document:
+            return []
+        return document.get("native_transactions", [])
+
+    def save_native_transactions(self, native_transactions) -> None:
+        document = self._load_or_new_blockchain_document()
+        document["native_transactions"] = native_transactions
+        self.save_blockchain_document(document)
+
+    def get_native_transaction(self, tx_id, native_transactions=None):
+        if not isinstance(tx_id, str) or not tx_id.strip():
+            return None
+        native_transactions = self.load_native_transactions() if native_transactions is None else native_transactions
+        return self._first_record_where(native_transactions, "tx_id", tx_id.strip())
+
     def load_certificates(self):
         document = self.load_blockchain_document()
         if not document:
@@ -839,6 +859,7 @@ class SQLiteStorageBackend(StorageBackend):
             "mint_queue": sections["mint_queue"],
             "votes": sections["votes"],
             "transfer_intents": sections["transfer_intents"],
+            "native_transactions": sections["native_transactions"],
             "originality_certificates": sections["originality_certificates"],
             "peers": sections["peers"],
         }

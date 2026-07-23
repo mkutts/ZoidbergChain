@@ -17,7 +17,7 @@ A native account may accumulate:
 - signed originality votes
 - native ZOID meme-mining rewards
 - signed transfer intents
-- future transaction history once transaction processing is enabled
+- canonical native transaction records with deterministic `tx_id`
 
 No pre-registration step is required in the old dev-wallet list. A `0x` address becomes a native account as soon as chain activity references it.
 
@@ -30,6 +30,7 @@ Task 7.12 introduces native account read endpoints:
 - `GET /accounts/{wallet_address}/votes`
 - `GET /accounts/{wallet_address}/rewards`
 - `GET /accounts/{wallet_address}/transfers`
+- `GET /accounts/{wallet_address}/transactions`
 
 These endpoints:
 
@@ -37,6 +38,31 @@ These endpoints:
 - normalize the address consistently
 - expose safe read-only fields
 - do not require the account to exist in the development wallet registry
+
+Compatibility endpoints also remain available:
+
+- `GET /wallets/{wallet_address}/transfers`
+- `GET /wallets/{wallet_address}/transactions`
+
+## Task 8.1 Native Transaction Layer
+
+Task 8.1 records each successful signed native transfer submission in two related forms:
+
+- `transfer_id`: local transfer-intent record identifier
+- `tx_id`: deterministic canonical native transaction identifier
+
+Current status meaning:
+
+- `signed_pending` means the transaction was recorded and can be queried
+- `signed_pending` does not mean settled, confirmed, complete, or balance-changing
+
+Important current rules:
+
+- balances are not reduced yet
+- native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
+- old dev wallets are still not the native account registry
+- Task 8.2 adds nonce tracking and replay protection
+- Task 8.3 adds balance sufficiency enforcement
 
 ## Legacy / Compatibility Notes
 

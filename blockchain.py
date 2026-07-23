@@ -60,6 +60,7 @@ from content import (
     verify_content_object_payload,
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from native_transfer import build_native_transaction
 from storage import create_storage_backend
 from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import normalize_wallet_address
@@ -104,6 +105,7 @@ class Blockchain:
         self.mint_queue = []  # Approved submissions waiting to be minted
         self.votes = []  # Recorded content votes
         self.transfer_intents = []  # Signed pending native transfer intents
+        self.native_transactions = []  # Canonical native transaction records
         self.originality_certificates = []  # Community approval certificates
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -152,6 +154,7 @@ class Blockchain:
             "mint_queue": self.mint_queue,
             "votes": self.votes,
             "transfer_intents": self.transfer_intents,
+            "native_transactions": self.native_transactions,
             "originality_certificates": [
                 certificate.to_dict()
                 for certificate in self.originality_certificates
@@ -216,6 +219,7 @@ class Blockchain:
                 self.mint_queue = loaded_data.get("mint_queue", [])
                 self.votes = loaded_data.get("votes", [])
                 self.transfer_intents = loaded_data.get("transfer_intents", [])
+                self.native_transactions = loaded_data.get("native_transactions", [])
                 self.originality_certificates = [
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
@@ -236,6 +240,7 @@ class Blockchain:
                 self.mint_queue = []
                 self.votes = []
                 self.transfer_intents = []
+                self.native_transactions = []
                 self.originality_certificates = []
 
         except FileNotFoundError:
@@ -247,6 +252,7 @@ class Blockchain:
             self.mint_queue = []
             self.votes = []
             self.transfer_intents = []
+            self.native_transactions = []
             self.originality_certificates = []
         except json.JSONDecodeError:
             print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
@@ -257,6 +263,7 @@ class Blockchain:
             self.mint_queue = []
             self.votes = []
             self.transfer_intents = []
+            self.native_transactions = []
             self.originality_certificates = []
         except Exception as e:
             print(f"Debug: Unexpected error loading blockchain - {e}")
@@ -267,6 +274,7 @@ class Blockchain:
             self.mint_queue = []
             self.votes = []
             self.transfer_intents = []
+            self.native_transactions = []
             self.originality_certificates = []
 
         return False
@@ -1137,34 +1145,57 @@ class Blockchain:
         signature_scheme,
         signature,
         signed_message_hash,
+        signed_message,
         transfer_nonce,
         signed_at,
         status="signed_pending",
         created_at=None,
     ):
+        transaction = build_native_transaction(
+            network=str(network),
+            from_address=from_address,
+            to_address=to_address,
+            amount=str(amount),
+            fee=str(fee),
+            nonce=str(transfer_nonce),
+            memo=str(memo or "").strip() or None,
+            timestamp=str(signed_at),
+            signature=str(signature),
+            signature_scheme=str(signature_scheme),
+            signed_message=str(signed_message),
+            signed_message_hash=str(signed_message_hash),
+            status=str(status),
+            created_at=str(created_at) if created_at is not None else None,
+        )
         record = {
             "transfer_id": os.urandom(16).hex(),
-            "from_address": self._normalize_native_wallet_identity(from_address),
-            "to_address": self._normalize_native_wallet_identity(to_address),
-            "amount": str(amount),
-            "fee": str(fee),
-            "memo": str(memo or "").strip() or None,
-            "network": str(network),
-            "signature_scheme": str(signature_scheme),
-            "signature": str(signature),
-            "signed_message_hash": str(signed_message_hash),
-            "transfer_nonce": str(transfer_nonce),
-            "signed_at": str(signed_at),
-            "status": str(status),
-            "created_at": created_at if created_at is not None else time.time(),
+            "tx_id": transaction.tx_id,
+            "from_address": transaction.from_address,
+            "to_address": transaction.to_address,
+            "amount": transaction.amount,
+            "fee": transaction.fee,
+            "memo": transaction.memo,
+            "network": transaction.network,
+            "signature_scheme": transaction.signature_scheme,
+            "signature": transaction.signature,
+            "signed_message": transaction.signed_message,
+            "signed_message_hash": transaction.signed_message_hash,
+            "transfer_nonce": transaction.nonce,
+            "signed_at": transaction.timestamp,
+            "status": transaction.status,
+            "created_at": transaction.created_at,
         }
         if not record["from_address"] or not record["to_address"]:
             raise ValueError("Transfer intent wallet addresses are invalid.")
         self.transfer_intents.append(record)
+        self.native_transactions.append(transaction.to_dict())
         return record
 
     def get_transfer_intent(self, transfer_id):
         return self.storage.get_transfer_intent(transfer_id, self.transfer_intents)
+
+    def get_native_transaction(self, tx_id):
+        return self.storage.get_native_transaction(tx_id, self.native_transactions)
 
     def get_transfer_intents_for_wallet(self, wallet_address):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
@@ -1173,6 +1204,17 @@ class Blockchain:
         return [
             record
             for record in self.transfer_intents
+            if self._normalize_native_wallet_identity(record.get("from_address")) == normalized_wallet
+            or self._normalize_native_wallet_identity(record.get("to_address")) == normalized_wallet
+        ]
+
+    def get_native_transactions_for_wallet(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        return [
+            record
+            for record in self.native_transactions
             if self._normalize_native_wallet_identity(record.get("from_address")) == normalized_wallet
             or self._normalize_native_wallet_identity(record.get("to_address")) == normalized_wallet
         ]

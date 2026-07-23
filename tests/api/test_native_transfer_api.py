@@ -88,7 +88,12 @@ def _request_transfer_challenge(client, account, headers, **overrides):
 
 
 def _submit_transfer_intent(client, account, headers, **overrides):
-    challenge_response = _request_transfer_challenge(client, account, headers)
+    challenge_overrides = {
+        key: overrides[key]
+        for key in ("to_address", "amount", "fee", "memo")
+        if key in overrides
+    }
+    challenge_response = _request_transfer_challenge(client, account, headers, **challenge_overrides)
     assert challenge_response.status_code == 200
     challenge = challenge_response.json()
     payload = {
@@ -176,9 +181,11 @@ def test_valid_signed_transfer_intent_succeeds_and_is_non_final(blockchain):
 
     assert response.status_code == 200
     body = response.json()
+    assert len(body["tx_id"]) == 64
+    assert body["transfer_id"]
     assert body["status"] == "signed_pending"
     assert body["settlement_state"] == "non_final"
-    assert "not active" in body["message"].lower()
+    assert "not settled" in body["message"].lower()
     assert blockchain.get_native_balance(account.address.lower()) == starting_balance
 
 
@@ -289,17 +296,31 @@ def test_transfer_read_endpoints_return_safe_fields(blockchain):
 
     submit_response = _submit_transfer_intent(client, sender, headers)
     transfer_id = submit_response.json()["transfer_id"]
+    tx_id = submit_response.json()["tx_id"]
 
     by_id = client.get(f"/transfers/{transfer_id}")
     wallet_history = client.get(f"/wallets/{sender.address.lower()}/transfers")
+    tx_by_id = client.get(f"/transactions/{tx_id}")
+    account_history = client.get(f"/accounts/{sender.address.lower()}/transactions")
 
     assert by_id.status_code == 200
     assert wallet_history.status_code == 200
+    assert tx_by_id.status_code == 200
+    assert account_history.status_code == 200
     transfer = by_id.json()["transfer"]
+    transaction = tx_by_id.json()["transaction"]
     assert "signature" not in transfer
     assert "message" not in transfer
     assert "session_token" not in transfer
+    assert transfer["tx_id"] == tx_id
     assert wallet_history.json()["transfers"][0]["transfer_id"] == transfer_id
+    assert wallet_history.json()["transfers"][0]["tx_id"] == tx_id
+    assert transaction["tx_id"] == tx_id
+    assert transaction["status"] == "signed_pending"
+    assert "signature" not in transaction
+    assert "signed_message" not in transaction
+    assert account_history.json()["transactions"][0]["tx_id"] == tx_id
+    assert account_history.json()["transactions"][0]["direction"] == "outgoing"
 
 
 @pytest.mark.parametrize("backend_factory", [_json_backend, _sqlite_backend])
@@ -313,6 +334,7 @@ def test_transfer_intent_persists_across_storage_reload(backend_factory, isolate
     submit_response = _submit_transfer_intent(client, account, headers)
     assert submit_response.status_code == 200
     transfer_id = submit_response.json()["transfer_id"]
+    tx_id = submit_response.json()["tx_id"]
 
     reloaded = Blockchain(
         project_owner_wallet=blockchain.project_owner_wallet,
@@ -321,10 +343,49 @@ def test_transfer_intent_persists_across_storage_reload(backend_factory, isolate
         storage_backend=backend,
     )
     stored = reloaded.get_transfer_intent(transfer_id)
+    stored_transaction = reloaded.get_native_transaction(tx_id)
 
     assert stored is not None
+    assert stored_transaction is not None
     assert stored["status"] == "signed_pending"
     assert stored["from_address"] == account.address.lower()
+    assert stored["tx_id"] == tx_id
+    assert stored_transaction["status"] == "signed_pending"
+    assert stored_transaction["from_address"] == account.address.lower()
+
+
+def test_unknown_transaction_lookup_returns_404(blockchain):
+    client, _ = _client(blockchain)
+
+    response = client.get("/transactions/" + ("a" * 64))
+
+    assert response.status_code == 404
+
+
+def test_account_transaction_history_includes_incoming_and_outgoing(blockchain):
+    client, _ = _client(blockchain)
+    sender = _create_account()
+    recipient = _create_account()
+    headers = _verified_headers(client, sender)
+
+    submit_response = _submit_transfer_intent(
+        client,
+        sender,
+        headers,
+        to_address=recipient.address,
+    )
+    assert submit_response.status_code == 200
+    tx_id = submit_response.json()["tx_id"]
+
+    sender_history = client.get(f"/accounts/{sender.address.lower()}/transactions")
+    recipient_history = client.get(f"/accounts/{recipient.address.lower()}/transactions")
+
+    assert sender_history.status_code == 200
+    assert recipient_history.status_code == 200
+    assert sender_history.json()["transactions"][0]["tx_id"] == tx_id
+    assert sender_history.json()["transactions"][0]["direction"] == "outgoing"
+    assert recipient_history.json()["transactions"][0]["tx_id"] == tx_id
+    assert recipient_history.json()["transactions"][0]["direction"] == "incoming"
 
 
 def test_invalid_wallet_transfer_history_rejected(blockchain):

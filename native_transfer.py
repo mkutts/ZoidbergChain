@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+import hashlib
+import json
 from typing import Any
 
 from eth_account import Account
@@ -11,6 +13,7 @@ from validators import is_valid_network_name
 
 
 NATIVE_TRANSFER_ACTION = "transfer_zoid"
+NATIVE_TRANSACTION_TYPE = "native_transfer"
 NATIVE_TRANSFER_SIGNATURE_SCHEME = "personal_sign"
 NATIVE_TRANSFER_STATUSES = (
     "draft",
@@ -21,8 +24,19 @@ NATIVE_TRANSFER_STATUSES = (
     "included",
     "failed",
 )
+NATIVE_TRANSACTION_STATUSES = (
+    "signed_pending",
+    "validated_pending",
+    "mempool",
+    "included",
+    "settled",
+    "rejected",
+    "failed",
+    "expired",
+)
 NATIVE_ZOID_MAX_DECIMAL_PLACES = 6
 MAX_TRANSFER_MEMO_LENGTH = 280
+TX_ID_HEX_LENGTH = 64
 
 
 def normalize_wallet_address(wallet_address: str) -> str | None:
@@ -36,8 +50,6 @@ def normalize_wallet_address(wallet_address: str) -> str | None:
 
 
 def hash_wallet_message(message: str) -> str:
-    import hashlib
-
     return hashlib.sha256(str(message or "").encode("utf-8")).hexdigest()
 
 
@@ -106,6 +118,57 @@ class NativeTransferVerificationResult:
     message: str
 
 
+@dataclass(frozen=True)
+class NativeTransaction:
+    tx_id: str
+    transaction_type: str
+    network: str
+    from_address: str
+    to_address: str
+    amount: str
+    fee: str
+    nonce: str
+    timestamp: str
+    signature: str
+    signature_scheme: str
+    signed_message: str
+    signed_message_hash: str
+    status: str
+    created_at: str
+    updated_at: str
+    memo: str | None = None
+    included_block_hash: str | None = None
+    included_block_height: int | None = None
+    settled_at: str | None = None
+    rejection_reason: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "tx_id": self.tx_id,
+            "transaction_type": self.transaction_type,
+            "network": self.network,
+            "from_address": self.from_address,
+            "to_address": self.to_address,
+            "amount": self.amount,
+            "fee": self.fee,
+            "nonce": self.nonce,
+            "timestamp": self.timestamp,
+            "signature": self.signature,
+            "signature_scheme": self.signature_scheme,
+            "signed_message": self.signed_message,
+            "signed_message_hash": self.signed_message_hash,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "memo": self.memo,
+            "included_block_hash": self.included_block_hash,
+            "included_block_height": self.included_block_height,
+            "settled_at": self.settled_at,
+            "rejection_reason": self.rejection_reason,
+        }
+        return payload
+
+
 def parse_native_zoid_amount(
     value: str | int | Decimal,
     *,
@@ -166,6 +229,15 @@ def parse_transfer_timestamp(value: str) -> str:
     return parsed.astimezone(timezone.utc).isoformat()
 
 
+def normalize_tx_id(value: Any) -> str | None:
+    candidate = str(value or "").strip().lower()
+    if len(candidate) != TX_ID_HEX_LENGTH:
+        return None
+    if any(ch not in "0123456789abcdef" for ch in candidate):
+        return None
+    return candidate
+
+
 def parse_transfer_nonce(value: Any) -> str:
     if isinstance(value, bool):
         raise ValueError("nonce is required and must be a string or integer.")
@@ -189,6 +261,15 @@ def _normalize_transfer_status(status: str | None) -> str:
     return candidate
 
 
+def _normalize_transaction_status(status: str | None) -> str:
+    candidate = str(status or "signed_pending").strip().lower()
+    if candidate not in NATIVE_TRANSACTION_STATUSES:
+        raise ValueError(
+            f"Transaction status must be one of: {', '.join(NATIVE_TRANSACTION_STATUSES)}."
+        )
+    return candidate
+
+
 def _normalize_transfer_memo(memo: str | None) -> str | None:
     if memo is None:
         return None
@@ -198,6 +279,194 @@ def _normalize_transfer_memo(memo: str | None) -> str | None:
     if len(candidate) > MAX_TRANSFER_MEMO_LENGTH:
         raise ValueError(f"memo exceeds the {MAX_TRANSFER_MEMO_LENGTH}-character limit.")
     return candidate
+
+
+def _canonical_transaction_fields(payload: dict[str, Any]) -> dict[str, Any]:
+    network = str(payload.get("network") or "").strip()
+    if not network:
+        raise ValueError("network is required.")
+    if not is_valid_network_name(network):
+        raise ValueError("network is invalid.")
+
+    from_address = normalize_wallet_address(payload.get("from_address"))
+    if not from_address:
+        raise ValueError("from_address must be a valid Ethereum-style 0x address.")
+
+    to_address = normalize_wallet_address(payload.get("to_address"))
+    if not to_address:
+        raise ValueError("to_address must be a valid Ethereum-style 0x address.")
+    if from_address == to_address:
+        raise ValueError("from_address and to_address must be different.")
+
+    transaction_type = str(payload.get("transaction_type") or "").strip().lower()
+    if transaction_type != NATIVE_TRANSACTION_TYPE:
+        raise ValueError(f"transaction_type must be exactly {NATIVE_TRANSACTION_TYPE}.")
+
+    signature = str(payload.get("signature") or "").strip()
+    if not signature:
+        raise ValueError("signature is required.")
+
+    signature_scheme = str(payload.get("signature_scheme") or "").strip()
+    if signature_scheme != NATIVE_TRANSFER_SIGNATURE_SCHEME:
+        raise ValueError(f"signature_scheme must be {NATIVE_TRANSFER_SIGNATURE_SCHEME}.")
+
+    signed_message = str(payload.get("signed_message") or "").strip()
+    if not signed_message:
+        raise ValueError("signed_message is required.")
+
+    signed_message_hash = str(payload.get("signed_message_hash") or "").strip().lower()
+    if not signed_message_hash:
+        raise ValueError("signed_message_hash is required.")
+    if normalize_tx_id(signed_message_hash) is None:
+        raise ValueError("signed_message_hash must be lowercase SHA-256 hex.")
+
+    return {
+        "transaction_type": transaction_type,
+        "network": network,
+        "from_address": from_address,
+        "to_address": to_address,
+        "amount": parse_native_zoid_amount(payload.get("amount"), allow_zero=False),
+        "fee": parse_native_zoid_amount(payload.get("fee", "0"), allow_zero=True),
+        "nonce": parse_transfer_nonce(payload.get("nonce")),
+        "memo": _normalize_transfer_memo(payload.get("memo")),
+        "timestamp": parse_transfer_timestamp(payload.get("timestamp")),
+        "signature": signature,
+        "signature_scheme": signature_scheme,
+        "signed_message": signed_message,
+        "signed_message_hash": signed_message_hash,
+    }
+
+
+def canonicalize_transaction_payload(transaction: dict[str, Any] | NativeTransaction) -> str:
+    payload = transaction.to_dict() if isinstance(transaction, NativeTransaction) else dict(transaction or {})
+    canonical_fields = _canonical_transaction_fields(payload)
+    return json.dumps(
+        canonical_fields,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+
+
+def compute_transaction_id(transaction_payload: dict[str, Any] | NativeTransaction) -> str:
+    canonical = canonicalize_transaction_payload(transaction_payload)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def validate_transaction_shape(
+    transaction: dict[str, Any] | NativeTransaction,
+    *,
+    network_name: str,
+) -> NativeTransaction:
+    payload = transaction.to_dict() if isinstance(transaction, NativeTransaction) else dict(transaction or {})
+    canonical_fields = _canonical_transaction_fields(payload)
+
+    if canonical_fields["network"] != network_name:
+        raise ValueError("network does not match the active ZoidbergChain network.")
+
+    status = _normalize_transaction_status(payload.get("status"))
+    tx_id = str(payload.get("tx_id") or "").strip().lower()
+    if tx_id:
+        normalized_tx_id = normalize_tx_id(tx_id)
+        if normalized_tx_id is None:
+            raise ValueError("tx_id must be lowercase SHA-256 hex.")
+        expected_tx_id = compute_transaction_id(canonical_fields)
+        if normalized_tx_id != expected_tx_id:
+            raise ValueError("tx_id does not match the canonical transaction payload.")
+    else:
+        normalized_tx_id = compute_transaction_id(canonical_fields)
+
+    created_at = parse_transfer_timestamp(payload.get("created_at"))
+    updated_at = parse_transfer_timestamp(payload.get("updated_at"))
+
+    included_block_hash = str(payload.get("included_block_hash") or "").strip() or None
+    included_block_height_value = payload.get("included_block_height")
+    included_block_height = None
+    if included_block_height_value not in (None, ""):
+        try:
+            included_block_height = int(included_block_height_value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("included_block_height must be an integer when provided.") from exc
+        if included_block_height < 0:
+            raise ValueError("included_block_height cannot be negative.")
+
+    settled_at_value = payload.get("settled_at")
+    settled_at = parse_transfer_timestamp(settled_at_value) if settled_at_value not in (None, "") else None
+    rejection_reason = str(payload.get("rejection_reason") or "").strip() or None
+
+    return NativeTransaction(
+        tx_id=normalized_tx_id,
+        transaction_type=canonical_fields["transaction_type"],
+        network=canonical_fields["network"],
+        from_address=canonical_fields["from_address"],
+        to_address=canonical_fields["to_address"],
+        amount=canonical_fields["amount"],
+        fee=canonical_fields["fee"],
+        nonce=canonical_fields["nonce"],
+        memo=canonical_fields["memo"],
+        timestamp=canonical_fields["timestamp"],
+        signature=canonical_fields["signature"],
+        signature_scheme=canonical_fields["signature_scheme"],
+        signed_message=canonical_fields["signed_message"],
+        signed_message_hash=canonical_fields["signed_message_hash"],
+        status=status,
+        created_at=created_at,
+        updated_at=updated_at,
+        included_block_hash=included_block_hash,
+        included_block_height=included_block_height,
+        settled_at=settled_at,
+        rejection_reason=rejection_reason,
+    )
+
+
+def build_native_transaction(
+    *,
+    network: str,
+    from_address: str,
+    to_address: str,
+    amount: str,
+    fee: str,
+    nonce: str,
+    memo: str | None,
+    timestamp: str,
+    signature: str,
+    signature_scheme: str,
+    signed_message: str,
+    signed_message_hash: str,
+    status: str = "signed_pending",
+    created_at: str | None = None,
+    updated_at: str | None = None,
+    included_block_hash: str | None = None,
+    included_block_height: int | None = None,
+    settled_at: str | None = None,
+    rejection_reason: str | None = None,
+) -> NativeTransaction:
+    created_timestamp = parse_transfer_timestamp(created_at or datetime.now(timezone.utc).isoformat())
+    updated_timestamp = parse_transfer_timestamp(updated_at or created_timestamp)
+    transaction_payload = {
+        "transaction_type": NATIVE_TRANSACTION_TYPE,
+        "network": network,
+        "from_address": from_address,
+        "to_address": to_address,
+        "amount": amount,
+        "fee": fee,
+        "nonce": nonce,
+        "memo": memo,
+        "timestamp": timestamp,
+        "signature": signature,
+        "signature_scheme": signature_scheme,
+        "signed_message": signed_message,
+        "signed_message_hash": signed_message_hash,
+        "status": status,
+        "created_at": created_timestamp,
+        "updated_at": updated_timestamp,
+        "included_block_hash": included_block_hash,
+        "included_block_height": included_block_height,
+        "settled_at": settled_at,
+        "rejection_reason": rejection_reason,
+    }
+    transaction_payload["tx_id"] = compute_transaction_id(transaction_payload)
+    return validate_transaction_shape(transaction_payload, network_name=str(network))
 
 
 def validate_native_transfer_message(

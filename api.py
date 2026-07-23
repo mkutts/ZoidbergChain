@@ -509,6 +509,7 @@ def _serialize_block(block):
 def _serialize_transfer_intent(transfer_intent):
     return {
         "transfer_id": transfer_intent.get("transfer_id"),
+        "tx_id": transfer_intent.get("tx_id"),
         "status": transfer_intent.get("status"),
         "from_address": transfer_intent.get("from_address"),
         "to_address": transfer_intent.get("to_address"),
@@ -524,6 +525,40 @@ def _serialize_transfer_intent(transfer_intent):
         "settlement_state": "non_final",
         "status_detail": "Pending transaction processing. Balances are not reduced yet.",
     }
+
+
+def _serialize_native_transaction(transaction):
+    return {
+        "tx_id": transaction.get("tx_id"),
+        "transaction_type": transaction.get("transaction_type"),
+        "status": transaction.get("status"),
+        "from_address": transaction.get("from_address"),
+        "to_address": transaction.get("to_address"),
+        "amount": transaction.get("amount"),
+        "fee": transaction.get("fee"),
+        "nonce": transaction.get("nonce"),
+        "memo": transaction.get("memo"),
+        "network": transaction.get("network"),
+        "timestamp": transaction.get("timestamp"),
+        "created_at": transaction.get("created_at"),
+        "included_block_hash": transaction.get("included_block_hash"),
+        "included_block_height": transaction.get("included_block_height"),
+        "settled_at": transaction.get("settled_at"),
+        "rejection_reason": transaction.get("rejection_reason"),
+    }
+
+
+def _serialize_wallet_transaction_history_entry(transaction, wallet_address: str):
+    normalized_wallet = normalize_wallet_address(wallet_address)
+    from_address = normalize_wallet_address(transaction.get("from_address"))
+    direction = "incoming"
+    if normalized_wallet and from_address == normalized_wallet:
+        direction = "outgoing"
+    body = _serialize_native_transaction(transaction)
+    body["direction"] = direction
+    body["settlement_state"] = "non_final" if body.get("status") != "settled" else "settled"
+    body["status_detail"] = "Recorded as a signed native ZOID transaction. Not settled yet."
+    return body
 
 
 def _serialize_account_submission(submission):
@@ -654,6 +689,15 @@ def _get_account_transfers(normalized_wallet: str):
     return transfers
 
 
+def _get_account_transactions(normalized_wallet: str):
+    transactions = [
+        _serialize_wallet_transaction_history_entry(record, normalized_wallet)
+        for record in blockchain.get_native_transactions_for_wallet(normalized_wallet)
+    ]
+    transactions.sort(key=lambda record: record.get("created_at") or "", reverse=True)
+    return transactions
+
+
 def _count_pending_transfer_intents(transfers: list[dict[str, Any]]) -> int:
     pending_statuses = {"signed_pending", "pending", "draft_signed", "signed", "validated_pending", "mempool"}
     return sum(1 for transfer in transfers if str(transfer.get("status") or "").strip().lower() in pending_statuses)
@@ -663,7 +707,7 @@ def _build_account_summary(normalized_wallet: str):
     submissions = _get_account_submissions(normalized_wallet)
     votes = _get_account_votes(normalized_wallet)
     rewards = _get_account_rewards(normalized_wallet)
-    transfers = _get_account_transfers(normalized_wallet)
+    transactions = _get_account_transactions(normalized_wallet)
     balance = blockchain.get_native_balance(normalized_wallet)
     pending_outgoing = blockchain.get_pending_outgoing_transfer_amount(normalized_wallet)
     return {
@@ -678,7 +722,7 @@ def _build_account_summary(normalized_wallet: str):
         "submission_count": len(submissions),
         "vote_count": len(votes),
         "reward_count": len(rewards),
-        "pending_transfer_count": _count_pending_transfer_intents(transfers),
+        "pending_transfer_count": _count_pending_transfer_intents(transactions),
         "note": (
             "Native accounts do not need to be pre-registered in the old development-only server wallet list. "
             "A verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance."
@@ -1282,6 +1326,7 @@ async def submit_transfer_intent(
             signature_scheme=str(verification["signature_scheme"]),
             signature=str(verification["transfer_signature"]),
             signed_message_hash=str(verification["signed_message_hash"]),
+            signed_message=str(verification["transfer_message"]),
             transfer_nonce=str(verification["nonce"]),
             signed_at=str(verification["signed_at"]),
             status="signed_pending",
@@ -1300,7 +1345,7 @@ async def submit_transfer_intent(
 
     body = _serialize_transfer_intent(transfer_intent)
     body["message"] = (
-        "Signed transfer submitted. Settlement is not active until transaction processing is enabled."
+        "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
     )
     return body
 
@@ -2589,6 +2634,26 @@ async def get_native_account_transfers(request: Request, wallet_address: str):
         logging.error("ERROR retrieving native account transfers for wallet %s: %s", _short_key(wallet_address), e)
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
+
+@app.get("/accounts/{wallet_address}/transactions")
+@api_limit("public_read")
+async def get_native_account_transactions(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "account_type": "metamask_native",
+            "network_name": NETWORK_NAME,
+            "transactions": _get_account_transactions(normalized_wallet),
+            "note": "Signed pending transactions are recorded but not settled until transaction processing is enabled.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account transactions for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
 @app.get("/get_balance")
 @api_limit("public_read")
 async def get_balance(
@@ -2676,6 +2741,24 @@ async def get_wallet_transfer_intents(request: Request, wallet_address: str):
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 
+@app.get("/wallets/{wallet_address}/transactions")
+@api_limit("public_read")
+async def get_wallet_transactions(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_supported_user_identity(wallet_address, field_name="wallet address")
+        return {
+            "wallet_address": normalized_wallet,
+            "network_name": NETWORK_NAME,
+            "transactions": _get_account_transactions(normalized_wallet),
+            "note": "Signed pending transactions are recorded but not settled until transaction processing is enabled.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving transactions for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
 @app.get("/transfers/{transfer_id}")
 @api_limit("public_read")
 async def get_transfer_intent(request: Request, transfer_id: str):
@@ -2685,6 +2768,18 @@ async def get_transfer_intent(request: Request, transfer_id: str):
     return {
         "transfer": _serialize_transfer_intent(transfer_intent),
         "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+    }
+
+
+@app.get("/transactions/{tx_id}")
+@api_limit("public_read")
+async def get_native_transaction(request: Request, tx_id: str):
+    transaction = blockchain.get_native_transaction(tx_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Transaction not found: {tx_id}")
+    return {
+        "transaction": _serialize_native_transaction(transaction),
+        "note": "Recorded as a signed native ZOID transaction. Not settled yet.",
     }
 
 @app.get("/get_reward_pool_balance")

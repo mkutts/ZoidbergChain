@@ -1,12 +1,95 @@
 # Native Transaction Layer Plan
 
-Task 7.9 defines the design path for native ZOID transfer intents to become real native ZoidbergChain transactions.
+Task 8.1 now implements the first hardening step for native ZOID transfer intents by adding the canonical `NativeTransaction` record and deterministic `tx_id`.
 
 - This is a planning document for Task 8.
-- It does not implement a mempool.
+- It does not implement nonce sequencing yet.
+- It does not enforce balance sufficiency yet.
+- It does not implement a mempool yet.
 - It does not settle transfers.
 - It does not mutate spendable balances yet.
 - It does not include transfers in blocks yet except to define the intended future block shape.
+
+## Task 8.1 Implemented Shape
+
+Canonical native transaction fields:
+
+- `tx_id`
+- `transaction_type` with value `native_transfer`
+- `network`
+- `from_address`
+- `to_address`
+- `amount`
+- `fee`
+- `nonce`
+- `memo` optional
+- `timestamp`
+- `signature`
+- `signature_scheme`
+- `signed_message`
+- `signed_message_hash`
+- `status`
+- `created_at`
+- `updated_at`
+- `included_block_hash` optional
+- `included_block_height` optional
+- `settled_at` optional
+- `rejection_reason` optional
+
+Task 8.1 persists this record in both storage backends as `native_transactions`.
+
+## Deterministic Transaction ID
+
+Task 8.1 uses:
+
+`tx_id = SHA-256(canonical signed transaction payload)`
+
+Included fields:
+
+- `transaction_type`
+- `network`
+- `from_address`
+- `to_address`
+- `amount`
+- `fee`
+- `nonce`
+- `memo`
+- `timestamp`
+- `signature`
+- `signature_scheme`
+- `signed_message`
+- `signed_message_hash`
+
+Excluded local-only fields:
+
+- `status`
+- `created_at`
+- `updated_at`
+- `included_block_hash`
+- `included_block_height`
+- `settled_at`
+- `rejection_reason`
+
+Rules:
+
+- `tx_id` is lowercase SHA-256 hex
+- the same signed transaction always produces the same `tx_id`
+- changing signer, recipient, amount, nonce, memo, fee, signed message, or signature changes `tx_id`
+
+## Current Status Meaning
+
+`signed_pending` means:
+
+- the signed native transaction record exists
+- it has a deterministic `tx_id`
+- it is queryable through transaction history and `GET /transactions/{tx_id}`
+- it is not settled
+- balances do not change yet
+- transfer execution remains deferred until later Task 8 steps
+
+Task 8.2 adds nonce tracking and replay hardening.
+
+Task 8.3 adds balance sufficiency enforcement.
 
 ## Current Starting Point
 

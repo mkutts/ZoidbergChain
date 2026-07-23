@@ -43,6 +43,7 @@ def test_sqlite_storage_backend_initializes_database(isolated_data_dir):
         "mint_queue",
         "votes",
         "transfer_intents",
+        "native_transactions",
         "originality_certificates",
         "peers",
     }
@@ -306,6 +307,7 @@ def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):
         "mint_queue": [],
         "votes": [],
         "transfer_intents": [],
+        "native_transactions": [],
         "originality_certificates": [],
         "peers": [],
     }

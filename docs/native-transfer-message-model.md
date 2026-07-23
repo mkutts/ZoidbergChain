@@ -6,11 +6,13 @@ Task 7.7 defines the native ZOID transfer message model only.
 - Task 8 hardens balances, nonces, replay protection, mempool behavior, fees, and block inclusion.
 - This task does not execute transfers, mutate balances, or include transfers in blocks.
 
-Task 7.8 extends that model into signed pending transfer intents.
+Task 8.1 extends that model further into canonical signed native transaction records.
 
 - `POST /auth/wallet/transfer-challenge` issues the exact backend-built message for MetaMask signing.
-- `POST /transfers/submit` stores a signed transfer intent as a non-final pending record.
-- `GET /transfers/{transfer_id}` and `GET /wallets/{wallet_address}/transfers` expose safe read-only transfer intent history.
+- `POST /transfers/submit` stores a signed transfer intent and a canonical non-final `NativeTransaction` record.
+- `GET /transfers/{transfer_id}` and `GET /wallets/{wallet_address}/transfers` expose safe read-only transfer intent history and include `tx_id` when available.
+- `GET /transactions/{tx_id}` exposes the safe canonical transaction view.
+- `GET /accounts/{wallet_address}/transactions` and `GET /wallets/{wallet_address}/transactions` expose transaction history with incoming/outgoing direction.
 - Pending transfer intents do not mutate native balances yet.
 - Peer propagation, mempool behavior, replay hardening, balance settlement, and block inclusion remain deferred to Task 8.
 - Task 7.9 defines the design path from transfer intents to settled native transactions in [docs/native-transaction-layer-plan.md](C:/Users/mattk/ZoidbergChain/docs/native-transaction-layer-plan.md).
@@ -106,6 +108,85 @@ Signing rules:
 - The backend later verifies that the recovered signer matches `from_address`.
 - The signature does not by itself execute or finalize a transfer in Task 7.7.
 
+## Canonical NativeTransaction Record
+
+Task 8.1 adds a canonical `NativeTransaction` record with:
+
+- `tx_id`
+- `transaction_type`
+- `network`
+- `from_address`
+- `to_address`
+- `amount`
+- `fee`
+- `nonce`
+- `memo`
+- `timestamp`
+- `signature`
+- `signature_scheme`
+- `signed_message`
+- `signed_message_hash`
+- `status`
+- `created_at`
+- `updated_at`
+- `included_block_hash`
+- `included_block_height`
+- `settled_at`
+- `rejection_reason`
+
+Current `transaction_type` is always `native_transfer`.
+
+Current status values are:
+
+- `signed_pending`
+- `validated_pending`
+- `mempool`
+- `included`
+- `settled`
+- `rejected`
+- `failed`
+- `expired`
+
+## Transaction ID Rule
+
+Task 8.1 computes:
+
+`tx_id = SHA-256(canonical signed transaction payload)`
+
+Included in canonical hashing:
+
+- `transaction_type`
+- `network`
+- `from_address`
+- `to_address`
+- `amount`
+- `fee`
+- `nonce`
+- `memo`
+- `timestamp`
+- `signature`
+- `signature_scheme`
+- `signed_message`
+- `signed_message_hash`
+
+Excluded from canonical hashing:
+
+- `status`
+- `created_at`
+- `updated_at`
+- `included_block_hash`
+- `included_block_height`
+- `settled_at`
+- `rejection_reason`
+
+The canonical serialization uses:
+
+- stable key ordering
+- normalized lowercase `0x` addresses
+- decimal-safe normalized amount and fee strings
+- timezone-aware ISO 8601 timestamps
+- no Python object representation
+
 ## Signature Verification Role
 
 Task 7.7 adds reusable signature verification helpers for future transfer submission work.
@@ -130,10 +211,12 @@ Task 7.8 turns the transfer model into a signed pending intent flow, not a final
    - request fields still match the stored challenge
    - nonce is still active and unused
 6. The backend stores a non-final transfer intent record with status `signed_pending`.
+7. The backend also stores a canonical `NativeTransaction` record with the same `signed_pending` status and deterministic `tx_id`.
 
 Signed pending means:
 
 - the transfer intent was signed and accepted for future processing
+- the transaction record was created and assigned a deterministic `tx_id`
 - balances are not reduced yet
 - no mempool or block inclusion happens yet
 - no ERC-20 transfer has happened
@@ -169,8 +252,8 @@ Deferred to Task 7.8:
 
 Deferred to Task 8:
 
-- balance sufficiency checks
-- strict nonce sequencing and replay protection
+- strict nonce sequencing and replay protection in Task 8.2
+- balance sufficiency checks in Task 8.3
 - fee policy hardening
 - mempool behavior
 - block inclusion

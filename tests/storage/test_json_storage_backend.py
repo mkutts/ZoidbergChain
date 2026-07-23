@@ -63,6 +63,7 @@ def test_json_storage_backend_loads_existing_chain_data(isolated_data_dir):
     assert backend.load_blockchain_state() == {
         **state,
         "transfer_intents": [],
+        "native_transactions": [],
     }
     assert backend.load_chain() == chain
 

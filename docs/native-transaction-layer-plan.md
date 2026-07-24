@@ -120,7 +120,48 @@ Read endpoint:
 - `GET /accounts/{wallet_address}/nonce`
 - returns `next_nonce`, `used_nonces`, `reserved_nonces`, and policy
 
-Task 8.3 adds balance sufficiency enforcement.
+Task 8.3 now adds balance sufficiency enforcement and available-balance calculation.
+
+## Task 8.3 Balance Model
+
+Current balance types:
+
+- `final_balance`: chain-derived native balance only
+- `pending_outgoing`: sum of accepted non-final outgoing transactions that reserve funds
+- `pending_incoming`: sum of accepted non-final incoming transaction amounts
+- `available_balance = final_balance - pending_outgoing`
+
+Current fund-reservation statuses:
+
+- reserves funds: `signed_pending`, `validated_pending`, `mempool`
+- does not reserve funds: `rejected`, `failed`, `expired`
+- `included` and `settled` are expected to move into final-balance accounting once Task 8.6 settlement exists
+
+Current balance sufficiency rule:
+
+- submit-time acceptance requires `amount + fee <= available_balance`
+- insufficient transactions are rejected before record acceptance
+- insufficient transactions do not reserve funds
+- insufficient transactions do not consume nonce through persisted acceptance
+- final balance is not mutated yet because settlement is still deferred
+
+Current fee policy:
+
+- the `fee` field exists for forward compatibility
+- nonzero fees are not enabled yet
+- fee still counts in the sufficiency formula conceptually, but current submit handling rejects nonzero fee values
+
+Read surfaces now expose:
+
+- `final_balance`
+- `pending_outgoing`
+- `pending_incoming`
+- `available_balance`
+- backward-compatible `native_balance` equal to `final_balance`
+
+Task 8.4 adds mempool storage and validation.
+
+Task 8.6 adds block inclusion and settlement.
 
 ## Current Starting Point
 

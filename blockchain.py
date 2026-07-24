@@ -1348,22 +1348,110 @@ class Blockchain:
             "initial_nonce": NATIVE_TRANSACTION_INITIAL_NONCE,
         }
 
-    def get_pending_outgoing_transfer_amount(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return "0"
-        pending_statuses = {"signed_pending", "pending", "draft_signed", "signed"}
-        total = Decimal("0")
-        for record in self.transfer_intents:
-            if record.get("status") not in pending_statuses:
-                continue
-            if self._normalize_native_wallet_identity(record.get("from_address")) != normalized_wallet:
-                continue
-            total += Decimal(str(record.get("amount") or "0"))
-        normalized_total = format(total.normalize(), "f")
+    @staticmethod
+    def _normalize_decimal_value(value: Decimal) -> str:
+        normalized_total = format(value.normalize(), "f")
         if "." in normalized_total:
             normalized_total = normalized_total.rstrip("0").rstrip(".")
         return normalized_total if normalized_total and normalized_total != "-0" else "0"
+
+    @staticmethod
+    def _native_funds_reserved_statuses():
+        return {"signed_pending", "validated_pending", "mempool"}
+
+    def _get_reserved_native_transactions_for_wallet(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        return [
+            transaction
+            for transaction in self.native_transactions
+            if str(transaction.get("status") or "").strip().lower() in self._native_funds_reserved_statuses()
+            and (
+                self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
+                or self._normalize_native_wallet_identity(transaction.get("to_address")) == normalized_wallet
+            )
+        ]
+
+    def get_final_native_balance_amount(self, wallet_address) -> Decimal:
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return Decimal("0")
+        balance = Decimal("0")
+        for block in self.chain:
+            for transaction in block.transactions:
+                sender = self._normalize_native_wallet_identity(transaction.sender) or transaction.sender
+                recipient = self._normalize_native_wallet_identity(transaction.recipient) or transaction.recipient
+                transaction_total = Decimal(str(transaction.amount)) + Decimal(str(transaction.tip))
+                if sender == normalized_wallet:
+                    balance -= transaction_total
+                if recipient == normalized_wallet:
+                    balance += transaction_total
+        return balance
+
+    def get_pending_outgoing_balance_amount(self, wallet_address) -> Decimal:
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return Decimal("0")
+        total = Decimal("0")
+        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet):
+            if self._normalize_native_wallet_identity(transaction.get("from_address")) != normalized_wallet:
+                continue
+            total += Decimal(str(transaction.get("amount") or "0"))
+            total += Decimal(str(transaction.get("fee") or "0"))
+        return total
+
+    def get_pending_incoming_balance_amount(self, wallet_address) -> Decimal:
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return Decimal("0")
+        total = Decimal("0")
+        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet):
+            if self._normalize_native_wallet_identity(transaction.get("to_address")) != normalized_wallet:
+                continue
+            total += Decimal(str(transaction.get("amount") or "0"))
+        return total
+
+    def get_available_native_balance_amount(self, wallet_address) -> Decimal:
+        return self.get_final_native_balance_amount(wallet_address) - self.get_pending_outgoing_balance_amount(wallet_address)
+
+    def get_native_balance_snapshot(self, wallet_address) -> dict[str, str]:
+        final_balance = self.get_final_native_balance_amount(wallet_address)
+        pending_outgoing = self.get_pending_outgoing_balance_amount(wallet_address)
+        pending_incoming = self.get_pending_incoming_balance_amount(wallet_address)
+        available_balance = final_balance - pending_outgoing
+        return {
+            "final_balance": self._normalize_decimal_value(final_balance),
+            "pending_outgoing": self._normalize_decimal_value(pending_outgoing),
+            "pending_incoming": self._normalize_decimal_value(pending_incoming),
+            "available_balance": self._normalize_decimal_value(available_balance),
+            "native_balance": self._normalize_decimal_value(final_balance),
+        }
+
+    def validate_transaction_balance_sufficiency(self, transaction):
+        normalized_wallet = self._normalize_native_wallet_identity(transaction.get("from_address"))
+        if normalized_wallet is None:
+            raise ValueError("Transaction from_address is invalid.")
+        fee_amount = Decimal(str(transaction.get("fee") or "0"))
+        if fee_amount != Decimal("0"):
+            raise ValueError("Nonzero fees are not enabled yet.")
+        amount = Decimal(str(transaction.get("amount") or "0"))
+        required_total = amount + fee_amount
+        available_balance = self.get_available_native_balance_amount(normalized_wallet)
+        if required_total > available_balance:
+            snapshot = self.get_native_balance_snapshot(normalized_wallet)
+            raise ValueError(
+                "Insufficient available balance. "
+                f"Final balance: {snapshot['final_balance']} ZOID, "
+                f"pending outgoing: {snapshot['pending_outgoing']} ZOID, "
+                f"available: {snapshot['available_balance']} ZOID."
+            )
+
+    def get_pending_outgoing_transfer_amount(self, wallet_address):
+        return self.get_native_balance_snapshot(wallet_address)["pending_outgoing"]
+
+    def get_pending_incoming_transfer_amount(self, wallet_address):
+        return self.get_native_balance_snapshot(wallet_address)["pending_incoming"]
 
     def require_valid_certificate_for_submission(self, submission):
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)

@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import hmac
+from decimal import Decimal
 from typing import Annotated, Any, Literal
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header, Query
@@ -757,22 +758,24 @@ def _build_account_summary(normalized_wallet: str):
     votes = _get_account_votes(normalized_wallet)
     rewards = _get_account_rewards(normalized_wallet)
     transactions = _get_account_transactions(normalized_wallet)
-    balance = blockchain.get_native_balance(normalized_wallet)
-    pending_outgoing = blockchain.get_pending_outgoing_transfer_amount(normalized_wallet)
+    balance_snapshot = blockchain.get_native_balance_snapshot(normalized_wallet)
     return {
         "wallet_address": normalized_wallet,
         "normalized_wallet_address": normalized_wallet,
         "account_type": "metamask_native",
         "network_name": NETWORK_NAME,
-        "native_balance": str(balance),
-        "pending_outgoing": pending_outgoing,
-        "available_balance": str(balance),
+        "final_balance": balance_snapshot["final_balance"],
+        "native_balance": balance_snapshot["native_balance"],
+        "pending_outgoing": balance_snapshot["pending_outgoing"],
+        "pending_incoming": balance_snapshot["pending_incoming"],
+        "available_balance": balance_snapshot["available_balance"],
         "symbol": TICKER,
         "submission_count": len(submissions),
         "vote_count": len(votes),
         "reward_count": len(rewards),
         "pending_transfer_count": _count_pending_transfer_intents(transactions),
         "note": (
+            "Pending outgoing transactions reduce available balance but are not settled until included in a block. "
             "Native accounts do not need to be pre-registered in the old development-only server wallet list. "
             "A verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance."
         ),
@@ -1315,6 +1318,12 @@ async def create_wallet_transfer_challenge(
             memo=payload.memo,
             nonce=str(expected_nonce),
         )
+        balance_snapshot = blockchain.get_native_balance_snapshot(wallet_address)
+        estimated_total = parse_native_zoid_amount(payload.amount, allow_zero=False)
+        would_be_sufficient = Decimal(estimated_total) <= Decimal(balance_snapshot["available_balance"])
+        challenge["available_balance"] = balance_snapshot["available_balance"]
+        challenge["estimated_total"] = estimated_total
+        challenge["would_be_sufficient_at_challenge_time"] = would_be_sufficient
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -1360,7 +1369,7 @@ async def submit_transfer_intent(
     if normalized_from is None or normalized_from != wallet_address:
         raise HTTPException(status_code=403, detail="from_address must match the verified wallet session.")
 
-    starting_balance = blockchain.get_native_balance(wallet_address)
+    starting_balance = blockchain.get_native_balance_snapshot(wallet_address)["native_balance"]
     try:
         transaction_preview = _build_submitted_native_transaction_preview(payload)
         existing_transaction = blockchain.get_native_transaction(transaction_preview.tx_id)
@@ -1384,6 +1393,7 @@ async def submit_transfer_intent(
             message=payload.message,
             signature=payload.signature,
         )
+        blockchain.validate_transaction_balance_sufficiency(transaction_preview.to_dict())
         transfer_intent = blockchain.create_signed_transfer_intent(
             from_address=str(verification["from_address"]),
             to_address=str(verification["to_address"]),
@@ -1408,7 +1418,7 @@ async def submit_transfer_intent(
             status_code = 401
         raise HTTPException(status_code=status_code, detail=detail) from exc
 
-    ending_balance = blockchain.get_native_balance(wallet_address)
+    ending_balance = blockchain.get_native_balance_snapshot(wallet_address)["native_balance"]
     if ending_balance != starting_balance:
         raise HTTPException(status_code=500, detail="Transfer intent submission must not mutate balances.")
 
@@ -2769,16 +2779,17 @@ async def get_balance(
 async def get_native_wallet_balance(request: Request, wallet_address: str):
     try:
         normalized_wallet = _normalize_supported_user_identity(wallet_address, field_name="wallet address")
-        balance = blockchain.get_native_balance(normalized_wallet)
-        pending_outgoing = blockchain.get_pending_outgoing_transfer_amount(normalized_wallet)
+        balance_snapshot = blockchain.get_native_balance_snapshot(normalized_wallet)
         return {
             "wallet_address": normalized_wallet,
-            "native_balance": str(balance),
-            "pending_outgoing": pending_outgoing,
-            "available_balance": str(balance),
-            "symbol": COIN_NAME,
+            "final_balance": balance_snapshot["final_balance"],
+            "native_balance": balance_snapshot["native_balance"],
+            "pending_outgoing": balance_snapshot["pending_outgoing"],
+            "pending_incoming": balance_snapshot["pending_incoming"],
+            "available_balance": balance_snapshot["available_balance"],
+            "symbol": TICKER,
             "network_name": NETWORK_NAME,
-            "note": "Pending transfers are not settled until transaction processing is enabled.",
+            "note": "Pending outgoing transactions reduce available balance but are not settled until included in a block.",
         }
     except HTTPException:
         raise

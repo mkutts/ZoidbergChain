@@ -21,8 +21,10 @@ def test_native_account_summary_returns_zero_state_for_unknown_wallet(blockchain
     assert body["wallet_address"] == unknown_account.address.lower()
     assert body["normalized_wallet_address"] == unknown_account.address.lower()
     assert body["account_type"] == "metamask_native"
+    assert body["final_balance"] == "0"
     assert body["native_balance"] == "0"
     assert body["pending_outgoing"] == "0"
+    assert body["pending_incoming"] == "0"
     assert body["available_balance"] == "0"
     assert body["submission_count"] == 0
     assert body["vote_count"] == 0
@@ -116,8 +118,10 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
     assert summary["vote_count"] == 1
     assert summary["reward_count"] == 1
     assert summary["pending_transfer_count"] == 1
+    assert summary["final_balance"] == summary["native_balance"]
     assert float(summary["native_balance"]) >= 5.0
     assert summary["pending_outgoing"] == "3"
+    assert summary["pending_incoming"] == "0"
 
     submissions = submissions_response.json()["submissions"]
     assert len(submissions) == 1

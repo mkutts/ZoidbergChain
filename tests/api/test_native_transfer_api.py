@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from blockchain import Blockchain
 from storage import JSONStorageBackend, SQLiteStorageBackend
+from transaction import Transaction
 from wallet import Wallet
 from wallet_auth import WalletAuthManager
 
@@ -52,6 +53,12 @@ def _create_blockchain_with_backend(backend):
 
 def _create_account():
     return Account.create()
+
+
+def _fund_native_wallet(blockchain, wallet_address, amount="5"):
+    blockchain.chain[0].transactions.append(
+        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
+    )
 
 
 def _sign_message(message, account):
@@ -190,6 +197,7 @@ def test_transfer_challenge_rejects_wrong_manual_nonce(blockchain):
 def test_valid_signed_transfer_intent_succeeds_and_is_non_final(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
     headers = _verified_headers(client, account)
     starting_balance = blockchain.get_native_balance(account.address.lower())
 
@@ -204,6 +212,21 @@ def test_valid_signed_transfer_intent_succeeds_and_is_non_final(blockchain):
     assert body["settlement_state"] == "non_final"
     assert "not settled" in body["message"].lower()
     assert blockchain.get_native_balance(account.address.lower()) == starting_balance
+
+
+def test_transfer_challenge_returns_balance_preview(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    response = _request_transfer_challenge(client, account, headers, amount="4")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["available_balance"] == "5"
+    assert body["estimated_total"] == "4"
+    assert body["would_be_sufficient_at_challenge_time"] is True
 
 
 def test_transfer_submit_rejects_wrong_wallet_signature(blockchain):
@@ -260,6 +283,7 @@ def test_transfer_submit_rejects_modified_message(blockchain):
 def test_transfer_submit_returns_existing_record_for_exact_duplicate(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
     headers = _verified_headers(client, account)
     challenge_response = _request_transfer_challenge(client, account, headers)
     challenge = challenge_response.json()
@@ -311,6 +335,7 @@ def test_transfer_submit_rejects_field_mismatch(blockchain):
 def test_second_different_signed_transfer_with_same_nonce_is_rejected(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
     headers = _verified_headers(client, account)
 
     first_challenge = _request_transfer_challenge(
@@ -369,6 +394,7 @@ def test_gap_nonce_is_rejected_under_strict_sequential_policy(blockchain):
 def test_transfer_read_endpoints_return_safe_fields(blockchain):
     client, _ = _client(blockchain)
     sender = _create_account()
+    _fund_native_wallet(blockchain, sender.address, "25")
     headers = _verified_headers(client, sender)
 
     submit_response = _submit_transfer_intent(client, sender, headers)
@@ -408,6 +434,7 @@ def test_transfer_intent_persists_across_storage_reload(backend_factory, isolate
     blockchain = _create_blockchain_with_backend(backend)
     client, _ = _client(blockchain)
     account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
     headers = _verified_headers(client, account)
 
     submit_response = _submit_transfer_intent(client, account, headers)
@@ -447,6 +474,7 @@ def test_account_transaction_history_includes_incoming_and_outgoing(blockchain):
     client, _ = _client(blockchain)
     sender = _create_account()
     recipient = _create_account()
+    _fund_native_wallet(blockchain, sender.address, "25")
     headers = _verified_headers(client, sender)
 
     submit_response = _submit_transfer_intent(
@@ -472,6 +500,7 @@ def test_account_transaction_history_includes_incoming_and_outgoing(blockchain):
 def test_nonce_endpoint_returns_expected_state(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
     headers = _verified_headers(client, account)
 
     before = client.get(f"/accounts/{account.address.lower()}/nonce")
@@ -505,6 +534,7 @@ def test_nonce_state_survives_storage_reload(backend_factory, isolated_data_dir)
     blockchain = _create_blockchain_with_backend(backend)
     client, _ = _client(blockchain)
     account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
     headers = _verified_headers(client, account)
 
     submit_response = _submit_transfer_intent(client, account, headers)
@@ -520,6 +550,124 @@ def test_nonce_state_survives_storage_reload(backend_factory, isolated_data_dir)
     assert reloaded.get_next_nonce(account.address.lower()) == 2
     assert reloaded.get_used_nonces(account.address.lower()) == [1]
     assert reloaded.get_reserved_nonces(account.address.lower()) == [1]
+
+
+def test_transfer_equal_to_available_balance_is_accepted(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    response = _submit_transfer_intent(client, account, headers, amount="5")
+
+    assert response.status_code == 200
+    balance_state = client.get(f"/accounts/{account.address.lower()}").json()
+    assert balance_state["final_balance"] == "5"
+    assert balance_state["pending_outgoing"] == "5"
+    assert balance_state["available_balance"] == "0"
+
+
+def test_transfer_above_available_balance_is_rejected_and_not_recorded(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    response = _submit_transfer_intent(client, account, headers, amount="6")
+    nonce_state = client.get(f"/accounts/{account.address.lower()}/nonce").json()
+    history = client.get(f"/accounts/{account.address.lower()}/transactions").json()["transactions"]
+
+    assert response.status_code == 400
+    assert "insufficient available balance" in response.json()["detail"].lower()
+    assert nonce_state["next_nonce"] == 1
+    assert history == []
+    assert blockchain.get_native_balance(account.address.lower()) == 5
+
+
+def test_multiple_pending_transfers_cannot_overcommit_funds(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    first = _submit_transfer_intent(client, account, headers, amount="4")
+    second = _submit_transfer_intent(client, account, headers, amount="2")
+    third = _submit_transfer_intent(client, account, headers, amount="1")
+    balance_state = client.get(f"/accounts/{account.address.lower()}").json()
+    nonce_state = client.get(f"/accounts/{account.address.lower()}/nonce").json()
+
+    assert first.status_code == 200
+    assert second.status_code == 400
+    assert "insufficient available balance" in second.json()["detail"].lower()
+    assert third.status_code == 200
+    assert balance_state["final_balance"] == "5"
+    assert balance_state["pending_outgoing"] == "5"
+    assert balance_state["available_balance"] == "0"
+    assert nonce_state["next_nonce"] == 3
+
+
+def test_pending_incoming_does_not_increase_available_balance(blockchain):
+    client, _ = _client(blockchain)
+    sender = _create_account()
+    recipient = _create_account()
+    _fund_native_wallet(blockchain, sender.address, "5")
+    headers = _verified_headers(client, sender)
+
+    response = _submit_transfer_intent(client, sender, headers, to_address=recipient.address, amount="4")
+    recipient_summary = client.get(f"/accounts/{recipient.address.lower()}").json()
+
+    assert response.status_code == 200
+    assert recipient_summary["final_balance"] == "0"
+    assert recipient_summary["pending_incoming"] == "4"
+    assert recipient_summary["available_balance"] == "0"
+
+
+def test_wallet_balance_endpoint_returns_full_balance_snapshot(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers, amount="4")
+    response = client.get(f"/wallets/{account.address.lower()}/balance")
+
+    assert submit_response.status_code == 200
+    assert response.status_code == 200
+    body = response.json()
+    assert body["final_balance"] == "5"
+    assert body["native_balance"] == "5"
+    assert body["pending_outgoing"] == "4"
+    assert body["pending_incoming"] == "0"
+    assert body["available_balance"] == "1"
+    assert body["symbol"] == "ZOID"
+
+
+def test_nonzero_fee_is_rejected_clearly(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    response = _request_transfer_challenge(client, account, headers, fee="0.1")
+
+    assert response.status_code == 200
+    challenge = response.json()
+    submit = client.post(
+        "/transfers/submit",
+        json={
+            "from_address": account.address,
+            "to_address": challenge["transfer_preview"]["to_address"],
+            "amount": challenge["transfer_preview"]["amount"],
+            "fee": challenge["transfer_preview"]["fee"],
+            "memo": "preview",
+            "message": challenge["message"],
+            "signature": _sign_message(challenge["message"], account),
+        },
+        headers=headers,
+    )
+
+    assert submit.status_code == 400
+    assert "nonzero fees are not enabled yet" in submit.json()["detail"].lower()
 
 
 def test_invalid_wallet_transfer_history_rejected(blockchain):

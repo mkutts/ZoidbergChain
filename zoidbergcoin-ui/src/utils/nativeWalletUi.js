@@ -1,11 +1,12 @@
 export function buildNativeBalanceSummary(balance = {}) {
   const symbol = balance.symbol || 'ZOID';
   const rows = [];
+  const finalBalance = balance.final_balance ?? balance.native_balance;
 
-  if (balance.native_balance !== undefined && balance.native_balance !== null && balance.native_balance !== '') {
+  if (finalBalance !== undefined && finalBalance !== null && finalBalance !== '') {
     rows.push({
       label: 'Final Native ZOID Balance',
-      value: `${balance.native_balance} ${symbol}`,
+      value: `${finalBalance} ${symbol}`,
     });
   }
 

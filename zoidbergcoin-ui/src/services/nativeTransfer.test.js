@@ -86,6 +86,18 @@ test('validateNativeTransferDraft rejects invalid addresses and zero amount', ()
   );
 });
 
+test('validateNativeTransferDraft rejects obvious overspend against available balance', () => {
+  assert.throws(
+    () => validateNativeTransferDraft({
+      fromAddress: '0x1111111111111111111111111111111111111111',
+      toAddress: '0x2222222222222222222222222222222222222222',
+      amount: '2',
+      availableBalance: '1.5',
+    }),
+    /available balance of 1.5 zoid/i,
+  );
+});
+
 test('submitSignedTransferIntent signs exact backend message and returns pending status', async () => {
   const provider = new MockProvider();
   const api = createApi();

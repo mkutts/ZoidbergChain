@@ -68,11 +68,18 @@ Nonce read endpoint:
 
 Important current rules:
 
+- `final_balance` is chain-derived only
+- `pending_outgoing` reduces `available_balance`
+- `pending_incoming` is shown separately and does not increase `available_balance`
+- submit-time transfer acceptance now requires sufficient `available_balance`
+- nonzero fees are not enabled yet
 - balances are not reduced yet
 - native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
 - old dev wallets are still not the native account registry
 - Task 8.2 adds nonce tracking and replay protection
 - Task 8.3 adds balance sufficiency enforcement
+- Task 8.4 adds mempool storage and validation
+- Task 8.6 adds block inclusion and settlement
 
 ## Legacy / Compatibility Notes
 

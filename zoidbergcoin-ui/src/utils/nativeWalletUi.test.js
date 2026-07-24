@@ -11,6 +11,7 @@ import {
 
 test('buildNativeBalanceSummary keeps final balance visible and does not require pending fields', () => {
   const rows = buildNativeBalanceSummary({
+    final_balance: '15',
     native_balance: '15',
     symbol: 'ZOID',
   });
@@ -25,15 +26,18 @@ test('buildNativeBalanceSummary keeps final balance visible and does not require
 
 test('buildNativeBalanceSummary includes pending and available values when present', () => {
   const rows = buildNativeBalanceSummary({
+    final_balance: '15',
     native_balance: '15',
     pending_outgoing: '10',
+    pending_incoming: '2',
     available_balance: '15',
     symbol: 'ZOID',
   });
 
-  assert.equal(rows.length, 3);
+  assert.equal(rows.length, 4);
   assert.equal(rows[1].label, 'Pending Outgoing');
-  assert.equal(rows[2].label, 'Available Balance');
+  assert.equal(rows[2].label, 'Pending Incoming');
+  assert.equal(rows[3].label, 'Available Balance');
 });
 
 test('describeTransferIntentDirection detects outgoing and incoming transfer history', () => {

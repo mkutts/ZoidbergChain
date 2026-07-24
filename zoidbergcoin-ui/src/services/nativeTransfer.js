@@ -2,7 +2,16 @@ import { normalizeWalletAddress } from '../utils/walletAddress.js';
 
 export const TRANSFER_PENDING_WARNING = 'This signs a native ZOID transfer intent on ZoidbergChain. Transfers are not settled until transaction processing is enabled.';
 
-export function validateNativeTransferDraft({ fromAddress, toAddress, amount, memo = '' }) {
+function parseDecimalToMicroUnits(value) {
+  const candidate = String(value || '').trim();
+  if (!/^\d+(\.\d{1,6})?$/.test(candidate)) {
+    throw new Error('Amount must be a positive decimal with up to 6 decimal places.');
+  }
+  const [wholePart, fractionalPart = ''] = candidate.split('.');
+  return BigInt(wholePart) * 1000000n + BigInt(fractionalPart.padEnd(6, '0'));
+}
+
+export function validateNativeTransferDraft({ fromAddress, toAddress, amount, memo = '', availableBalance = null }) {
   const normalizedFrom = normalizeWalletAddress(fromAddress);
   if (!normalizedFrom) {
     throw new Error('Verified from address is missing or invalid.');
@@ -22,6 +31,13 @@ export function validateNativeTransferDraft({ fromAddress, toAddress, amount, me
   }
   if (/^0+(\.0+)?$/.test(normalizedAmount)) {
     throw new Error('Amount must be greater than zero.');
+  }
+  if (availableBalance !== null && availableBalance !== undefined && String(availableBalance).trim() !== '') {
+    const availableMicroUnits = parseDecimalToMicroUnits(String(availableBalance).trim());
+    const amountMicroUnits = parseDecimalToMicroUnits(normalizedAmount);
+    if (amountMicroUnits > availableMicroUnits) {
+      throw new Error(`Amount exceeds available balance of ${String(availableBalance).trim()} ZOID.`);
+    }
   }
 
   const normalizedMemo = String(memo || '').trim();
@@ -44,7 +60,7 @@ export function createNativeTransferService(options = {}) {
   const getApiErrorMessage = options.getApiErrorMessage || ((error, fallback) => error?.message || fallback);
 
   return {
-    async submitSignedTransferIntent({ fromAddress, walletAddressForSigning, toAddress, amount, memo = '' }) {
+    async submitSignedTransferIntent({ fromAddress, walletAddressForSigning, toAddress, amount, memo = '', availableBalance = null }) {
       const provider = getProvider();
       if (!provider) {
         throw new Error('MetaMask is not available in this browser.');
@@ -55,6 +71,7 @@ export function createNativeTransferService(options = {}) {
         toAddress,
         amount,
         memo,
+        availableBalance,
       });
 
       try {

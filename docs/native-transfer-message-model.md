@@ -199,7 +199,7 @@ Current rules:
 - exact duplicate signed transaction returns the existing recorded transaction
 - conflicting duplicate nonce is rejected
 - `signed_pending` records reserve nonce immediately
-- balances are still not spend-limited yet
+- Task 8.3 now enforces available-balance sufficiency at submit time
 
 Current public nonce endpoint:
 
@@ -212,6 +212,31 @@ Current public nonce endpoint:
   "policy": "strict_sequential"
 }
 ```
+
+## Task 8.3 Balance Sufficiency
+
+Current native balance fields:
+
+- `final_balance`
+- `pending_outgoing`
+- `pending_incoming`
+- `available_balance`
+- backward-compatible `native_balance`, which currently equals `final_balance`
+
+Current rules:
+
+- `pending_outgoing` includes accepted non-final outgoing `amount + fee`
+- `pending_incoming` shows non-final incoming amount only
+- `pending_incoming` does not increase `available_balance`
+- submit-time acceptance requires `amount + fee <= available_balance`
+- insufficient transfers are rejected before transaction record acceptance
+- insufficient transfers do not reserve funds
+- nonzero fees are not enabled yet
+- signed pending transfers are still not settled
+
+Task 8.4 adds mempool storage and validation.
+
+Task 8.6 adds block inclusion and settlement.
 
 ## Signature Verification Role
 
@@ -244,7 +269,7 @@ Signed pending means:
 - the transfer intent was signed and accepted for future processing
 - the transaction record was created and assigned a deterministic `tx_id`
 - the accepted `signed_pending` record now reserves its nonce
-- balances are not reduced yet
+- pending outgoing now reduces available balance, but final balance is not reduced yet
 - no mempool or block inclusion happens yet
 - no ERC-20 transfer has happened
 

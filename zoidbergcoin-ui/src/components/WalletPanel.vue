@@ -494,6 +494,7 @@ async function submitTransferIntent() {
       toAddress: transferForm.value.toAddress,
       amount: transferForm.value.amount,
       memo: transferForm.value.memo,
+      availableBalance: accountSummary.value?.available_balance ?? null,
     });
     if (result.duplicate) {
       transferSuccessMessage.value = `Transaction ${result.tx_id} was already recorded at nonce ${result.nonce || result.transfer_nonce}. It is still signed_pending and not settled yet.`;

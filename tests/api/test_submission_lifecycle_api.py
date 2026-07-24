@@ -651,7 +651,11 @@ def test_signed_submission_vote_evaluate_certificate_lookup_and_mint_flow(blockc
     balance_response = client.get(f"/wallets/{account.address.lower()}/balance")
     rewards_response = client.get(f"/wallets/{account.address.lower()}/rewards")
     assert balance_response.status_code == 200
+    assert float(balance_response.json()["final_balance"]) >= 5.0
     assert float(balance_response.json()["native_balance"]) >= 5.0
+    assert balance_response.json()["pending_outgoing"] == "0"
+    assert balance_response.json()["pending_incoming"] == "0"
+    assert balance_response.json()["available_balance"] == balance_response.json()["native_balance"]
     assert rewards_response.status_code == 200
     assert rewards_response.json()["rewards"][0]["reward_recipient"] == account.address.lower()
     assert float(rewards_response.json()["rewards"][0]["reward_amount"]) == 5.0
@@ -665,8 +669,12 @@ def test_native_wallet_balance_endpoint_returns_zero_for_unknown_wallet(blockcha
 
     assert response.status_code == 200
     assert response.json()["wallet_address"] == unknown_account.address.lower()
+    assert response.json()["final_balance"] == "0"
     assert response.json()["native_balance"] == "0"
-    assert response.json()["symbol"] == "ZoidbergCoin"
+    assert response.json()["pending_outgoing"] == "0"
+    assert response.json()["pending_incoming"] == "0"
+    assert response.json()["available_balance"] == "0"
+    assert response.json()["symbol"] == "ZOID"
 
 
 def test_signed_vote_derives_voter_from_verified_wallet(blockchain):

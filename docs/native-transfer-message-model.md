@@ -12,6 +12,7 @@ Task 8.1 extends that model further into canonical signed native transaction rec
 - `POST /transfers/submit` stores a signed transfer intent and a canonical non-final `NativeTransaction` record.
 - `GET /transfers/{transfer_id}` and `GET /wallets/{wallet_address}/transfers` expose safe read-only transfer intent history and include `tx_id` when available.
 - `GET /transactions/{tx_id}` exposes the safe canonical transaction view.
+- `GET /accounts/{wallet_address}/nonce` exposes the current strict-sequential nonce state.
 - `GET /accounts/{wallet_address}/transactions` and `GET /wallets/{wallet_address}/transactions` expose transaction history with incoming/outgoing direction.
 - Pending transfer intents do not mutate native balances yet.
 - Peer propagation, mempool behavior, replay hardening, balance settlement, and block inclusion remain deferred to Task 8.
@@ -50,7 +51,7 @@ Field meaning:
 - `from_address`: The signing and sending native ZoidbergChain wallet address.
 - `to_address`: The receiving native ZoidbergChain wallet address.
 - `amount`: The native ZOID amount as a decimal-safe string.
-- `nonce`: Required now as part of the signed payload, with stricter enforcement deferred.
+- `nonce`: Required as part of the signed payload, with Task 8.2 enforcing strict sequential sender nonces beginning at `1`.
 - `fee`: The transfer fee placeholder as a decimal-safe string. It is modeled now but not enforced for live transfer execution yet.
 - `timestamp`: ISO 8601 timestamp with timezone.
 - `memo`: Optional user-facing note with a bounded length.
@@ -187,6 +188,31 @@ The canonical serialization uses:
 - timezone-aware ISO 8601 timestamps
 - no Python object representation
 
+## Task 8.2 Nonce Enforcement
+
+Current rules:
+
+- nonce is per `from_address`
+- first accepted nonce is `1`
+- backend transfer challenge assigns the expected next nonce
+- frontend signs the backend-provided nonce
+- exact duplicate signed transaction returns the existing recorded transaction
+- conflicting duplicate nonce is rejected
+- `signed_pending` records reserve nonce immediately
+- balances are still not spend-limited yet
+
+Current public nonce endpoint:
+
+```json
+{
+  "wallet_address": "0x...",
+  "next_nonce": 2,
+  "used_nonces": [1],
+  "reserved_nonces": [1],
+  "policy": "strict_sequential"
+}
+```
+
 ## Signature Verification Role
 
 Task 7.7 adds reusable signature verification helpers for future transfer submission work.
@@ -202,7 +228,7 @@ Task 7.7 adds reusable signature verification helpers for future transfer submis
 Task 7.8 turns the transfer model into a signed pending intent flow, not a final settlement flow.
 
 1. A verified MetaMask wallet requests `POST /auth/wallet/transfer-challenge`.
-2. The backend validates the verified `from_address`, normalizes fields, generates a single-use expiring nonce, and returns the exact signing message.
+2. The backend validates the verified `from_address`, derives the expected next persisted transaction nonce, and returns the exact signing message with that nonce.
 3. MetaMask signs that exact backend message with `personal_sign`.
 4. The client submits the signed payload to `POST /transfers/submit`.
 5. The backend verifies:
@@ -217,6 +243,7 @@ Signed pending means:
 
 - the transfer intent was signed and accepted for future processing
 - the transaction record was created and assigned a deterministic `tx_id`
+- the accepted `signed_pending` record now reserves its nonce
 - balances are not reduced yet
 - no mempool or block inclusion happens yet
 - no ERC-20 transfer has happened
@@ -252,7 +279,6 @@ Deferred to Task 7.8:
 
 Deferred to Task 8:
 
-- strict nonce sequencing and replay protection in Task 8.2
 - balance sufficiency checks in Task 8.3
 - fee policy hardening
 - mempool behavior

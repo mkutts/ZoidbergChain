@@ -7,6 +7,8 @@ from native_transfer import (
     NATIVE_TRANSFER_ACTION,
     NATIVE_TRANSFER_SIGNATURE_SCHEME,
     NATIVE_TRANSFER_STATUSES,
+    NATIVE_TRANSACTION_INITIAL_NONCE,
+    NATIVE_TRANSACTION_NONCE_POLICY,
     NATIVE_TRANSACTION_STATUSES,
     NATIVE_TRANSACTION_TYPE,
     build_transfer_signing_message,
@@ -15,6 +17,7 @@ from native_transfer import (
     compute_transaction_id,
     hash_transfer_signing_message,
     normalize_wallet_address,
+    parse_transfer_signing_message,
     parse_native_zoid_amount,
     validate_transaction_shape,
     validate_native_transfer_message,
@@ -36,7 +39,7 @@ def _payload(**overrides):
         "from_address": _wallet_address(),
         "to_address": _wallet_address(),
         "amount": "1.5",
-        "nonce": "nonce-1",
+        "nonce": "1",
         "fee": "0",
         "timestamp": "2026-07-15T15:30:00Z",
         "memo": "native transfer preview",
@@ -154,6 +157,15 @@ def test_nonce_required():
         )
 
 
+def test_nonce_must_be_positive_integer_starting_at_one():
+    for candidate in ["0", "-1", "nonce-1"]:
+        with pytest.raises(ValueError):
+            validate_native_transfer_message(
+                _payload(nonce=candidate),
+                network_name=NETWORK_NAME,
+            )
+
+
 def test_timestamp_required_and_validated():
     with pytest.raises(ValueError, match="timestamp is required"):
         validate_native_transfer_message(
@@ -201,6 +213,11 @@ def test_transaction_statuses_are_defined_for_future_flow():
     )
 
 
+def test_nonce_policy_constants_match_task_8_2():
+    assert NATIVE_TRANSACTION_INITIAL_NONCE == 1
+    assert NATIVE_TRANSACTION_NONCE_POLICY == "strict_sequential"
+
+
 def test_signing_message_is_deterministic():
     transfer = validate_native_transfer_message(_payload(), network_name=NETWORK_NAME)
 
@@ -224,6 +241,20 @@ def test_signing_message_includes_required_fields_and_warning():
     assert f"Timestamp: {transfer.timestamp}" in message
     assert "This authorizes a native ZOID transfer on ZoidbergChain." in message
     assert "This is not an Ethereum/ERC-20 transfer." in message
+
+
+def test_transfer_signing_message_round_trips_back_to_canonical_payload():
+    transfer = validate_native_transfer_message(_payload(), network_name=NETWORK_NAME)
+    parsed = parse_transfer_signing_message(
+        build_transfer_signing_message(transfer),
+        network_name=NETWORK_NAME,
+    )
+
+    assert parsed.from_address == transfer.from_address
+    assert parsed.to_address == transfer.to_address
+    assert parsed.amount == transfer.amount
+    assert parsed.nonce == transfer.nonce
+    assert parsed.memo == transfer.memo
 
 
 def test_message_hash_changes_when_amount_to_or_nonce_changes():
@@ -414,7 +445,7 @@ def test_tx_id_changes_when_core_signed_fields_change():
 
     changed_to = dict(payload, to_address=normalize_wallet_address(Account.create().address))
     changed_amount = dict(payload, amount="2")
-    changed_nonce = dict(payload, nonce="nonce-2")
+    changed_nonce = dict(payload, nonce="2")
     changed_signature = dict(payload, signature="0x" + "ab" * 65)
 
     assert compute_transaction_id(changed_to) != original_tx_id

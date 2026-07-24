@@ -15,6 +15,8 @@ from validators import is_valid_network_name
 NATIVE_TRANSFER_ACTION = "transfer_zoid"
 NATIVE_TRANSACTION_TYPE = "native_transfer"
 NATIVE_TRANSFER_SIGNATURE_SCHEME = "personal_sign"
+NATIVE_TRANSACTION_INITIAL_NONCE = 1
+NATIVE_TRANSACTION_NONCE_POLICY = "strict_sequential"
 NATIVE_TRANSFER_STATUSES = (
     "draft",
     "signed",
@@ -242,13 +244,17 @@ def parse_transfer_nonce(value: Any) -> str:
     if isinstance(value, bool):
         raise ValueError("nonce is required and must be a string or integer.")
     if isinstance(value, int):
-        if value < 0:
-            raise ValueError("nonce cannot be negative.")
+        if value < NATIVE_TRANSACTION_INITIAL_NONCE:
+            raise ValueError(f"nonce must be at least {NATIVE_TRANSACTION_INITIAL_NONCE}.")
         return str(value)
 
     candidate = str(value or "").strip()
     if not candidate:
         raise ValueError("nonce is required.")
+    if not candidate.isdigit():
+        raise ValueError("nonce must be a positive integer string.")
+    if int(candidate) < NATIVE_TRANSACTION_INITIAL_NONCE:
+        raise ValueError(f"nonce must be at least {NATIVE_TRANSACTION_INITIAL_NONCE}.")
     return candidate
 
 
@@ -556,6 +562,55 @@ def build_transfer_signing_message(transfer_message: NativeTransferMessage) -> s
         ]
     )
     return "\n".join(lines)
+
+
+def parse_transfer_signing_message(
+    message: str,
+    *,
+    network_name: str,
+) -> NativeTransferMessage:
+    if not isinstance(message, str) or not message.strip():
+        raise ValueError("message is required.")
+
+    lines = message.splitlines()
+    if len(lines) < 12 or lines[0].strip() != "ZoidbergChain Native Transfer":
+        raise ValueError("message is not a valid ZoidbergChain native transfer signing message.")
+
+    field_values: dict[str, str] = {}
+    memo_value: str | None = None
+    for line in lines:
+        if line.startswith("Action: "):
+            field_values["action"] = line[len("Action: "):]
+        elif line.startswith("Network: "):
+            field_values["network"] = line[len("Network: "):]
+        elif line.startswith("From: "):
+            field_values["from_address"] = line[len("From: "):]
+        elif line.startswith("To: "):
+            field_values["to_address"] = line[len("To: "):]
+        elif line.startswith("Amount: "):
+            field_values["amount"] = line[len("Amount: "):]
+        elif line.startswith("Fee: "):
+            field_values["fee"] = line[len("Fee: "):]
+        elif line.startswith("Nonce: "):
+            field_values["nonce"] = line[len("Nonce: "):]
+        elif line.startswith("Timestamp: "):
+            field_values["timestamp"] = line[len("Timestamp: "):]
+        elif line.startswith("Memo: "):
+            memo_value = line[len("Memo: "):]
+
+    payload = {
+        "action": field_values.get("action"),
+        "network": field_values.get("network"),
+        "from_address": field_values.get("from_address"),
+        "to_address": field_values.get("to_address"),
+        "amount": field_values.get("amount"),
+        "nonce": field_values.get("nonce"),
+        "fee": field_values.get("fee"),
+        "timestamp": field_values.get("timestamp"),
+        "memo": memo_value,
+        "status": "draft",
+    }
+    return validate_native_transfer_message(payload, network_name=network_name)
 
 
 def hash_transfer_signing_message(message: str) -> str:

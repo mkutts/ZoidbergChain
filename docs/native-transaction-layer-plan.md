@@ -3,7 +3,7 @@
 Task 8.1 now implements the first hardening step for native ZOID transfer intents by adding the canonical `NativeTransaction` record and deterministic `tx_id`.
 
 - This is a planning document for Task 8.
-- It does not implement nonce sequencing yet.
+- It now implements nonce sequencing and replay protection.
 - It does not enforce balance sufficiency yet.
 - It does not implement a mempool yet.
 - It does not settle transfers.
@@ -87,7 +87,38 @@ Rules:
 - balances do not change yet
 - transfer execution remains deferred until later Task 8 steps
 
-Task 8.2 adds nonce tracking and replay hardening.
+Task 8.2 now adds nonce tracking and replay hardening.
+
+## Task 8.2 Nonce Policy
+
+Current policy:
+
+- nonce is per `from_address`
+- first native transaction nonce is `1`
+- nonce is included in the signed transfer message
+- nonce is part of the canonical transaction payload and `tx_id`
+- strict sequential nonces are required
+- no gaps are allowed
+- no replacement policy exists yet
+
+Replay and duplicate handling:
+
+- exact duplicate signed transaction is idempotent by `tx_id`
+- same sender plus same nonce plus different `tx_id` is rejected
+- lower nonce than the next expected nonce is rejected unless it is the exact known transaction
+- higher gap nonce is rejected
+
+Reservation rules:
+
+- `signed_pending`, `validated_pending`, and `mempool` reserve nonce
+- `included` and `settled` permanently consume nonce
+- current nonce state is derived from persisted transaction records
+- restart does not reset nonce state or allow replay
+
+Read endpoint:
+
+- `GET /accounts/{wallet_address}/nonce`
+- returns `next_nonce`, `used_nonces`, `reserved_nonces`, and policy
 
 Task 8.3 adds balance sufficiency enforcement.
 
@@ -115,7 +146,6 @@ This means the project already has:
 It does not yet have:
 
 - transaction id finalization
-- nonce sequencing enforcement
 - balance sufficiency enforcement
 - mempool acceptance rules
 - peer transaction gossip
@@ -579,11 +609,8 @@ Important messaging:
 
 Task 7.9 defines the plan only.
 
-Deferred to Task 8:
+Deferred to later Task 8 steps:
 
-- canonical transaction record implementation
-- deterministic `tx_id` helper
-- strict nonce tracking and replay protection
 - balance sufficiency enforcement
 - mempool admission and persistence logic
 - peer transaction gossip

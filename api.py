@@ -97,7 +97,15 @@ from wallet_auth import (
     normalize_wallet_address,
     resolve_verified_wallet_from_authorization,
 )
-from native_transfer import MAX_TRANSFER_MEMO_LENGTH
+from native_transfer import (
+    MAX_TRANSFER_MEMO_LENGTH,
+    NATIVE_TRANSFER_SIGNATURE_SCHEME,
+    NATIVE_TRANSACTION_NONCE_POLICY,
+    build_native_transaction,
+    hash_transfer_signing_message,
+    parse_native_zoid_amount,
+    parse_transfer_signing_message,
+)
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -364,6 +372,7 @@ class WalletTransferChallengeRequest(_StrictBodyModel):
     amount: Annotated[str, Field(min_length=1, max_length=64)]
     fee: Annotated[str, Field(min_length=1, max_length=64)] = "0"
     memo: Annotated[str | None, Field(max_length=MAX_TRANSFER_MEMO_LENGTH)] = None
+    nonce: Annotated[int | None, Field(ge=1)] = None
 
 
 class WalletTransferSubmitRequest(_StrictBodyModel):
@@ -510,6 +519,7 @@ def _serialize_transfer_intent(transfer_intent):
     return {
         "transfer_id": transfer_intent.get("transfer_id"),
         "tx_id": transfer_intent.get("tx_id"),
+        "nonce": transfer_intent.get("transfer_nonce"),
         "status": transfer_intent.get("status"),
         "from_address": transfer_intent.get("from_address"),
         "to_address": transfer_intent.get("to_address"),
@@ -546,6 +556,45 @@ def _serialize_native_transaction(transaction):
         "settled_at": transaction.get("settled_at"),
         "rejection_reason": transaction.get("rejection_reason"),
     }
+
+
+def _build_submitted_native_transaction_preview(payload: WalletTransferSubmitRequest):
+    signed_transfer = parse_transfer_signing_message(
+        payload.message,
+        network_name=NETWORK_NAME,
+    )
+    normalized_from = normalize_wallet_address(payload.from_address)
+    normalized_to = normalize_wallet_address(payload.to_address)
+    normalized_memo = str(payload.memo or "").strip() or None
+    normalized_amount = parse_native_zoid_amount(payload.amount, allow_zero=False)
+    normalized_fee = parse_native_zoid_amount(payload.fee, allow_zero=True)
+
+    if normalized_from != signed_transfer.from_address:
+        raise ValueError("from_address does not match the signed transfer message.")
+    if normalized_to != signed_transfer.to_address:
+        raise ValueError("to_address does not match the signed transfer message.")
+    if normalized_amount != signed_transfer.amount:
+        raise ValueError("amount does not match the signed transfer message.")
+    if normalized_fee != signed_transfer.fee:
+        raise ValueError("fee does not match the signed transfer message.")
+    if normalized_memo != signed_transfer.memo:
+        raise ValueError("memo does not match the signed transfer message.")
+
+    return build_native_transaction(
+        network=NETWORK_NAME,
+        from_address=signed_transfer.from_address,
+        to_address=signed_transfer.to_address,
+        amount=signed_transfer.amount,
+        fee=signed_transfer.fee,
+        nonce=signed_transfer.nonce,
+        memo=signed_transfer.memo,
+        timestamp=signed_transfer.timestamp,
+        signature=payload.signature,
+        signature_scheme=NATIVE_TRANSFER_SIGNATURE_SCHEME,
+        signed_message=payload.message,
+        signed_message_hash=hash_transfer_signing_message(payload.message),
+        status="signed_pending",
+    )
 
 
 def _serialize_wallet_transaction_history_entry(transaction, wallet_address: str):
@@ -1252,12 +1301,19 @@ async def create_wallet_transfer_challenge(
         raise HTTPException(status_code=403, detail="from_address must match the verified wallet session.")
 
     try:
+        expected_nonce = blockchain.get_next_nonce(wallet_address)
+        if payload.nonce is not None and int(payload.nonce) != expected_nonce:
+            raise HTTPException(
+                status_code=400,
+                detail=f"nonce must match the expected next nonce {expected_nonce}.",
+            )
         challenge = wallet_auth_manager.issue_transfer_challenge(
             from_address=wallet_address,
             to_address=payload.to_address,
             amount=payload.amount,
             fee=payload.fee,
             memo=payload.memo,
+            nonce=str(expected_nonce),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -1306,6 +1362,18 @@ async def submit_transfer_intent(
 
     starting_balance = blockchain.get_native_balance(wallet_address)
     try:
+        transaction_preview = _build_submitted_native_transaction_preview(payload)
+        existing_transaction = blockchain.get_native_transaction(transaction_preview.tx_id)
+        if existing_transaction:
+            existing_transfer_intent = blockchain.get_transfer_intent_by_tx_id(existing_transaction["tx_id"])
+            if existing_transfer_intent is None:
+                raise HTTPException(status_code=409, detail="Transaction already exists but local transfer record is missing.")
+            body = _serialize_transfer_intent(existing_transfer_intent)
+            body["duplicate"] = True
+            body["message"] = "Transaction already recorded."
+            return body
+
+        blockchain.validate_transaction_nonce(transaction_preview.to_dict())
         verification = wallet_auth_manager.verify_transfer_signature(
             wallet_address=wallet_address,
             from_address=payload.from_address,
@@ -1328,6 +1396,7 @@ async def submit_transfer_intent(
             signed_message_hash=str(verification["signed_message_hash"]),
             signed_message=str(verification["transfer_message"]),
             transfer_nonce=str(verification["nonce"]),
+            transaction_timestamp=str(verification["timestamp"]),
             signed_at=str(verification["signed_at"]),
             status="signed_pending",
         )
@@ -1344,6 +1413,10 @@ async def submit_transfer_intent(
         raise HTTPException(status_code=500, detail="Transfer intent submission must not mutate balances.")
 
     body = _serialize_transfer_intent(transfer_intent)
+    if transfer_intent.get("duplicate"):
+        body["duplicate"] = True
+        body["message"] = "Transaction already recorded."
+        return body
     body["message"] = (
         "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
     )
@@ -2632,6 +2705,21 @@ async def get_native_account_transfers(request: Request, wallet_address: str):
         raise
     except Exception as e:
         logging.error("ERROR retrieving native account transfers for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
+
+@app.get("/accounts/{wallet_address}/nonce")
+@api_limit("public_read")
+async def get_native_account_nonce(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        return blockchain.get_nonce_state(normalized_wallet)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account nonce for wallet %s: %s", _short_key(wallet_address), e)
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 

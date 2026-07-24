@@ -9,6 +9,7 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 from fastapi import Header, HTTPException
 from native_transfer import (
+    NATIVE_TRANSACTION_NONCE_POLICY,
     build_transfer_signing_message,
     validate_native_transfer_message,
     verify_transfer_signature as verify_signed_native_transfer_message,
@@ -575,6 +576,7 @@ class WalletAuthManager:
         from_address: str,
         to_address: str,
         amount: str,
+        nonce: str,
         fee: str = "0",
         memo: str | None = None,
     ) -> dict[str, str | dict[str, str]]:
@@ -585,7 +587,6 @@ class WalletAuthManager:
 
         issued_at = _utc_now()
         expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
-        nonce = secrets.token_urlsafe(24)
         timestamp = _isoformat(issued_at)
         transfer_message = validate_native_transfer_message(
             {
@@ -623,6 +624,8 @@ class WalletAuthManager:
             "fee": challenge.fee,
             "memo": challenge.memo or "",
             "nonce": challenge.nonce,
+            "expected_nonce": challenge.nonce,
+            "nonce_policy": NATIVE_TRANSACTION_NONCE_POLICY,
             "message": challenge.message,
             "issued_at": _isoformat(challenge.issued_at),
             "expires_at": _isoformat(challenge.expires_at),
@@ -631,6 +634,7 @@ class WalletAuthManager:
                 "to_address": challenge.to_address,
                 "amount": challenge.amount,
                 "fee": challenge.fee,
+                "nonce": challenge.nonce,
                 "network": self.network_name,
             },
         }

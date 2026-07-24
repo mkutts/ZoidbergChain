@@ -55,6 +55,16 @@ Current status meaning:
 
 - `signed_pending` means the transaction was recorded and can be queried
 - `signed_pending` does not mean settled, confirmed, complete, or balance-changing
+- `signed_pending` now reserves the sender nonce immediately
+- nonce is per native `from_address`
+- first native transfer nonce is `1`
+- strict sequential nonce policy is active
+- exact duplicate signed transaction is idempotent by `tx_id`
+- conflicting same-sender same-nonce transaction is rejected
+
+Nonce read endpoint:
+
+- `GET /accounts/{wallet_address}/nonce`
 
 Important current rules:
 

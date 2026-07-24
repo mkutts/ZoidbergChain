@@ -94,6 +94,7 @@
           <span class="native-balance-label">Native ZOID Transfer Preview</span>
           <template v-if="wallet.state.isVerifiedSession">
             <p class="wallet-meta">{{ transferWarning }}</p>
+            <p class="wallet-meta">Current next nonce: <strong>{{ nextTransferNonceLabel }}</strong></p>
             <label class="transfer-field">
               <span>From Native Account</span>
               <input :value="wallet.state.verifiedWalletAddress" type="text" readonly />
@@ -165,6 +166,10 @@
                       <div>
                         <span>Fee</span>
                         <strong>{{ transfer.fee }} {{ nativeBalanceSymbol }}</strong>
+                      </div>
+                      <div>
+                        <span>Nonce</span>
+                        <strong>{{ transfer.nonce || transfer.transfer_nonce || 'Missing' }}</strong>
                       </div>
                       <div>
                         <span>Signed At</span>
@@ -272,6 +277,7 @@ const isTransferHistoryLoading = ref(false);
 const transferError = ref('');
 const transferSuccessMessage = ref('');
 const transferHistory = ref([]);
+const nonceState = ref(null);
 const transferForm = ref({
   toAddress: '',
   amount: '',
@@ -285,6 +291,7 @@ const transferService = createNativeTransferService({
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);
 const nativeBalanceSymbol = computed(() => accountSummary.value?.symbol || 'ZOID');
+const nextTransferNonceLabel = computed(() => nonceState.value?.next_nonce ?? '--');
 const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
   native_balance: accountSummary.value?.native_balance,
   pending_outgoing: accountSummary.value?.pending_outgoing,
@@ -301,6 +308,7 @@ const accountSummaryRows = computed(() => {
     { label: 'Votes', value: summary.vote_count ?? 0 },
     { label: 'Rewards', value: summary.reward_count ?? 0 },
     { label: 'Pending Transfer Intents', value: summary.pending_transfer_count ?? 0 },
+    { label: 'Next Transfer Nonce', value: nextTransferNonceLabel.value },
   ];
 });
 const nativeBalanceLabel = computed(() => {
@@ -381,6 +389,7 @@ function disconnect() {
   transferHistory.value = [];
   transferError.value = '';
   transferSuccessMessage.value = '';
+  nonceState.value = null;
 }
 
 async function copyAddress() {
@@ -455,6 +464,20 @@ async function refreshTransferHistory() {
   }
 }
 
+async function refreshNonceState() {
+  if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
+    nonceState.value = null;
+    return;
+  }
+
+  try {
+    const response = await apiClient.get(`/accounts/${wallet.state.verifiedWalletAddress}/nonce`);
+    nonceState.value = response.data || null;
+  } catch (error) {
+    nonceState.value = null;
+  }
+}
+
 async function submitTransferIntent() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
     transferError.value = 'Verify wallet before signing a transfer.';
@@ -472,14 +495,24 @@ async function submitTransferIntent() {
       amount: transferForm.value.amount,
       memo: transferForm.value.memo,
     });
-    transferSuccessMessage.value = `Signed transfer intent submitted. Transfer ${result.transfer_id} is pending transaction processing and is not settled yet.`;
+    if (result.duplicate) {
+      transferSuccessMessage.value = `Transaction ${result.tx_id} was already recorded at nonce ${result.nonce || result.transfer_nonce}. It is still signed_pending and not settled yet.`;
+    } else {
+      transferSuccessMessage.value = `Signed native transaction recorded. Tx ${result.tx_id} uses nonce ${result.nonce || result.transfer_nonce} and is not settled yet.`;
+    }
     transferForm.value.toAddress = '';
     transferForm.value.amount = '';
     transferForm.value.memo = '';
     await refreshTransferHistory();
     await refreshAccountSummary();
+    await refreshNonceState();
   } catch (error) {
-    transferError.value = error?.message || 'Native transfer intent submission failed.';
+    const message = error?.message || 'Native transfer intent submission failed.';
+    if (/nonce already used or reserved|next expected nonce/i.test(message)) {
+      transferError.value = 'Nonce already used or reserved. Refresh and try again.';
+    } else {
+      transferError.value = message;
+    }
   } finally {
     isTransferSubmitting.value = false;
   }
@@ -490,6 +523,7 @@ async function refreshAccountData() {
     refreshAccountSummary(),
     refreshRewardHistory(),
     refreshTransferHistory(),
+    refreshNonceState(),
   ]);
 }
 
@@ -550,6 +584,7 @@ watch(
       transferHistory.value = [];
       transferError.value = '';
       transferSuccessMessage.value = '';
+      nonceState.value = null;
       return;
     }
     await refreshAccountData();

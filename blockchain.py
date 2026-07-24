@@ -60,7 +60,12 @@ from content import (
     verify_content_object_payload,
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
-from native_transfer import build_native_transaction
+from native_transfer import (
+    NATIVE_TRANSACTION_INITIAL_NONCE,
+    NATIVE_TRANSACTION_NONCE_POLICY,
+    build_native_transaction,
+    parse_transfer_nonce,
+)
 from storage import create_storage_backend
 from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import normalize_wallet_address
@@ -1147,6 +1152,7 @@ class Blockchain:
         signed_message_hash,
         signed_message,
         transfer_nonce,
+        transaction_timestamp=None,
         signed_at,
         status="signed_pending",
         created_at=None,
@@ -1159,7 +1165,7 @@ class Blockchain:
             fee=str(fee),
             nonce=str(transfer_nonce),
             memo=str(memo or "").strip() or None,
-            timestamp=str(signed_at),
+            timestamp=str(transaction_timestamp or signed_at),
             signature=str(signature),
             signature_scheme=str(signature_scheme),
             signed_message=str(signed_message),
@@ -1167,6 +1173,14 @@ class Blockchain:
             status=str(status),
             created_at=str(created_at) if created_at is not None else None,
         )
+        existing_transaction = self.reserve_transaction_nonce(transaction.to_dict())
+        if existing_transaction is not None:
+            existing_transfer_intent = self._get_transfer_intent_by_tx_id(existing_transaction.get("tx_id"))
+            if existing_transfer_intent is None:
+                raise ValueError("Transaction already recorded, but the local transfer intent record is missing.")
+            duplicate_record = dict(existing_transfer_intent)
+            duplicate_record["duplicate"] = True
+            return duplicate_record
         record = {
             "transfer_id": os.urandom(16).hex(),
             "tx_id": transaction.tx_id,
@@ -1181,7 +1195,7 @@ class Blockchain:
             "signed_message": transaction.signed_message,
             "signed_message_hash": transaction.signed_message_hash,
             "transfer_nonce": transaction.nonce,
-            "signed_at": transaction.timestamp,
+            "signed_at": str(signed_at),
             "status": transaction.status,
             "created_at": transaction.created_at,
         }
@@ -1193,6 +1207,9 @@ class Blockchain:
 
     def get_transfer_intent(self, transfer_id):
         return self.storage.get_transfer_intent(transfer_id, self.transfer_intents)
+
+    def get_transfer_intent_by_tx_id(self, tx_id):
+        return self._get_transfer_intent_by_tx_id(tx_id)
 
     def get_native_transaction(self, tx_id):
         return self.storage.get_native_transaction(tx_id, self.native_transactions)
@@ -1218,6 +1235,118 @@ class Blockchain:
             if self._normalize_native_wallet_identity(record.get("from_address")) == normalized_wallet
             or self._normalize_native_wallet_identity(record.get("to_address")) == normalized_wallet
         ]
+
+    @staticmethod
+    def _native_nonce_used_statuses():
+        return {"signed_pending", "validated_pending", "mempool", "included", "settled"}
+
+    @staticmethod
+    def _native_nonce_reserved_statuses():
+        return {"signed_pending", "validated_pending", "mempool"}
+
+    def _coerce_native_nonce(self, nonce) -> int:
+        return int(parse_transfer_nonce(nonce))
+
+    def _native_transaction_sender_matches(self, transaction, normalized_wallet: str) -> bool:
+        return self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
+
+    def _get_transfer_intent_by_tx_id(self, tx_id):
+        for record in self.transfer_intents:
+            if str(record.get("tx_id") or "").strip() == str(tx_id or "").strip():
+                return record
+        return None
+
+    def _find_sender_nonce_transaction(self, wallet_address, nonce):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return None
+        normalized_nonce = self._coerce_native_nonce(nonce)
+        for transaction in self.native_transactions:
+            if not self._native_transaction_sender_matches(transaction, normalized_wallet):
+                continue
+            if self._coerce_native_nonce(transaction.get("nonce")) != normalized_nonce:
+                continue
+            if str(transaction.get("status") or "").strip().lower() not in self._native_nonce_used_statuses():
+                continue
+            return transaction
+        return None
+
+    def get_used_nonces(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        used = {
+            self._coerce_native_nonce(transaction.get("nonce"))
+            for transaction in self.native_transactions
+            if self._native_transaction_sender_matches(transaction, normalized_wallet)
+            and str(transaction.get("status") or "").strip().lower() in self._native_nonce_used_statuses()
+        }
+        return sorted(used)
+
+    def get_reserved_nonces(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        reserved = {
+            self._coerce_native_nonce(transaction.get("nonce"))
+            for transaction in self.native_transactions
+            if self._native_transaction_sender_matches(transaction, normalized_wallet)
+            and str(transaction.get("status") or "").strip().lower() in self._native_nonce_reserved_statuses()
+        }
+        return sorted(reserved)
+
+    def get_next_nonce(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return NATIVE_TRANSACTION_INITIAL_NONCE
+        used_nonces = set(self.get_used_nonces(normalized_wallet))
+        next_nonce = NATIVE_TRANSACTION_INITIAL_NONCE
+        while next_nonce in used_nonces:
+            next_nonce += 1
+        return next_nonce
+
+    def is_nonce_available(self, wallet_address, nonce):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return False
+        return self._coerce_native_nonce(nonce) == self.get_next_nonce(normalized_wallet)
+
+    def validate_transaction_nonce(self, transaction):
+        normalized_wallet = self._normalize_native_wallet_identity(transaction.get("from_address"))
+        if normalized_wallet is None:
+            raise ValueError("Transaction from_address is invalid.")
+        transaction_nonce = self._coerce_native_nonce(transaction.get("nonce"))
+        tx_id = str(transaction.get("tx_id") or "").strip().lower()
+
+        existing_nonce_transaction = self._find_sender_nonce_transaction(normalized_wallet, transaction_nonce)
+        if existing_nonce_transaction:
+            existing_tx_id = str(existing_nonce_transaction.get("tx_id") or "").strip().lower()
+            if existing_tx_id == tx_id:
+                return existing_nonce_transaction
+            raise ValueError("Nonce already used or reserved. Refresh and try again.")
+
+        expected_nonce = self.get_next_nonce(normalized_wallet)
+        if transaction_nonce < expected_nonce:
+            raise ValueError("Transaction nonce is lower than the next expected nonce. Refresh and try again.")
+        if transaction_nonce > expected_nonce:
+            raise ValueError("Transaction nonce is ahead of the next expected nonce. Strict sequential nonces are required.")
+        return None
+
+    def reserve_transaction_nonce(self, transaction):
+        return self.validate_transaction_nonce(transaction)
+
+    def get_nonce_state(self, wallet_address):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            raise ValueError("wallet_address must be a valid Ethereum-style 0x address.")
+        return {
+            "wallet_address": normalized_wallet,
+            "next_nonce": self.get_next_nonce(normalized_wallet),
+            "used_nonces": self.get_used_nonces(normalized_wallet),
+            "reserved_nonces": self.get_reserved_nonces(normalized_wallet),
+            "policy": NATIVE_TRANSACTION_NONCE_POLICY,
+            "initial_nonce": NATIVE_TRANSACTION_INITIAL_NONCE,
+        }
 
     def get_pending_outgoing_transfer_amount(self, wallet_address):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)

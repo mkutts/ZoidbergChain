@@ -4,11 +4,11 @@ Task 8.1 now implements the first hardening step for native ZOID transfer intent
 
 - This is a planning document for Task 8.
 - It now implements nonce sequencing and replay protection.
-- It does not enforce balance sufficiency yet.
+- It now enforces balance sufficiency.
 - It now implements a local mempool admission and revalidation flow.
-- It does not settle transfers.
-- It does not mutate spendable balances yet.
-- It does not include transfers in blocks yet except to define the intended future block shape.
+- It now includes validated native transfers in meme-mined blocks.
+- It now settles included transfers on the accepted chain.
+- It now mutates final native balances through settled transfer accounting.
 
 ## Task 8.1 Implemented Shape
 
@@ -163,7 +163,7 @@ Read surfaces now expose:
 
 Task 8.4 now adds mempool storage and validation.
 
-Task 8.6 adds block inclusion and settlement.
+Task 8.6 now adds block inclusion and settlement.
 
 ## Current Starting Point
 
@@ -490,9 +490,9 @@ Recommended Task 8 block inclusion model:
 - Transfer validation is part of full block validation.
 - Any invalid included transfer causes block rejection.
 
-### Intended Future Block Shape
+### Current Block Shape
 
-A future block should continue to include:
+A block now continues to include:
 
 - reward metadata
 - `submission_id`
@@ -500,15 +500,42 @@ A future block should continue to include:
 - `content_hash`
 - `originality_score`
 
-And should additionally include:
+And now additionally includes:
 
-- `transactions`: zero or more validated native transfer transactions
-- eventually `tx_id` references or full canonical transaction records
-- optional `transaction_root` or similar aggregate hash later
+- `native_transactions`: zero or more canonical native transfer snapshots
+- `transaction_ids`: ordered `tx_id` list for `native_transactions`
+- `transaction_count`
+- `transactions_hash`
+
+Current `native_transactions` snapshots include only canonical signed transfer fields:
+
+- `tx_id`
+- `transaction_type`
+- `network`
+- `from_address`
+- `to_address`
+- `amount`
+- `fee`
+- `nonce`
+- `memo`
+- `timestamp`
+- `signature`
+- `signature_scheme`
+- `signed_message`
+- `signed_message_hash`
 
 ### Balance Application Rule
 
 Only included and accepted transactions affect final balances.
+
+Task 8.6 current policy:
+
+- block assembly selects up to `MAX_TRANSACTIONS_PER_BLOCK`
+- selection order is deterministic by `admitted_at` or equivalent timestamp, then sender, then nonce, then `tx_id`
+- sender nonce and balance checks are applied in block order against the already-settled chain plus earlier selected transfers in the same block
+- included transfers are marked `settled` immediately after the accepted block is appended locally
+- settled records store `included_block_hash`, `included_block_height`, and `settled_at`
+- included transfers are removed from the active mempool because `mempool` is derived from status
 
 Signed intents, validated pending records, and mempool records do not directly reduce final balance.
 
@@ -562,6 +589,12 @@ Recommended initial policy:
 - wrong network rejected
 - conflicting nonce rejected
 - duplicate identical `tx_id` accepted idempotently
+
+Task 8.6 now extends peer block sync so that:
+
+- full block validation also verifies included native transfer snapshots
+- peer-received blocks preserve `native_transactions`, `transaction_ids`, `transaction_count`, and `transactions_hash`
+- accepting a peer block settles matching local mempool transactions safely instead of duplicating them
 
 ## Storage Model
 
@@ -695,3 +728,12 @@ Implemented in Task 8.5:
 - peer mempool summary endpoint
 - transaction broadcast endpoint
 - peer transaction fetch/sync helpers
+
+Implemented in Task 8.6:
+
+- deterministic native transfer selection during meme block minting
+- block-level native transfer metadata and hash validation
+- immediate settlement of included transfers on accepted blocks
+- final-balance accounting for settled native transfers
+- mint response fields `transactions_included` and `transaction_ids`
+- peer block settlement for included native transfers

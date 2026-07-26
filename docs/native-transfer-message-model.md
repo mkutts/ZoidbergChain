@@ -15,7 +15,8 @@ Task 8.1 extends that model further into canonical signed native transaction rec
 - `GET /accounts/{wallet_address}/nonce` exposes the current strict-sequential nonce state.
 - `GET /accounts/{wallet_address}/transactions` and `GET /wallets/{wallet_address}/transactions` expose transaction history with incoming/outgoing direction.
 - Pending transfer intents do not mutate native balances yet.
-- Peer propagation, balance settlement, and block inclusion remain deferred to later Task 8 steps.
+- Peer propagation is implemented by Task 8.5.
+- Balance settlement and block inclusion are implemented by Task 8.6.
 - Task 7.9 defines the design path from transfer intents to settled native transactions in [docs/native-transaction-layer-plan.md](C:/Users/mattk/ZoidbergChain/docs/native-transaction-layer-plan.md).
 
 ## Purpose
@@ -241,6 +242,12 @@ Task 8.4 now adds mempool storage and validation.
 
 Task 8.6 adds block inclusion and settlement.
 
+Current Task 8.6 block-inclusion behavior:
+
+- only canonical signed transfer fields are embedded in blocks
+- local lifecycle fields such as `created_at`, `updated_at`, `admitted_at`, `included_block_hash`, `included_block_height`, `settled_at`, and `rejection_reason` remain node-derived state and are not part of the block snapshot
+- block snapshots are validated by reconstructing the canonical signed transaction payload and verifying signature integrity
+
 ## Signature Verification Role
 
 Task 7.7 adds reusable signature verification helpers for future transfer submission work.
@@ -284,7 +291,7 @@ Task 7.9 clarifies the next future states after `signed_pending`:
 - `included`
 - `settled`
 
-Those states are now partially implemented by Task 8.4 for local mempool handling only.
+Those states are now partially implemented by Task 8.4 and completed for local block settlement by Task 8.6.
 
 ## Transfer Status Model
 
@@ -309,9 +316,18 @@ Deferred to Task 7.8:
 Deferred to Task 8:
 
 - fee policy hardening
-- block inclusion
 - final denomination and smallest-unit policy
+
+Implemented by Task 8.5:
+
 - peer transaction gossip
+
+Implemented by Task 8.6:
+
+- deterministic inclusion of validated native transfers in meme-mined blocks
+- block-native transaction metadata fields `native_transactions`, `transaction_ids`, `transaction_count`, and `transactions_hash`
+- immediate local settlement when an accepted block includes a transfer
+- peer block settlement for matching local mempool transfers
 
 Implemented by Task 8.4:
 

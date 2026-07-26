@@ -710,6 +710,7 @@ def receive_peer_block(
     )
 
     blockchain.chain.append(block)
+    blockchain.settle_block_native_transactions(block)
     _remove_confirmed_pending_transactions(blockchain, block.transactions)
     minted_submission = _mark_related_submission_minted(blockchain, related_submission_id)
     blockchain.save_blockchain()
@@ -2074,6 +2075,10 @@ def _normalize_block_payload(block_payload):
             "reward_amount",
             "reward_source",
             "minted_at",
+            "native_transactions",
+            "transaction_ids",
+            "transaction_count",
+            "transactions_hash",
         ],
         MalformedBlockError,
         "Block payload",
@@ -2145,6 +2150,10 @@ def _normalize_block_payload(block_payload):
         reward_amount=block_payload.get("reward_amount"),
         reward_source=block_payload.get("reward_source"),
         minted_at=block_payload.get("minted_at"),
+        native_transactions=block_payload.get("native_transactions", []),
+        transaction_ids=block_payload.get("transaction_ids"),
+        transaction_count=block_payload.get("transaction_count"),
+        transactions_hash=block_payload.get("transactions_hash"),
     )
 
 
@@ -2252,6 +2261,11 @@ def _validate_block_transactions(blockchain, block):
             raise MalformedBlockError("Block contains an invalid transaction.")
         if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not blockchain.validate_transaction(transaction):
             raise MalformedBlockError("Block contains an invalid transaction.")
+    try:
+        chain_prefix = [existing_block.to_dict() for existing_block in blockchain.chain]
+        blockchain.validate_block_native_transactions(block.to_dict(), prior_chain=chain_prefix)
+    except ValueError as exc:
+        raise MalformedBlockError(str(exc)) from exc
 
 
 def _remove_confirmed_pending_transactions(blockchain, confirmed_transactions):

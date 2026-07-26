@@ -40,6 +40,10 @@ class Block:
         reward_amount=None,
         reward_source=None,
         minted_at=None,
+        native_transactions=None,
+        transaction_ids=None,
+        transaction_count=None,
+        transactions_hash=None,
     ):
         self.index = index
         self.previous_hash = previous_hash
@@ -65,6 +69,10 @@ class Block:
         self.reward_amount = reward_amount
         self.reward_source = reward_source
         self.minted_at = minted_at
+        self.native_transactions = list(native_transactions or [])
+        self.transaction_ids = list(transaction_ids or [tx.get("tx_id") for tx in self.native_transactions if isinstance(tx, dict) and tx.get("tx_id")])
+        self.transaction_count = int(transaction_count if transaction_count is not None else len(self.native_transactions))
+        self.transactions_hash = transactions_hash
         self.hash = hash or self.calculate_hash()
 
     def to_dict(self):
@@ -101,6 +109,10 @@ class Block:
             "reward_amount": self.reward_amount,
             "reward_source": self.reward_source,
             "minted_at": self.minted_at,
+            "native_transactions": self.native_transactions or None,
+            "transaction_ids": self.transaction_ids or None,
+            "transaction_count": self.transaction_count if self.native_transactions else None,
+            "transactions_hash": self.transactions_hash,
         }
         return {
             key: value

@@ -75,7 +75,7 @@ Important current rules:
 - submit-time transfer acceptance now requires sufficient `available_balance`
 - `signed_pending`, `validated_pending`, and `mempool` all reduce `available_balance` today
 - nonzero fees are not enabled yet
-- final balances are not reduced yet
+- settled transfers now reduce sender `final_balance` and increase recipient `final_balance`
 - local mempool read endpoints are now available at `GET /mempool` and `GET /mempool/{tx_id}`
 - local mempool admission is now available at `POST /transactions/{tx_id}/admit`
 - local mempool revalidation is now available at `POST /mempool/revalidate`
@@ -86,6 +86,13 @@ Important current rules:
 - Task 8.4 adds mempool storage and validation
 - Task 8.5 adds peer transaction gossip later
 - Task 8.6 adds block inclusion and settlement
+
+Task 8.6 current account effects:
+
+- `final_balance` is chain-derived from genesis allocations, legacy block transactions, meme rewards, and settled native transfers
+- `pending_outgoing` and `pending_incoming` drop back out when a mempool transfer becomes `settled`
+- `available_balance` returns to matching `final_balance` once all non-final reservations are cleared
+- accepted peer blocks can settle a locally known mempool transfer for the same `tx_id`
 
 ## Legacy / Compatibility Notes
 

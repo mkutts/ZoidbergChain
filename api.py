@@ -176,7 +176,7 @@ class _StrictBodyModel(BaseModel):
 
 class PeerTransactionPayload(_StrictBodyModel):
     sender: Annotated[str, Field(min_length=1, max_length=128)]
-    recipient: WalletPublicKey
+    recipient: Annotated[str, Field(min_length=1, max_length=128)]
     amount: Annotated[float, Field(gt=0)]
     tip: Annotated[float, Field(ge=0)] = 0
     payload_size_kb: Annotated[float, Field(ge=0)] = 0
@@ -253,6 +253,10 @@ class PeerBlockPayload(_StrictBodyModel):
     previous_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     timestamp: Annotated[float, Field(ge=0)] | None = None
     transactions: list[PeerTransactionPayload] | None = None
+    native_transactions: list[dict[str, Any]] | None = None
+    transaction_ids: list[Annotated[str, Field(min_length=1, max_length=128)]] | None = None
+    transaction_count: Annotated[int, Field(ge=0)] | None = None
+    transactions_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     miner: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     meme: dict[str, Any] | str | None = None
     hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
@@ -516,6 +520,8 @@ def _serialize_certificate(certificate):
 
 def _serialize_block(block):
     body = block.to_dict()
+    body["transaction_count"] = body.get("transaction_count", len(body.get("native_transactions", []) or []))
+    body["transaction_ids"] = body.get("transaction_ids", [tx.get("tx_id") for tx in body.get("native_transactions", []) if tx.get("tx_id")])
     content_hash = body.get("content_hash")
     content_object = blockchain.get_content_object_by_hash(content_hash) if content_hash else None
     if content_object is not None:
@@ -534,6 +540,8 @@ def _serialize_transfer_intent(transfer_intent):
     status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
     if status == "mempool":
         status_detail = "Admitted to the local mempool. Not settled until included in a block."
+    elif status in {"included", "settled"}:
+        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
     elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
@@ -564,6 +572,8 @@ def _serialize_native_transaction(transaction):
     status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
     if status == "mempool":
         status_detail = "Admitted to the local mempool. Not settled until included in a block."
+    elif status in {"included", "settled"}:
+        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
     elif status == "validated_pending":
         status_detail = "Validated and eligible for local mempool handling. Not settled yet."
     elif status == "rejected":
@@ -3217,7 +3227,7 @@ async def mint_queued_submission(
     )
 
     return {
-        "message": "Submission minted successfully.",
+        "message": "Meme block minted with native ZOID transactions.",
         "minted": minted,
         "submission": _serialize_submission(submission),
         "block": _serialize_block(latest_block),
@@ -3226,6 +3236,8 @@ async def mint_queued_submission(
         "reward_recipient": latest_block.reward_recipient,
         "reward_amount": latest_block.reward_amount,
         "reward_type": latest_block.reward_type,
+        "transactions_included": getattr(latest_block, "transaction_count", 0) or 0,
+        "transaction_ids": list(getattr(latest_block, "transaction_ids", []) or []),
         "broadcast": broadcast_result,
     }
 

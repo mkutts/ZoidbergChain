@@ -23,6 +23,7 @@ from config import (
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
     COIN_NAME,
     MEME_BLOCK_REWARD,
+    MAX_TRANSACTIONS_PER_BLOCK,
     MIN_VOTE_FLOOR,
     NETWORK_NAME,
     NODE_ID,
@@ -176,6 +177,15 @@ class Blockchain:
     def _utc_now_iso() -> str:
         return datetime.now(timezone.utc).isoformat()
 
+    @staticmethod
+    def _coerce_native_event_timestamp(value) -> str:
+        if isinstance(value, bool):
+            return Blockchain._utc_now_iso()
+        if isinstance(value, (int, float)):
+            return datetime.fromtimestamp(float(value), tz=timezone.utc).isoformat()
+        candidate = str(value or "").strip()
+        return candidate
+
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
@@ -214,6 +224,10 @@ class Blockchain:
                         reward_amount=block_data.get("reward_amount"),
                         reward_source=block_data.get("reward_source"),
                         minted_at=block_data.get("minted_at"),
+                        native_transactions=block_data.get("native_transactions", []),
+                        transaction_ids=block_data.get("transaction_ids"),
+                        transaction_count=block_data.get("transaction_count"),
+                        transactions_hash=block_data.get("transactions_hash"),
                     )
                     for block_data in loaded_data["chain"]
                 ]
@@ -1308,25 +1322,41 @@ class Blockchain:
         status,
         rejection_reason=None,
         admitted_at=None,
+        included_block_hash=None,
+        included_block_height=None,
+        settled_at=None,
         updated_at=None,
     ):
         transaction = self.get_native_transaction(tx_id)
         if transaction is None:
             raise ValueError(f"Transaction not found: {tx_id}")
+        normalized_status = str(status).strip().lower()
         now_iso = str(updated_at or self._utc_now_iso())
         updated_transaction = dict(transaction)
-        updated_transaction["status"] = str(status).strip().lower()
+        updated_transaction["status"] = normalized_status
         updated_transaction["updated_at"] = now_iso
         if admitted_at is not None:
             updated_transaction["admitted_at"] = admitted_at
+        if included_block_hash is not None:
+            updated_transaction["included_block_hash"] = included_block_hash
+        if included_block_height is not None:
+            updated_transaction["included_block_height"] = included_block_height
+        if settled_at is not None:
+            updated_transaction["settled_at"] = settled_at
         if rejection_reason is not None:
             updated_transaction["rejection_reason"] = rejection_reason
         elif updated_transaction["status"] not in {"rejected", "expired"}:
             updated_transaction["rejection_reason"] = None
-        validated = validate_transaction_shape(updated_transaction, network_name=NETWORK_NAME)
-        self._replace_native_transaction(validated.to_dict())
-        self._update_transfer_intent_status(validated.tx_id, status=validated.status, updated_at=now_iso)
-        return validated.to_dict()
+        try:
+            validated = validate_transaction_shape(updated_transaction, network_name=NETWORK_NAME)
+            stored_record = validated.to_dict()
+        except ValueError:
+            if normalized_status not in {"rejected", "failed", "expired"}:
+                raise
+            stored_record = dict(updated_transaction)
+        self._replace_native_transaction(stored_record)
+        self._update_transfer_intent_status(stored_record["tx_id"], status=stored_record["status"], updated_at=now_iso)
+        return dict(stored_record)
 
     def record_native_transaction(
         self,
@@ -1336,21 +1366,78 @@ class Blockchain:
         created_at=None,
         updated_at=None,
     ):
-        validated_transaction = validate_transaction_shape(transaction_payload, network_name=NETWORK_NAME)
+        candidate_transaction = dict(transaction_payload or {})
+        now_iso = str(created_at or self._utc_now_iso())
+        candidate_transaction.setdefault("created_at", now_iso)
+        candidate_transaction.setdefault("updated_at", str(updated_at or now_iso))
+        validated_transaction = validate_transaction_shape(candidate_transaction, network_name=NETWORK_NAME)
         existing_transaction = self.get_native_transaction(validated_transaction.tx_id)
         if existing_transaction is not None:
             return dict(existing_transaction), True
 
-        now_iso = str(created_at or self._utc_now_iso())
         stored_transaction = validated_transaction.to_dict()
         stored_transaction["status"] = str(status).strip().lower()
         stored_transaction["created_at"] = now_iso
         stored_transaction["updated_at"] = str(updated_at or now_iso)
         stored_transaction["admitted_at"] = None
+        stored_transaction["included_block_hash"] = None
+        stored_transaction["included_block_height"] = None
+        stored_transaction["settled_at"] = None
         stored_transaction["rejection_reason"] = None
         validate_transaction_shape(stored_transaction, network_name=NETWORK_NAME)
         self.native_transactions.append(stored_transaction)
         return dict(stored_transaction), False
+
+    @staticmethod
+    def _native_finalized_statuses():
+        return {"included", "settled"}
+
+    @staticmethod
+    def _native_block_candidate_statuses():
+        return {"validated_pending", "mempool"}
+
+    @staticmethod
+    def _native_block_sort_key(transaction):
+        admitted_at = str(transaction.get("admitted_at") or transaction.get("updated_at") or transaction.get("created_at") or "")
+        from_address = str(transaction.get("from_address") or "")
+        nonce = int(parse_transfer_nonce(transaction.get("nonce")))
+        tx_id = str(transaction.get("tx_id") or "")
+        return (admitted_at, from_address, nonce, tx_id)
+
+    @staticmethod
+    def _serialize_native_transaction_for_block(transaction):
+        return {
+            "tx_id": transaction.get("tx_id"),
+            "transaction_type": transaction.get("transaction_type"),
+            "network": transaction.get("network"),
+            "from_address": transaction.get("from_address"),
+            "to_address": transaction.get("to_address"),
+            "amount": transaction.get("amount"),
+            "fee": transaction.get("fee"),
+            "nonce": transaction.get("nonce"),
+            "memo": transaction.get("memo"),
+            "timestamp": transaction.get("timestamp"),
+            "signature": transaction.get("signature"),
+            "signature_scheme": transaction.get("signature_scheme"),
+            "signed_message": transaction.get("signed_message"),
+            "signed_message_hash": transaction.get("signed_message_hash"),
+        }
+
+    @staticmethod
+    def _compute_block_native_transactions_hash(transactions) -> str:
+        canonical = json.dumps(
+            [dict(transaction) for transaction in transactions or []],
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _block_native_transactions(block):
+        if isinstance(block, dict):
+            return list(block.get("native_transactions", []) or [])
+        return list(getattr(block, "native_transactions", []) or [])
 
     @staticmethod
     def _native_nonce_used_statuses():
@@ -1495,20 +1582,76 @@ class Blockchain:
             )
         ]
 
-    def get_final_native_balance_amount(self, wallet_address) -> Decimal:
+    def _get_settled_native_transaction_records_for_wallet(self, wallet_address, *, chain=None):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        settled_transactions = []
+        for block in chain or self.chain:
+            for transaction in self._block_native_transactions(block):
+                sender = self._normalize_native_wallet_identity(transaction.get("from_address"))
+                recipient = self._normalize_native_wallet_identity(transaction.get("to_address"))
+                if sender == normalized_wallet or recipient == normalized_wallet:
+                    settled_transactions.append(transaction)
+        return settled_transactions
+
+    def get_chain_native_transaction_ids(self, *, chain=None):
+        tx_ids = []
+        for block in chain or self.chain:
+            for transaction in self._block_native_transactions(block):
+                tx_id = str(transaction.get("tx_id") or "").strip().lower()
+                if tx_id:
+                    tx_ids.append(tx_id)
+        return tx_ids
+
+    def get_settled_used_nonces(self, wallet_address, *, chain=None):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return []
+        used = {
+            self._coerce_native_nonce(transaction.get("nonce"))
+            for transaction in self._get_settled_native_transaction_records_for_wallet(normalized_wallet, chain=chain)
+            if self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
+        }
+        return sorted(used)
+
+    def get_next_settled_nonce(self, wallet_address, *, chain=None):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return NATIVE_TRANSACTION_INITIAL_NONCE
+        used_nonces = set(self.get_settled_used_nonces(normalized_wallet, chain=chain))
+        next_nonce = NATIVE_TRANSACTION_INITIAL_NONCE
+        while next_nonce in used_nonces:
+            next_nonce += 1
+        return next_nonce
+
+    def get_final_native_balance_amount(self, wallet_address, *, chain=None) -> Decimal:
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
             return Decimal("0")
         balance = Decimal("0")
-        for block in self.chain:
-            for transaction in block.transactions:
-                sender = self._normalize_native_wallet_identity(transaction.sender) or transaction.sender
-                recipient = self._normalize_native_wallet_identity(transaction.recipient) or transaction.recipient
-                transaction_total = Decimal(str(transaction.amount)) + Decimal(str(transaction.tip))
+        for block in chain or self.chain:
+            ledger_transactions = block.get("transactions", []) if isinstance(block, dict) else block.transactions
+            for transaction in ledger_transactions:
+                sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
+                recipient_value = transaction.get("recipient") if isinstance(transaction, dict) else transaction.recipient
+                amount_value = transaction.get("amount") if isinstance(transaction, dict) else transaction.amount
+                tip_value = transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip
+                sender = self._normalize_native_wallet_identity(sender_value) or sender_value
+                recipient = self._normalize_native_wallet_identity(recipient_value) or recipient_value
+                transaction_total = Decimal(str(amount_value)) + Decimal(str(tip_value))
                 if sender == normalized_wallet:
                     balance -= transaction_total
                 if recipient == normalized_wallet:
                     balance += transaction_total
+            for transaction in self._block_native_transactions(block):
+                sender = self._normalize_native_wallet_identity(transaction.get("from_address"))
+                recipient = self._normalize_native_wallet_identity(transaction.get("to_address"))
+                transaction_total = Decimal(str(transaction.get("amount") or "0")) + Decimal(str(transaction.get("fee") or "0"))
+                if sender == normalized_wallet:
+                    balance -= transaction_total
+                if recipient == normalized_wallet:
+                    balance += Decimal(str(transaction.get("amount") or "0"))
         return balance
 
     def get_pending_outgoing_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
@@ -1600,14 +1743,17 @@ class Blockchain:
             raise ValueError("transaction must be a tx_id string or transaction object.")
         return dict(transaction_or_tx_id)
 
-    def validate_transaction_for_mempool(self, transaction_or_tx_id):
+    def validate_signed_native_transaction(self, transaction_or_tx_id, *, allowed_statuses=None):
         transaction = self._resolve_native_transaction_record(transaction_or_tx_id)
-        validated_transaction = validate_transaction_shape(transaction, network_name=NETWORK_NAME)
+        transaction_payload = dict(transaction)
+        canonical_timestamp = transaction_payload.get("timestamp")
+        if canonical_timestamp not in (None, ""):
+            transaction_payload.setdefault("created_at", canonical_timestamp)
+            transaction_payload.setdefault("updated_at", canonical_timestamp)
+        validated_transaction = validate_transaction_shape(transaction_payload, network_name=NETWORK_NAME)
         status = validated_transaction.status
-        if status in self._native_ineligible_mempool_statuses():
-            raise ValueError(f"Transaction status {status} is not eligible for mempool admission.")
-        if status not in self._native_mempool_eligible_statuses():
-            raise ValueError(f"Transaction status {status} is not eligible for mempool admission.")
+        if allowed_statuses is not None and status not in allowed_statuses:
+            raise ValueError(f"Transaction status {status} is not eligible for this operation.")
 
         signed_transfer = parse_transfer_signing_message(
             validated_transaction.signed_message,
@@ -1639,12 +1785,181 @@ class Blockchain:
             validated_transaction.signature,
             validated_transaction.from_address,
         )
-        self.validate_transaction_nonce(validated_transaction.to_dict())
-        self.validate_transaction_balance_sufficiency(
-            validated_transaction.to_dict(),
-            exclude_tx_id=validated_transaction.tx_id,
-        )
         return validated_transaction.to_dict()
+
+    def validate_transaction_for_mempool(self, transaction_or_tx_id):
+        validated_transaction = self.validate_signed_native_transaction(
+            transaction_or_tx_id,
+            allowed_statuses=self._native_mempool_eligible_statuses(),
+        )
+        self.validate_transaction_nonce(validated_transaction)
+        self.validate_transaction_balance_sufficiency(
+            validated_transaction,
+            exclude_tx_id=validated_transaction["tx_id"],
+        )
+        return validated_transaction
+
+    def select_native_transactions_for_block(self, *, max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK):
+        candidates = [
+            dict(transaction)
+            for transaction in self.native_transactions
+            if str(transaction.get("status") or "").strip().lower() in self._native_block_candidate_statuses()
+        ]
+        candidates.sort(key=self._native_block_sort_key)
+
+        selected = []
+        skipped = []
+        seen_tx_ids = set(self.get_chain_native_transaction_ids())
+        next_nonces = {}
+        balances: dict[str, Decimal] = {}
+
+        for transaction in candidates:
+            tx_id = str(transaction.get("tx_id") or "").strip().lower()
+            if not tx_id or tx_id in seen_tx_ids:
+                skipped.append({"tx_id": tx_id, "reason": "already_settled"})
+                continue
+
+            try:
+                validated_transaction = self.validate_signed_native_transaction(
+                    transaction,
+                    allowed_statuses=self._native_block_candidate_statuses(),
+                )
+            except ValueError as exc:
+                skipped.append(
+                    {
+                        "tx_id": tx_id,
+                        "reason": self._normalize_rejection_reason(str(exc)),
+                        "message": str(exc),
+                    }
+                )
+                continue
+
+            sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
+            recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
+            expected_nonce = next_nonces.get(sender, self.get_next_settled_nonce(sender))
+            transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
+            if transaction_nonce != expected_nonce:
+                skipped.append(
+                    {
+                        "tx_id": tx_id,
+                        "reason": "invalid_nonce",
+                        "message": f"Expected nonce {expected_nonce}, got {transaction_nonce}.",
+                    }
+                )
+                continue
+
+            amount = Decimal(str(validated_transaction.get("amount") or "0"))
+            fee = Decimal(str(validated_transaction.get("fee") or "0"))
+            required_total = amount + fee
+            sender_balance = balances.get(sender)
+            if sender_balance is None:
+                sender_balance = self.get_final_native_balance_amount(sender)
+            if sender_balance < required_total:
+                skipped.append(
+                    {
+                        "tx_id": tx_id,
+                        "reason": "insufficient_available_balance",
+                        "message": "Transaction would overdraw the sender when applied in block order.",
+                    }
+                )
+                continue
+
+            recipient_balance = balances.get(recipient)
+            if recipient_balance is None:
+                recipient_balance = self.get_final_native_balance_amount(recipient)
+
+            balances[sender] = sender_balance - required_total
+            balances[recipient] = recipient_balance + amount
+            next_nonces[sender] = expected_nonce + 1
+            selected.append(self._serialize_native_transaction_for_block(validated_transaction))
+            seen_tx_ids.add(tx_id)
+
+            if len(selected) >= max_transactions_per_block:
+                break
+
+        return {
+            "transactions": selected,
+            "transaction_ids": [transaction["tx_id"] for transaction in selected],
+            "transaction_count": len(selected),
+            "transactions_hash": self._compute_block_native_transactions_hash(selected),
+            "skipped": skipped,
+        }
+
+    def validate_block_native_transactions(self, block_dict, *, prior_chain=None):
+        native_transactions = list(block_dict.get("native_transactions", []) or [])
+        transaction_ids = list(block_dict.get("transaction_ids", []) or [])
+        transaction_count = block_dict.get("transaction_count", len(native_transactions))
+        transactions_hash = block_dict.get("transactions_hash")
+
+        if transaction_count != len(native_transactions):
+            raise ValueError("Block transaction_count does not match native_transactions length.")
+        if transaction_ids != [transaction.get("tx_id") for transaction in native_transactions]:
+            raise ValueError("Block transaction_ids do not match native_transactions.")
+        if native_transactions and transactions_hash != self._compute_block_native_transactions_hash(native_transactions):
+            raise ValueError("Block transactions_hash does not match native_transactions.")
+
+        prior_chain = prior_chain or self.chain
+        seen_tx_ids = set(self.get_chain_native_transaction_ids(chain=prior_chain))
+        next_nonces = {}
+        balances: dict[str, Decimal] = {}
+
+        for transaction in native_transactions:
+            validated_transaction = self.validate_signed_native_transaction(transaction)
+            tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
+            if tx_id in seen_tx_ids:
+                raise ValueError("Block contains a duplicate or already settled native transaction.")
+
+            sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
+            recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
+            expected_nonce = next_nonces.get(sender, self.get_next_settled_nonce(sender, chain=prior_chain))
+            transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
+            if transaction_nonce != expected_nonce:
+                raise ValueError("Block native transaction nonce order is invalid.")
+
+            amount = Decimal(str(validated_transaction.get("amount") or "0"))
+            fee = Decimal(str(validated_transaction.get("fee") or "0"))
+            required_total = amount + fee
+            sender_balance = balances.get(sender)
+            if sender_balance is None:
+                sender_balance = self.get_final_native_balance_amount(sender, chain=prior_chain)
+            if sender_balance < required_total:
+                raise ValueError("Block native transaction would overdraw the sender.")
+
+            recipient_balance = balances.get(recipient)
+            if recipient_balance is None:
+                recipient_balance = self.get_final_native_balance_amount(recipient, chain=prior_chain)
+
+            balances[sender] = sender_balance - required_total
+            balances[recipient] = recipient_balance + amount
+            next_nonces[sender] = expected_nonce + 1
+            seen_tx_ids.add(tx_id)
+
+        return True
+
+    def settle_block_native_transactions(self, block):
+        native_transactions = self._block_native_transactions(block)
+        if not native_transactions:
+            return []
+        block_hash = getattr(block, "hash", None) if not isinstance(block, dict) else block.get("hash")
+        block_height = getattr(block, "index", None) if not isinstance(block, dict) else block.get("index")
+        settled_at = self._coerce_native_event_timestamp(
+            getattr(block, "minted_at", None) if not isinstance(block, dict) else block.get("minted_at")
+        ) or self._coerce_native_event_timestamp(
+            getattr(block, "timestamp", None) if not isinstance(block, dict) else block.get("timestamp")
+        ) or self._utc_now_iso()
+        settled_tx_ids = []
+        for transaction in native_transactions:
+            stored_transaction, _duplicate = self.record_native_transaction(transaction, status="validated_pending")
+            settled = self.update_native_transaction_status(
+                stored_transaction["tx_id"],
+                status="settled",
+                included_block_hash=block_hash,
+                included_block_height=block_height,
+                settled_at=settled_at,
+                updated_at=settled_at,
+            )
+            settled_tx_ids.append(settled["tx_id"])
+        return settled_tx_ids
 
     def admit_transaction_to_mempool(self, tx_id):
         validated_transaction = self.validate_transaction_for_mempool(tx_id)
@@ -2406,6 +2721,19 @@ class Blockchain:
         meme_size_kb = len(meme_encoded) / 1024
         text_size_kb = len(text_content.encode()) / 1024  # Convert text content size to KB
 
+        native_transaction_plan = self.select_native_transactions_for_block(
+            max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK,
+        )
+        native_transactions_for_block = native_transaction_plan["transactions"]
+        native_tx_size_kb = len(
+            json.dumps(
+                native_transactions_for_block,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("utf-8")
+        ) / 1024 if native_transactions_for_block else 0
+
         # Validate transactions and calculate total tips
         valid_transactions = []
         total_tx_size_kb = 0  # âœ… Track total transaction size
@@ -2445,7 +2773,7 @@ class Blockchain:
                     print(f"Debug: Transaction validation error: {e}")
 
         # âœ… Calculate total block size
-        total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb
+        total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb + native_tx_size_kb
 
         # âœ… Enforce block size limit
         if total_block_size_kb > max_block_size_kb:
@@ -2511,6 +2839,10 @@ class Blockchain:
             transactions=[reward_transaction] + valid_transactions,
             meme={"encoded_image": meme_encoded, "text": text_content},
             miner=miner,
+            native_transactions=native_transactions_for_block,
+            transaction_ids=native_transaction_plan["transaction_ids"],
+            transaction_count=native_transaction_plan["transaction_count"],
+            transactions_hash=native_transaction_plan["transactions_hash"],
             **(self.certificate_block_metadata(certificate) if certificate else {}),
             **reward_metadata,
         )
@@ -2522,7 +2854,19 @@ class Blockchain:
             new_block.minted_at = minted_at
             new_block.hash = new_block.calculate_hash()
         self.chain.append(new_block)
+        self.settle_block_native_transactions(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
+        for skipped in native_transaction_plan["skipped"]:
+            tx_id = skipped.get("tx_id")
+            if not tx_id or self.get_native_transaction(tx_id) is None:
+                continue
+            if skipped.get("reason") == "already_settled":
+                continue
+            self.update_native_transaction_status(
+                tx_id,
+                status="rejected",
+                rejection_reason=skipped.get("reason") or "validation_failed",
+            )
 
         # âœ… Cache meme data after block is added
         print(f"Debug: Caching meme data for image {image_path}.")
@@ -2694,6 +3038,10 @@ class Blockchain:
             "reward_amount",
             "reward_source",
             "minted_at",
+            "native_transactions",
+            "transaction_ids",
+            "transaction_count",
+            "transactions_hash",
         ]
         meme = block_dict.get("meme") if isinstance(block_dict.get("meme"), dict) else {}
         metadata = {}
@@ -2703,6 +3051,10 @@ class Blockchain:
             elif meme.get(field_name) is not None:
                 metadata[field_name] = meme.get(field_name)
         return metadata
+
+    def validate_block_native_transaction_metadata(self, block_dict, *, prior_chain=None):
+        self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
+        return True
 
     def validate_block_certificate_metadata(self, block_dict):
         if block_dict.get("index") == 0:
@@ -2724,6 +3076,8 @@ class Blockchain:
             "approved_at",
             "originality_score",
         ]
+        if not any(metadata.get(field_name) is not None for field_name in required_fields):
+            return True
         for field_name in required_fields:
             if field_name not in metadata:
                 raise ValueError(f"Block certificate metadata missing {field_name}.")
@@ -2828,6 +3182,11 @@ class Blockchain:
             except ValueError as e:
                 print(f"Debug: Block {current_block['index']} certificate metadata is invalid: {e}")
                 return False
+            try:
+                self.validate_block_native_transaction_metadata(current_block, prior_chain=chain[:i])
+            except ValueError as e:
+                print(f"Debug: Block {current_block['index']} native transaction metadata is invalid: {e}")
+                return False
 
         return True
 
@@ -2835,16 +3194,7 @@ class Blockchain:
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
             return 0
-        balance = 0
-        for block in self.chain:
-            for transaction in block.transactions:
-                sender = self._normalize_native_wallet_identity(transaction.sender) or transaction.sender
-                recipient = self._normalize_native_wallet_identity(transaction.recipient) or transaction.recipient
-                if sender == normalized_wallet:
-                    balance -= transaction.amount + transaction.tip  # âœ… Deduct amount + tip (NO FEE)
-                if recipient == normalized_wallet:
-                    balance += transaction.amount + transaction.tip
-        return balance
+        return float(self.get_final_native_balance_amount(normalized_wallet))
 
     def get_balance(self, public_key):
         """Calculate balance based on on-chain native transactions."""

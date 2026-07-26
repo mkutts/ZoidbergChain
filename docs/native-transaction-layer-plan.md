@@ -188,7 +188,7 @@ This means the project already has:
 
 It still does not yet have:
 
-- peer transaction gossip
+- peer transaction gossip is the next hardening step in Task 8.5
 - transfer inclusion in meme-mined blocks
 - settled balance updates from transfers
 
@@ -279,7 +279,7 @@ Or:
 - Meaning: the node accepted the transaction into its active mempool.
 - Who can create it: local node after full transaction validation, or peer ingestion after revalidation.
 - Affects balances: no final balance change.
-- Propagated to peers: not yet; Task 8.5 adds peer gossip.
+- Propagated to peers: yes through peer receive/broadcast endpoints in Task 8.5.
 - Can be included in a block: yes.
 - Current Task 8.4 ordering: `admitted_at` ascending, then nonce ascending, then `tx_id` ascending.
 - Final: no.
@@ -539,6 +539,17 @@ Recommended future peer flow:
 5. receiving peer accepts or rejects
 6. duplicate `tx_id` is idempotent
 
+Task 8.5 now implements the first version of this flow:
+
+- `POST /peers/transactions/receive` validates a peer-provided signed transaction and admits it to the local mempool if valid
+- `POST /transactions/{tx_id}/broadcast` sends a local signed or mempool-eligible transaction to active peers
+- `GET /peers/transactions/{tx_id}` returns a peer-protected canonical transaction payload for fetch/sync
+- `GET /peers/mempool/summary` returns a lightweight peer-protected mempool summary by `tx_id`
+- peer transport auth and signed-peer headers authorize the node-to-node hop
+- the transaction signature itself authorizes the user-level transfer payload
+- peer-received transactions do not require a local wallet session
+- local nodes ignore peer-provided local-only fields such as admission status and decide mempool acceptance independently
+
 Important separation:
 
 - local user session auth is only for local frontend submission
@@ -676,3 +687,11 @@ Implemented in Task 8.4:
 - startup mempool revalidation
 - local mempool read endpoints
 - optional immediate admission during transfer submit
+
+Implemented in Task 8.5:
+
+- peer transaction receive endpoint
+- peer transaction fetch endpoint
+- peer mempool summary endpoint
+- transaction broadcast endpoint
+- peer transaction fetch/sync helpers

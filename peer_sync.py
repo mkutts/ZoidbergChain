@@ -95,6 +95,14 @@ class ContentSyncError(PeerSyncError):
     pass
 
 
+class MalformedTransactionError(PeerSyncError):
+    pass
+
+
+class ConflictingTransactionError(PeerSyncError):
+    pass
+
+
 def hash_body(body_bytes):
     if body_bytes is None:
         body_bytes = b""
@@ -423,6 +431,53 @@ def _reject_forbidden_fields(payload, allowed_fields, error_cls, object_name):
         raise error_cls(f"{object_name} contains forbidden or unexpected fields.")
 
 
+def _transaction_reason_from_error(message):
+    normalized = str(message or "").strip().lower()
+    if "tx_id does not match" in normalized:
+        return "invalid_tx_id"
+    if "signed_message does not match" in normalized:
+        return "invalid_signed_message"
+    if "signature" in normalized:
+        return "invalid_signature"
+    if "different network" in normalized or "network does not match" in normalized:
+        return "wrong_network"
+    if "nonce already used or reserved" in normalized:
+        return "conflicting_nonce"
+    if "lower than the next expected nonce" in normalized or "ahead of the next expected nonce" in normalized:
+        return "invalid_nonce"
+    if "insufficient available balance" in normalized:
+        return "insufficient_available_balance"
+    if "nonzero fees are not enabled yet" in normalized:
+        return "invalid_fee_policy"
+    if "not eligible for mempool admission" in normalized:
+        return "invalid_status"
+    if "not found" in normalized:
+        return "not_found"
+    return "validation_failed"
+
+
+def _serialize_peer_transaction_payload(transaction):
+    return {
+        "tx_id": transaction.get("tx_id"),
+        "transaction_type": transaction.get("transaction_type"),
+        "network": transaction.get("network"),
+        "from_address": transaction.get("from_address"),
+        "to_address": transaction.get("to_address"),
+        "amount": transaction.get("amount"),
+        "fee": transaction.get("fee"),
+        "nonce": transaction.get("nonce"),
+        "memo": transaction.get("memo"),
+        "timestamp": transaction.get("timestamp"),
+        "signature": transaction.get("signature"),
+        "signature_scheme": transaction.get("signature_scheme"),
+        "signed_message": transaction.get("signed_message"),
+        "signed_message_hash": transaction.get("signed_message_hash"),
+        "status": transaction.get("status"),
+        "created_at": transaction.get("created_at"),
+        "updated_at": transaction.get("updated_at"),
+    }
+
+
 def _require_valid_peer_string(value, validator, error_cls, field_name):
     if not isinstance(value, str) or not value.strip() or not validator(value.strip()):
         raise error_cls(f"{field_name} is required.")
@@ -447,6 +502,46 @@ class DuplicateSubmissionError(PeerSyncError):
 
 class MalformedVoteError(PeerSyncError):
     pass
+
+
+def receive_peer_transaction(
+    blockchain,
+    peer_store,
+    origin_node_id,
+    network_name,
+    transaction_payload,
+    local_network_name,
+):
+    if network_name != local_network_name:
+        raise WrongNetworkError("Peer transaction belongs to a different network.")
+
+    peer = peer_store.get_active_peer(origin_node_id)
+    if not peer:
+        raise UnauthorizedPeerError("Peer is not registered or active.")
+    if peer.get("network_name") != local_network_name:
+        raise WrongNetworkError("Registered peer belongs to a different network.")
+
+    if not isinstance(transaction_payload, dict):
+        raise MalformedTransactionError("Transaction payload must be an object.")
+
+    try:
+        stored_transaction, duplicate = blockchain.record_native_transaction(
+            transaction_payload,
+            status="signed_pending",
+        )
+        admitted = blockchain.admit_transaction_to_mempool(stored_transaction["tx_id"])
+    except ValueError as exc:
+        reason = _transaction_reason_from_error(str(exc))
+        if reason == "conflicting_nonce":
+            raise ConflictingTransactionError(str(exc)) from exc
+        raise MalformedTransactionError(str(exc)) from exc
+
+    return {
+        "accepted": True,
+        "tx_id": admitted["tx_id"],
+        "status": admitted["status"],
+        "duplicate": bool(duplicate),
+    }
 
 
 class MalformedCertificateError(PeerSyncError):
@@ -1133,6 +1228,169 @@ def broadcast_block_to_peers(
         "attempted": len(results),
         "succeeded": succeeded,
         "failed": failed,
+        "results": results,
+    }
+
+
+def broadcast_transaction_to_peers(
+    blockchain,
+    tx_id,
+    peer_store,
+    origin_node_id,
+    network_name,
+    timeout_seconds=3,
+):
+    transaction = blockchain.get_native_transaction(tx_id)
+    if transaction is None:
+        raise ValueError(f"Transaction not found: {tx_id}")
+
+    payload = {
+        "origin_node_id": origin_node_id,
+        "network_name": network_name,
+        "transaction": _serialize_peer_transaction_payload(transaction),
+    }
+    results = []
+
+    for peer in peer_store.list_active_peers(network_name=network_name):
+        receive_url = f"{peer['url'].rstrip('/')}/peers/transactions/receive"
+        try:
+            response = requests.post(
+                receive_url,
+                json=payload,
+                headers=build_peer_request_headers(
+                    "POST",
+                    "/peers/transactions/receive",
+                    payload,
+                    origin_node_id,
+                ),
+                timeout=timeout_seconds,
+            )
+            status_code = getattr(response, "status_code", None)
+            body = response.json() if hasattr(response, "json") else {}
+            if status_code is None or status_code >= 400:
+                raise requests.RequestException(
+                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
+                )
+
+            results.append({
+                "node_id": peer["node_id"],
+                "url": peer["url"],
+                "status": "sent",
+                "accepted": bool(body.get("accepted", True)),
+                "duplicate": bool(body.get("duplicate", False)),
+                "peer_status": body.get("status"),
+            })
+        except requests.RequestException as exc:
+            logging.warning(
+                "Failed to broadcast transaction %s to peer %s at %s: %s",
+                tx_id,
+                peer.get("node_id"),
+                receive_url,
+                exc,
+            )
+            results.append({
+                "node_id": peer.get("node_id"),
+                "url": peer.get("url"),
+                "status": "failed",
+                "accepted": False,
+                "error": str(exc),
+            })
+
+    succeeded = sum(1 for result in results if result["status"] == "sent")
+    accepted = sum(1 for result in results if result["status"] == "sent" and result.get("accepted"))
+    failed = sum(1 for result in results if result["status"] == "failed")
+    return {
+        "attempted": len(results),
+        "succeeded": succeeded,
+        "accepted": accepted,
+        "failed": failed,
+        "results": results,
+    }
+
+
+def sync_transaction_from_peer(
+    blockchain,
+    peer_store,
+    peer,
+    tx_id,
+    *,
+    origin_node_id,
+    network_name,
+    timeout_seconds=3,
+):
+    transaction_path = f"/peers/transactions/{tx_id}"
+    response = requests.get(
+        f"{peer['url'].rstrip('/')}{transaction_path}",
+        headers=build_peer_request_headers("GET", transaction_path, None, origin_node_id),
+        timeout=timeout_seconds,
+    )
+    status_code = getattr(response, "status_code", None)
+    if status_code == 404:
+        return {"accepted": False, "tx_id": tx_id, "reason": "not_found"}
+    if status_code is None or status_code >= 400:
+        raise PeerSyncError(
+            f"Peer transaction fetch returned status {status_code}: {getattr(response, 'text', '')}"
+        )
+
+    payload = response.json()
+    transaction_payload = payload.get("transaction") if isinstance(payload, dict) else None
+    if not isinstance(transaction_payload, dict):
+        raise MalformedTransactionError("Peer transaction response is malformed.")
+    return receive_peer_transaction(
+        blockchain=blockchain,
+        peer_store=peer_store,
+        origin_node_id=peer.get("node_id"),
+        network_name=network_name,
+        transaction_payload=transaction_payload,
+        local_network_name=network_name,
+    )
+
+
+def sync_mempool_from_peer(
+    blockchain,
+    peer_store,
+    peer,
+    *,
+    origin_node_id,
+    network_name,
+    timeout_seconds=3,
+):
+    summary_path = "/peers/mempool/summary"
+    response = requests.get(
+        f"{peer['url'].rstrip('/')}{summary_path}",
+        headers=build_peer_request_headers("GET", summary_path, None, origin_node_id),
+        timeout=timeout_seconds,
+    )
+    status_code = getattr(response, "status_code", None)
+    if status_code is None or status_code >= 400:
+        raise PeerSyncError(
+            f"Peer mempool summary returned status {status_code}: {getattr(response, 'text', '')}"
+        )
+
+    payload = response.json()
+    tx_ids = payload.get("tx_ids") if isinstance(payload, dict) else None
+    if not isinstance(tx_ids, list):
+        raise MalformedTransactionError("Peer mempool summary is malformed.")
+
+    results = []
+    for tx_id in tx_ids:
+        normalized_tx_id = str(tx_id or "").strip().lower()
+        if not normalized_tx_id or blockchain.get_mempool_transaction(normalized_tx_id) is not None:
+            continue
+        results.append(
+            sync_transaction_from_peer(
+                blockchain,
+                peer_store,
+                peer,
+                normalized_tx_id,
+                origin_node_id=origin_node_id,
+                network_name=network_name,
+                timeout_seconds=timeout_seconds,
+            )
+        )
+    return {
+        "count": len(tx_ids),
+        "fetched": len(results),
         "results": results,
     }
 

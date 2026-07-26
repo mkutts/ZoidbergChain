@@ -1328,6 +1328,30 @@ class Blockchain:
         self._update_transfer_intent_status(validated.tx_id, status=validated.status, updated_at=now_iso)
         return validated.to_dict()
 
+    def record_native_transaction(
+        self,
+        transaction_payload,
+        *,
+        status="signed_pending",
+        created_at=None,
+        updated_at=None,
+    ):
+        validated_transaction = validate_transaction_shape(transaction_payload, network_name=NETWORK_NAME)
+        existing_transaction = self.get_native_transaction(validated_transaction.tx_id)
+        if existing_transaction is not None:
+            return dict(existing_transaction), True
+
+        now_iso = str(created_at or self._utc_now_iso())
+        stored_transaction = validated_transaction.to_dict()
+        stored_transaction["status"] = str(status).strip().lower()
+        stored_transaction["created_at"] = now_iso
+        stored_transaction["updated_at"] = str(updated_at or now_iso)
+        stored_transaction["admitted_at"] = None
+        stored_transaction["rejection_reason"] = None
+        validate_transaction_shape(stored_transaction, network_name=NETWORK_NAME)
+        self.native_transactions.append(stored_transaction)
+        return dict(stored_transaction), False
+
     @staticmethod
     def _native_nonce_used_statuses():
         return {"signed_pending", "validated_pending", "mempool", "included", "settled"}

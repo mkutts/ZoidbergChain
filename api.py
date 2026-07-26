@@ -112,12 +112,14 @@ from peers import PeerStore, normalize_peer_url
 from peer_sync import (
     ChainExtensionError,
     ConflictingVoteError,
+    ConflictingTransactionError,
     ConflictingCertificateError,
     DuplicateBlockError,
     DuplicateSubmissionError,
     MalformedBlockError,
     MalformedCertificateError,
     MalformedSubmissionError,
+    MalformedTransactionError,
     MalformedVoteError,
     UnauthorizedPeerError,
     UnknownSubmissionError,
@@ -125,11 +127,13 @@ from peer_sync import (
     broadcast_block_to_peers,
     broadcast_certificate_to_peers,
     broadcast_submission_to_peers,
+    broadcast_transaction_to_peers,
     broadcast_vote_to_peers,
     broadcast_votes_to_peers,
     receive_peer_block,
     receive_peer_certificate,
     receive_peer_submission,
+    receive_peer_transaction,
     receive_peer_vote,
     ExpiredPeerSignatureError,
     InvalidPeerSignatureError,
@@ -336,6 +340,14 @@ class PeerCertificateReceive(BaseModel):
     origin_node_id: NodeIdValue
     network_name: NetworkNameValue
     certificate: PeerCertificatePayload
+
+
+class PeerTransactionReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    transaction: dict[str, Any]
 
 
 class TextContentUpload(_StrictBodyModel):
@@ -580,6 +592,18 @@ def _serialize_native_transaction(transaction):
         "settlement_state": "non_final" if status != "settled" else "settled",
         "status_detail": status_detail,
     }
+
+
+def _peer_transaction_error_response(status_code: int, *, tx_id=None, reason: str, message: str):
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "accepted": False,
+            "tx_id": tx_id,
+            "reason": reason,
+            "message": message,
+        },
+    )
 
 
 def _build_submitted_native_transaction_preview(payload: WalletTransferSubmitRequest):
@@ -939,6 +963,16 @@ async def require_mint_queue_management_access(
             return "admin"
         raise HTTPException(status_code=403, detail="Admin API key required for mint queue management.")
     raise HTTPException(status_code=403, detail="Mint queue management is disabled.")
+
+
+async def require_transaction_broadcast_access(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
+    if not public_api_mode_enabled():
+        return "local"
+    if API_KEYS.get(x_api_key) == "admin":
+        return "admin"
+    raise HTTPException(status_code=403, detail="Admin API key required for transaction broadcast.")
 
 
 def _dev_private_key_export_enabled():
@@ -1493,6 +1527,90 @@ async def register_peer(request: Request, registration: PeerRegistration, _: Non
 @api_limit("public_read")
 async def get_peers(request: Request):
     return {"peers": peer_store.list_peers()}
+
+
+@app.post("/peers/transactions/receive")
+@api_limit("peer_receive")
+async def receive_transaction_from_peer(
+    request: Request,
+    receive_request: PeerTransactionReceive,
+    _: None = Depends(require_peer_secret),
+):
+    try:
+        return receive_peer_transaction(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=receive_request.origin_node_id,
+            network_name=receive_request.network_name,
+            transaction_payload=receive_request.transaction,
+            local_network_name=NETWORK_NAME,
+        )
+    except UnauthorizedPeerError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except WrongNetworkError as exc:
+        return _peer_transaction_error_response(
+            400,
+            tx_id=(receive_request.transaction or {}).get("tx_id"),
+            reason="wrong_network",
+            message=str(exc),
+        )
+    except ConflictingTransactionError as exc:
+        return _peer_transaction_error_response(
+            409,
+            tx_id=(receive_request.transaction or {}).get("tx_id"),
+            reason="conflicting_nonce",
+            message=str(exc),
+        )
+    except MalformedTransactionError as exc:
+        message = str(exc)
+        reason = "validation_failed"
+        lowered = message.lower()
+        if "tx_id does not match" in lowered:
+            reason = "invalid_tx_id"
+        elif "signature" in lowered:
+            reason = "invalid_signature"
+        elif "insufficient available balance" in lowered:
+            reason = "insufficient_available_balance"
+        elif "nonzero fees are not enabled yet" in lowered:
+            reason = "invalid_fee_policy"
+        elif "nonce" in lowered:
+            reason = "invalid_nonce"
+        return _peer_transaction_error_response(
+            400,
+            tx_id=(receive_request.transaction or {}).get("tx_id"),
+            reason=reason,
+            message=message,
+        )
+
+
+@app.get("/peers/transactions/{tx_id}")
+@api_limit("peer_receive")
+async def get_peer_transaction(
+    request: Request,
+    tx_id: str,
+    _: None = Depends(require_peer_secret),
+):
+    transaction = blockchain.get_native_transaction(tx_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Transaction not found: {tx_id}")
+    return {
+        "transaction": transaction,
+        "network_name": NETWORK_NAME,
+    }
+
+
+@app.get("/peers/mempool/summary")
+@api_limit("peer_receive")
+async def get_peer_mempool_summary(
+    request: Request,
+    _: None = Depends(require_peer_secret),
+):
+    transactions = blockchain.list_mempool_transactions()
+    return {
+        "tx_ids": [transaction.get("tx_id") for transaction in transactions if transaction.get("tx_id")],
+        "count": len(transactions),
+        "network_name": NETWORK_NAME,
+    }
 
 
 @app.post("/peers/submissions/receive")
@@ -2924,6 +3042,47 @@ async def admit_native_transaction_to_mempool(request: Request, tx_id: str):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return admission
+
+
+@app.post("/transactions/{tx_id}/broadcast")
+@api_limit("transaction_create")
+async def broadcast_native_transaction(
+    request: Request,
+    tx_id: str,
+    _: str = Depends(require_transaction_broadcast_access),
+):
+    transaction = blockchain.get_native_transaction(tx_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Transaction not found: {tx_id}")
+    status = str(transaction.get("status") or "").strip().lower()
+    if status not in {"signed_pending", "validated_pending", "mempool"}:
+        raise HTTPException(status_code=400, detail="Only signed pending or mempool-eligible transactions can be broadcast.")
+
+    if status != "mempool":
+        try:
+            blockchain.admit_transaction_to_mempool(tx_id)
+            blockchain.save_blockchain()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        report = broadcast_transaction_to_peers(
+            blockchain=blockchain,
+            tx_id=tx_id,
+            peer_store=peer_store,
+            origin_node_id=NODE_ID,
+            network_name=NETWORK_NAME,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return {
+        "tx_id": tx_id,
+        "broadcasted": True,
+        "peers_attempted": report["attempted"],
+        "peers_accepted": report["accepted"],
+        "results": report["results"],
+    }
 
 
 @app.get("/mempool")

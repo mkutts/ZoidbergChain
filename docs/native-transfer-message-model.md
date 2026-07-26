@@ -319,3 +319,13 @@ Implemented by Task 8.4:
 - local mempool admission
 - local mempool revalidation
 - deterministic ordering by `admitted_at`, then nonce, then `tx_id`
+
+Implemented by Task 8.5:
+
+- peer transaction receive at `POST /peers/transactions/receive`
+- peer transaction fetch at `GET /peers/transactions/{tx_id}`
+- peer mempool summary at `GET /peers/mempool/summary`
+- manual peer broadcast at `POST /transactions/{tx_id}/broadcast`
+- transaction gossip uses peer transport auth separately from the signed user transaction payload
+- peer-received transactions do not require local wallet sessions
+- local mempool validation remains authoritative and may reject a transaction another peer accepted

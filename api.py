@@ -384,6 +384,7 @@ class WalletTransferSubmitRequest(_StrictBodyModel):
     memo: Annotated[str | None, Field(max_length=MAX_TRANSFER_MEMO_LENGTH)] = None
     message: Annotated[str, Field(min_length=1, max_length=4096)]
     signature: Annotated[str, Field(min_length=1, max_length=4096)]
+    admit_to_mempool: bool = False
 
 
 def _short_key(public_key):
@@ -517,6 +518,14 @@ def _serialize_block(block):
 
 
 def _serialize_transfer_intent(transfer_intent):
+    status = transfer_intent.get("status")
+    status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
+    if status == "mempool":
+        status_detail = "Admitted to the local mempool. Not settled until included in a block."
+    elif status == "rejected":
+        status_detail = "Rejected during transaction validation. Not settled."
+    elif status == "expired":
+        status_detail = "Expired before mempool inclusion. Not settled."
     return {
         "transfer_id": transfer_intent.get("transfer_id"),
         "tx_id": transfer_intent.get("tx_id"),
@@ -534,11 +543,21 @@ def _serialize_transfer_intent(transfer_intent):
         "signed_at": transfer_intent.get("signed_at"),
         "created_at": transfer_intent.get("created_at"),
         "settlement_state": "non_final",
-        "status_detail": "Pending transaction processing. Balances are not reduced yet.",
+        "status_detail": status_detail,
     }
 
 
 def _serialize_native_transaction(transaction):
+    status = transaction.get("status")
+    status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
+    if status == "mempool":
+        status_detail = "Admitted to the local mempool. Not settled until included in a block."
+    elif status == "validated_pending":
+        status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+    elif status == "rejected":
+        status_detail = "Rejected during transaction validation. Not settled."
+    elif status == "expired":
+        status_detail = "Expired before inclusion. Not settled."
     return {
         "tx_id": transaction.get("tx_id"),
         "transaction_type": transaction.get("transaction_type"),
@@ -552,10 +571,14 @@ def _serialize_native_transaction(transaction):
         "network": transaction.get("network"),
         "timestamp": transaction.get("timestamp"),
         "created_at": transaction.get("created_at"),
+        "updated_at": transaction.get("updated_at"),
+        "admitted_at": transaction.get("admitted_at"),
         "included_block_hash": transaction.get("included_block_hash"),
         "included_block_height": transaction.get("included_block_height"),
         "settled_at": transaction.get("settled_at"),
         "rejection_reason": transaction.get("rejection_reason"),
+        "settlement_state": "non_final" if status != "settled" else "settled",
+        "status_detail": status_detail,
     }
 
 
@@ -606,8 +629,6 @@ def _serialize_wallet_transaction_history_entry(transaction, wallet_address: str
         direction = "outgoing"
     body = _serialize_native_transaction(transaction)
     body["direction"] = direction
-    body["settlement_state"] = "non_final" if body.get("status") != "settled" else "settled"
-    body["status_detail"] = "Recorded as a signed native ZOID transaction. Not settled yet."
     return body
 
 
@@ -1426,6 +1447,18 @@ async def submit_transfer_intent(
     if transfer_intent.get("duplicate"):
         body["duplicate"] = True
         body["message"] = "Transaction already recorded."
+        return body
+    if payload.admit_to_mempool:
+        try:
+            admission = blockchain.admit_transaction_to_mempool(transfer_intent["tx_id"])
+            blockchain.save_blockchain()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        admitted_transfer = blockchain.get_transfer_intent_by_tx_id(transfer_intent["tx_id"]) or transfer_intent
+        body = _serialize_transfer_intent(admitted_transfer)
+        body["admitted"] = True
+        body["admitted_at"] = admission.get("admitted_at")
+        body["message"] = admission["message"]
         return body
     body["message"] = (
         "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
@@ -2880,6 +2913,52 @@ async def get_native_transaction(request: Request, tx_id: str):
         "transaction": _serialize_native_transaction(transaction),
         "note": "Recorded as a signed native ZOID transaction. Not settled yet.",
     }
+
+
+@app.post("/transactions/{tx_id}/admit")
+@api_limit("transaction_create")
+async def admit_native_transaction_to_mempool(request: Request, tx_id: str):
+    try:
+        admission = blockchain.admit_transaction_to_mempool(tx_id)
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return admission
+
+
+@app.get("/mempool")
+@api_limit("public_read")
+async def get_mempool(request: Request):
+    transactions = [
+        _serialize_native_transaction(transaction)
+        for transaction in blockchain.list_mempool_transactions()
+    ]
+    return {
+        "count": len(transactions),
+        "transactions": transactions,
+        "ordering_policy": "admitted_at ascending, then nonce ascending, then tx_id ascending",
+        "note": "Local mempool only. Transactions are not settled until included in a block.",
+    }
+
+
+@app.get("/mempool/{tx_id}")
+@api_limit("public_read")
+async def get_mempool_transaction(request: Request, tx_id: str):
+    transaction = blockchain.get_mempool_transaction(tx_id)
+    if not transaction:
+        raise HTTPException(status_code=404, detail=f"Mempool transaction not found: {tx_id}")
+    return {
+        "transaction": _serialize_native_transaction(transaction),
+        "note": "Present in the local mempool. Not settled until included in a block.",
+    }
+
+
+@app.post("/mempool/revalidate")
+@api_limit("transaction_create")
+async def revalidate_mempool(request: Request):
+    report = blockchain.revalidate_mempool_transactions(save=True)
+    report["message"] = "Local mempool revalidation complete."
+    return report
 
 @app.get("/get_reward_pool_balance")
 @api_limit("public_read")

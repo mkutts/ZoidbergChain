@@ -15,7 +15,7 @@ Task 8.1 extends that model further into canonical signed native transaction rec
 - `GET /accounts/{wallet_address}/nonce` exposes the current strict-sequential nonce state.
 - `GET /accounts/{wallet_address}/transactions` and `GET /wallets/{wallet_address}/transactions` expose transaction history with incoming/outgoing direction.
 - Pending transfer intents do not mutate native balances yet.
-- Peer propagation, mempool behavior, replay hardening, balance settlement, and block inclusion remain deferred to Task 8.
+- Peer propagation, balance settlement, and block inclusion remain deferred to later Task 8 steps.
 - Task 7.9 defines the design path from transfer intents to settled native transactions in [docs/native-transaction-layer-plan.md](C:/Users/mattk/ZoidbergChain/docs/native-transaction-layer-plan.md).
 
 ## Purpose
@@ -130,6 +130,7 @@ Task 8.1 adds a canonical `NativeTransaction` record with:
 - `status`
 - `created_at`
 - `updated_at`
+- `admitted_at`
 - `included_block_hash`
 - `included_block_height`
 - `settled_at`
@@ -175,6 +176,7 @@ Excluded from canonical hashing:
 - `status`
 - `created_at`
 - `updated_at`
+- `admitted_at`
 - `included_block_hash`
 - `included_block_height`
 - `settled_at`
@@ -233,8 +235,9 @@ Current rules:
 - insufficient transfers do not reserve funds
 - nonzero fees are not enabled yet
 - signed pending transfers are still not settled
+- `signed_pending`, `validated_pending`, and `mempool` all reserve available balance today
 
-Task 8.4 adds mempool storage and validation.
+Task 8.4 now adds mempool storage and validation.
 
 Task 8.6 adds block inclusion and settlement.
 
@@ -263,6 +266,7 @@ Task 7.8 turns the transfer model into a signed pending intent flow, not a final
    - nonce is still active and unused
 6. The backend stores a non-final transfer intent record with status `signed_pending`.
 7. The backend also stores a canonical `NativeTransaction` record with the same `signed_pending` status and deterministic `tx_id`.
+8. The transaction may later move into local `mempool` through `POST /transactions/{tx_id}/admit` or optional `admit_to_mempool=true` on submit.
 
 Signed pending means:
 
@@ -270,7 +274,7 @@ Signed pending means:
 - the transaction record was created and assigned a deterministic `tx_id`
 - the accepted `signed_pending` record now reserves its nonce
 - pending outgoing now reduces available balance, but final balance is not reduced yet
-- no mempool or block inclusion happens yet
+- local mempool admission is now available, but no peer gossip or block inclusion happens yet
 - no ERC-20 transfer has happened
 
 Task 7.9 clarifies the next future states after `signed_pending`:
@@ -280,7 +284,7 @@ Task 7.9 clarifies the next future states after `signed_pending`:
 - `included`
 - `settled`
 
-Those states are planned but not implemented in Task 7.8.
+Those states are now partially implemented by Task 8.4 for local mempool handling only.
 
 ## Transfer Status Model
 
@@ -294,7 +298,7 @@ The future transfer lifecycle statuses are:
 - `included`
 - `failed`
 
-Task 7.7 defines these statuses for future use only. It does not implement a live mempool or block inclusion flow yet.
+Task 8.4 now implements the local `signed_pending -> mempool` path, mempool revalidation, and safe mempool read endpoints.
 
 ## Deferred Work
 
@@ -304,10 +308,14 @@ Deferred to Task 7.8:
 
 Deferred to Task 8:
 
-- balance sufficiency checks in Task 8.3
 - fee policy hardening
-- mempool behavior
 - block inclusion
 - final denomination and smallest-unit policy
-- transaction id generation
 - peer transaction gossip
+
+Implemented by Task 8.4:
+
+- local mempool validation
+- local mempool admission
+- local mempool revalidation
+- deterministic ordering by `admitted_at`, then nonce, then `tx_id`

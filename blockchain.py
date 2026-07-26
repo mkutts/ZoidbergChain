@@ -17,6 +17,7 @@ from utils import hash_image
 from utils import extract_text
 import json
 from decimal import Decimal
+from datetime import datetime, timezone
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
@@ -64,7 +65,11 @@ from native_transfer import (
     NATIVE_TRANSACTION_INITIAL_NONCE,
     NATIVE_TRANSACTION_NONCE_POLICY,
     build_native_transaction,
+    parse_native_zoid_amount,
+    parse_transfer_signing_message,
     parse_transfer_nonce,
+    validate_transaction_shape,
+    verify_transfer_signature,
 )
 from storage import create_storage_backend
 from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
@@ -167,6 +172,10 @@ class Blockchain:
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
         }
 
+    @staticmethod
+    def _utc_now_iso() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
@@ -232,6 +241,9 @@ class Blockchain:
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
+                mempool_report = self.revalidate_mempool_transactions(save=False)
+                if mempool_report["removed"] > 0:
+                    self.save_blockchain()
                 print(f"Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"Debug: Wallets loaded: {len(self.wallets)} wallets")
                 return True
@@ -1237,6 +1249,86 @@ class Blockchain:
         ]
 
     @staticmethod
+    def _native_mempool_eligible_statuses():
+        return {"signed_pending", "validated_pending", "mempool"}
+
+    @staticmethod
+    def _native_ineligible_mempool_statuses():
+        return {"included", "settled", "rejected", "expired", "failed"}
+
+    @staticmethod
+    def _native_mempool_sort_key(transaction):
+        admitted_at = str(transaction.get("admitted_at") or transaction.get("updated_at") or transaction.get("created_at") or "")
+        nonce = int(parse_transfer_nonce(transaction.get("nonce")))
+        tx_id = str(transaction.get("tx_id") or "")
+        return (admitted_at, nonce, tx_id)
+
+    def _find_native_transaction_index(self, tx_id):
+        normalized_tx_id = str(tx_id or "").strip().lower()
+        for index, transaction in enumerate(self.native_transactions):
+            if str(transaction.get("tx_id") or "").strip().lower() == normalized_tx_id:
+                return index
+        return None
+
+    def _find_transfer_intent_index_by_tx_id(self, tx_id):
+        normalized_tx_id = str(tx_id or "").strip().lower()
+        for index, record in enumerate(self.transfer_intents):
+            if str(record.get("tx_id") or "").strip().lower() == normalized_tx_id:
+                return index
+        return None
+
+    @staticmethod
+    def _normalize_rejection_reason(reason: str) -> str:
+        candidate = str(reason or "").strip().lower()
+        candidate = re.sub(r"[^a-z0-9]+", "_", candidate).strip("_")
+        return candidate or "validation_failed"
+
+    def _update_transfer_intent_status(self, tx_id, *, status, updated_at=None):
+        index = self._find_transfer_intent_index_by_tx_id(tx_id)
+        if index is None:
+            return None
+        record = dict(self.transfer_intents[index])
+        record["status"] = str(status).strip().lower()
+        if updated_at:
+            record["updated_at"] = updated_at
+        self.transfer_intents[index] = record
+        return record
+
+    def _replace_native_transaction(self, transaction):
+        index = self._find_native_transaction_index(transaction.get("tx_id"))
+        if index is None:
+            raise ValueError("Transaction not found.")
+        self.native_transactions[index] = dict(transaction)
+        return self.native_transactions[index]
+
+    def update_native_transaction_status(
+        self,
+        tx_id,
+        *,
+        status,
+        rejection_reason=None,
+        admitted_at=None,
+        updated_at=None,
+    ):
+        transaction = self.get_native_transaction(tx_id)
+        if transaction is None:
+            raise ValueError(f"Transaction not found: {tx_id}")
+        now_iso = str(updated_at or self._utc_now_iso())
+        updated_transaction = dict(transaction)
+        updated_transaction["status"] = str(status).strip().lower()
+        updated_transaction["updated_at"] = now_iso
+        if admitted_at is not None:
+            updated_transaction["admitted_at"] = admitted_at
+        if rejection_reason is not None:
+            updated_transaction["rejection_reason"] = rejection_reason
+        elif updated_transaction["status"] not in {"rejected", "expired"}:
+            updated_transaction["rejection_reason"] = None
+        validated = validate_transaction_shape(updated_transaction, network_name=NETWORK_NAME)
+        self._replace_native_transaction(validated.to_dict())
+        self._update_transfer_intent_status(validated.tx_id, status=validated.status, updated_at=now_iso)
+        return validated.to_dict()
+
+    @staticmethod
     def _native_nonce_used_statuses():
         return {"signed_pending", "validated_pending", "mempool", "included", "settled"}
 
@@ -1359,14 +1451,20 @@ class Blockchain:
     def _native_funds_reserved_statuses():
         return {"signed_pending", "validated_pending", "mempool"}
 
-    def _get_reserved_native_transactions_for_wallet(self, wallet_address):
+    def _get_reserved_native_transactions_for_wallet(self, wallet_address, *, exclude_tx_ids=None):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
             return []
+        excluded_ids = {
+            str(tx_id or "").strip().lower()
+            for tx_id in (exclude_tx_ids or set())
+            if str(tx_id or "").strip()
+        }
         return [
             transaction
             for transaction in self.native_transactions
             if str(transaction.get("status") or "").strip().lower() in self._native_funds_reserved_statuses()
+            and str(transaction.get("tx_id") or "").strip().lower() not in excluded_ids
             and (
                 self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
                 or self._normalize_native_wallet_identity(transaction.get("to_address")) == normalized_wallet
@@ -1389,36 +1487,39 @@ class Blockchain:
                     balance += transaction_total
         return balance
 
-    def get_pending_outgoing_balance_amount(self, wallet_address) -> Decimal:
+    def get_pending_outgoing_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
             return Decimal("0")
         total = Decimal("0")
-        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet):
+        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet, exclude_tx_ids=exclude_tx_ids):
             if self._normalize_native_wallet_identity(transaction.get("from_address")) != normalized_wallet:
                 continue
             total += Decimal(str(transaction.get("amount") or "0"))
             total += Decimal(str(transaction.get("fee") or "0"))
         return total
 
-    def get_pending_incoming_balance_amount(self, wallet_address) -> Decimal:
+    def get_pending_incoming_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
             return Decimal("0")
         total = Decimal("0")
-        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet):
+        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet, exclude_tx_ids=exclude_tx_ids):
             if self._normalize_native_wallet_identity(transaction.get("to_address")) != normalized_wallet:
                 continue
             total += Decimal(str(transaction.get("amount") or "0"))
         return total
 
-    def get_available_native_balance_amount(self, wallet_address) -> Decimal:
-        return self.get_final_native_balance_amount(wallet_address) - self.get_pending_outgoing_balance_amount(wallet_address)
+    def get_available_native_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
+        return self.get_final_native_balance_amount(wallet_address) - self.get_pending_outgoing_balance_amount(
+            wallet_address,
+            exclude_tx_ids=exclude_tx_ids,
+        )
 
-    def get_native_balance_snapshot(self, wallet_address) -> dict[str, str]:
+    def get_native_balance_snapshot(self, wallet_address, *, exclude_tx_ids=None) -> dict[str, str]:
         final_balance = self.get_final_native_balance_amount(wallet_address)
-        pending_outgoing = self.get_pending_outgoing_balance_amount(wallet_address)
-        pending_incoming = self.get_pending_incoming_balance_amount(wallet_address)
+        pending_outgoing = self.get_pending_outgoing_balance_amount(wallet_address, exclude_tx_ids=exclude_tx_ids)
+        pending_incoming = self.get_pending_incoming_balance_amount(wallet_address, exclude_tx_ids=exclude_tx_ids)
         available_balance = final_balance - pending_outgoing
         return {
             "final_balance": self._normalize_decimal_value(final_balance),
@@ -1428,24 +1529,156 @@ class Blockchain:
             "native_balance": self._normalize_decimal_value(final_balance),
         }
 
-    def validate_transaction_balance_sufficiency(self, transaction):
+    def validate_transaction_balance_sufficiency(self, transaction, *, exclude_tx_id=None):
         normalized_wallet = self._normalize_native_wallet_identity(transaction.get("from_address"))
         if normalized_wallet is None:
             raise ValueError("Transaction from_address is invalid.")
-        fee_amount = Decimal(str(transaction.get("fee") or "0"))
+        fee_amount = Decimal(parse_native_zoid_amount(transaction.get("fee") or "0", allow_zero=True))
         if fee_amount != Decimal("0"):
             raise ValueError("Nonzero fees are not enabled yet.")
-        amount = Decimal(str(transaction.get("amount") or "0"))
+        amount = Decimal(parse_native_zoid_amount(transaction.get("amount") or "0", allow_zero=False))
         required_total = amount + fee_amount
-        available_balance = self.get_available_native_balance_amount(normalized_wallet)
+        excluded_ids = {exclude_tx_id} if exclude_tx_id else None
+        available_balance = self.get_available_native_balance_amount(normalized_wallet, exclude_tx_ids=excluded_ids)
         if required_total > available_balance:
-            snapshot = self.get_native_balance_snapshot(normalized_wallet)
+            snapshot = self.get_native_balance_snapshot(normalized_wallet, exclude_tx_ids=excluded_ids)
             raise ValueError(
                 "Insufficient available balance. "
                 f"Final balance: {snapshot['final_balance']} ZOID, "
                 f"pending outgoing: {snapshot['pending_outgoing']} ZOID, "
                 f"available: {snapshot['available_balance']} ZOID."
             )
+
+    def list_mempool_transactions(self):
+        mempool_transactions = [
+            dict(transaction)
+            for transaction in self.native_transactions
+            if str(transaction.get("status") or "").strip().lower() == "mempool"
+        ]
+        mempool_transactions.sort(key=self._native_mempool_sort_key)
+        return mempool_transactions
+
+    def get_mempool_transaction(self, tx_id):
+        transaction = self.get_native_transaction(tx_id)
+        if transaction is None:
+            return None
+        if str(transaction.get("status") or "").strip().lower() != "mempool":
+            return None
+        return transaction
+
+    def _resolve_native_transaction_record(self, transaction_or_tx_id):
+        if isinstance(transaction_or_tx_id, str):
+            transaction = self.get_native_transaction(transaction_or_tx_id)
+            if transaction is None:
+                raise ValueError(f"Transaction not found: {transaction_or_tx_id}")
+            return dict(transaction)
+        if not isinstance(transaction_or_tx_id, dict):
+            raise ValueError("transaction must be a tx_id string or transaction object.")
+        return dict(transaction_or_tx_id)
+
+    def validate_transaction_for_mempool(self, transaction_or_tx_id):
+        transaction = self._resolve_native_transaction_record(transaction_or_tx_id)
+        validated_transaction = validate_transaction_shape(transaction, network_name=NETWORK_NAME)
+        status = validated_transaction.status
+        if status in self._native_ineligible_mempool_statuses():
+            raise ValueError(f"Transaction status {status} is not eligible for mempool admission.")
+        if status not in self._native_mempool_eligible_statuses():
+            raise ValueError(f"Transaction status {status} is not eligible for mempool admission.")
+
+        signed_transfer = parse_transfer_signing_message(
+            validated_transaction.signed_message,
+            network_name=NETWORK_NAME,
+        )
+        expected_fields = {
+            "from_address": validated_transaction.from_address,
+            "to_address": validated_transaction.to_address,
+            "amount": validated_transaction.amount,
+            "fee": validated_transaction.fee,
+            "nonce": validated_transaction.nonce,
+            "timestamp": validated_transaction.timestamp,
+            "memo": validated_transaction.memo,
+        }
+        actual_fields = {
+            "from_address": signed_transfer.from_address,
+            "to_address": signed_transfer.to_address,
+            "amount": signed_transfer.amount,
+            "fee": signed_transfer.fee,
+            "nonce": signed_transfer.nonce,
+            "timestamp": signed_transfer.timestamp,
+            "memo": signed_transfer.memo,
+        }
+        if actual_fields != expected_fields:
+            raise ValueError("signed_message does not match the canonical transaction payload.")
+
+        verify_transfer_signature(
+            validated_transaction.signed_message,
+            validated_transaction.signature,
+            validated_transaction.from_address,
+        )
+        self.validate_transaction_nonce(validated_transaction.to_dict())
+        self.validate_transaction_balance_sufficiency(
+            validated_transaction.to_dict(),
+            exclude_tx_id=validated_transaction.tx_id,
+        )
+        return validated_transaction.to_dict()
+
+    def admit_transaction_to_mempool(self, tx_id):
+        validated_transaction = self.validate_transaction_for_mempool(tx_id)
+        existing_transaction = self.get_native_transaction(validated_transaction["tx_id"])
+        admitted_at = str(existing_transaction.get("admitted_at") or self._utc_now_iso())
+        updated_transaction = self.update_native_transaction_status(
+            validated_transaction["tx_id"],
+            status="mempool",
+            admitted_at=admitted_at,
+        )
+        return {
+            "tx_id": updated_transaction["tx_id"],
+            "status": updated_transaction["status"],
+            "admitted": True,
+            "admitted_at": updated_transaction.get("admitted_at"),
+            "message": "Transaction admitted to local mempool. It is not settled until included in a block.",
+        }
+
+    def revalidate_mempool_transactions(self, *, save=False):
+        report = {
+            "checked": 0,
+            "kept": 0,
+            "removed": 0,
+            "items": [],
+        }
+        for transaction in list(self.list_mempool_transactions()):
+            report["checked"] += 1
+            tx_id = transaction.get("tx_id")
+            try:
+                self.validate_transaction_for_mempool(transaction)
+                report["kept"] += 1
+                report["items"].append(
+                    {
+                        "tx_id": tx_id,
+                        "valid": True,
+                        "status": "mempool",
+                    }
+                )
+            except ValueError as exc:
+                reason = str(exc)
+                self.update_native_transaction_status(
+                    tx_id,
+                    status="rejected",
+                    rejection_reason=self._normalize_rejection_reason(reason),
+                )
+                report["removed"] += 1
+                report["items"].append(
+                    {
+                        "tx_id": tx_id,
+                        "valid": False,
+                        "status": "rejected",
+                        "reason": self._normalize_rejection_reason(reason),
+                        "message": reason,
+                    }
+                )
+        if save and report["checked"] > 0:
+            self.save_blockchain()
+        return report
 
     def get_pending_outgoing_transfer_amount(self, wallet_address):
         return self.get_native_balance_snapshot(wallet_address)["pending_outgoing"]

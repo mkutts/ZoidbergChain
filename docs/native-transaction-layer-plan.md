@@ -5,7 +5,7 @@ Task 8.1 now implements the first hardening step for native ZOID transfer intent
 - This is a planning document for Task 8.
 - It now implements nonce sequencing and replay protection.
 - It does not enforce balance sufficiency yet.
-- It does not implement a mempool yet.
+- It now implements a local mempool admission and revalidation flow.
 - It does not settle transfers.
 - It does not mutate spendable balances yet.
 - It does not include transfers in blocks yet except to define the intended future block shape.
@@ -31,6 +31,7 @@ Canonical native transaction fields:
 - `status`
 - `created_at`
 - `updated_at`
+- `admitted_at` optional
 - `included_block_hash` optional
 - `included_block_height` optional
 - `settled_at` optional
@@ -65,6 +66,7 @@ Excluded local-only fields:
 - `status`
 - `created_at`
 - `updated_at`
+- `admitted_at`
 - `included_block_hash`
 - `included_block_height`
 - `settled_at`
@@ -159,7 +161,7 @@ Read surfaces now expose:
 - `available_balance`
 - backward-compatible `native_balance` equal to `final_balance`
 
-Task 8.4 adds mempool storage and validation.
+Task 8.4 now adds mempool storage and validation.
 
 Task 8.6 adds block inclusion and settlement.
 
@@ -171,8 +173,8 @@ Task 7.8 already provides a signed transfer-intent flow:
 - the wallet signs the exact backend-built transfer message with `personal_sign`
 - `POST /transfers/submit` stores a signed non-final transfer intent record
 - the stored record uses status `signed_pending`
-- balances are not reduced
-- no mempool admission happens yet
+- final balances are not reduced
+- optional local mempool admission is now available
 - no peer propagation happens yet
 - no block inclusion happens yet
 
@@ -184,11 +186,8 @@ This means the project already has:
 - transfer-intent persistence
 - transfer history read endpoints
 
-It does not yet have:
+It still does not yet have:
 
-- transaction id finalization
-- balance sufficiency enforcement
-- mempool acceptance rules
 - peer transaction gossip
 - transfer inclusion in meme-mined blocks
 - settled balance updates from transfers
@@ -262,6 +261,7 @@ Or:
 - Affects balances: no final balance change.
 - Propagated to peers: no, not yet.
 - Can be included in a block: no.
+- Can be admitted to the local mempool later: yes.
 - Final: no.
 
 ### `validated_pending`
@@ -271,6 +271,7 @@ Or:
 - Affects balances: no final balance change.
 - Propagated to peers: not necessarily; depends on admission flow.
 - Can be included in a block: not yet.
+- Current Task 8.4 use: an internal validated state if a record leaves the active mempool without being settled.
 - Final: no.
 
 ### `mempool`
@@ -278,8 +279,9 @@ Or:
 - Meaning: the node accepted the transaction into its active mempool.
 - Who can create it: local node after full transaction validation, or peer ingestion after revalidation.
 - Affects balances: no final balance change.
-- Propagated to peers: yes.
+- Propagated to peers: not yet; Task 8.5 adds peer gossip.
 - Can be included in a block: yes.
+- Current Task 8.4 ordering: `admitted_at` ascending, then nonce ascending, then `tx_id` ascending.
 - Final: no.
 
 ### `included`
@@ -392,7 +394,7 @@ Signed pending transfer intents must not change `final_balance`.
 
 Recommended definition:
 
-`pending_outgoing = sum of mempool transactions from this wallet not yet settled`
+`pending_outgoing = sum of accepted non-final outgoing transactions from this wallet not yet settled`
 
 This is useful for wallet UX and double-spend prevention.
 
@@ -400,7 +402,7 @@ This is useful for wallet UX and double-spend prevention.
 
 Recommended definition:
 
-`pending_incoming = sum of mempool transactions to this wallet not yet settled`
+`pending_incoming = sum of accepted non-final incoming transactions to this wallet not yet settled`
 
 This is informational only until inclusion.
 
@@ -413,7 +415,8 @@ Recommended definition:
 Recommended behavior:
 
 - `final_balance` remains chain-derived and settled only
-- `pending_outgoing` reduces spendable view later
+- `signed_pending`, `validated_pending`, and `mempool` all reserve funds today
+- `pending_outgoing` reduces the spendable view
 - `pending_incoming` is shown separately and does not count as settled spendable balance yet
 
 ## Fee Model
@@ -468,6 +471,8 @@ Before a transfer enters the mempool, Task 8 should require:
 - not a conflicting transaction using the same sender nonce
 - message hash matches the canonical signed payload
 - any expiration policy is satisfied if one is added
+
+Task 8.4 now implements local mempool validation covering canonical shape, deterministic `tx_id`, signed message matching, signature recovery, network match, strict nonce policy, available-balance sufficiency, zero-fee policy, and eligible non-final status.
 
 Recommended split:
 
@@ -562,6 +567,7 @@ Task 8 should distinguish between:
 - included transactions are durable because they are chain-derived
 - mempool transactions may persist across restart in development and testnet
 - persisted mempool transactions should be revalidated on startup
+- Task 8.4 uses canonical `native_transactions` records as the source of truth and derives the active mempool from records whose status is `mempool`
 - rejected and failed records are optional audit metadata, not chain state
 
 ### Recommended Storage Shape
@@ -569,7 +575,7 @@ Task 8 should distinguish between:
 Compatible with the current JSON and SQLite snapshot model:
 
 - `transfer_intents`: signed local non-final intent records from Task 7.8
-- `mempool_transactions`: canonical validated transaction records awaiting inclusion
+- `mempool_transactions`: represented by canonical transaction records whose status is `mempool`
 - `rejected_transactions`: optional audit-only failure records if the project wants traceability
 
 Recommended startup behavior:
@@ -598,6 +604,8 @@ Recommended future endpoints:
 - `GET /transactions/{tx_id}`
 - `GET /wallets/{wallet_address}/transactions`
 - `GET /mempool`
+- `GET /mempool/{tx_id}`
+- `POST /transactions/{tx_id}/admit`
 - `POST /mempool/revalidate`
 
 Optional:
@@ -616,6 +624,10 @@ Recommended endpoint roles:
   - public-safe history read
 - `GET /mempool`
   - node or explorer diagnostics
+- `GET /mempool/{tx_id}`
+  - public-safe local mempool lookup
+- `POST /transactions/{tx_id}/admit`
+  - validates and admits a recorded signed transaction into the local mempool
 - `POST /mempool/revalidate`
   - maintenance or development operation
 
@@ -653,8 +665,14 @@ Task 7.9 defines the plan only.
 Deferred to later Task 8 steps:
 
 - balance sufficiency enforcement
-- mempool admission and persistence logic
 - peer transaction gossip
 - block inclusion
 - block validation for included transfers
 - explorer and wallet views for settled transfer history
+
+Implemented in Task 8.4:
+
+- local mempool admission and persistence logic
+- startup mempool revalidation
+- local mempool read endpoints
+- optional immediate admission during transfer submit

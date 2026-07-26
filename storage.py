@@ -519,6 +519,91 @@ class StorageBackend(ABC):
         native_transactions = self.load_native_transactions() if native_transactions is None else native_transactions
         return self._first_record_where(native_transactions, "tx_id", tx_id.strip())
 
+    def load_mempool_transactions(self):
+        return self.list_mempool_transactions()
+
+    def save_mempool_transactions(self, transactions) -> None:
+        existing_transactions = list(self.load_native_transactions())
+        existing_by_tx_id = {
+            str(transaction.get("tx_id") or "").strip(): dict(transaction)
+            for transaction in existing_transactions
+            if isinstance(transaction, dict) and str(transaction.get("tx_id") or "").strip()
+        }
+        mempool_tx_ids = set()
+        for transaction in transactions or []:
+            if not isinstance(transaction, dict):
+                continue
+            tx_id = str(transaction.get("tx_id") or "").strip()
+            if not tx_id:
+                continue
+            mempool_tx_ids.add(tx_id)
+            updated_transaction = dict(existing_by_tx_id.get(tx_id, {}))
+            updated_transaction.update(transaction)
+            updated_transaction["status"] = "mempool"
+            existing_by_tx_id[tx_id] = updated_transaction
+
+        for tx_id, transaction in list(existing_by_tx_id.items()):
+            if tx_id not in mempool_tx_ids and str(transaction.get("status") or "").strip().lower() == "mempool":
+                updated_transaction = dict(transaction)
+                updated_transaction["status"] = "validated_pending"
+                existing_by_tx_id[tx_id] = updated_transaction
+
+        self.save_native_transactions(list(existing_by_tx_id.values()))
+
+    def add_transaction_to_mempool(self, transaction) -> None:
+        if not isinstance(transaction, dict):
+            raise ValueError("transaction must be an object.")
+        tx_id = str(transaction.get("tx_id") or "").strip()
+        if not tx_id:
+            raise ValueError("transaction tx_id is required.")
+        existing_transactions = list(self.load_native_transactions())
+        updated = False
+        for index, existing_transaction in enumerate(existing_transactions):
+            if str(existing_transaction.get("tx_id") or "").strip() != tx_id:
+                continue
+            merged = dict(existing_transaction)
+            merged.update(transaction)
+            merged["status"] = "mempool"
+            existing_transactions[index] = merged
+            updated = True
+            break
+        if not updated:
+            merged = dict(transaction)
+            merged["status"] = "mempool"
+            existing_transactions.append(merged)
+        self.save_native_transactions(existing_transactions)
+
+    def remove_transaction_from_mempool(self, tx_id) -> None:
+        if not isinstance(tx_id, str) or not tx_id.strip():
+            return
+        existing_transactions = list(self.load_native_transactions())
+        for index, existing_transaction in enumerate(existing_transactions):
+            if str(existing_transaction.get("tx_id") or "").strip() != tx_id.strip():
+                continue
+            if str(existing_transaction.get("status") or "").strip().lower() == "mempool":
+                updated_transaction = dict(existing_transaction)
+                updated_transaction["status"] = "validated_pending"
+                existing_transactions[index] = updated_transaction
+                self.save_native_transactions(existing_transactions)
+            return
+
+    def get_mempool_transaction(self, tx_id):
+        if not isinstance(tx_id, str) or not tx_id.strip():
+            return None
+        transaction = self.get_native_transaction(tx_id.strip())
+        if transaction is None:
+            return None
+        if str(transaction.get("status") or "").strip().lower() != "mempool":
+            return None
+        return transaction
+
+    def list_mempool_transactions(self):
+        return [
+            transaction
+            for transaction in self.load_native_transactions()
+            if str(self._record_value(transaction, "status") or "").strip().lower() == "mempool"
+        ]
+
     def load_certificates(self):
         document = self.load_blockchain_document()
         if not document:

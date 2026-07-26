@@ -138,6 +138,7 @@ class NativeTransaction:
     status: str
     created_at: str
     updated_at: str
+    admitted_at: str | None = None
     memo: str | None = None
     included_block_hash: str | None = None
     included_block_height: int | None = None
@@ -162,6 +163,7 @@ class NativeTransaction:
             "status": self.status,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "admitted_at": self.admitted_at,
             "memo": self.memo,
             "included_block_hash": self.included_block_hash,
             "included_block_height": self.included_block_height,
@@ -384,6 +386,8 @@ def validate_transaction_shape(
 
     created_at = parse_transfer_timestamp(payload.get("created_at"))
     updated_at = parse_transfer_timestamp(payload.get("updated_at"))
+    admitted_at_value = payload.get("admitted_at")
+    admitted_at = parse_transfer_timestamp(admitted_at_value) if admitted_at_value not in (None, "") else None
 
     included_block_hash = str(payload.get("included_block_hash") or "").strip() or None
     included_block_height_value = payload.get("included_block_height")
@@ -418,6 +422,7 @@ def validate_transaction_shape(
         status=status,
         created_at=created_at,
         updated_at=updated_at,
+        admitted_at=admitted_at,
         included_block_hash=included_block_hash,
         included_block_height=included_block_height,
         settled_at=settled_at,
@@ -442,6 +447,7 @@ def build_native_transaction(
     status: str = "signed_pending",
     created_at: str | None = None,
     updated_at: str | None = None,
+    admitted_at: str | None = None,
     included_block_hash: str | None = None,
     included_block_height: int | None = None,
     settled_at: str | None = None,
@@ -466,6 +472,7 @@ def build_native_transaction(
         "status": status,
         "created_at": created_timestamp,
         "updated_at": updated_timestamp,
+        "admitted_at": admitted_at,
         "included_block_hash": included_block_hash,
         "included_block_height": included_block_height,
         "settled_at": settled_at,

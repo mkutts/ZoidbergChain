@@ -224,6 +224,32 @@ def test_sqlite_storage_backend_peers_save_reload(isolated_data_dir):
     assert backend.load_peers() == peers
 
 
+def test_sqlite_storage_backend_mempool_helpers_track_native_transaction_status(isolated_data_dir):
+    backend = _backend(isolated_data_dir, "mempool-helpers")
+    transaction = {
+        "tx_id": "a" * 64,
+        "status": "signed_pending",
+        "from_address": "0x" + ("1" * 40),
+        "to_address": "0x" + ("2" * 40),
+        "amount": "1",
+        "fee": "0",
+        "nonce": "1",
+    }
+
+    backend.save_native_transactions([transaction])
+    backend.add_transaction_to_mempool(transaction)
+
+    listed = backend.list_mempool_transactions()
+    assert len(listed) == 1
+    assert listed[0]["status"] == "mempool"
+    assert backend.get_mempool_transaction(transaction["tx_id"])["status"] == "mempool"
+
+    backend.remove_transaction_from_mempool(transaction["tx_id"])
+
+    assert backend.list_mempool_transactions() == []
+    assert backend.load_native_transactions()[0]["status"] == "validated_pending"
+
+
 def test_sqlite_storage_backend_failed_save_rolls_back_cleanly(monkeypatch, isolated_data_dir):
     backend = _backend(isolated_data_dir, "rollback")
     original_chain = [{"index": 1, "hash": "1" * 64}]

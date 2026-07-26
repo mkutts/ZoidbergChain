@@ -56,6 +56,7 @@ Current status meaning:
 - `signed_pending` means the transaction was recorded and can be queried
 - `signed_pending` does not mean settled, confirmed, complete, or balance-changing
 - `signed_pending` now reserves the sender nonce immediately
+- `mempool` means the signed transaction passed local validation and was admitted to the node's active local mempool
 - nonce is per native `from_address`
 - first native transfer nonce is `1`
 - strict sequential nonce policy is active
@@ -72,13 +73,18 @@ Important current rules:
 - `pending_outgoing` reduces `available_balance`
 - `pending_incoming` is shown separately and does not increase `available_balance`
 - submit-time transfer acceptance now requires sufficient `available_balance`
+- `signed_pending`, `validated_pending`, and `mempool` all reduce `available_balance` today
 - nonzero fees are not enabled yet
-- balances are not reduced yet
+- final balances are not reduced yet
+- local mempool read endpoints are now available at `GET /mempool` and `GET /mempool/{tx_id}`
+- local mempool admission is now available at `POST /transactions/{tx_id}/admit`
+- local mempool revalidation is now available at `POST /mempool/revalidate`
 - native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
 - old dev wallets are still not the native account registry
 - Task 8.2 adds nonce tracking and replay protection
 - Task 8.3 adds balance sufficiency enforcement
 - Task 8.4 adds mempool storage and validation
+- Task 8.5 adds peer transaction gossip later
 - Task 8.6 adds block inclusion and settlement
 
 ## Legacy / Compatibility Notes

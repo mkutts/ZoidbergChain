@@ -17,6 +17,7 @@ Task 8.1 extends that model further into canonical signed native transaction rec
 - Pending transfer intents do not mutate native balances yet.
 - Peer propagation is implemented by Task 8.5.
 - Balance settlement and block inclusion are implemented by Task 8.6.
+- Task 8.7 hardens block validation, peer receive, and chain sync for transfer-bearing meme blocks.
 - Task 7.9 defines the design path from transfer intents to settled native transactions in [docs/native-transaction-layer-plan.md](C:/Users/mattk/ZoidbergChain/docs/native-transaction-layer-plan.md).
 
 ## Purpose
@@ -248,6 +249,14 @@ Current Task 8.6 block-inclusion behavior:
 - local lifecycle fields such as `created_at`, `updated_at`, `admitted_at`, `included_block_hash`, `included_block_height`, `settled_at`, and `rejection_reason` remain node-derived state and are not part of the block snapshot
 - block snapshots are validated by reconstructing the canonical signed transaction payload and verifying signature integrity
 
+Current Task 8.7 block-validation behavior:
+
+- a native transfer snapshot inside a block is validated from the chain state before that block, not from local mempool assumptions
+- block snapshots must have matching `transaction_count`, ordered `transaction_ids`, and `transactions_hash`
+- duplicate `tx_id`, already-settled `tx_id`, wrong network, invalid signature, unsupported type, nonce gap, duplicate nonce, lower-than-expected nonce, overspend, and nonzero fee all reject the block
+- transfer-bearing blocks must still be certified meme-mined blocks; transfer-only blocks are invalid
+- peer-provided status is not authoritative for block validation; `tx_id`, signed payload, and signature remain authoritative
+
 ## Signature Verification Role
 
 Task 7.7 adds reusable signature verification helpers for future transfer submission work.
@@ -328,6 +337,13 @@ Implemented by Task 8.6:
 - block-native transaction metadata fields `native_transactions`, `transaction_ids`, `transaction_count`, and `transactions_hash`
 - immediate local settlement when an accepted block includes a transfer
 - peer block settlement for matching local mempool transfers
+
+Implemented by Task 8.7:
+
+- chain-before-block validation for transfer-bearing blocks
+- structured block rejection reasons for native transfer validation and reward validation
+- hardened peer block receive so invalid transfer-bearing blocks do not mutate balances or local transaction status
+- hardened chain sync so accepted transfer-bearing blocks reconstruct and reconcile settled transaction state deterministically
 
 Implemented by Task 8.4:
 

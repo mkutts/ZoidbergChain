@@ -9,6 +9,7 @@ Task 8.1 now implements the first hardening step for native ZOID transfer intent
 - It now includes validated native transfers in meme-mined blocks.
 - It now settles included transfers on the accepted chain.
 - It now mutates final native balances through settled transfer accounting.
+- It now hardens block validation, peer receive, and chain sync for transfer-bearing meme blocks.
 
 ## Task 8.1 Implemented Shape
 
@@ -737,3 +738,45 @@ Implemented in Task 8.6:
 - final-balance accounting for settled native transfers
 - mint response fields `transactions_included` and `transaction_ids`
 - peer block settlement for included native transfers
+
+Implemented in Task 8.7:
+
+- transfer-bearing blocks must remain certified meme-mined blocks; transfer-only blocks are rejected
+- candidate-block validation now uses chain-before-block state for nonce and balance checks instead of trusting local mempool state
+- included transfer snapshots are validated by canonical `tx_id`, signature, network, type, duplicate detection, same-sender nonce sequencing, zero-fee policy, and in-block spendability
+- peer-provided transaction status is not authoritative; block snapshots are validated from canonical signed payload fields
+- meme reward validation and transfer validation now run together so duplicate rewards and invalid reward recipients reject the full block
+- peer block receive returns structured validation errors such as `invalid_transaction_count`, `duplicate_transaction_id`, `nonce_gap`, `insufficient_balance`, `reward_recipient_mismatch`, and `duplicate_reward`
+- chain sync now validates transfer-bearing blocks in order, reconciles local transaction records against the accepted chain, and rebuilds settled state deterministically
+- deterministic chain balance recalculation detects duplicate settlement, nonce inconsistency, fee-policy violations, and overspend conditions
+
+## Task 8.7 Block Validation Hardening
+
+Current hardening rules:
+
+- native transfers may appear only inside certified meme-mined blocks
+- transfer-bearing blocks must include valid originality-certificate metadata and meme reward metadata
+- block validation uses the chain state before that block as the nonce and balance baseline
+- candidate validation does not trust whether the local node had already seen the transaction in its mempool
+- sender balances are applied in block order so later transfers in the same block cannot overspend earlier funds
+- exact settled duplicate `tx_id` is rejected
+- same-sender duplicate or gap nonce inside a candidate block is rejected
+- nonzero fees remain invalid
+
+Current block snapshot policy:
+
+- `native_transactions` contain canonical signed transfer fields only
+- local lifecycle fields such as mempool status, admission timestamps, and rejection metadata are not trusted from peers
+- local records become `settled` only after the containing block is accepted onto the active chain
+
+Current peer receive and sync behavior:
+
+- peer blocks validate transfer fields, signature integrity, network, nonce sequencing, balance sufficiency, and reward metadata before mutating local state
+- rejected peer blocks do not settle transactions or mutate balances
+- accepted peer blocks settle matching local transactions idempotently and clear them from the active mempool
+- chain sync replays accepted blocks in order, preserves transaction records from synced blocks, and reconciles stale local `settled` markers back to non-final status if a block is no longer on the accepted chain
+
+Follow-up tasks:
+
+- Task 8.8 will update wallet balance and history UI for the hardened transaction lifecycle
+- Task 8.9 will focus on two-node transfer verification and cross-node behavior checks

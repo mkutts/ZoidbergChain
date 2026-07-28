@@ -248,10 +248,13 @@ def test_receive_peer_block_with_native_transaction_settles_local_mempool_transa
     tx_id = submit_response.json()["tx_id"]
     transaction_snapshot = blockchain._serialize_native_transaction_for_block(blockchain.get_native_transaction(tx_id))
     latest_block = blockchain.get_latest_block()
+    submission = _submission(blockchain, "zoidberg.jpg", recipient.address.lower())
+    certificate = _certify_submission(blockchain, submission)
+    minted_at = 1_000_500.0
     block = Block(
         index=latest_block.index + 1,
         previous_hash=latest_block.hash,
-        timestamp=1_000_500.0,
+        timestamp=minted_at,
         transactions=[Transaction("REWARD_POOL", recipient.address.lower(), 5, created_at=1_000_500.0)],
         miner=recipient.address.lower(),
         meme={"encoded_image": "peer-image", "text": "Peer settled block"},
@@ -259,6 +262,8 @@ def test_receive_peer_block_with_native_transaction_settles_local_mempool_transa
         transaction_ids=[tx_id],
         transaction_count=1,
         transactions_hash=blockchain._compute_block_native_transactions_hash([transaction_snapshot]),
+        **blockchain.certificate_block_metadata(certificate),
+        **blockchain.build_meme_reward_metadata(submission, certificate, minted_at=minted_at),
     )
 
     response = client.post(

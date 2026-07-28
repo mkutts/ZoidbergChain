@@ -1719,6 +1719,7 @@ async def receive_certificate_from_peer(request: Request, receive_request: PeerC
 @api_limit("peer_receive")
 async def receive_block_from_peer(request: Request, receive_request: PeerBlockReceive, _: None = Depends(require_peer_secret)):
     try:
+        raw_payload = await request.json()
         if receive_request.block is None:
             raise HTTPException(status_code=400, detail="Block payload is required.")
         if not peer_store.get_active_peer(receive_request.origin_node_id):
@@ -1728,10 +1729,24 @@ async def receive_block_from_peer(request: Request, receive_request: PeerBlockRe
             peer_store=peer_store,
             origin_node_id=receive_request.origin_node_id,
             network_name=receive_request.network_name,
-            block_payload=receive_request.block.model_dump(),
+            block_payload=(
+                raw_payload.get("block")
+                if isinstance(raw_payload, dict) and isinstance(raw_payload.get("block"), dict)
+                else receive_request.block.model_dump(exclude_none=True)
+            ),
             related_submission_id=receive_request.related_submission_id,
             local_network_name=NETWORK_NAME,
-            certificate_payload=receive_request.certificate.model_dump() if receive_request.certificate else None,
+            certificate_payload=(
+                raw_payload.get("certificate")
+                if receive_request.certificate
+                and isinstance(raw_payload, dict)
+                and isinstance(raw_payload.get("certificate"), dict)
+                else (
+                    receive_request.certificate.model_dump(exclude_none=True)
+                    if receive_request.certificate
+                    else None
+                )
+            ),
         )
     except UnauthorizedPeerError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -1742,7 +1757,10 @@ async def receive_block_from_peer(request: Request, receive_request: PeerBlockRe
     except ConflictingCertificateError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except MalformedBlockError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=e.to_detail() if hasattr(e, "to_detail") else str(e),
+        )
     except DuplicateBlockError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except ChainExtensionError as e:

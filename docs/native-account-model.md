@@ -86,6 +86,7 @@ Important current rules:
 - Task 8.4 adds mempool storage and validation
 - Task 8.5 adds peer transaction gossip later
 - Task 8.6 adds block inclusion and settlement
+- Task 8.7 hardens transfer-bearing block validation and chain-sync reconciliation
 
 Task 8.6 current account effects:
 
@@ -93,6 +94,14 @@ Task 8.6 current account effects:
 - `pending_outgoing` and `pending_incoming` drop back out when a mempool transfer becomes `settled`
 - `available_balance` returns to matching `final_balance` once all non-final reservations are cleared
 - accepted peer blocks can settle a locally known mempool transfer for the same `tx_id`
+
+Task 8.7 current account and sync effects:
+
+- final native balances are recalculated deterministically from the accepted chain, not from local mempool memory
+- transfer-bearing blocks spend against chain-before-block balances and settled sender nonces
+- accepted chain sync can reconstruct transaction records from synced blocks even when the local node never saw the transaction in mempool first
+- stale local `settled` records are reconciled back to non-final status if their containing block is no longer on the accepted chain
+- transfer-only blocks remain invalid; transfers continue to live inside certified meme-mined blocks only
 
 ## Legacy / Compatibility Notes
 

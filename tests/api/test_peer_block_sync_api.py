@@ -149,7 +149,8 @@ def test_receiving_direct_extending_block_with_invalid_certificate_is_rejected(
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Block references unknown originality certificate."
+    assert response.json()["detail"]["code"] == "unknown_certificate"
+    assert response.json()["detail"]["message"] == "Block references unknown originality certificate."
     assert len(blockchain.chain) == 1
 
 
@@ -175,7 +176,9 @@ def test_receiving_direct_extending_block_with_mismatched_originality_score_is_r
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Block certificate metadata originality_score does not match certificate."
+    assert response.json()["detail"]["code"] == "certificate_metadata_mismatch"
+    assert response.json()["detail"]["field_name"] == "originality_score"
+    assert response.json()["detail"]["message"] == "Block certificate metadata originality_score does not match certificate."
     assert len(blockchain.chain) == 1
 
 
@@ -201,7 +204,8 @@ def test_receiving_direct_extending_block_with_mismatched_reward_recipient_is_re
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Block reward_recipient does not match submission creator wallet."
+    assert response.json()["detail"]["code"] == "reward_recipient_mismatch"
+    assert response.json()["detail"]["message"] == "Block reward_recipient does not match submission creator wallet."
     assert len(blockchain.chain) == 1
 
 

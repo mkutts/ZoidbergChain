@@ -88,6 +88,18 @@ def _hash_number(value):
     return str(value)
 
 
+class NativeBlockValidationError(ValueError):
+    def __init__(self, code, message, *, details=None):
+        super().__init__(message)
+        self.code = str(code).strip() or "invalid_block"
+        self.details = dict(details or {})
+
+    def to_detail(self):
+        payload = {"code": self.code, "message": str(self)}
+        payload.update(self.details)
+        return payload
+
+
 def _short_public_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -1625,6 +1637,125 @@ class Blockchain:
             next_nonce += 1
         return next_nonce
 
+    def get_next_chain_nonce(self, wallet_address, chain_before_block=None):
+        return self.get_next_settled_nonce(wallet_address, chain=chain_before_block)
+
+    def calculate_balances_from_chain(self, chain=None):
+        chain_dicts = self.chain_to_dicts(chain or self.chain)
+        balances: dict[str, Decimal] = {}
+        seen_tx_ids = set()
+        next_nonces: dict[str, int] = {}
+        rewarded_submissions = set()
+
+        def _balance_for(wallet_address):
+            if wallet_address is None:
+                return Decimal("0")
+            return balances.get(wallet_address, Decimal("0"))
+
+        for block_dict in chain_dicts:
+            submission_id = block_dict.get("submission_id")
+            reward_type = block_dict.get("reward_type")
+            if reward_type == "meme_mining_reward" and submission_id:
+                if submission_id in rewarded_submissions:
+                    raise NativeBlockValidationError(
+                        "duplicate_reward",
+                        "Chain contains duplicate meme reward settlement for the same submission.",
+                        details={"submission_id": submission_id},
+                    )
+                rewarded_submissions.add(submission_id)
+
+            for transaction in list(block_dict.get("transactions", []) or []):
+                sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
+                recipient_value = transaction.get("recipient") if isinstance(transaction, dict) else transaction.recipient
+                amount_value = transaction.get("amount") if isinstance(transaction, dict) else transaction.amount
+                tip_value = transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip
+                sender = self._normalize_native_wallet_identity(sender_value) or sender_value
+                recipient = self._normalize_native_wallet_identity(recipient_value) or recipient_value
+                transaction_total = Decimal(str(amount_value)) + Decimal(str(tip_value))
+                if sender not in {None, "", "GENESIS", "REWARD_POOL"}:
+                    balances[sender] = _balance_for(sender) - transaction_total
+                if recipient:
+                    balances[recipient] = _balance_for(recipient) + transaction_total
+
+            for transaction in self._block_native_transactions(block_dict):
+                validated_transaction = self.validate_signed_native_transaction(transaction)
+                tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
+                if tx_id in seen_tx_ids:
+                    raise NativeBlockValidationError(
+                        "duplicate_transaction_id",
+                        "Chain contains the same native transaction more than once.",
+                        details={"tx_id": tx_id},
+                    )
+
+                sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
+                recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
+                if sender is None or recipient is None:
+                    raise NativeBlockValidationError(
+                        "malformed_transaction",
+                        "Chain contains a native transaction with an invalid sender or recipient.",
+                        details={"tx_id": tx_id},
+                    )
+
+                transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
+                expected_nonce = next_nonces.get(sender, NATIVE_TRANSACTION_INITIAL_NONCE)
+                if transaction_nonce < expected_nonce:
+                    error_code = "duplicate_nonce" if transaction_nonce == expected_nonce - 1 else "nonce_too_low"
+                    raise NativeBlockValidationError(
+                        error_code,
+                        "Chain contains a native transaction with a nonce lower than the next expected chain nonce.",
+                        details={
+                            "tx_id": tx_id,
+                            "from_address": sender,
+                            "expected_nonce": expected_nonce,
+                            "received_nonce": transaction_nonce,
+                        },
+                    )
+                if transaction_nonce > expected_nonce:
+                    raise NativeBlockValidationError(
+                        "nonce_gap",
+                        "Chain contains a native transaction with a nonce gap.",
+                        details={
+                            "tx_id": tx_id,
+                            "from_address": sender,
+                            "expected_nonce": expected_nonce,
+                            "received_nonce": transaction_nonce,
+                        },
+                    )
+
+                fee_amount = Decimal(str(validated_transaction.get("fee") or "0"))
+                if fee_amount != Decimal("0"):
+                    raise NativeBlockValidationError(
+                        "invalid_fee",
+                        "Chain contains a native transaction with a nonzero fee.",
+                        details={"tx_id": tx_id, "fee": str(validated_transaction.get("fee") or "0")},
+                    )
+                amount = Decimal(str(validated_transaction.get("amount") or "0"))
+                required_total = amount + fee_amount
+                sender_balance = _balance_for(sender)
+                if sender_balance < required_total:
+                    raise NativeBlockValidationError(
+                        "insufficient_balance",
+                        "Chain contains a native transaction that would overdraw the sender.",
+                        details={
+                            "tx_id": tx_id,
+                            "from_address": sender,
+                            "available_balance": self._normalize_decimal_value(sender_balance),
+                            "required_total": self._normalize_decimal_value(required_total),
+                        },
+                    )
+
+                balances[sender] = sender_balance - required_total
+                balances[recipient] = _balance_for(recipient) + amount
+                next_nonces[sender] = expected_nonce + 1
+                seen_tx_ids.add(tx_id)
+
+        return {
+            "balances": balances,
+            "seen_tx_ids": seen_tx_ids,
+            "next_nonces": next_nonces,
+            "rewarded_submissions": rewarded_submissions,
+        }
+
     def get_final_native_balance_amount(self, wallet_address, *, chain=None) -> Decimal:
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
@@ -1653,6 +1784,38 @@ class Blockchain:
                 if recipient == normalized_wallet:
                     balance += Decimal(str(transaction.get("amount") or "0"))
         return balance
+
+    @staticmethod
+    def _native_block_requires_certificate_context(block_dict) -> bool:
+        if not list(block_dict.get("native_transactions", []) or []):
+            return False
+        required_fields = [
+            "submission_id",
+            "certificate_id",
+            "content_hash",
+            "creator_wallet",
+            "vote_hash",
+            "approval_percentage",
+            "decisive_vote_total",
+            "minimum_votes_required",
+            "approved_at",
+            "originality_score",
+            "reward_type",
+            "reward_recipient",
+            "reward_amount",
+            "reward_source",
+            "minted_at",
+        ]
+        metadata = {
+            field_name: block_dict.get(field_name)
+            for field_name in required_fields
+            if block_dict.get(field_name) is not None
+        }
+        return len(metadata) == len(required_fields)
+
+    @staticmethod
+    def _raise_native_block_validation_error(code, message, **details):
+        raise NativeBlockValidationError(code, message, details=details or None)
 
     def get_pending_outgoing_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
@@ -1809,9 +1972,10 @@ class Blockchain:
 
         selected = []
         skipped = []
-        seen_tx_ids = set(self.get_chain_native_transaction_ids())
-        next_nonces = {}
-        balances: dict[str, Decimal] = {}
+        chain_state = self.calculate_balances_from_chain()
+        seen_tx_ids = set(chain_state["seen_tx_ids"])
+        next_nonces = dict(chain_state["next_nonces"])
+        balances: dict[str, Decimal] = dict(chain_state["balances"])
 
         for transaction in candidates:
             tx_id = str(transaction.get("tx_id") or "").strip().lower()
@@ -1836,7 +2000,7 @@ class Blockchain:
 
             sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
             recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
-            expected_nonce = next_nonces.get(sender, self.get_next_settled_nonce(sender))
+            expected_nonce = next_nonces.get(sender, self.get_next_chain_nonce(sender))
             transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
             if transaction_nonce != expected_nonce:
                 skipped.append(
@@ -1851,9 +2015,7 @@ class Blockchain:
             amount = Decimal(str(validated_transaction.get("amount") or "0"))
             fee = Decimal(str(validated_transaction.get("fee") or "0"))
             required_total = amount + fee
-            sender_balance = balances.get(sender)
-            if sender_balance is None:
-                sender_balance = self.get_final_native_balance_amount(sender)
+            sender_balance = balances.get(sender, Decimal("0"))
             if sender_balance < required_total:
                 skipped.append(
                     {
@@ -1864,9 +2026,7 @@ class Blockchain:
                 )
                 continue
 
-            recipient_balance = balances.get(recipient)
-            if recipient_balance is None:
-                recipient_balance = self.get_final_native_balance_amount(recipient)
+            recipient_balance = balances.get(recipient, Decimal("0"))
 
             balances[sender] = sender_balance - required_total
             balances[recipient] = recipient_balance + amount
@@ -1892,47 +2052,152 @@ class Blockchain:
         transactions_hash = block_dict.get("transactions_hash")
 
         if transaction_count != len(native_transactions):
-            raise ValueError("Block transaction_count does not match native_transactions length.")
-        if transaction_ids != [transaction.get("tx_id") for transaction in native_transactions]:
-            raise ValueError("Block transaction_ids do not match native_transactions.")
+            self._raise_native_block_validation_error(
+                "invalid_transaction_count",
+                "Block transaction_count does not match native_transactions length.",
+                transaction_count=transaction_count,
+                actual_count=len(native_transactions),
+            )
+        expected_transaction_ids = [transaction.get("tx_id") for transaction in native_transactions]
+        if transaction_ids != expected_transaction_ids:
+            self._raise_native_block_validation_error(
+                "transaction_id_mismatch",
+                "Block transaction_ids do not match native_transactions.",
+                transaction_ids=transaction_ids,
+                expected_transaction_ids=expected_transaction_ids,
+            )
         if native_transactions and transactions_hash != self._compute_block_native_transactions_hash(native_transactions):
-            raise ValueError("Block transactions_hash does not match native_transactions.")
+            self._raise_native_block_validation_error(
+                "transactions_hash_mismatch",
+                "Block transactions_hash does not match native_transactions.",
+                transactions_hash=transactions_hash,
+            )
 
-        prior_chain = prior_chain or self.chain
-        seen_tx_ids = set(self.get_chain_native_transaction_ids(chain=prior_chain))
-        next_nonces = {}
-        balances: dict[str, Decimal] = {}
+        if native_transactions and not self._native_block_requires_certificate_context(block_dict):
+            self._raise_native_block_validation_error(
+                "invalid_block_context",
+                "Blocks containing native transactions must remain meme-mined blocks.",
+            )
 
-        for transaction in native_transactions:
-            validated_transaction = self.validate_signed_native_transaction(transaction)
+        prior_chain = self.chain_to_dicts(prior_chain or self.chain)
+        chain_state = self.calculate_balances_from_chain(prior_chain)
+        seen_prior_tx_ids = set(chain_state["seen_tx_ids"])
+        next_nonces = dict(chain_state["next_nonces"])
+        balances: dict[str, Decimal] = dict(chain_state["balances"])
+        seen_block_tx_ids = set()
+        seen_block_nonces = set()
+
+        for index, transaction in enumerate(native_transactions):
+            if not isinstance(transaction, dict):
+                self._raise_native_block_validation_error(
+                    "malformed_transaction",
+                    "Block native transaction payload must be an object.",
+                    transaction_index=index,
+                )
+            try:
+                validated_transaction = self.validate_signed_native_transaction(transaction)
+            except ValueError as exc:
+                message = str(exc)
+                code = "malformed_transaction"
+                if "tx_id does not match" in message:
+                    code = "transaction_id_mismatch"
+                elif "network does not match" in message:
+                    code = "wrong_network"
+                elif "transaction_type must be exactly" in message:
+                    code = "unsupported_transaction_type"
+                elif "signature_scheme must be" in message or "signature is required" in message or "Malformed signature" in message or "signature" in message:
+                    code = "invalid_transaction_signature"
+                elif "fee" in message:
+                    code = "invalid_fee"
+                self._raise_native_block_validation_error(
+                    code,
+                    message,
+                    transaction_index=index,
+                    tx_id=str(transaction.get("tx_id") or "").strip().lower() or None,
+                )
+
             tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
-            if tx_id in seen_tx_ids:
-                raise ValueError("Block contains a duplicate or already settled native transaction.")
+            if tx_id in seen_block_tx_ids:
+                self._raise_native_block_validation_error(
+                    "duplicate_transaction_id",
+                    "Block contains the same native transaction more than once.",
+                    tx_id=tx_id,
+                    transaction_index=index,
+                )
+            if tx_id in seen_prior_tx_ids:
+                self._raise_native_block_validation_error(
+                    "transaction_already_settled",
+                    "Block contains a native transaction that was already settled in an earlier block.",
+                    tx_id=tx_id,
+                    transaction_index=index,
+                )
 
             sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
             recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
-            expected_nonce = next_nonces.get(sender, self.get_next_settled_nonce(sender, chain=prior_chain))
             transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
-            if transaction_nonce != expected_nonce:
-                raise ValueError("Block native transaction nonce order is invalid.")
+            sender_nonce_key = (sender, transaction_nonce)
+            if sender_nonce_key in seen_block_nonces:
+                self._raise_native_block_validation_error(
+                    "duplicate_nonce",
+                    "Block contains multiple native transactions with the same sender nonce.",
+                    tx_id=tx_id,
+                    from_address=sender,
+                    nonce=transaction_nonce,
+                    transaction_index=index,
+                )
+
+            expected_nonce = next_nonces.get(sender, self.get_next_chain_nonce(sender, prior_chain))
+            if transaction_nonce < expected_nonce:
+                self._raise_native_block_validation_error(
+                    "nonce_too_low",
+                    "Block native transaction nonce is lower than the next expected chain nonce.",
+                    tx_id=tx_id,
+                    from_address=sender,
+                    expected_nonce=expected_nonce,
+                    received_nonce=transaction_nonce,
+                    transaction_index=index,
+                )
+            if transaction_nonce > expected_nonce:
+                self._raise_native_block_validation_error(
+                    "nonce_gap",
+                    "Block native transaction nonce creates a gap against the prior chain state.",
+                    tx_id=tx_id,
+                    from_address=sender,
+                    expected_nonce=expected_nonce,
+                    received_nonce=transaction_nonce,
+                    transaction_index=index,
+                )
 
             amount = Decimal(str(validated_transaction.get("amount") or "0"))
             fee = Decimal(str(validated_transaction.get("fee") or "0"))
+            if fee != Decimal("0"):
+                self._raise_native_block_validation_error(
+                    "invalid_fee",
+                    "Block native transaction fee must be zero under the current fee policy.",
+                    tx_id=tx_id,
+                    fee=str(validated_transaction.get("fee") or "0"),
+                    transaction_index=index,
+                )
             required_total = amount + fee
-            sender_balance = balances.get(sender)
-            if sender_balance is None:
-                sender_balance = self.get_final_native_balance_amount(sender, chain=prior_chain)
+            sender_balance = balances.get(sender, Decimal("0"))
             if sender_balance < required_total:
-                raise ValueError("Block native transaction would overdraw the sender.")
+                self._raise_native_block_validation_error(
+                    "insufficient_balance",
+                    "Block native transaction would overdraw the sender when applied in block order.",
+                    tx_id=tx_id,
+                    from_address=sender,
+                    available_balance=self._normalize_decimal_value(sender_balance),
+                    required_total=self._normalize_decimal_value(required_total),
+                    transaction_index=index,
+                )
 
-            recipient_balance = balances.get(recipient)
-            if recipient_balance is None:
-                recipient_balance = self.get_final_native_balance_amount(recipient, chain=prior_chain)
-
+            recipient_balance = balances.get(recipient, Decimal("0"))
             balances[sender] = sender_balance - required_total
             balances[recipient] = recipient_balance + amount
             next_nonces[sender] = expected_nonce + 1
-            seen_tx_ids.add(tx_id)
+            seen_prior_tx_ids.add(tx_id)
+            seen_block_tx_ids.add(tx_id)
+            seen_block_nonces.add(sender_nonce_key)
 
         return True
 
@@ -1959,6 +2224,35 @@ class Blockchain:
                 updated_at=settled_at,
             )
             settled_tx_ids.append(settled["tx_id"])
+        return settled_tx_ids
+
+    def reconcile_native_transactions_with_chain(self, *, chain=None):
+        accepted_chain = self.chain_to_dicts(chain or self.chain)
+        accepted_block_hashes = {
+            str(block.get("hash") or "").strip()
+            for block in accepted_chain
+            if str(block.get("hash") or "").strip()
+        }
+
+        for index, transaction in enumerate(list(self.native_transactions)):
+            if str(transaction.get("status") or "").strip().lower() != "settled":
+                continue
+            included_block_hash = str(transaction.get("included_block_hash") or "").strip()
+            if included_block_hash and included_block_hash in accepted_block_hashes:
+                continue
+            downgraded = dict(transaction)
+            downgraded["status"] = "validated_pending"
+            downgraded["included_block_hash"] = None
+            downgraded["included_block_height"] = None
+            downgraded["settled_at"] = None
+            downgraded["updated_at"] = self._utc_now_iso()
+            validated = validate_transaction_shape(downgraded, network_name=NETWORK_NAME)
+            self.native_transactions[index] = validated.to_dict()
+            self._update_transfer_intent_status(validated.tx_id, status=validated.status, updated_at=validated.updated_at)
+
+        settled_tx_ids = []
+        for block in accepted_chain:
+            settled_tx_ids.extend(self.settle_block_native_transactions(block))
         return settled_tx_ids
 
     def admit_transaction_to_mempool(self, tx_id):
@@ -3056,7 +3350,12 @@ class Blockchain:
         self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
         return True
 
-    def validate_block_certificate_metadata(self, block_dict):
+    def validate_block_with_native_transactions(self, block_dict, *, prior_chain=None):
+        self.validate_block_certificate_metadata(block_dict, prior_chain=prior_chain)
+        self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
+        return True
+
+    def validate_block_certificate_metadata(self, block_dict, *, prior_chain=None):
         if block_dict.get("index") == 0:
             return True
 
@@ -3076,37 +3375,81 @@ class Blockchain:
             "approved_at",
             "originality_score",
         ]
+        if self._block_native_transactions(block_dict) and not self._native_block_requires_certificate_context(block_dict):
+            self._raise_native_block_validation_error(
+                "invalid_block_context",
+                "Blocks containing native transactions must include certified meme block metadata and reward metadata.",
+                block_index=block_dict.get("index"),
+            )
         if not any(metadata.get(field_name) is not None for field_name in required_fields):
             return True
         for field_name in required_fields:
             if field_name not in metadata:
-                raise ValueError(f"Block certificate metadata missing {field_name}.")
+                self._raise_native_block_validation_error(
+                    "invalid_block_context",
+                    f"Block certificate metadata missing {field_name}.",
+                    block_index=block_dict.get("index"),
+                    field_name=field_name,
+                )
 
         certificate = self.get_originality_certificate(metadata["certificate_id"])
         if not certificate:
-            raise ValueError("Block references unknown originality certificate.")
+            self._raise_native_block_validation_error(
+                "unknown_certificate",
+                "Block references unknown originality certificate.",
+                certificate_id=metadata["certificate_id"],
+            )
 
         if certificate.submission_id != metadata["submission_id"]:
-            raise ValueError("Block certificate_id does not match block submission_id.")
+            self._raise_native_block_validation_error(
+                "certificate_submission_mismatch",
+                "Block certificate_id does not match block submission_id.",
+                certificate_id=metadata["certificate_id"],
+                submission_id=metadata["submission_id"],
+            )
         if certificate.content_hash != metadata["content_hash"]:
-            raise ValueError("Block certificate content_hash does not match block content_hash.")
+            self._raise_native_block_validation_error(
+                "content_hash_mismatch",
+                "Block certificate content_hash does not match block content_hash.",
+                certificate_id=metadata["certificate_id"],
+                submission_id=metadata["submission_id"],
+            )
         if metadata.get("content_id") is not None:
             certificate_content_id = getattr(certificate, "content_id", None)
             if certificate_content_id is not None and certificate_content_id != metadata["content_id"]:
-                raise ValueError("Block content_id does not match certificate content_id.")
+                self._raise_native_block_validation_error(
+                    "content_id_mismatch",
+                    "Block content_id does not match certificate content_id.",
+                    certificate_id=metadata["certificate_id"],
+                    submission_id=metadata["submission_id"],
+                )
 
         submission = self.get_submission(metadata["submission_id"])
         if submission:
             validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
             if metadata["content_hash"] != submission.content_hash:
-                raise ValueError("Block content_hash does not match submission.")
+                self._raise_native_block_validation_error(
+                    "content_hash_mismatch",
+                    "Block content_hash does not match submission.",
+                    submission_id=metadata["submission_id"],
+                )
             if metadata.get("content_id") is not None and metadata["content_id"] != submission.content_id:
-                raise ValueError("Block content_id does not match submission.")
+                self._raise_native_block_validation_error(
+                    "content_id_mismatch",
+                    "Block content_id does not match submission.",
+                    submission_id=metadata["submission_id"],
+                )
 
         for field_name in required_fields:
             certificate_value = getattr(certificate, field_name)
             if metadata[field_name] != certificate_value:
-                raise ValueError(f"Block certificate metadata {field_name} does not match certificate.")
+                self._raise_native_block_validation_error(
+                    "certificate_metadata_mismatch",
+                    f"Block certificate metadata {field_name} does not match certificate.",
+                    field_name=field_name,
+                    certificate_id=metadata["certificate_id"],
+                    submission_id=metadata["submission_id"],
+                )
 
         reward_fields_present = any(
             metadata.get(field_name) is not None
@@ -3122,42 +3465,96 @@ class Blockchain:
             ]
             for field_name in reward_required_fields:
                 if metadata.get(field_name) is None:
-                    raise ValueError(f"Block reward metadata missing {field_name}.")
+                    self._raise_native_block_validation_error(
+                        "invalid_reward_metadata",
+                        f"Block reward metadata missing {field_name}.",
+                        submission_id=metadata["submission_id"],
+                        field_name=field_name,
+                    )
             if metadata["reward_type"] != "meme_mining_reward":
-                raise ValueError("Block reward_type is invalid.")
+                self._raise_native_block_validation_error(
+                    "invalid_reward_metadata",
+                    "Block reward_type is invalid.",
+                    submission_id=metadata["submission_id"],
+                )
             if metadata["reward_source"] != "reward_pool":
-                raise ValueError("Block reward_source is invalid.")
+                self._raise_native_block_validation_error(
+                    "invalid_reward_metadata",
+                    "Block reward_source is invalid.",
+                    submission_id=metadata["submission_id"],
+                )
             normalized_reward_recipient = self._normalize_native_wallet_identity(metadata["reward_recipient"])
             if normalized_reward_recipient is None:
-                raise ValueError("Block reward_recipient is invalid.")
+                self._raise_native_block_validation_error(
+                    "reward_recipient_mismatch",
+                    "Block reward_recipient is invalid.",
+                    submission_id=metadata["submission_id"],
+                )
             if float(metadata["reward_amount"]) != float(MEME_BLOCK_REWARD):
-                raise ValueError("Block reward_amount does not match configured reward.")
+                self._raise_native_block_validation_error(
+                    "reward_amount_mismatch",
+                    "Block reward_amount does not match configured reward.",
+                    submission_id=metadata["submission_id"],
+                    reward_amount=metadata["reward_amount"],
+                )
             if submission:
                 expected_reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
                 if normalized_reward_recipient != expected_reward_recipient:
-                    raise ValueError("Block reward_recipient does not match submission creator wallet.")
+                    self._raise_native_block_validation_error(
+                        "reward_recipient_mismatch",
+                        "Block reward_recipient does not match submission creator wallet.",
+                        submission_id=metadata["submission_id"],
+                        reward_recipient=normalized_reward_recipient,
+                    )
+            prior_chain_dicts = self.chain_to_dicts(prior_chain or [])
+            if any(
+                prior_block.get("submission_id") == metadata["submission_id"]
+                and prior_block.get("reward_type") == "meme_mining_reward"
+                for prior_block in prior_chain_dicts
+            ):
+                self._raise_native_block_validation_error(
+                    "duplicate_reward",
+                    "Block duplicates the meme reward for an already minted submission.",
+                    submission_id=metadata["submission_id"],
+                )
 
         content_object = self.get_content_object_by_hash(metadata["content_hash"])
         if content_object is not None:
             if metadata.get("content_id") is not None and metadata["content_id"] != content_object.content_id:
-                raise ValueError("Block content_id does not match content object.")
+                self._raise_native_block_validation_error(
+                    "content_id_mismatch",
+                    "Block content_id does not match content object.",
+                    submission_id=metadata["submission_id"],
+                )
             if metadata.get("content_type") is not None and metadata["content_type"] != content_object.content_type:
                 if not (
                     content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
                     and content_object.content_type == CONTENT_TYPE_IMAGE
                     and metadata["content_type"] in {CONTENT_TYPE_MIXED, CONTENT_TYPE_TEXT}
                 ):
-                    raise ValueError("Block content_type does not match content object.")
+                    self._raise_native_block_validation_error(
+                        "content_type_mismatch",
+                        "Block content_type does not match content object.",
+                        submission_id=metadata["submission_id"],
+                    )
             if metadata.get("mime_type") is not None and metadata["mime_type"] != content_object.mime_type:
                 if not (
                     content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
                     and content_object.mime_type == "application/octet-stream"
                 ):
-                    raise ValueError("Block mime_type does not match content object.")
+                    self._raise_native_block_validation_error(
+                        "mime_type_mismatch",
+                        "Block mime_type does not match content object.",
+                        submission_id=metadata["submission_id"],
+                    )
             if content_object.storage_status == STORAGE_STATUS_VERIFIED:
                 verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
                 if not verification["verified"]:
-                    raise ValueError("Verified local content file does not match block content_hash.")
+                    self._raise_native_block_validation_error(
+                        "content_hash_mismatch",
+                        "Verified local content file does not match block content_hash.",
+                        submission_id=metadata["submission_id"],
+                    )
 
         return True
 
@@ -3178,14 +3575,9 @@ class Blockchain:
                 return False
 
             try:
-                self.validate_block_certificate_metadata(current_block)
+                self.validate_block_with_native_transactions(current_block, prior_chain=chain[:i])
             except ValueError as e:
-                print(f"Debug: Block {current_block['index']} certificate metadata is invalid: {e}")
-                return False
-            try:
-                self.validate_block_native_transaction_metadata(current_block, prior_chain=chain[:i])
-            except ValueError as e:
-                print(f"Debug: Block {current_block['index']} native transaction metadata is invalid: {e}")
+                print(f"Debug: Block {current_block['index']} transaction or certificate metadata is invalid: {e}")
                 return False
 
         return True

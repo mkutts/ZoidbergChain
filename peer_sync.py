@@ -8,6 +8,7 @@ import time
 
 import requests
 
+from blockchain import NativeBlockValidationError
 from block import Block
 from content import (
     CONTENT_TYPE_IMAGE,
@@ -561,7 +562,17 @@ class ConflictingVoteError(PeerSyncError):
 
 
 class MalformedBlockError(PeerSyncError):
-    pass
+    def __init__(self, message, *, code=None, details=None):
+        super().__init__(message)
+        self.code = code
+        self.details = dict(details or {})
+
+    def to_detail(self):
+        if self.code or self.details:
+            payload = {"code": self.code or "invalid_block", "message": str(self)}
+            payload.update(self.details)
+            return payload
+        return str(self)
 
 
 class DuplicateBlockError(PeerSyncError):
@@ -698,15 +709,12 @@ def receive_peer_block(
             submission_id=related_submission_id or block.submission_id,
         )
 
-    certificate_is_known = certificate_payload is not None or (
-        block.certificate_id is not None and blockchain.get_originality_certificate(block.certificate_id) is not None
-    )
     _validate_block_extends_chain(
         blockchain,
         block,
         blockchain.chain,
-        validate_hash=not certificate_is_known,
-        validate_chain=not certificate_is_known,
+        validate_hash=True,
+        validate_chain=True,
     )
 
     blockchain.chain.append(block)
@@ -1538,6 +1546,7 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
     for block in candidate_chain:
         _remove_confirmed_pending_transactions(blockchain, block.transactions)
     blockchain.chain = candidate_chain
+    blockchain.reconcile_native_transactions_with_chain(chain=candidate_chain)
     blockchain.save_blockchain()
 
     return _chain_sync_result(
@@ -2242,12 +2251,20 @@ def _validate_block_extends_chain(blockchain, block, current_chain, validate_has
         raise MalformedBlockError("Block index must extend the local chain by one.")
 
     try:
-        blockchain.validate_block_certificate_metadata(block.to_dict())
+        blockchain.validate_block_certificate_metadata(
+            block.to_dict(),
+            prior_chain=[
+                existing_block.to_dict() if hasattr(existing_block, "to_dict") else existing_block
+                for existing_block in current_chain
+            ],
+        )
     except ValueError as exc:
+        if isinstance(exc, NativeBlockValidationError):
+            raise MalformedBlockError(str(exc), code=exc.code, details=exc.details)
         raise MalformedBlockError(str(exc))
     if validate_hash:
         _validate_block_hash(blockchain, block)
-    _validate_block_transactions(blockchain, block)
+    _validate_block_transactions(blockchain, block, prior_chain=current_chain)
 
     if validate_chain:
         candidate_chain = [existing_block.to_dict() for existing_block in current_chain] + [block.to_dict()]
@@ -2255,16 +2272,21 @@ def _validate_block_extends_chain(blockchain, block, current_chain, validate_has
             raise MalformedBlockError("Block failed chain validation.")
 
 
-def _validate_block_transactions(blockchain, block):
+def _validate_block_transactions(blockchain, block, *, prior_chain=None):
     for transaction in block.transactions:
         if not transaction.is_valid():
             raise MalformedBlockError("Block contains an invalid transaction.")
         if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not blockchain.validate_transaction(transaction):
             raise MalformedBlockError("Block contains an invalid transaction.")
     try:
-        chain_prefix = [existing_block.to_dict() for existing_block in blockchain.chain]
+        chain_prefix = [
+            existing_block.to_dict() if hasattr(existing_block, "to_dict") else existing_block
+            for existing_block in (prior_chain or blockchain.chain)
+        ]
         blockchain.validate_block_native_transactions(block.to_dict(), prior_chain=chain_prefix)
     except ValueError as exc:
+        if isinstance(exc, NativeBlockValidationError):
+            raise MalformedBlockError(str(exc), code=exc.code, details=exc.details) from exc
         raise MalformedBlockError(str(exc)) from exc
 
 

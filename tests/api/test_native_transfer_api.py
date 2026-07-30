@@ -6,7 +6,6 @@ from eth_account.messages import encode_defunct
 from fastapi.testclient import TestClient
 
 from blockchain import Blockchain
-from native_transfer import compute_transaction_id
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from transaction import Transaction
 from wallet import Wallet
@@ -333,7 +332,7 @@ def test_transfer_submit_rejects_field_mismatch(blockchain):
     assert "to_address does not match" in response.json()["detail"].lower()
 
 
-def test_second_different_signed_transfer_with_same_nonce_is_rejected(blockchain):
+def test_second_different_signed_transfer_with_same_nonce_is_recorded(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "25")
@@ -377,8 +376,10 @@ def test_second_different_signed_transfer_with_same_nonce_is_rejected(blockchain
     second = client.post("/transfers/submit", json=second_payload, headers=headers)
 
     assert first.status_code == 200
-    assert second.status_code == 400
-    assert "nonce already used or reserved" in second.json()["detail"].lower()
+    assert second.status_code == 200
+    assert second.json()["tx_id"] != first.json()["tx_id"]
+    history = client.get(f"/accounts/{account.address.lower()}/transactions").json()["transactions"]
+    assert len(history) == 2
 
 
 def test_gap_nonce_is_rejected_under_strict_sequential_policy(blockchain):
@@ -516,9 +517,9 @@ def test_nonce_endpoint_returns_expected_state(blockchain):
 
     assert submit_response.status_code == 200
     assert after.status_code == 200
-    assert after.json()["next_nonce"] == 2
-    assert after.json()["used_nonces"] == [1]
-    assert after.json()["reserved_nonces"] == [1]
+    assert after.json()["next_nonce"] == 1
+    assert after.json()["used_nonces"] == []
+    assert after.json()["reserved_nonces"] == []
 
 
 def test_invalid_wallet_nonce_endpoint_rejected(blockchain):
@@ -548,9 +549,9 @@ def test_nonce_state_survives_storage_reload(backend_factory, isolated_data_dir)
         storage_backend=backend,
     )
 
-    assert reloaded.get_next_nonce(account.address.lower()) == 2
-    assert reloaded.get_used_nonces(account.address.lower()) == [1]
-    assert reloaded.get_reserved_nonces(account.address.lower()) == [1]
+    assert reloaded.get_next_nonce(account.address.lower()) == 1
+    assert reloaded.get_used_nonces(account.address.lower()) == []
+    assert reloaded.get_reserved_nonces(account.address.lower()) == []
 
 
 def test_transfer_equal_to_available_balance_is_accepted(blockchain):
@@ -564,11 +565,10 @@ def test_transfer_equal_to_available_balance_is_accepted(blockchain):
     assert response.status_code == 200
     balance_state = client.get(f"/accounts/{account.address.lower()}").json()
     assert balance_state["final_balance"] == "5"
-    assert balance_state["pending_outgoing"] == "5"
-    assert balance_state["available_balance"] == "0"
+    assert balance_state["pending_outgoing"] == "0"
+    assert balance_state["available_balance"] == "5"
 
-
-def test_submit_with_admit_to_mempool_updates_status_without_mutating_final_balance(blockchain):
+def test_submit_with_admit_to_mempool_still_records_signed_pending_transaction(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "5")
@@ -578,147 +578,14 @@ def test_submit_with_admit_to_mempool_updates_status_without_mutating_final_bala
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "mempool"
-    assert body["admitted"] is True
+    assert body["status"] == "signed_pending"
     assert "not settled" in body["message"].lower()
     balance_state = client.get(f"/accounts/{account.address.lower()}").json()
     assert balance_state["final_balance"] == "5"
-    assert balance_state["pending_outgoing"] == "4"
-    assert balance_state["available_balance"] == "1"
+    assert balance_state["pending_outgoing"] == "0"
+    assert balance_state["available_balance"] == "5"
 
-
-def test_admit_endpoint_promotes_signed_pending_transaction(blockchain):
-    client, _ = _client(blockchain)
-    account = _create_account()
-    _fund_native_wallet(blockchain, account.address, "25")
-    headers = _verified_headers(client, account)
-
-    submit_response = _submit_transfer_intent(client, account, headers)
-    tx_id = submit_response.json()["tx_id"]
-
-    response = client.post(f"/transactions/{tx_id}/admit")
-
-    assert response.status_code == 200
-    assert response.json()["status"] == "mempool"
-    transaction = client.get(f"/transactions/{tx_id}").json()["transaction"]
-    assert transaction["status"] == "mempool"
-    assert transaction["admitted_at"]
-
-
-def test_admit_endpoint_is_idempotent_for_existing_mempool_transaction(blockchain):
-    client, _ = _client(blockchain)
-    account = _create_account()
-    _fund_native_wallet(blockchain, account.address, "25")
-    headers = _verified_headers(client, account)
-
-    submit_response = _submit_transfer_intent(client, account, headers)
-    tx_id = submit_response.json()["tx_id"]
-
-    first = client.post(f"/transactions/{tx_id}/admit")
-    second = client.post(f"/transactions/{tx_id}/admit")
-
-    assert first.status_code == 200
-    assert second.status_code == 200
-    assert second.json()["status"] == "mempool"
-    assert second.json()["tx_id"] == tx_id
-
-
-def test_admit_endpoint_rejects_invalid_signature(blockchain):
-    client, _ = _client(blockchain)
-    account = _create_account()
-    _fund_native_wallet(blockchain, account.address, "25")
-    headers = _verified_headers(client, account)
-
-    submit_response = _submit_transfer_intent(client, account, headers)
-    tx_id = submit_response.json()["tx_id"]
-    blockchain.native_transactions[0]["signature"] = "0xdeadbeef"
-    blockchain.native_transactions[0]["tx_id"] = compute_transaction_id(blockchain.native_transactions[0])
-    tx_id = blockchain.native_transactions[0]["tx_id"]
-
-    response = client.post(f"/transactions/{tx_id}/admit")
-
-    assert response.status_code == 400
-    assert "signature" in response.json()["detail"].lower()
-
-
-def test_get_mempool_endpoints_return_safe_fields(blockchain):
-    client, _ = _client(blockchain)
-    account = _create_account()
-    _fund_native_wallet(blockchain, account.address, "25")
-    headers = _verified_headers(client, account)
-
-    submit_response = _submit_transfer_intent(client, account, headers, admit_to_mempool=True)
-    tx_id = submit_response.json()["tx_id"]
-
-    mempool = client.get("/mempool")
-    mempool_tx = client.get(f"/mempool/{tx_id}")
-
-    assert mempool.status_code == 200
-    assert mempool.json()["count"] == 1
-    listed = mempool.json()["transactions"][0]
-    assert listed["tx_id"] == tx_id
-    assert listed["status"] == "mempool"
-    assert "signature" not in listed
-    assert "signed_message" not in listed
-    assert mempool_tx.status_code == 200
-    assert mempool_tx.json()["transaction"]["tx_id"] == tx_id
-    assert "session_token" not in str(mempool_tx.json())
-
-
-def test_mempool_revalidate_rejects_invalid_transaction(blockchain):
-    client, _ = _client(blockchain)
-    account = _create_account()
-    _fund_native_wallet(blockchain, account.address, "25")
-    headers = _verified_headers(client, account)
-
-    submit_response = _submit_transfer_intent(client, account, headers, admit_to_mempool=True)
-    tx_id = submit_response.json()["tx_id"]
-    blockchain.native_transactions[0]["signature"] = "0xdeadbeef"
-    blockchain.native_transactions[0]["tx_id"] = compute_transaction_id(blockchain.native_transactions[0])
-    tx_id = blockchain.native_transactions[0]["tx_id"]
-
-    response = client.post("/mempool/revalidate")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["checked"] == 1
-    assert body["removed"] == 1
-    assert body["items"][0]["tx_id"] == tx_id
-    assert body["items"][0]["valid"] is False
-    assert client.get("/mempool").json()["count"] == 0
-    transaction = client.get(f"/transactions/{tx_id}").json()["transaction"]
-    assert transaction["status"] == "rejected"
-
-
-@pytest.mark.parametrize("backend_factory", [_json_backend, _sqlite_backend])
-def test_mempool_status_survives_storage_reload(backend_factory, isolated_data_dir):
-    backend = backend_factory(isolated_data_dir, "mempool-reload")
-    blockchain = _create_blockchain_with_backend(backend)
-    client, _ = _client(blockchain)
-    account = _create_account()
-    _fund_native_wallet(blockchain, account.address, "25")
-    headers = _verified_headers(client, account)
-
-    submit_response = _submit_transfer_intent(client, account, headers, admit_to_mempool=True)
-    assert submit_response.status_code == 200
-    tx_id = submit_response.json()["tx_id"]
-
-    reloaded = Blockchain(
-        project_owner_wallet=blockchain.project_owner_wallet,
-        Contributor_one=blockchain.Contributor_one,
-        Contributor_two=blockchain.Contributor_two,
-        storage_backend=backend,
-    )
-
-    stored_transaction = reloaded.get_native_transaction(tx_id)
-    mempool_transaction = reloaded.get_mempool_transaction(tx_id)
-    assert stored_transaction is not None
-    assert stored_transaction["status"] == "mempool"
-    assert stored_transaction["admitted_at"]
-    assert mempool_transaction is not None
-
-
-def test_transfer_above_available_balance_is_rejected_and_not_recorded(blockchain):
+def test_transfer_above_available_balance_is_still_recorded_for_future_processing(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "5")
@@ -728,14 +595,13 @@ def test_transfer_above_available_balance_is_rejected_and_not_recorded(blockchai
     nonce_state = client.get(f"/accounts/{account.address.lower()}/nonce").json()
     history = client.get(f"/accounts/{account.address.lower()}/transactions").json()["transactions"]
 
-    assert response.status_code == 400
-    assert "insufficient available balance" in response.json()["detail"].lower()
+    assert response.status_code == 200
     assert nonce_state["next_nonce"] == 1
-    assert history == []
+    assert len(history) == 1
     assert blockchain.get_native_balance(account.address.lower()) == 5
 
 
-def test_multiple_pending_transfers_cannot_overcommit_funds(blockchain):
+def test_multiple_pending_transfers_do_not_change_balance_snapshot(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "5")
@@ -748,13 +614,12 @@ def test_multiple_pending_transfers_cannot_overcommit_funds(blockchain):
     nonce_state = client.get(f"/accounts/{account.address.lower()}/nonce").json()
 
     assert first.status_code == 200
-    assert second.status_code == 400
-    assert "insufficient available balance" in second.json()["detail"].lower()
+    assert second.status_code == 200
     assert third.status_code == 200
     assert balance_state["final_balance"] == "5"
-    assert balance_state["pending_outgoing"] == "5"
-    assert balance_state["available_balance"] == "0"
-    assert nonce_state["next_nonce"] == 3
+    assert balance_state["pending_outgoing"] == "0"
+    assert balance_state["available_balance"] == "5"
+    assert nonce_state["next_nonce"] == 1
 
 
 def test_pending_incoming_does_not_increase_available_balance(blockchain):
@@ -769,7 +634,7 @@ def test_pending_incoming_does_not_increase_available_balance(blockchain):
 
     assert response.status_code == 200
     assert recipient_summary["final_balance"] == "0"
-    assert recipient_summary["pending_incoming"] == "4"
+    assert recipient_summary["pending_incoming"] == "0"
     assert recipient_summary["available_balance"] == "0"
 
 
@@ -787,9 +652,9 @@ def test_wallet_balance_endpoint_returns_full_balance_snapshot(blockchain):
     body = response.json()
     assert body["final_balance"] == "5"
     assert body["native_balance"] == "5"
-    assert body["pending_outgoing"] == "4"
+    assert body["pending_outgoing"] == "0"
     assert body["pending_incoming"] == "0"
-    assert body["available_balance"] == "1"
+    assert body["available_balance"] == "5"
     assert body["symbol"] == "ZOID"
 
 

@@ -538,11 +538,7 @@ def _serialize_block(block):
 def _serialize_transfer_intent(transfer_intent):
     status = transfer_intent.get("status")
     status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
-    if status == "mempool":
-        status_detail = "Admitted to the local mempool. Not settled until included in a block."
-    elif status in {"included", "settled"}:
-        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
-    elif status == "rejected":
+    if status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
         status_detail = "Expired before mempool inclusion. Not settled."
@@ -570,13 +566,7 @@ def _serialize_transfer_intent(transfer_intent):
 def _serialize_native_transaction(transaction):
     status = transaction.get("status")
     status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
-    if status == "mempool":
-        status_detail = "Admitted to the local mempool. Not settled until included in a block."
-    elif status in {"included", "settled"}:
-        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
-    elif status == "validated_pending":
-        status_detail = "Validated and eligible for local mempool handling. Not settled yet."
-    elif status == "rejected":
+    if status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
         status_detail = "Expired before inclusion. Not settled."
@@ -593,8 +583,6 @@ def _serialize_native_transaction(transaction):
         "network": transaction.get("network"),
         "timestamp": transaction.get("timestamp"),
         "created_at": transaction.get("created_at"),
-        "updated_at": transaction.get("updated_at"),
-        "admitted_at": transaction.get("admitted_at"),
         "included_block_hash": transaction.get("included_block_hash"),
         "included_block_height": transaction.get("included_block_height"),
         "settled_at": transaction.get("settled_at"),
@@ -830,7 +818,7 @@ def _build_account_summary(normalized_wallet: str):
         "reward_count": len(rewards),
         "pending_transfer_count": _count_pending_transfer_intents(transactions),
         "note": (
-            "Pending outgoing transactions reduce available balance but are not settled until included in a block. "
+            "Signed native transactions are recorded for future processing but do not change balances yet. "
             "Native accounts do not need to be pre-registered in the old development-only server wallet list. "
             "A verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance."
         ),
@@ -1447,7 +1435,6 @@ async def submit_transfer_intent(
             body["message"] = "Transaction already recorded."
             return body
 
-        blockchain.validate_transaction_nonce(transaction_preview.to_dict())
         verification = wallet_auth_manager.verify_transfer_signature(
             wallet_address=wallet_address,
             from_address=payload.from_address,
@@ -1458,7 +1445,8 @@ async def submit_transfer_intent(
             message=payload.message,
             signature=payload.signature,
         )
-        blockchain.validate_transaction_balance_sufficiency(transaction_preview.to_dict())
+        if str(verification["fee"]) != "0":
+            raise ValueError("Nonzero fees are not enabled yet.")
         transfer_intent = blockchain.create_signed_transfer_intent(
             from_address=str(verification["from_address"]),
             to_address=str(verification["to_address"]),
@@ -1491,18 +1479,6 @@ async def submit_transfer_intent(
     if transfer_intent.get("duplicate"):
         body["duplicate"] = True
         body["message"] = "Transaction already recorded."
-        return body
-    if payload.admit_to_mempool:
-        try:
-            admission = blockchain.admit_transaction_to_mempool(transfer_intent["tx_id"])
-            blockchain.save_blockchain()
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        admitted_transfer = blockchain.get_transfer_intent_by_tx_id(transfer_intent["tx_id"]) or transfer_intent
-        body = _serialize_transfer_intent(admitted_transfer)
-        body["admitted"] = True
-        body["admitted_at"] = admission.get("admitted_at")
-        body["message"] = admission["message"]
         return body
     body["message"] = (
         "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
@@ -2968,7 +2944,7 @@ async def get_native_wallet_balance(request: Request, wallet_address: str):
             "available_balance": balance_snapshot["available_balance"],
             "symbol": TICKER,
             "network_name": NETWORK_NAME,
-            "note": "Pending outgoing transactions reduce available balance but are not settled until included in a block.",
+            "note": "Signed native transaction records do not change balances until later transaction processing is enabled.",
         }
     except HTTPException:
         raise

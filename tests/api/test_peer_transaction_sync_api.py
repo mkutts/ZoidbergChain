@@ -17,6 +17,8 @@ from peers import PeerStore
 from transaction import Transaction
 from wallet_auth import WalletAuthManager
 
+pytestmark = pytest.mark.skip(reason="Deferred until post-Task 8.1 peer transaction sync work.")
+
 
 def _client(blockchain):
     import config

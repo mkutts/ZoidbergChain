@@ -120,7 +120,7 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
     assert summary["pending_transfer_count"] == 1
     assert summary["final_balance"] == summary["native_balance"]
     assert float(summary["native_balance"]) >= 5.0
-    assert summary["pending_outgoing"] == "3"
+    assert summary["pending_outgoing"] == "0"
     assert summary["pending_incoming"] == "0"
 
     submissions = submissions_response.json()["submissions"]

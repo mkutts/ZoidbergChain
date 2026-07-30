@@ -1211,14 +1211,6 @@ class Blockchain:
             status=str(status),
             created_at=str(created_at) if created_at is not None else None,
         )
-        existing_transaction = self.reserve_transaction_nonce(transaction.to_dict())
-        if existing_transaction is not None:
-            existing_transfer_intent = self._get_transfer_intent_by_tx_id(existing_transaction.get("tx_id"))
-            if existing_transfer_intent is None:
-                raise ValueError("Transaction already recorded, but the local transfer intent record is missing.")
-            duplicate_record = dict(existing_transfer_intent)
-            duplicate_record["duplicate"] = True
-            return duplicate_record
         record = {
             "transfer_id": os.urandom(16).hex(),
             "tx_id": transaction.tx_id,
@@ -1453,11 +1445,11 @@ class Blockchain:
 
     @staticmethod
     def _native_nonce_used_statuses():
-        return {"signed_pending", "validated_pending", "mempool", "included", "settled"}
+        return {"included", "settled"}
 
     @staticmethod
     def _native_nonce_reserved_statuses():
-        return {"signed_pending", "validated_pending", "mempool"}
+        return set()
 
     def _coerce_native_nonce(self, nonce) -> int:
         return int(parse_transfer_nonce(nonce))
@@ -1572,7 +1564,7 @@ class Blockchain:
 
     @staticmethod
     def _native_funds_reserved_statuses():
-        return {"signed_pending", "validated_pending", "mempool"}
+        return set()
 
     def _get_reserved_native_transactions_for_wallet(self, wallet_address, *, exclude_tx_ids=None):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)

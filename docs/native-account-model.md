@@ -1,13 +1,15 @@
 # Native Account Model
 
-Task 7.12 clarifies that MetaMask-backed `0x...` addresses are the normal native ZoidbergChain account format going forward.
+As of July 30, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity.
 
 ## Core Model
 
-- A verified MetaMask signer becomes a native ZoidbergChain account.
-- The native account identifier is the normalized lowercase `0x...` address.
-- Native ZOID balances live in ZoidbergChain state, not in normal MetaMask asset display.
-- Old generated server wallets remain development-only test tools and are not the primary user account model.
+- a verified MetaMask signer becomes a native ZoidbergChain account
+- the account identifier is the normalized lowercase `0x...` address
+- native ZOID balances live in ZoidbergChain state
+- old generated server wallets remain development-only compatibility tools
+
+No pre-registration step in the old dev-wallet list is required.
 
 ## What A Native Account Can Own
 
@@ -19,11 +21,9 @@ A native account may accumulate:
 - signed transfer intents
 - canonical native transaction records with deterministic `tx_id`
 
-No pre-registration step is required in the old dev-wallet list. A `0x` address becomes a native account as soon as chain activity references it.
-
 ## Read APIs
 
-Task 7.12 introduces native account read endpoints:
+Primary read endpoints:
 
 - `GET /accounts/{wallet_address}`
 - `GET /accounts/{wallet_address}/submissions`
@@ -32,83 +32,64 @@ Task 7.12 introduces native account read endpoints:
 - `GET /accounts/{wallet_address}/transfers`
 - `GET /accounts/{wallet_address}/transactions`
 
-These endpoints:
-
-- require an Ethereum-style `0x...` address
-- normalize the address consistently
-- expose safe read-only fields
-- do not require the account to exist in the development wallet registry
-
-Compatibility endpoints also remain available:
+Compatibility read endpoints:
 
 - `GET /wallets/{wallet_address}/transfers`
 - `GET /wallets/{wallet_address}/transactions`
 
-## Task 8.1 Native Transaction Layer
+These endpoints:
+
+- require an Ethereum-style `0x...` address for native account reads
+- normalize addresses consistently
+- expose safe read-only fields
+- do not require the account to appear in the development wallet registry
+
+## Task 8.1 Transaction Recording
 
 Task 8.1 records each successful signed native transfer submission in two related forms:
 
-- `transfer_id`: local transfer-intent record identifier
-- `tx_id`: deterministic canonical native transaction identifier
+- `transfer_id`: local transfer-intent identifier
+- `tx_id`: deterministic canonical transaction identifier
 
-Current status meaning:
+Current meaning of `signed_pending`:
 
-- `signed_pending` means the transaction was recorded and can be queried
-- `signed_pending` does not mean settled, confirmed, complete, or balance-changing
-- `signed_pending` now reserves the sender nonce immediately
-- `mempool` means the signed transaction passed local validation and was admitted to the node's active local mempool
-- nonce is per native `from_address`
-- first native transfer nonce is `1`
-- strict sequential nonce policy is active
-- exact duplicate signed transaction is idempotent by `tx_id`
-- conflicting same-sender same-nonce transaction is rejected
+- the signed transaction record exists
+- the transaction can be queried
+- it is not settled
+- it does not change balances yet
 
-Nonce read endpoint:
+Task 8.1 account rules:
 
-- `GET /accounts/{wallet_address}/nonce`
-
-Important current rules:
-
-- `final_balance` is chain-derived only
-- `pending_outgoing` reduces `available_balance`
-- `pending_incoming` is shown separately and does not increase `available_balance`
-- submit-time transfer acceptance now requires sufficient `available_balance`
-- `signed_pending`, `validated_pending`, and `mempool` all reduce `available_balance` today
-- nonzero fees are not enabled yet
-- settled transfers now reduce sender `final_balance` and increase recipient `final_balance`
-- local mempool read endpoints are now available at `GET /mempool` and `GET /mempool/{tx_id}`
-- local mempool admission is now available at `POST /transactions/{tx_id}/admit`
-- local mempool revalidation is now available at `POST /mempool/revalidate`
+- balances are chain-derived only
+- transfer records do not mutate balances yet
+- transaction history may show outgoing and incoming signed records
 - native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
-- old dev wallets are still not the native account registry
+- old development wallets are not the native account registry
+
+## Task 8.1 Balance Reminder
+
+Native account summaries still expose the balance snapshot fields:
+
+- `final_balance`
+- `native_balance`
+- `pending_outgoing`
+- `pending_incoming`
+- `available_balance`
+
+For Task 8.1, recorded transfer records do not change balances yet.
+
+That means:
+
+- `signed_pending` is not the same as settled
+- transfer recording must not be described as complete or confirmed
+- balance mutation is deferred to later transaction-processing work
+
+## Next Planned Steps
+
 - Task 8.2 adds nonce tracking and replay protection
 - Task 8.3 adds balance sufficiency enforcement
-- Task 8.4 adds mempool storage and validation
-- Task 8.5 adds peer transaction gossip later
-- Task 8.6 adds block inclusion and settlement
-- Task 8.7 hardens transfer-bearing block validation and chain-sync reconciliation
 
-Task 8.6 current account effects:
+## Compatibility Notes
 
-- `final_balance` is chain-derived from genesis allocations, legacy block transactions, meme rewards, and settled native transfers
-- `pending_outgoing` and `pending_incoming` drop back out when a mempool transfer becomes `settled`
-- `available_balance` returns to matching `final_balance` once all non-final reservations are cleared
-- accepted peer blocks can settle a locally known mempool transfer for the same `tx_id`
-
-Task 8.7 current account and sync effects:
-
-- final native balances are recalculated deterministically from the accepted chain, not from local mempool memory
-- transfer-bearing blocks spend against chain-before-block balances and settled sender nonces
-- accepted chain sync can reconstruct transaction records from synced blocks even when the local node never saw the transaction in mempool first
-- stale local `settled` records are reconciled back to non-final status if their containing block is no longer on the accepted chain
-- transfer-only blocks remain invalid; transfers continue to live inside certified meme-mined blocks only
-
-## Legacy / Compatibility Notes
-
-- `GET /get_wallets`, `POST /generate_wallet`, and `GET /dev/wallets` remain development-only server-wallet tooling.
-- Older `/wallets/{wallet_address}/...` read endpoints may continue to exist as compatibility endpoints during the transition.
-- The product UI should prefer native account wording over generic wallet wording when referring to MetaMask-backed ZoidbergChain identities.
-
-## Task 8 Dependency
-
-Task 8 transaction hardening should build on this account model rather than reintroducing a separate end-user wallet identity format.
+- legacy development wallet endpoints remain available for compatibility reads
+- the product should prefer native account wording when referring to MetaMask-backed identities

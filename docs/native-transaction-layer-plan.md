@@ -1,29 +1,46 @@
 # Native Transaction Layer Plan
 
-Task 8.1 now implements the first hardening step for native ZOID transfer intents by adding the canonical `NativeTransaction` record and deterministic `tx_id`.
+As of July 30, 2026, Task 8.1 is the current implemented phase of the native transaction layer.
 
-- This is a planning document for Task 8.
-- It now implements nonce sequencing and replay protection.
-- It now enforces balance sufficiency.
-- It now implements a local mempool admission and revalidation flow.
-- It now includes validated native transfers in meme-mined blocks.
-- It now settles included transfers on the accepted chain.
-- It now mutates final native balances through settled transfer accounting.
-- It now hardens block validation, peer receive, and chain sync for transfer-bearing meme blocks.
+## Current Scope
 
-## Task 8.1 Implemented Shape
+Task 8.1 adds the canonical native `NativeTransaction` record and deterministic `tx_id`.
 
-Canonical native transaction fields:
+Implemented now:
+
+- canonical `NativeTransaction` storage
+- deterministic `tx_id` generation
+- canonical transaction serialization
+- conversion of signed transfer intents into stored transaction records
+- read-only transaction lookup by `tx_id`
+- account transaction history by native `0x` address
+- JSON and SQLite persistence
+- light transaction-shape validation
+
+Not implemented yet:
+
+- nonce sequencing or replay protection
+- balance sufficiency enforcement
+- mempool validation or admission requirements
+- peer transaction gossip
+- block inclusion
+- settlement
+- balance mutation from transfer records
+- wrapped ZOID or ERC-20 behavior
+
+## Canonical NativeTransaction Shape
+
+Task 8.1 stores these fields:
 
 - `tx_id`
-- `transaction_type` with value `native_transfer`
+- `transaction_type`
 - `network`
 - `from_address`
 - `to_address`
 - `amount`
 - `fee`
 - `nonce`
-- `memo` optional
+- `memo`
 - `timestamp`
 - `signature`
 - `signature_scheme`
@@ -32,21 +49,49 @@ Canonical native transaction fields:
 - `status`
 - `created_at`
 - `updated_at`
-- `admitted_at` optional
-- `included_block_hash` optional
-- `included_block_height` optional
-- `settled_at` optional
-- `rejection_reason` optional
+- `included_block_hash`
+- `included_block_height`
+- `settled_at`
+- `rejection_reason`
 
-Task 8.1 persists this record in both storage backends as `native_transactions`.
+Current rules:
 
-## Deterministic Transaction ID
+- `transaction_type` is `native_transfer`
+- `network` must match the active ZoidbergChain network name
+- addresses are normalized lowercase Ethereum-style `0x` addresses
+- `amount` and `fee` use decimal-safe string handling
+- current fee policy remains zero-only in practice
 
-Task 8.1 uses:
+## Transaction Statuses
+
+Supported statuses:
+
+- `signed_pending`
+- `validated_pending`
+- `mempool`
+- `included`
+- `settled`
+- `rejected`
+- `failed`
+- `expired`
+
+Task 8.1 actively uses `signed_pending` for newly recorded transactions.
+
+Meaning of `signed_pending`:
+
+- the signed transaction was accepted and recorded
+- the transaction has a deterministic `tx_id`
+- the transaction can be queried by `GET /transactions/{tx_id}`
+- the transaction is not settled
+- balances do not change yet
+
+## Deterministic tx_id Rule
+
+Task 8.1 computes:
 
 `tx_id = SHA-256(canonical signed transaction payload)`
 
-Included fields:
+Included in `tx_id` hashing:
 
 - `transaction_type`
 - `network`
@@ -62,12 +107,11 @@ Included fields:
 - `signed_message`
 - `signed_message_hash`
 
-Excluded local-only fields:
+Excluded from `tx_id` hashing:
 
 - `status`
 - `created_at`
 - `updated_at`
-- `admitted_at`
 - `included_block_hash`
 - `included_block_height`
 - `settled_at`
@@ -75,708 +119,70 @@ Excluded local-only fields:
 
 Rules:
 
+- the same signed payload always produces the same `tx_id`
+- changing sender, recipient, amount, nonce, or signature changes `tx_id`
 - `tx_id` is lowercase SHA-256 hex
-- the same signed transaction always produces the same `tx_id`
-- changing signer, recipient, amount, nonce, memo, fee, signed message, or signature changes `tx_id`
 
-## Current Status Meaning
+## Canonical Serialization
 
-`signed_pending` means:
+Task 8.1 canonical serialization uses:
 
-- the signed native transaction record exists
-- it has a deterministic `tx_id`
-- it is queryable through transaction history and `GET /transactions/{tx_id}`
-- it is not settled
-- balances do not change yet
-- transfer execution remains deferred until later Task 8 steps
+- stable key ordering
+- normalized lowercase `0x` addresses
+- stable decimal-safe amount and fee formatting
+- no Python object representation
+- only the signed transaction timestamp, not local node timestamps
 
-Task 8.2 now adds nonce tracking and replay hardening.
+This canonical string is the hash input for `tx_id`.
 
-## Task 8.2 Nonce Policy
+## Submit-Time Behavior
 
-Current policy:
+`POST /transfers/submit` now records:
 
-- nonce is per `from_address`
-- first native transaction nonce is `1`
-- nonce is included in the signed transfer message
-- nonce is part of the canonical transaction payload and `tx_id`
-- strict sequential nonces are required
-- no gaps are allowed
-- no replacement policy exists yet
+- a local `transfer_id`
+- a canonical `tx_id`
+- a `signed_pending` transaction record
 
-Replay and duplicate handling:
+Returned response:
 
-- exact duplicate signed transaction is idempotent by `tx_id`
-- same sender plus same nonce plus different `tx_id` is rejected
-- lower nonce than the next expected nonce is rejected unless it is the exact known transaction
-- higher gap nonce is rejected
+```json
+{
+  "tx_id": "...",
+  "transfer_id": "...",
+  "status": "signed_pending",
+  "message": "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
+}
+```
 
-Reservation rules:
+Identifier meaning:
 
-- `signed_pending`, `validated_pending`, and `mempool` reserve nonce
-- `included` and `settled` permanently consume nonce
-- current nonce state is derived from persisted transaction records
-- restart does not reset nonce state or allow replay
+- `transfer_id` is a local record identifier
+- `tx_id` is the deterministic network transaction identifier
 
-Read endpoint:
+## Read APIs
 
-- `GET /accounts/{wallet_address}/nonce`
-- returns `next_nonce`, `used_nonces`, `reserved_nonces`, and policy
+Task 8.1 read surfaces:
 
-Task 8.3 now adds balance sufficiency enforcement and available-balance calculation.
-
-## Task 8.3 Balance Model
-
-Current balance types:
-
-- `final_balance`: chain-derived native balance only
-- `pending_outgoing`: sum of accepted non-final outgoing transactions that reserve funds
-- `pending_incoming`: sum of accepted non-final incoming transaction amounts
-- `available_balance = final_balance - pending_outgoing`
-
-Current fund-reservation statuses:
-
-- reserves funds: `signed_pending`, `validated_pending`, `mempool`
-- does not reserve funds: `rejected`, `failed`, `expired`
-- `included` and `settled` are expected to move into final-balance accounting once Task 8.6 settlement exists
-
-Current balance sufficiency rule:
-
-- submit-time acceptance requires `amount + fee <= available_balance`
-- insufficient transactions are rejected before record acceptance
-- insufficient transactions do not reserve funds
-- insufficient transactions do not consume nonce through persisted acceptance
-- final balance is not mutated yet because settlement is still deferred
-
-Current fee policy:
-
-- the `fee` field exists for forward compatibility
-- nonzero fees are not enabled yet
-- fee still counts in the sufficiency formula conceptually, but current submit handling rejects nonzero fee values
-
-Read surfaces now expose:
-
-- `final_balance`
-- `pending_outgoing`
-- `pending_incoming`
-- `available_balance`
-- backward-compatible `native_balance` equal to `final_balance`
-
-Task 8.4 now adds mempool storage and validation.
-
-Task 8.6 now adds block inclusion and settlement.
-
-## Current Starting Point
-
-Task 7.8 already provides a signed transfer-intent flow:
-
-- a verified MetaMask session can request `POST /auth/wallet/transfer-challenge`
-- the wallet signs the exact backend-built transfer message with `personal_sign`
-- `POST /transfers/submit` stores a signed non-final transfer intent record
-- the stored record uses status `signed_pending`
-- final balances are not reduced
-- optional local mempool admission is now available
-- no peer propagation happens yet
-- no block inclusion happens yet
-
-This means the project already has:
-
-- native `0x` wallet identity
-- canonical transfer message structure
-- deterministic signing message
-- transfer-intent persistence
-- transfer history read endpoints
-
-It still does not yet have:
-
-- peer transaction gossip is the next hardening step in Task 8.5
-- transfer inclusion in meme-mined blocks
-- settled balance updates from transfers
-
-## Core Transaction Types
-
-### Signed Transfer Intent
-
-- A user-authenticated and MetaMask-signed request to move native ZOID later.
-- Created through the current Task 7.8 endpoints.
-- Local to the receiving node for now.
-- Non-final and non-settling.
-
-### Pending Transaction
-
-- A normalized transaction record that has passed basic signature and payload checks.
-- Not yet fully admitted to the shared mempool.
-- May still fail nonce or balance checks depending on validation stage.
-
-### Mempool Transaction
-
-- A validated pending transaction accepted into the node's active transaction pool.
-- Eligible for peer propagation and future block inclusion.
-- Still non-final until included in a valid block.
-
-### Included Transaction
-
-- A mempool transaction placed into a valid meme-mined block.
-- Considered part of the canonical chain only if the block is valid and accepted.
-
-### Settled Transaction
-
-- An included transaction on the accepted chain that now affects final balances.
-- This is the point where outgoing and incoming native balances change.
-
-### Failed / Rejected Transaction
-
-- A transaction that cannot proceed because of invalid signature, invalid nonce, insufficient available balance, expiration, conflicting nonce, or block-validation failure.
-- May be kept for audit, but it is not part of settled balance state.
-
-## Transaction Lifecycle
-
-Recommended lifecycle:
-
-`draft / unsigned`  
-`-> signed_pending`  
-`-> validated_pending`  
-`-> mempool`  
-`-> included`  
-`-> settled`
-
-Or:
-
-`-> rejected`  
-`-> expired`  
-`-> failed`
-
-### `draft / unsigned`
-
-- Meaning: user-entered transfer data before signature.
-- Who can create it: frontend or local client only.
-- Affects balances: no.
-- Propagated to peers: no.
-- Can be included in a block: no.
-- Final: no.
-
-### `signed_pending`
-
-- Meaning: the transfer message was signed and accepted by the local backend as a transfer intent.
-- Who can create it: verified local wallet user through session plus signature.
-- Affects balances: no final balance change.
-- Propagated to peers: no, not yet.
-- Can be included in a block: no.
-- Can be admitted to the local mempool later: yes.
-- Final: no.
-
-### `validated_pending`
-
-- Meaning: the signed record has been upgraded into a canonical transaction candidate and has passed transaction-level validation rules except actual mempool admission timing.
-- Who can create it: local node transaction-processing logic.
-- Affects balances: no final balance change.
-- Propagated to peers: not necessarily; depends on admission flow.
-- Can be included in a block: not yet.
-- Current Task 8.4 use: an internal validated state if a record leaves the active mempool without being settled.
-- Final: no.
-
-### `mempool`
-
-- Meaning: the node accepted the transaction into its active mempool.
-- Who can create it: local node after full transaction validation, or peer ingestion after revalidation.
-- Affects balances: no final balance change.
-- Propagated to peers: yes through peer receive/broadcast endpoints in Task 8.5.
-- Can be included in a block: yes.
-- Current Task 8.4 ordering: `admitted_at` ascending, then nonce ascending, then `tx_id` ascending.
-- Final: no.
-
-### `included`
-
-- Meaning: the transaction is in a valid candidate or accepted block.
-- Who can create it: miner/node assembling a meme-mined block.
-- Affects balances: yes for chain-derived final balance once the block is accepted.
-- Propagated to peers: as part of block propagation.
-- Can be included in a block: already included.
-- Final: not fully final until the block is accepted on the active chain.
-
-### `settled`
-
-- Meaning: the included transaction is on the accepted canonical chain and counts toward final balance.
-- Who can create it: chain-state interpretation, not direct user action.
-- Affects balances: yes.
-- Propagated to peers: represented through the chain itself.
-- Can be included in a block: already included.
-- Final: yes within current chain rules.
-
-### `rejected`
-
-- Meaning: validation failed before mempool inclusion.
-- Who can create it: local node or receiving peer.
-- Affects balances: no.
-- Propagated to peers: no.
-- Can be included in a block: no.
-- Final: yes for that attempted transaction record unless retried with a new valid signed transaction.
-
-### `expired`
-
-- Meaning: the signed transaction or its policy window is no longer acceptable for admission.
-- Who can create it: local node maintenance or startup revalidation.
-- Affects balances: no.
-- Propagated to peers: no.
-- Can be included in a block: no.
-- Final: yes.
-
-### `failed`
-
-- Meaning: the transaction was previously accepted for processing but later failed deeper validation, block assembly, or revalidation.
-- Who can create it: local node processing.
-- Affects balances: no final balance effect if not settled.
-- Propagated to peers: optional audit only.
-- Can be included in a block: no.
-- Final: yes for that record state.
-
-## Nonce Model
-
-Recommended initial Task 8 nonce strategy:
-
-- every wallet has a transaction nonce
-- the nonce is signed as part of the canonical transfer payload
-- strict sequential nonce per sender wallet
-- no gaps
-- no replacement policy yet
-- duplicate nonce is rejected unless it is the exact same known transaction
-
-### Expected Nonce Source
-
-The expected next nonce should be derived in this order:
-
-1. included and settled transactions already on the accepted chain
-2. locally accepted mempool transactions for that same sender
-
-This means:
-
-- settled chain state determines the baseline nonce
-- mempool may reserve future sequential nonces
-- a sender cannot jump ahead and leave nonce gaps
-
-### Duplicate Nonce Handling
-
-- If the same sender submits the exact same transaction again with the same canonical payload and signature, treat it as idempotent by `tx_id`.
-- If the sender submits a different transaction with the same nonce, reject it.
-
-### Gap Nonce Handling
-
-- If the next expected nonce is `5`, nonce `6` is rejected until nonce `5` is either settled or admitted in the pending sequence, depending on the exact Task 8 implementation.
-
-### Replacement Policy
-
-- No replacement policy yet.
-- No fee bumping yet.
-- No "replace-by-fee" behavior.
-
-This keeps the first transaction layer simple and deterministic.
-
-## Balance Sufficiency Model
-
-Task 8 should separate final balances from pending/mempool views.
-
-### Final Balance
-
-Recommended definition:
-
-`final_balance = settled chain-derived balance`
-
-Sources:
-
-- genesis allocation if applicable
-- meme-mining rewards received
-- settled incoming transfers
-- settled outgoing transfers
-- settled fees later if fees are enabled
-
-Signed pending transfer intents must not change `final_balance`.
-
-### Pending Outgoing
-
-Recommended definition:
-
-`pending_outgoing = sum of accepted non-final outgoing transactions from this wallet not yet settled`
-
-This is useful for wallet UX and double-spend prevention.
-
-### Pending Incoming
-
-Recommended definition:
-
-`pending_incoming = sum of accepted non-final incoming transactions to this wallet not yet settled`
-
-This is informational only until inclusion.
-
-### Available Balance
-
-Recommended definition:
-
-`available_balance = final_balance - pending_outgoing`
-
-Recommended behavior:
-
-- `final_balance` remains chain-derived and settled only
-- `signed_pending`, `validated_pending`, and `mempool` all reserve funds today
-- `pending_outgoing` reduces the spendable view
-- `pending_incoming` is shown separately and does not count as settled spendable balance yet
-
-## Fee Model
-
-Recommended initial Task 8 fee policy:
-
-- keep the `fee` field in the transaction shape
-- require `fee == 0`
-- reject nonzero fees until fee policy is intentionally designed
-
-Why this is recommended:
-
-- keeps early transaction settlement simpler
-- avoids premature miner-incentive design work
-- avoids confusion with meme reward accounting
-- preserves forward compatibility because the signed message shape already includes `fee`
-
-## Transaction ID Plan
-
-Recommended initial transaction id:
-
-`tx_id = SHA-256(canonical transfer payload + signature)`
-
-Rules:
-
-- the same signed transfer must always produce the same `tx_id`
-- modifying `amount`, `to_address`, `nonce`, `memo`, `fee`, or `signature` changes `tx_id`
-- `tx_id` is used for deduplication
-- `tx_id` is used for mempool tracking
-- `tx_id` is used for explorer and block references
-
-Recommended implementation note for Task 8:
-
-- hash the canonical normalized payload fields in stable order
-- append or include the signature in the canonical transaction record before hashing
-- avoid any non-deterministic fields such as local database ids in `tx_id` generation
-
-## Mempool Validation Rules
-
-Before a transfer enters the mempool, Task 8 should require:
-
-- valid transaction signature
-- recovered signer equals `from_address`
-- network matches current network
-- `from_address` and `to_address` are valid normalized native wallet addresses
-- `from_address != to_address`
-- amount is positive and decimal-safe
-- fee policy is satisfied, initially `fee == 0`
-- nonce equals the next expected or otherwise acceptable pending nonce under the strict sequential policy
-- sufficient `available_balance`
-- not a duplicate `tx_id`
-- not a conflicting transaction using the same sender nonce
-- message hash matches the canonical signed payload
-- any expiration policy is satisfied if one is added
-
-Task 8.4 now implements local mempool validation covering canonical shape, deterministic `tx_id`, signed message matching, signature recovery, network match, strict nonce policy, available-balance sufficiency, zero-fee policy, and eligible non-final status.
-
-Recommended split:
-
-- local user session auth remains only for the initial local submission path
-- transaction signature becomes the network-validating proof
-
-## Block Inclusion Rules
-
-Recommended Task 8 block inclusion model:
-
-- Meme Proof of Originality remains the reason a block is mined.
-- A meme block may include zero or more validated native transfer transactions.
-- The meme reward is still credited to the signed submission creator wallet.
-- Transfer inclusion must not alter originality scoring.
-- Transfer validation is part of full block validation.
-- Any invalid included transfer causes block rejection.
-
-### Current Block Shape
-
-A block now continues to include:
-
-- reward metadata
-- `submission_id`
-- `certificate_id`
-- `content_hash`
-- `originality_score`
-
-And now additionally includes:
-
-- `native_transactions`: zero or more canonical native transfer snapshots
-- `transaction_ids`: ordered `tx_id` list for `native_transactions`
-- `transaction_count`
-- `transactions_hash`
-
-Current `native_transactions` snapshots include only canonical signed transfer fields:
-
-- `tx_id`
-- `transaction_type`
-- `network`
-- `from_address`
-- `to_address`
-- `amount`
-- `fee`
-- `nonce`
-- `memo`
-- `timestamp`
-- `signature`
-- `signature_scheme`
-- `signed_message`
-- `signed_message_hash`
-
-### Balance Application Rule
-
-Only included and accepted transactions affect final balances.
-
-Task 8.6 current policy:
-
-- block assembly selects up to `MAX_TRANSACTIONS_PER_BLOCK`
-- selection order is deterministic by `admitted_at` or equivalent timestamp, then sender, then nonce, then `tx_id`
-- sender nonce and balance checks are applied in block order against the already-settled chain plus earlier selected transfers in the same block
-- included transfers are marked `settled` immediately after the accepted block is appended locally
-- settled records store `included_block_hash`, `included_block_height`, and `settled_at`
-- included transfers are removed from the active mempool because `mempool` is derived from status
-
-Signed intents, validated pending records, and mempool records do not directly reduce final balance.
-
-## Ordering Rules
-
-Recommended initial deterministic ordering for Task 8:
-
-- primary: sender nonce
-- secondary: accepted-at timestamp
-- tertiary: `tx_id`
-
-Reasoning:
-
-- preserves strict sender sequencing
-- keeps ordering deterministic across nodes
-- avoids introducing fee-priority policy too early
-
-No complex fee market ordering is recommended yet.
-
-## Peer Propagation Plan
-
-Recommended future peer flow:
-
-1. local node validates a signed transaction and admits it to the mempool
-2. local node broadcasts the canonical transaction to active peers
-3. receiving peer verifies the signature and canonical payload first
-4. receiving peer applies local nonce, balance, and mempool admission rules
-5. receiving peer accepts or rejects
-6. duplicate `tx_id` is idempotent
-
-Task 8.5 now implements the first version of this flow:
-
-- `POST /peers/transactions/receive` validates a peer-provided signed transaction and admits it to the local mempool if valid
-- `POST /transactions/{tx_id}/broadcast` sends a local signed or mempool-eligible transaction to active peers
-- `GET /peers/transactions/{tx_id}` returns a peer-protected canonical transaction payload for fetch/sync
-- `GET /peers/mempool/summary` returns a lightweight peer-protected mempool summary by `tx_id`
-- peer transport auth and signed-peer headers authorize the node-to-node hop
-- the transaction signature itself authorizes the user-level transfer payload
-- peer-received transactions do not require a local wallet session
-- local nodes ignore peer-provided local-only fields such as admission status and decide mempool acceptance independently
-
-Important separation:
-
-- local user session auth is only for local frontend submission
-- transaction signature is what the network validates
-- peer-received transactions must not require a local verified wallet session token
-
-Recommended initial policy:
-
-- invalid signatures rejected immediately
-- wrong network rejected
-- conflicting nonce rejected
-- duplicate identical `tx_id` accepted idempotently
-
-Task 8.6 now extends peer block sync so that:
-
-- full block validation also verifies included native transfer snapshots
-- peer-received blocks preserve `native_transactions`, `transaction_ids`, `transaction_count`, and `transactions_hash`
-- accepting a peer block settles matching local mempool transactions safely instead of duplicating them
-
-## Storage Model
-
-Task 8 should distinguish between:
-
-- signed transfer intents
-- validated pending transactions
-- mempool transactions
-- included transactions
-- optional rejected/failed audit records
-
-### Recommended Persistence Rules
-
-- included transactions are durable because they are chain-derived
-- mempool transactions may persist across restart in development and testnet
-- persisted mempool transactions should be revalidated on startup
-- Task 8.4 uses canonical `native_transactions` records as the source of truth and derives the active mempool from records whose status is `mempool`
-- rejected and failed records are optional audit metadata, not chain state
-
-### Recommended Storage Shape
-
-Compatible with the current JSON and SQLite snapshot model:
-
-- `transfer_intents`: signed local non-final intent records from Task 7.8
-- `mempool_transactions`: represented by canonical transaction records whose status is `mempool`
-- `rejected_transactions`: optional audit-only failure records if the project wants traceability
-
-Recommended startup behavior:
-
-- reload persisted mempool records
-- revalidate each one against current chain state and nonce rules
-- drop or mark invalid entries rather than trusting them blindly
-
-## Future Balance Calculation
-
-Recommended future chain-derived balance formula:
-
-`native_balance(wallet) = genesis allocation + meme rewards received + settled incoming transfers - settled outgoing transfers - settled fees`
-
-Important rule:
-
-- `signed_pending` transfer intents are not part of final native balance
-- mempool transactions are not part of final native balance
-- only settled included transfers count in final chain balance
-
-## API Plan For Task 8
-
-Recommended future endpoints:
-
-- `POST /transactions/submit`
 - `GET /transactions/{tx_id}`
-- `GET /wallets/{wallet_address}/transactions`
-- `GET /mempool`
-- `GET /mempool/{tx_id}`
-- `POST /transactions/{tx_id}/admit`
-- `POST /mempool/revalidate`
+- `GET /accounts/{wallet_address}/transactions`
+- compatibility: `GET /wallets/{wallet_address}/transactions`
 
-Optional:
+History results distinguish:
 
-- `POST /blocks/{block_hash}/transactions` is probably unnecessary if transfer inclusion happens during normal meme block assembly
+- `outgoing`
+- `incoming`
 
-Recommended endpoint roles:
+These endpoints are read-only and do not expose private keys, session tokens, storage paths, or stack traces.
 
-- `POST /transactions/submit`
-  - local user path
-  - requires verified session plus signed canonical transaction submission
-  - may evolve from or replace the current transfer-intent endpoint
-- `GET /transactions/{tx_id}`
-  - public-safe read
-- `GET /wallets/{wallet_address}/transactions`
-  - public-safe history read
-- `GET /mempool`
-  - node or explorer diagnostics
-- `GET /mempool/{tx_id}`
-  - public-safe local mempool lookup
-- `POST /transactions/{tx_id}/admit`
-  - validates and admits a recorded signed transaction into the local mempool
-- `POST /mempool/revalidate`
-  - maintenance or development operation
+## Account Model Reminder
 
-Peer receive endpoints, if added, should validate transaction signatures and canonical records without requiring local user session auth.
+Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
-## Frontend Plan For Task 8
+- old development wallets are not the native account registry
+- native transfer records do not change balances yet
+- a recorded transaction is not the same thing as a settled transfer
 
-Recommended future UI evolution:
+## Next Planned Steps
 
-- transfer form submits a real canonical transaction rather than just a signed intent
-- wallet balance view shows:
-  - final balance
-  - pending outgoing
-  - available balance
-  - pending incoming
-- transfer history shows:
-  - signed pending
-  - validated pending
-  - mempool
-  - included
-  - settled
-  - failed or rejected
-- block explorer shows included native transfer transactions inside meme-mined blocks
-
-Important messaging:
-
-- native transfers are not ERC-20 transfers
-- wrapped ZOID remains a later bridge or liquidity topic
-- normal MetaMask still does not directly display native ZOID ledger state
-
-## What Is Deferred To Task 8
-
-Task 7.9 defines the plan only.
-
-Deferred to later Task 8 steps:
-
-- balance sufficiency enforcement
-- peer transaction gossip
-- block inclusion
-- block validation for included transfers
-- explorer and wallet views for settled transfer history
-
-Implemented in Task 8.4:
-
-- local mempool admission and persistence logic
-- startup mempool revalidation
-- local mempool read endpoints
-- optional immediate admission during transfer submit
-
-Implemented in Task 8.5:
-
-- peer transaction receive endpoint
-- peer transaction fetch endpoint
-- peer mempool summary endpoint
-- transaction broadcast endpoint
-- peer transaction fetch/sync helpers
-
-Implemented in Task 8.6:
-
-- deterministic native transfer selection during meme block minting
-- block-level native transfer metadata and hash validation
-- immediate settlement of included transfers on accepted blocks
-- final-balance accounting for settled native transfers
-- mint response fields `transactions_included` and `transaction_ids`
-- peer block settlement for included native transfers
-
-Implemented in Task 8.7:
-
-- transfer-bearing blocks must remain certified meme-mined blocks; transfer-only blocks are rejected
-- candidate-block validation now uses chain-before-block state for nonce and balance checks instead of trusting local mempool state
-- included transfer snapshots are validated by canonical `tx_id`, signature, network, type, duplicate detection, same-sender nonce sequencing, zero-fee policy, and in-block spendability
-- peer-provided transaction status is not authoritative; block snapshots are validated from canonical signed payload fields
-- meme reward validation and transfer validation now run together so duplicate rewards and invalid reward recipients reject the full block
-- peer block receive returns structured validation errors such as `invalid_transaction_count`, `duplicate_transaction_id`, `nonce_gap`, `insufficient_balance`, `reward_recipient_mismatch`, and `duplicate_reward`
-- chain sync now validates transfer-bearing blocks in order, reconciles local transaction records against the accepted chain, and rebuilds settled state deterministically
-- deterministic chain balance recalculation detects duplicate settlement, nonce inconsistency, fee-policy violations, and overspend conditions
-
-## Task 8.7 Block Validation Hardening
-
-Current hardening rules:
-
-- native transfers may appear only inside certified meme-mined blocks
-- transfer-bearing blocks must include valid originality-certificate metadata and meme reward metadata
-- block validation uses the chain state before that block as the nonce and balance baseline
-- candidate validation does not trust whether the local node had already seen the transaction in its mempool
-- sender balances are applied in block order so later transfers in the same block cannot overspend earlier funds
-- exact settled duplicate `tx_id` is rejected
-- same-sender duplicate or gap nonce inside a candidate block is rejected
-- nonzero fees remain invalid
-
-Current block snapshot policy:
-
-- `native_transactions` contain canonical signed transfer fields only
-- local lifecycle fields such as mempool status, admission timestamps, and rejection metadata are not trusted from peers
-- local records become `settled` only after the containing block is accepted onto the active chain
-
-Current peer receive and sync behavior:
-
-- peer blocks validate transfer fields, signature integrity, network, nonce sequencing, balance sufficiency, and reward metadata before mutating local state
-- rejected peer blocks do not settle transactions or mutate balances
-- accepted peer blocks settle matching local transactions idempotently and clear them from the active mempool
-- chain sync replays accepted blocks in order, preserves transaction records from synced blocks, and reconciles stale local `settled` markers back to non-final status if a block is no longer on the accepted chain
-
-Follow-up tasks:
-
-- Task 8.8 will update wallet balance and history UI for the hardened transaction lifecycle
-- Task 8.9 will focus on two-node transfer verification and cross-node behavior checks
+- Task 8.2 adds nonce tracking and replay protection
+- Task 8.3 adds balance sufficiency enforcement

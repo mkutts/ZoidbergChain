@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.3 enforces sender nonce reservation plus available-balance limits for accepted signed native transactions.
+As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.4 adds local mempool handling on top of sender nonce reservation and available-balance limits for accepted signed native transactions.
 
 ## Core Model
 
@@ -32,6 +32,7 @@ Primary read endpoints:
 - `GET /accounts/{wallet_address}/transfers`
 - `GET /accounts/{wallet_address}/transactions`
 - `GET /accounts/{wallet_address}/balance`
+- `GET /mempool`
 
 Compatibility read endpoints:
 
@@ -80,6 +81,14 @@ Task 8.2 nonce rules:
 - conflicting same-sender same-nonce transaction is rejected
 - `GET /accounts/{wallet_address}/nonce` exposes `next_nonce`, `used_nonces`, `reserved_nonces`, policy, and initial nonce
 
+Task 8.4 mempool rules:
+
+- signed pending transactions may be admitted into the local mempool
+- mempool transactions remain non-final
+- mempool transactions still reserve nonce and available balance
+- local mempool ordering is deterministic
+- no peer gossip, block inclusion, or settlement is implemented yet
+
 ## Balance Fields
 
 Native account summaries still expose the balance snapshot fields:
@@ -106,7 +115,8 @@ That also means:
 
 ## Next Planned Steps
 
-- Task 8.4 adds mempool storage and validation
+- Task 8.5 adds peer transaction gossip
+- Task 8.6 adds block inclusion and settlement
 
 ## Compatibility Notes
 

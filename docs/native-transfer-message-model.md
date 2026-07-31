@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of July 31, 2026, signed native transfer intents exist and Task 8.3 records them as canonical non-final native transactions with nonce tracking, replay protection, and available-balance enforcement.
+As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.4 records them as canonical non-final native transactions with nonce tracking, replay protection, available-balance enforcement, and local mempool admission.
 
 ## Purpose
 
@@ -177,6 +177,32 @@ Task 8.3 rules:
 - final balance does not change until later block inclusion and settlement work
 - nonzero fees are not enabled yet
 
+## Local Mempool Policy
+
+Task 8.4 adds:
+
+- local mempool admission from `signed_pending`
+- local mempool validation using canonical transaction rules
+- local mempool revalidation
+- deterministic local ordering
+
+Current statuses:
+
+- `signed_pending`
+- `validated_pending`
+- `mempool`
+- `rejected`
+- `expired`
+
+Current mempool endpoints:
+
+- `POST /transactions/{tx_id}/admit`
+- `GET /mempool`
+- `GET /mempool/{tx_id}`
+- `POST /mempool/revalidate`
+
+Mempool transactions are still not settled and do not change final balance.
+
 ## Submit And Read Flow
 
 Current flow:
@@ -213,4 +239,5 @@ Final balances stay unchanged until later transaction-processing tasks.
 
 ## Next Planned Steps
 
-- Task 8.4 adds mempool storage and validation
+- Task 8.5 adds peer transaction gossip
+- Task 8.6 adds block inclusion and settlement

@@ -154,7 +154,7 @@
             "image_path": "content\\24\\4e\\244e080a3e92751f05a87ae8de860295b347dd61b1cd189ebe770e725db72be0.jpg",
             "text_content": "test",
             "submitter": "0xd2c07fe393894f8754d131bdacc59f6bc189822e",
-            "status": "queued",
+            "status": "minted",
             "created_at": 1785264878.5456393,
             "hard_reject_reason": null,
             "content_hash": "244e080a3e92751f05a87ae8de860295b347dd61b1cd189ebe770e725db72be0",
@@ -221,9 +221,7 @@
             "verification_error": null
         }
     ],
-    "mint_queue": [
-        "b26204fac7244597a6329c0fe0fb52b9"
-    ],
+    "mint_queue": [],
     "votes": [
         {
             "voter": "0x613a44a10a26b4ca89eb4b7bd5163dc249f6a2ef",

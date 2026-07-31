@@ -538,7 +538,11 @@ def _serialize_block(block):
 def _serialize_transfer_intent(transfer_intent):
     status = transfer_intent.get("status")
     status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
-    if status == "rejected":
+    if status == "mempool":
+        status_detail = "Admitted to the local mempool. Not settled until included in a block."
+    elif status == "validated_pending":
+        status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+    elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
         status_detail = "Expired before mempool inclusion. Not settled."
@@ -566,7 +570,11 @@ def _serialize_transfer_intent(transfer_intent):
 def _serialize_native_transaction(transaction):
     status = transaction.get("status")
     status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
-    if status == "rejected":
+    if status == "mempool":
+        status_detail = "Admitted to the local mempool. Not settled until included in a block."
+    elif status == "validated_pending":
+        status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+    elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
         status_detail = "Expired before inclusion. Not settled."
@@ -583,6 +591,8 @@ def _serialize_native_transaction(transaction):
         "network": transaction.get("network"),
         "timestamp": transaction.get("timestamp"),
         "created_at": transaction.get("created_at"),
+        "updated_at": transaction.get("updated_at"),
+        "admitted_at": transaction.get("admitted_at"),
         "included_block_hash": transaction.get("included_block_hash"),
         "included_block_height": transaction.get("included_block_height"),
         "settled_at": transaction.get("settled_at"),
@@ -1482,6 +1492,18 @@ async def submit_transfer_intent(
     if transfer_intent.get("duplicate"):
         body["duplicate"] = True
         body["message"] = "Transaction already recorded."
+        return body
+    if payload.admit_to_mempool:
+        try:
+            admission = blockchain.admit_transaction_to_mempool(transfer_intent["tx_id"])
+            blockchain.save_blockchain()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        admitted_transfer = blockchain.get_transfer_intent_by_tx_id(transfer_intent["tx_id"]) or transfer_intent
+        body = _serialize_transfer_intent(admitted_transfer)
+        body["admitted"] = True
+        body["admitted_at"] = admission.get("admitted_at")
+        body["message"] = admission["message"]
         return body
     body["message"] = (
         "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
@@ -3128,7 +3150,7 @@ async def get_mempool(request: Request):
     return {
         "count": len(transactions),
         "transactions": transactions,
-        "ordering_policy": "admitted_at ascending, then nonce ascending, then tx_id ascending",
+        "ordering_policy": "admitted_at ascending, then from_address ascending, then nonce ascending, then tx_id ascending",
         "note": "Local mempool only. Transactions are not settled until included in a block.",
     }
 

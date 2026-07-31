@@ -1285,9 +1285,10 @@ class Blockchain:
     @staticmethod
     def _native_mempool_sort_key(transaction):
         admitted_at = str(transaction.get("admitted_at") or transaction.get("updated_at") or transaction.get("created_at") or "")
+        from_address = str(transaction.get("from_address") or "")
         nonce = int(parse_transfer_nonce(transaction.get("nonce")))
         tx_id = str(transaction.get("tx_id") or "")
-        return (admitted_at, nonce, tx_id)
+        return (admitted_at, from_address, nonce, tx_id)
 
     def _find_native_transaction_index(self, tx_id):
         normalized_tx_id = str(tx_id or "").strip().lower()

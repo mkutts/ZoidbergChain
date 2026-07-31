@@ -581,7 +581,7 @@ def test_lower_nonce_is_rejected_after_first_accepted_transaction(blockchain):
     assert response.status_code == 400
     assert "expected next nonce 2" in response.json()["detail"].lower()
 
-def test_submit_with_admit_to_mempool_still_records_signed_pending_transaction(blockchain):
+def test_submit_with_admit_to_mempool_updates_status_without_mutating_final_balance(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "5")
@@ -591,12 +591,146 @@ def test_submit_with_admit_to_mempool_still_records_signed_pending_transaction(b
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "signed_pending"
+    assert body["status"] == "mempool"
+    assert body["admitted"] is True
+    assert body["admitted_at"]
     assert "not settled" in body["message"].lower()
     balance_state = client.get(f"/accounts/{account.address.lower()}").json()
     assert balance_state["final_balance"] == "5"
     assert balance_state["pending_outgoing"] == "4"
     assert balance_state["available_balance"] == "1"
+
+
+def test_admit_endpoint_promotes_signed_pending_transaction(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers)
+    tx_id = submit_response.json()["tx_id"]
+
+    response = client.post(f"/transactions/{tx_id}/admit")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "mempool"
+    transaction = client.get(f"/transactions/{tx_id}").json()["transaction"]
+    assert transaction["status"] == "mempool"
+    assert transaction["admitted_at"]
+
+
+def test_admit_endpoint_is_idempotent_for_existing_mempool_transaction(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers)
+    tx_id = submit_response.json()["tx_id"]
+
+    first = client.post(f"/transactions/{tx_id}/admit")
+    second = client.post(f"/transactions/{tx_id}/admit")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["status"] == "mempool"
+    assert second.json()["tx_id"] == tx_id
+
+
+def test_admit_endpoint_rejects_invalid_signature(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers)
+    tx_id = submit_response.json()["tx_id"]
+    blockchain.native_transactions[0]["signature"] = "0xdeadbeef"
+
+    response = client.post(f"/transactions/{tx_id}/admit")
+
+    assert response.status_code == 400
+    assert (
+        "signature" in response.json()["detail"].lower()
+        or "tx_id does not match" in response.json()["detail"].lower()
+    )
+
+
+def test_get_mempool_endpoints_return_safe_fields(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers, admit_to_mempool=True)
+    tx_id = submit_response.json()["tx_id"]
+
+    mempool = client.get("/mempool")
+    mempool_tx = client.get(f"/mempool/{tx_id}")
+
+    assert mempool.status_code == 200
+    assert mempool.json()["count"] == 1
+    listed = mempool.json()["transactions"][0]
+    assert listed["tx_id"] == tx_id
+    assert listed["status"] == "mempool"
+    assert listed["admitted_at"]
+    assert "signature" not in listed
+    assert "signed_message" not in listed
+    assert mempool.json()["ordering_policy"] == "admitted_at ascending, then from_address ascending, then nonce ascending, then tx_id ascending"
+    assert mempool_tx.status_code == 200
+    assert mempool_tx.json()["transaction"]["tx_id"] == tx_id
+    assert "session_token" not in str(mempool_tx.json())
+
+
+def test_mempool_revalidate_rejects_invalid_transaction(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers, admit_to_mempool=True)
+    tx_id = submit_response.json()["tx_id"]
+    blockchain.native_transactions[0]["signature"] = "0xdeadbeef"
+
+    response = client.post("/mempool/revalidate")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["checked"] == 1
+    assert body["removed"] == 1
+    assert body["items"][0]["tx_id"] == tx_id
+    assert body["items"][0]["valid"] is False
+    assert client.get("/mempool").json()["count"] == 0
+    transaction = client.get(f"/transactions/{tx_id}").json()["transaction"]
+    assert transaction["status"] == "rejected"
+
+
+@pytest.mark.parametrize("backend_factory", [_json_backend, _sqlite_backend])
+def test_mempool_status_survives_storage_reload(backend_factory, isolated_data_dir):
+    backend = backend_factory(isolated_data_dir, "mempool-reload")
+    blockchain = _create_blockchain_with_backend(backend)
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers, admit_to_mempool=True)
+    assert submit_response.status_code == 200
+    tx_id = submit_response.json()["tx_id"]
+
+    reloaded = Blockchain(
+        project_owner_wallet=blockchain.project_owner_wallet,
+        Contributor_one=blockchain.Contributor_one,
+        Contributor_two=blockchain.Contributor_two,
+        storage_backend=backend,
+    )
+
+    stored_transaction = reloaded.get_native_transaction(tx_id)
+    mempool_transaction = reloaded.get_mempool_transaction(tx_id)
+    assert stored_transaction is not None
+    assert stored_transaction["status"] == "mempool"
+    assert stored_transaction["admitted_at"]
+    assert mempool_transaction is not None
 
 def test_transfer_above_available_balance_is_rejected_and_not_recorded(blockchain):
     client, _ = _client(blockchain)

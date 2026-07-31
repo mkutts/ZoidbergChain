@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of July 31, 2026, Task 8.3 is the current implemented phase of the native transaction layer.
+As of Friday, July 31, 2026, Task 8.4 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.3 adds balance sufficiency and available-balance accounting on top of the Task 8.2 nonce and replay-protection layer.
+Task 8.4 adds local mempool validation, admission, storage, and revalidation on top of the Task 8.3 balance-sufficiency layer.
 
 Implemented now:
 
@@ -23,10 +23,13 @@ Implemented now:
 - pending incoming balance display
 - available-balance enforcement on signed transfer submission
 - native account balance endpoint
+- local mempool validation
+- local mempool admission endpoint
+- local mempool read endpoints
+- local mempool revalidation endpoint
 
 Not implemented yet:
 
-- mempool validation or admission requirements
 - peer transaction gossip
 - block inclusion
 - settlement
@@ -255,6 +258,55 @@ Current read surfaces:
 - `GET /accounts/{wallet_address}/balance`
 - compatibility: `GET /wallets/{wallet_address}/balance`
 
+## Local Mempool Lifecycle
+
+Task 8.4 uses these non-final statuses:
+
+- `signed_pending`: recorded but not yet admitted
+- `validated_pending`: optional intermediate eligible state
+- `mempool`: admitted to the local mempool
+- `rejected`: failed validation
+- `expired`: expired before inclusion
+
+Task 8.4 rules:
+
+- only `mempool` or `validated_pending` transactions are future block-inclusion candidates
+- `signed_pending` alone is not enough for future block inclusion
+- mempool transactions remain non-final
+- final balances still do not change
+
+Validation checks used for local mempool admission:
+
+- canonical transaction shape
+- deterministic `tx_id`
+- network match
+- signed message match
+- signature recovery
+- nonce policy
+- available-balance sufficiency
+- zero-fee policy
+- eligible status
+
+Storage approach:
+
+- `NativeTransaction` remains the canonical source of truth
+- `status = mempool` means the transaction is in the local mempool
+- no separate duplicate mempool storage copy is required
+
+Endpoints:
+
+- `POST /transactions/{tx_id}/admit`
+- `GET /mempool`
+- `GET /mempool/{tx_id}`
+- `POST /mempool/revalidate`
+
+Ordering policy:
+
+- `admitted_at` ascending
+- then `from_address` ascending
+- then `nonce` ascending
+- then `tx_id` ascending
+
 ## Read APIs
 
 Task 8.1 read surfaces:
@@ -280,4 +332,5 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 ## Next Planned Steps
 
-- Task 8.4 adds mempool storage and validation
+- Task 8.5 adds peer transaction gossip
+- Task 8.6 adds block inclusion and settlement

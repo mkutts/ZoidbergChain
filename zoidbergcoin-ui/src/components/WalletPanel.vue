@@ -128,6 +128,14 @@
               >
                 {{ isTransferHistoryLoading ? 'Refreshing Transfers...' : 'Refresh Transfer History' }}
               </button>
+              <button
+                type="button"
+                class="wallet-btn secondary"
+                @click="refreshMempool"
+                :disabled="isMempoolLoading"
+              >
+                {{ isMempoolLoading ? 'Refreshing Mempool...' : 'Refresh Mempool' }}
+              </button>
             </div>
             <p v-if="transferSuccessMessage" class="wallet-meta transfer-success">{{ transferSuccessMessage }}</p>
             <p v-if="transferError" class="wallet-error">{{ transferError }}</p>
@@ -181,7 +189,50 @@
                       </div>
                     </div>
                     <p v-if="transfer.memo" class="wallet-meta history-note">Memo: {{ transfer.memo }}</p>
+                    <div v-if="transfer.status === 'signed_pending' && transfer.tx_id" class="wallet-actions">
+                      <button
+                        type="button"
+                        class="wallet-btn secondary"
+                        @click="admitTransferToMempool(transfer)"
+                        :disabled="isMempoolSubmitting"
+                      >
+                        {{ isMempoolSubmitting ? 'Admitting...' : 'Admit to Mempool' }}
+                      </button>
+                    </div>
                     <p class="wallet-meta history-note">Signed pending transfer. It reduces available balance now, but final balance changes only after block inclusion.</p>
+                  </li>
+                </ul>
+              </template>
+            </div>
+            <div class="transfer-history">
+              <p class="wallet-meta transfer-history-title">Local Mempool</p>
+              <p v-if="!mempoolTransactions.length" class="wallet-meta">No local mempool transactions.</p>
+              <template v-else>
+                <p class="wallet-meta">Admitted to local mempool. Not settled yet.</p>
+                <ul class="history-list">
+                  <li v-for="transaction in mempoolTransactions" :key="transaction.tx_id" class="history-card">
+                    <div class="history-title-row">
+                      <strong>{{ transferStatusLabel(transaction.status) }}</strong>
+                      <span>{{ transferDirection(transaction) }}</span>
+                    </div>
+                    <div class="history-grid">
+                      <div>
+                        <span>Tx ID</span>
+                        <strong>{{ shortenTransferId(transaction.tx_id) }}</strong>
+                      </div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{{ transaction.status }}</strong>
+                      </div>
+                      <div>
+                        <span>Amount</span>
+                        <strong>{{ transaction.amount }} {{ nativeBalanceSymbol }}</strong>
+                      </div>
+                      <div>
+                        <span>Nonce</span>
+                        <strong>{{ transaction.nonce || 'Missing' }}</strong>
+                      </div>
+                    </div>
                   </li>
                 </ul>
               </template>
@@ -278,6 +329,9 @@ const transferError = ref('');
 const transferSuccessMessage = ref('');
 const transferHistory = ref([]);
 const nonceState = ref(null);
+const mempoolTransactions = ref([]);
+const isMempoolLoading = ref(false);
+const isMempoolSubmitting = ref(false);
 const transferForm = ref({
   toAddress: '',
   amount: '',
@@ -387,6 +441,7 @@ function disconnect() {
   rewardError.value = '';
   balanceError.value = '';
   transferHistory.value = [];
+  mempoolTransactions.value = [];
   transferError.value = '';
   transferSuccessMessage.value = '';
   nonceState.value = null;
@@ -478,6 +533,45 @@ async function refreshNonceState() {
   }
 }
 
+async function refreshMempool() {
+  if (!wallet.state.isVerifiedSession) {
+    mempoolTransactions.value = [];
+    return;
+  }
+
+  isMempoolLoading.value = true;
+  try {
+    const response = await apiClient.get('/mempool');
+    mempoolTransactions.value = Array.isArray(response.data.transactions) ? response.data.transactions : [];
+  } catch (_error) {
+    mempoolTransactions.value = [];
+  } finally {
+    isMempoolLoading.value = false;
+  }
+}
+
+async function admitTransferToMempool(transfer) {
+  if (!transfer?.tx_id) {
+    return;
+  }
+
+  isMempoolSubmitting.value = true;
+  transferError.value = '';
+  transferSuccessMessage.value = '';
+  try {
+    await apiClient.post(`/transactions/${transfer.tx_id}/admit`);
+    transferSuccessMessage.value = 'Admitted to local mempool - not settled yet.';
+    await refreshAccountSummary();
+    await refreshTransferHistory();
+    await refreshNonceState();
+    await refreshMempool();
+  } catch (error) {
+    transferError.value = getApiErrorMessage(error, 'Failed to admit transaction to local mempool.');
+  } finally {
+    isMempoolSubmitting.value = false;
+  }
+}
+
 async function submitTransferIntent() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
     transferError.value = 'Verify wallet before signing a transfer.';
@@ -507,6 +601,7 @@ async function submitTransferIntent() {
     await refreshTransferHistory();
     await refreshAccountSummary();
     await refreshNonceState();
+    await refreshMempool();
   } catch (error) {
     const message = error?.message || 'Native transfer intent submission failed.';
     if (/nonce already used or reserved|next expected nonce/i.test(message)) {
@@ -525,6 +620,7 @@ async function refreshAccountData() {
     refreshRewardHistory(),
     refreshTransferHistory(),
     refreshNonceState(),
+    refreshMempool(),
   ]);
 }
 
@@ -583,6 +679,7 @@ watch(
       rewardHistory.value = [];
       rewardError.value = '';
       transferHistory.value = [];
+      mempoolTransactions.value = [];
       transferError.value = '';
       transferSuccessMessage.value = '';
       nonceState.value = null;

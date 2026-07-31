@@ -1211,6 +1211,14 @@ class Blockchain:
             status=str(status),
             created_at=str(created_at) if created_at is not None else None,
         )
+        existing_transaction = self.reserve_transaction_nonce(transaction.to_dict())
+        if existing_transaction is not None:
+            existing_transfer_intent = self._get_transfer_intent_by_tx_id(existing_transaction.get("tx_id"))
+            if existing_transfer_intent is None:
+                raise ValueError("Transaction already recorded, but the local transfer intent record is missing.")
+            duplicate_record = dict(existing_transfer_intent)
+            duplicate_record["duplicate"] = True
+            return duplicate_record
         record = {
             "transfer_id": os.urandom(16).hex(),
             "tx_id": transaction.tx_id,
@@ -1449,7 +1457,11 @@ class Blockchain:
 
     @staticmethod
     def _native_nonce_reserved_statuses():
-        return set()
+        return {"signed_pending", "validated_pending", "mempool"}
+
+    @classmethod
+    def _native_nonce_unavailable_statuses(cls):
+        return cls._native_nonce_used_statuses() | cls._native_nonce_reserved_statuses()
 
     def _coerce_native_nonce(self, nonce) -> int:
         return int(parse_transfer_nonce(nonce))
@@ -1473,7 +1485,7 @@ class Blockchain:
                 continue
             if self._coerce_native_nonce(transaction.get("nonce")) != normalized_nonce:
                 continue
-            if str(transaction.get("status") or "").strip().lower() not in self._native_nonce_used_statuses():
+            if str(transaction.get("status") or "").strip().lower() not in self._native_nonce_unavailable_statuses():
                 continue
             return transaction
         return None
@@ -1507,8 +1519,10 @@ class Blockchain:
         if normalized_wallet is None:
             return NATIVE_TRANSACTION_INITIAL_NONCE
         used_nonces = set(self.get_used_nonces(normalized_wallet))
+        reserved_nonces = set(self.get_reserved_nonces(normalized_wallet))
+        unavailable_nonces = used_nonces | reserved_nonces
         next_nonce = NATIVE_TRANSACTION_INITIAL_NONCE
-        while next_nonce in used_nonces:
+        while next_nonce in unavailable_nonces:
             next_nonce += 1
         return next_nonce
 

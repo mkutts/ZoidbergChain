@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of July 30, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity.
+As of July 30, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.2 enforces sender nonce reservation for accepted signed native transactions.
 
 ## Core Model
 
@@ -56,6 +56,7 @@ Current meaning of `signed_pending`:
 - the signed transaction record exists
 - the transaction can be queried
 - it is not settled
+- it reserves the sender nonce
 - it does not change balances yet
 
 Task 8.1 account rules:
@@ -65,6 +66,15 @@ Task 8.1 account rules:
 - transaction history may show outgoing and incoming signed records
 - native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
 - old development wallets are not the native account registry
+
+Task 8.2 nonce rules:
+
+- nonce is per `from_address`
+- nonce starts at `1`
+- strict sequential nonce policy is active
+- exact duplicate signed transaction returns the existing record
+- conflicting same-sender same-nonce transaction is rejected
+- `GET /accounts/{wallet_address}/nonce` exposes `next_nonce`, `used_nonces`, `reserved_nonces`, policy, and initial nonce
 
 ## Task 8.1 Balance Reminder
 
@@ -86,7 +96,6 @@ That means:
 
 ## Next Planned Steps
 
-- Task 8.2 adds nonce tracking and replay protection
 - Task 8.3 adds balance sufficiency enforcement
 
 ## Compatibility Notes

@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of July 30, 2026, signed native transfer intents exist and Task 8.1 records them as canonical non-final native transactions.
+As of July 30, 2026, signed native transfer intents exist and Task 8.2 records them as canonical non-final native transactions with nonce tracking and replay protection.
 
 ## Purpose
 
@@ -106,6 +106,8 @@ Supported statuses:
 
 Current submit-time status is `signed_pending`.
 
+In Task 8.2, `signed_pending` also reserves the sender nonce.
+
 ## tx_id Computation
 
 Task 8.1 computes:
@@ -148,6 +150,23 @@ Task 8.1 canonical serialization uses:
 - no Python object repr
 - no local-only timestamps in the hash input
 
+## Nonce Policy
+
+Task 8.2 rules:
+
+- nonce starts at `1`
+- nonce is per `from_address`
+- nonce is included in the signed transfer message
+- strict sequential sender nonces are enforced
+- exact duplicate signed transaction is idempotent
+- same sender plus same nonce plus different `tx_id` is rejected
+
+Read endpoint:
+
+- `GET /accounts/{wallet_address}/nonce`
+
+Balances are still not spend-limited by nonce reservation alone. Balance sufficiency remains deferred to Task 8.3.
+
 ## Submit And Read Flow
 
 Current flow:
@@ -157,6 +176,7 @@ Current flow:
 3. The client submits the signed payload to `POST /transfers/submit`.
 4. The backend stores a local transfer intent record.
 5. The backend stores a canonical `NativeTransaction` record with deterministic `tx_id`.
+6. The accepted `signed_pending` record reserves the sender nonce.
 
 The submit response now includes both identifiers:
 
@@ -173,8 +193,6 @@ Read endpoints:
 ## Important Current Limits
 
 Task 8.1 does not yet:
-
-- enforce nonce sequencing
 - enforce balance sufficiency
 - admit transactions to a mempool as part of normal submit flow
 - gossip transactions to peers
@@ -186,5 +204,4 @@ Balances stay unchanged until later transaction-processing tasks.
 
 ## Next Planned Steps
 
-- Task 8.2 adds nonce tracking and replay protection
 - Task 8.3 adds balance sufficiency enforcement

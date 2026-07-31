@@ -332,7 +332,7 @@ def test_transfer_submit_rejects_field_mismatch(blockchain):
     assert "to_address does not match" in response.json()["detail"].lower()
 
 
-def test_second_different_signed_transfer_with_same_nonce_is_recorded(blockchain):
+def test_second_different_signed_transfer_with_same_nonce_is_rejected(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "25")
@@ -376,10 +376,8 @@ def test_second_different_signed_transfer_with_same_nonce_is_recorded(blockchain
     second = client.post("/transfers/submit", json=second_payload, headers=headers)
 
     assert first.status_code == 200
-    assert second.status_code == 200
-    assert second.json()["tx_id"] != first.json()["tx_id"]
-    history = client.get(f"/accounts/{account.address.lower()}/transactions").json()["transactions"]
-    assert len(history) == 2
+    assert second.status_code == 400
+    assert "nonce already used or reserved" in second.json()["detail"].lower()
 
 
 def test_gap_nonce_is_rejected_under_strict_sequential_policy(blockchain):
@@ -517,9 +515,9 @@ def test_nonce_endpoint_returns_expected_state(blockchain):
 
     assert submit_response.status_code == 200
     assert after.status_code == 200
-    assert after.json()["next_nonce"] == 1
+    assert after.json()["next_nonce"] == 2
     assert after.json()["used_nonces"] == []
-    assert after.json()["reserved_nonces"] == []
+    assert after.json()["reserved_nonces"] == [1]
 
 
 def test_invalid_wallet_nonce_endpoint_rejected(blockchain):
@@ -549,9 +547,9 @@ def test_nonce_state_survives_storage_reload(backend_factory, isolated_data_dir)
         storage_backend=backend,
     )
 
-    assert reloaded.get_next_nonce(account.address.lower()) == 1
+    assert reloaded.get_next_nonce(account.address.lower()) == 2
     assert reloaded.get_used_nonces(account.address.lower()) == []
-    assert reloaded.get_reserved_nonces(account.address.lower()) == []
+    assert reloaded.get_reserved_nonces(account.address.lower()) == [1]
 
 
 def test_transfer_equal_to_available_balance_is_accepted(blockchain):
@@ -567,6 +565,21 @@ def test_transfer_equal_to_available_balance_is_accepted(blockchain):
     assert balance_state["final_balance"] == "5"
     assert balance_state["pending_outgoing"] == "0"
     assert balance_state["available_balance"] == "5"
+
+
+def test_lower_nonce_is_rejected_after_first_accepted_transaction(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    first = _submit_transfer_intent(client, account, headers)
+    assert first.status_code == 200
+
+    response = _request_transfer_challenge(client, account, headers, nonce=1)
+
+    assert response.status_code == 400
+    assert "expected next nonce 2" in response.json()["detail"].lower()
 
 def test_submit_with_admit_to_mempool_still_records_signed_pending_transaction(blockchain):
     client, _ = _client(blockchain)
@@ -596,7 +609,8 @@ def test_transfer_above_available_balance_is_still_recorded_for_future_processin
     history = client.get(f"/accounts/{account.address.lower()}/transactions").json()["transactions"]
 
     assert response.status_code == 200
-    assert nonce_state["next_nonce"] == 1
+    assert nonce_state["next_nonce"] == 2
+    assert nonce_state["reserved_nonces"] == [1]
     assert len(history) == 1
     assert blockchain.get_native_balance(account.address.lower()) == 5
 
@@ -619,7 +633,8 @@ def test_multiple_pending_transfers_do_not_change_balance_snapshot(blockchain):
     assert balance_state["final_balance"] == "5"
     assert balance_state["pending_outgoing"] == "0"
     assert balance_state["available_balance"] == "5"
-    assert nonce_state["next_nonce"] == 1
+    assert nonce_state["next_nonce"] == 4
+    assert nonce_state["reserved_nonces"] == [1, 2, 3]
 
 
 def test_pending_incoming_does_not_increase_available_balance(blockchain):

@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of July 30, 2026, Task 8.1 is the current implemented phase of the native transaction layer.
+As of July 30, 2026, Task 8.2 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.1 adds the canonical native `NativeTransaction` record and deterministic `tx_id`.
+Task 8.2 adds nonce tracking and replay protection on top of the Task 8.1 canonical transaction record.
 
 Implemented now:
 
@@ -16,10 +16,12 @@ Implemented now:
 - account transaction history by native `0x` address
 - JSON and SQLite persistence
 - light transaction-shape validation
+- strict sequential nonce tracking
+- replay protection and duplicate idempotency
+- nonce read endpoint
 
 Not implemented yet:
 
-- nonce sequencing or replay protection
 - balance sufficiency enforcement
 - mempool validation or admission requirements
 - peer transaction gossip
@@ -75,7 +77,7 @@ Supported statuses:
 - `failed`
 - `expired`
 
-Task 8.1 actively uses `signed_pending` for newly recorded transactions.
+Task 8.2 actively uses `signed_pending` for newly recorded transactions.
 
 Meaning of `signed_pending`:
 
@@ -83,6 +85,7 @@ Meaning of `signed_pending`:
 - the transaction has a deterministic `tx_id`
 - the transaction can be queried by `GET /transactions/{tx_id}`
 - the transaction is not settled
+- the transaction reserves its sender nonce
 - balances do not change yet
 
 ## Deterministic tx_id Rule
@@ -135,6 +138,45 @@ Task 8.1 canonical serialization uses:
 
 This canonical string is the hash input for `tx_id`.
 
+## Nonce Policy
+
+Task 8.2 nonce rules:
+
+- nonce is per `from_address`
+- initial nonce is `1`
+- nonce is included in the signed transfer message
+- nonce is part of the canonical transaction payload
+- nonce is part of `tx_id` computation
+- no gap nonces are allowed
+- strict sequential nonce order is active
+- no replacement policy exists yet
+
+Statuses that reserve nonce:
+
+- `signed_pending`
+- `validated_pending`
+- `mempool`
+
+Statuses that permanently consume nonce:
+
+- `included`
+- `settled`
+
+Statuses that do not reserve nonce:
+
+- `rejected`
+- `failed`
+- `expired`
+
+Exact duplicate behavior:
+
+- the same signed transaction returns the existing record idempotently
+- the same sender plus same nonce plus different `tx_id` is rejected
+
+Nonce read surface:
+
+- `GET /accounts/{wallet_address}/nonce`
+
 ## Submit-Time Behavior
 
 `POST /transfers/submit` now records:
@@ -158,6 +200,13 @@ Identifier meaning:
 
 - `transfer_id` is a local record identifier
 - `tx_id` is the deterministic network transaction identifier
+
+Task 8.2 also enforces:
+
+- the challenge uses the backend-derived expected nonce
+- exact duplicate signed submission returns the existing record
+- conflicting same-sender same-nonce submission is rejected
+- accepted `signed_pending` records reserve nonce across restart
 
 ## Read APIs
 
@@ -184,5 +233,4 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 ## Next Planned Steps
 
-- Task 8.2 adds nonce tracking and replay protection
 - Task 8.3 adds balance sufficiency enforcement

@@ -211,6 +211,45 @@ def test_mint_includes_up_to_max_transactions_per_block(blockchain, submission_i
     assert client.get(f"/transactions/{remaining_tx_id}").json()["transaction"]["status"] == "mempool"
 
 
+def test_mint_uses_canonical_native_transaction_order(blockchain, submission_image, wallets):
+    client, _api = _client(blockchain)
+    first_sender = _create_account()
+    second_sender = _create_account()
+    ordered_senders = sorted([first_sender, second_sender], key=lambda account: account.address.lower())
+    lower_sender, higher_sender = ordered_senders[0], ordered_senders[1]
+    recipient = _create_account()
+
+    _fund_native_wallet(blockchain, lower_sender.address, "10")
+    _fund_native_wallet(blockchain, higher_sender.address, "10")
+
+    higher_headers = _verified_headers(client, higher_sender)
+    lower_headers = _verified_headers(client, lower_sender)
+
+    higher_tx_id = _submit_transfer_intent(
+        client,
+        higher_sender,
+        higher_headers,
+        to_address=recipient.address,
+        amount="2",
+        admit_to_mempool=True,
+    ).json()["tx_id"]
+    lower_tx_id = _submit_transfer_intent(
+        client,
+        lower_sender,
+        lower_headers,
+        to_address=recipient.address,
+        amount="3",
+        admit_to_mempool=True,
+    ).json()["tx_id"]
+    submission = _prepare_mintable_submission(blockchain, submission_image, wallets["owner"].public_key)
+
+    response = client.post(f"/mint-queue/{submission.submission_id}/mint", data={"miner": wallets["contributor_one"].public_key})
+
+    assert response.status_code == 200
+    assert response.json()["transaction_ids"] == [lower_tx_id, higher_tx_id]
+    assert response.json()["block"]["transaction_ids"] == [lower_tx_id, higher_tx_id]
+
+
 def test_invalid_mempool_transaction_is_not_included_and_becomes_rejected(blockchain, submission_image, wallets):
     client, _api = _client(blockchain)
     sender = _create_account()
@@ -228,6 +267,82 @@ def test_invalid_mempool_transaction_is_not_included_and_becomes_rejected(blockc
     assert response.json()["transactions_included"] == 0
     transaction = client.get(f"/transactions/{tx_id}").json()["transaction"]
     assert transaction["status"] == "rejected"
+
+
+def test_receive_peer_block_rejects_out_of_order_native_transactions_without_mutating_local_state(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client, api = _client(blockchain)
+    _register_peer(api)
+    first_sender = _create_account()
+    second_sender = _create_account()
+    ordered_senders = sorted([first_sender, second_sender], key=lambda account: account.address.lower())
+    lower_sender, higher_sender = ordered_senders[0], ordered_senders[1]
+    recipient = _create_account()
+
+    _fund_native_wallet(blockchain, lower_sender.address, "10")
+    _fund_native_wallet(blockchain, higher_sender.address, "10")
+
+    higher_headers = _verified_headers(client, higher_sender)
+    lower_headers = _verified_headers(client, lower_sender)
+
+    higher_tx_id = _submit_transfer_intent(
+        client,
+        higher_sender,
+        higher_headers,
+        to_address=recipient.address,
+        amount="2",
+        admit_to_mempool=True,
+    ).json()["tx_id"]
+    lower_tx_id = _submit_transfer_intent(
+        client,
+        lower_sender,
+        lower_headers,
+        to_address=recipient.address,
+        amount="3",
+        admit_to_mempool=True,
+    ).json()["tx_id"]
+
+    higher_snapshot = blockchain._serialize_native_transaction_for_block(blockchain.get_native_transaction(higher_tx_id))
+    lower_snapshot = blockchain._serialize_native_transaction_for_block(blockchain.get_native_transaction(lower_tx_id))
+    latest_block = blockchain.get_latest_block()
+    submission = _submission(blockchain, "zoidberg.jpg", recipient.address.lower())
+    certificate = _certify_submission(blockchain, submission)
+    minted_at = 1_000_500.0
+    out_of_order_snapshots = [higher_snapshot, lower_snapshot]
+    block = Block(
+        index=latest_block.index + 1,
+        previous_hash=latest_block.hash,
+        timestamp=minted_at,
+        transactions=[Transaction("REWARD_POOL", recipient.address.lower(), 5, created_at=1_000_500.0)],
+        miner=recipient.address.lower(),
+        meme={"encoded_image": "peer-image", "text": "Peer settled block"},
+        native_transactions=out_of_order_snapshots,
+        transaction_ids=[higher_tx_id, lower_tx_id],
+        transaction_count=2,
+        transactions_hash=blockchain._compute_block_native_transactions_hash(out_of_order_snapshots),
+        **blockchain.certificate_block_metadata(certificate),
+        **blockchain.build_meme_reward_metadata(submission, certificate, minted_at=minted_at),
+    )
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block.to_dict(),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "transaction_order_invalid"
+    assert client.get(f"/transactions/{lower_tx_id}").json()["transaction"]["status"] == "mempool"
+    assert client.get(f"/transactions/{higher_tx_id}").json()["transaction"]["status"] == "mempool"
+    assert client.get(f"/wallets/{lower_sender.address.lower()}/balance").json()["final_balance"] == "10"
+    assert client.get(f"/wallets/{higher_sender.address.lower()}/balance").json()["final_balance"] == "10"
+    assert client.get("/mempool").json()["count"] == 2
 
 
 def test_receive_peer_block_with_native_transaction_settles_local_mempool_transaction(blockchain):

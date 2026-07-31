@@ -31,6 +31,15 @@
                     "signature": null,
                     "payload_size_kb": 0,
                     "created_at": 1785264592.422849
+                },
+                {
+                    "sender": "GENESIS",
+                    "recipient": "0xee54276187c630cba0e38f2fdeb2009656905a5e",
+                    "amount": 10.0,
+                    "tip": 0,
+                    "signature": null,
+                    "payload_size_kb": 0,
+                    "created_at": 1785516352.9622355
                 }
             ],
             "miner": "GENESIS",
@@ -173,6 +182,31 @@
             "submission_nonce": "FKJInZPXsUlRSdAxyY1_VqDfbETSGXKg",
             "signed_at": "2026-07-28T18:54:38.543968+00:00",
             "identity_source": "metamask_signed"
+        },
+        {
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "image_path": "C:\\Users\\mattk\\ZoidbergChain\\content\\76\\b1\\76b1c41628e90f1cee468271894a95d216cb3f961fa184df8ca8522e7cba9af0.jpg",
+            "text_content": "dbg meme",
+            "submitter": "03be2c1470c4a6e6979073b53232974ebf1089f0a7454f435d7cf7a0b32154c28b",
+            "status": "approved",
+            "created_at": 1785516353.032427,
+            "hard_reject_reason": null,
+            "content_hash": "76b1c41628e90f1cee468271894a95d216cb3f961fa184df8ca8522e7cba9af0",
+            "content_id": "f14a6e0ceb62f03964d7921d9421f91a",
+            "certificate_id": "097d65d49591a9fb7b85d2fe1989ec78fd5b653010a165704ea46647e982b21f",
+            "mint_blocked": false,
+            "mint_block_reason": null,
+            "mint_blocked_at": null,
+            "mint_blocked_by": null,
+            "mint_block_notes": null,
+            "creator_wallet_address": "03be2c1470c4a6e6979073b53232974ebf1089f0a7454f435d7cf7a0b32154c28b",
+            "signature_scheme": null,
+            "submission_signature": null,
+            "submission_message": null,
+            "signed_message_hash": null,
+            "submission_nonce": null,
+            "signed_at": null,
+            "identity_source": null
         }
     ],
     "content_objects": [
@@ -195,7 +229,7 @@
                 "original_filename": "images.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785264692.0994523,
+            "verified_at": 1785516352.954481,
             "verification_error": null
         },
         {
@@ -217,8 +251,31 @@
                 "original_filename": "image-1-8-6a26c8c34355c__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785264878.54439,
+            "verified_at": 1785516352.9546506,
             "verification_error": null
+        },
+        {
+            "content_id": "f14a6e0ceb62f03964d7921d9421f91a",
+            "content_hash": "76b1c41628e90f1cee468271894a95d216cb3f961fa184df8ca8522e7cba9af0",
+            "content_type": "mixed",
+            "mime_type": "image/jpeg",
+            "file_name": "76b1c41628e90f1cee468271894a95d216cb3f961fa184df8ca8522e7cba9af0.jpg",
+            "file_size_bytes": 57343,
+            "storage_status": "local",
+            "local_path": "content\\76\\b1\\76b1c41628e90f1cee468271894a95d216cb3f961fa184df8ca8522e7cba9af0.jpg",
+            "text_content": "dbg meme",
+            "caption": "dbg meme",
+            "submitted_by": "03be2c1470c4a6e6979073b53232974ebf1089f0a7454f435d7cf7a0b32154c28b",
+            "created_at": 1785516353.032427,
+            "network_name": "zoidberg-testnet",
+            "metadata": {
+                "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+                "byte_hash": "dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7",
+                "original_filename": "zoidberg.jpg"
+            },
+            "hash_scheme": "legacy",
+            "verified_at": null,
+            "verification_error": "legacy_unverifiable"
         }
     ],
     "mint_queue": [],
@@ -372,6 +429,36 @@
             "vote_nonce": "iZcKnTqncq5XUo0CNoQwmJ_EzNmHOIjp",
             "signed_at": "2026-07-28T18:56:15.760475+00:00",
             "identity_source": "metamask_signed"
+        },
+        {
+            "voter": "v0",
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "vote_type": "original",
+            "created_at": 1000000
+        },
+        {
+            "voter": "v1",
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "vote_type": "original",
+            "created_at": 1000001
+        },
+        {
+            "voter": "v2",
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "vote_type": "original",
+            "created_at": 1000002
+        },
+        {
+            "voter": "v3",
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "vote_type": "original",
+            "created_at": 1000003
+        },
+        {
+            "voter": "v4",
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "vote_type": "not_original",
+            "created_at": 1000004
         }
     ],
     "transfer_intents": [
@@ -390,8 +477,28 @@
             "signed_message_hash": "924a57b58c87d40354888472268cb60ed59e9c484c975c92b33977c03732f2d4",
             "transfer_nonce": "1",
             "signed_at": "2026-07-28T18:54:11.131163+00:00",
-            "status": "signed_pending",
-            "created_at": "2026-07-28T18:54:11.131636+00:00"
+            "status": "mempool",
+            "created_at": "2026-07-28T18:54:11.131636+00:00",
+            "updated_at": "2026-07-31T14:49:32.474514+00:00"
+        },
+        {
+            "transfer_id": "1089acabd648b6dc16d915434f30319b",
+            "tx_id": "cc7b04f21847e42d55d7ebfc5a35c0452d9b2eaf79b67f4905b41685e0aa57a1",
+            "from_address": "0xee54276187c630cba0e38f2fdeb2009656905a5e",
+            "to_address": "0x13d9ebae81a220f65656bfe05c0c8d688558021f",
+            "amount": "4",
+            "fee": "0",
+            "memo": "dbg",
+            "network": "zoidberg-testnet",
+            "signature_scheme": "personal_sign",
+            "signature": "db24fe6d2d7fcdc92762beb5b8d8ac30058c9904f71442b2bb8f6a6c3448e38710d4b263cf33ed3d29652b81f4fce3eb25b549e4151a3ee9da287d19a4505ad21c",
+            "signed_message": "ZoidbergChain Native Transfer\n\nAction: transfer_zoid\nNetwork: zoidberg-testnet\nFrom: 0xee54276187c630cba0e38f2fdeb2009656905a5e\nTo: 0x13d9ebae81a220f65656bfe05c0c8d688558021f\nAmount: 4\nFee: 0\nNonce: 1\nTimestamp: 2026-07-31T16:45:52.983912+00:00\nMemo: dbg\n\nThis authorizes a native ZOID transfer on ZoidbergChain.\nThis is not an Ethereum/ERC-20 transfer.",
+            "signed_message_hash": "a010ac19ddab75d63cb963b65927081bf0da72b3c6ea441d4c35863daa280158",
+            "transfer_nonce": "1",
+            "signed_at": "2026-07-31T16:45:52.995760+00:00",
+            "status": "mempool",
+            "created_at": "2026-07-31T16:45:52.995855+00:00",
+            "updated_at": "2026-07-31T16:45:53.017397+00:00"
         }
     ],
     "native_transactions": [
@@ -409,11 +516,35 @@
             "signature_scheme": "personal_sign",
             "signed_message": "ZoidbergChain Native Transfer\n\nAction: transfer_zoid\nNetwork: zoidberg-testnet\nFrom: 0xd2c07fe393894f8754d131bdacc59f6bc189822e\nTo: 0x4deb65a84605bea9113c9c36983a29f0b0c0b2f7\nAmount: 1\nFee: 0\nNonce: 1\nTimestamp: 2026-07-28T18:54:08.878852+00:00\n\nThis authorizes a native ZOID transfer on ZoidbergChain.\nThis is not an Ethereum/ERC-20 transfer.",
             "signed_message_hash": "924a57b58c87d40354888472268cb60ed59e9c484c975c92b33977c03732f2d4",
-            "status": "signed_pending",
+            "status": "mempool",
             "created_at": "2026-07-28T18:54:11.131636+00:00",
-            "updated_at": "2026-07-28T18:54:11.131636+00:00",
-            "admitted_at": null,
+            "updated_at": "2026-07-31T14:49:32.474514+00:00",
+            "admitted_at": "2026-07-31T14:49:32.474467+00:00",
             "memo": null,
+            "included_block_hash": null,
+            "included_block_height": null,
+            "settled_at": null,
+            "rejection_reason": null
+        },
+        {
+            "tx_id": "cc7b04f21847e42d55d7ebfc5a35c0452d9b2eaf79b67f4905b41685e0aa57a1",
+            "transaction_type": "native_transfer",
+            "network": "zoidberg-testnet",
+            "from_address": "0xee54276187c630cba0e38f2fdeb2009656905a5e",
+            "to_address": "0x13d9ebae81a220f65656bfe05c0c8d688558021f",
+            "amount": "4",
+            "fee": "0",
+            "nonce": "1",
+            "timestamp": "2026-07-31T16:45:52.983912+00:00",
+            "signature": "db24fe6d2d7fcdc92762beb5b8d8ac30058c9904f71442b2bb8f6a6c3448e38710d4b263cf33ed3d29652b81f4fce3eb25b549e4151a3ee9da287d19a4505ad21c",
+            "signature_scheme": "personal_sign",
+            "signed_message": "ZoidbergChain Native Transfer\n\nAction: transfer_zoid\nNetwork: zoidberg-testnet\nFrom: 0xee54276187c630cba0e38f2fdeb2009656905a5e\nTo: 0x13d9ebae81a220f65656bfe05c0c8d688558021f\nAmount: 4\nFee: 0\nNonce: 1\nTimestamp: 2026-07-31T16:45:52.983912+00:00\nMemo: dbg\n\nThis authorizes a native ZOID transfer on ZoidbergChain.\nThis is not an Ethereum/ERC-20 transfer.",
+            "signed_message_hash": "a010ac19ddab75d63cb963b65927081bf0da72b3c6ea441d4c35863daa280158",
+            "status": "mempool",
+            "created_at": "2026-07-31T16:45:52.995855+00:00",
+            "updated_at": "2026-07-31T16:45:53.017397+00:00",
+            "admitted_at": "2026-07-31T16:45:53.017386+00:00",
+            "memo": "dbg",
             "included_block_hash": null,
             "included_block_height": null,
             "settled_at": null,
@@ -458,6 +589,25 @@
             "issuing_node_id": "zoidberg-local-node",
             "vote_hash": "6e1a01a28951d97a358c677e2ea4414c007a111eba4ceb7dccebaa75e5fff49d",
             "originality_score": 2.5
+        },
+        {
+            "certificate_id": "097d65d49591a9fb7b85d2fe1989ec78fd5b653010a165704ea46647e982b21f",
+            "submission_id": "a6df7f2c705d47039089c4054e5cceb2",
+            "content_hash": "76b1c41628e90f1cee468271894a95d216cb3f961fa184df8ca8522e7cba9af0",
+            "content_id": "f14a6e0ceb62f03964d7921d9421f91a",
+            "creator_wallet": "03be2c1470c4a6e6979073b53232974ebf1089f0a7454f435d7cf7a0b32154c28b",
+            "vote_total": 5,
+            "decisive_vote_total": 5,
+            "original_votes": 4,
+            "not_original_votes": 1,
+            "unsure_votes": 0,
+            "approval_percentage": 0.8,
+            "minimum_votes_required": 5,
+            "approved_at": 1000200,
+            "network_name": "zoidberg-testnet",
+            "issuing_node_id": "zoidberg-local-node",
+            "vote_hash": "805dfb8ca3759b1cb414c8b8a002b998585cd0df5a471321995fd8380b7b8b91",
+            "originality_score": 2.3
         }
     ],
     "wallets": {
@@ -476,6 +626,18 @@
         "0xd2c07fe393894f8754d131bdacc59f6bc189822e": {
             "public_key": "0xd2c07fe393894f8754d131bdacc59f6bc189822e",
             "private_key": null
+        },
+        "02d2850e40a2341f5538b367bd5bc50db15a61a471ec2fb5392e276831b6a76c75": {
+            "public_key": "02d2850e40a2341f5538b367bd5bc50db15a61a471ec2fb5392e276831b6a76c75",
+            "private_key": "7ba2b414c1c03f15b333e5ac1afe717af8a54db0405dbb9bd668dcef2a3edd99"
+        },
+        "03dcd8e1ff80338b1acc17026046c2f0389419b53e62b795853201639e9e2efcf4": {
+            "public_key": "03dcd8e1ff80338b1acc17026046c2f0389419b53e62b795853201639e9e2efcf4",
+            "private_key": "c4904ca0ceae01b165a56359d5f14ea0839ca148fe44ff464b725157f3e32677"
+        },
+        "0386d9af473d8b103bb8e9dc74450808879dfa50fed4a83dd5b0d689d400632da1": {
+            "public_key": "0386d9af473d8b103bb8e9dc74450808879dfa50fed4a83dd5b0d689d400632da1",
+            "private_key": "cfc18fed3e02646ed918268af96eafbf93cd5316e49f446bb217e50938047273"
         }
     },
     "peers": []

@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.6 carries canonical native transactions through nonce validation, balance reservation, peer gossip, meme-block inclusion, and final settlement.
+As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.7 carries canonical native transactions through nonce validation, balance reservation, peer gossip, meme-block inclusion, final settlement, and stronger block validation.
 
 ## Purpose
 
@@ -223,18 +223,21 @@ Current rules:
 
 ## Block Inclusion And Settlement
 
-Task 8.6 adds:
+Task 8.6 and 8.7 add:
 
 - deterministic transaction selection from the local mempool during certified meme minting
 - block-native transaction fields: `native_transactions`, `transaction_ids`, `transaction_count`, and `transactions_hash`
 - settlement to `status = settled` immediately after accepted local or peer block persistence
 - `included_block_hash`, `included_block_height`, and `settled_at` tracking
+- chain-before-block validation for native transfer signatures, balances, nonces, and duplicate settlement
+- canonical block ordering by `from_address`, then `nonce`, then `tx_id`
 
 Current rules:
 
 - transfers do not create blocks by themselves
 - transfers may only ride inside certified meme-mined blocks
 - local nodes revalidate tx shape, signature, network, nonce, and available balance at block construction time
+- peer-received blocks are validated from accepted chain state rather than local mempool assumptions
 - transaction ordering is deterministic and does not use fee priority
 - included transactions are removed from the local mempool
 - settled transfers change final balances through accepted chain state
@@ -265,7 +268,6 @@ Read endpoints:
 ## Important Current Limits
 
 Current limits:
-- admit transactions to a mempool as part of normal submit flow
 - create transfer-only blocks
 - support replacement policy
 - provide full mempool consensus across peers
@@ -273,4 +275,4 @@ Current limits:
 
 ## Next Planned Steps
 
-- Task 8.7 strengthens block validation and peer compatibility for blocks carrying native transfers
+- Task 8.8 focuses on wallet balances and transfer history cleanup

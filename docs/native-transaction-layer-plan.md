@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of Friday, July 31, 2026, Task 8.6 is the current implemented phase of the native transaction layer.
+As of Friday, July 31, 2026, Task 8.7 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.6 adds meme-block inclusion and settlement for valid native ZOID transfers on top of the Task 8.5 peer gossip and local mempool layer.
+Task 8.7 hardens block validation and chain-sync handling for meme blocks that carry native ZOID transfers.
 
 Implemented now:
 
@@ -41,7 +41,7 @@ Not implemented yet:
 
 - replacement policy
 - full mempool consensus
-- deep peer block validation hardening
+- consensus-wide mempool rules
 - wrapped ZOID or ERC-20 behavior
 
 ## Canonical NativeTransaction Shape
@@ -348,7 +348,8 @@ Auto-broadcast decision:
 
 - automatic gossip on local mempool admission remains disabled for now
 - accepted meme-mined blocks may include up to `MAX_TRANSACTIONS_PER_BLOCK` native transfers
-- transaction ordering is deterministic and block-local validation runs again at mint time
+- transaction ordering inside blocks is canonical and uses `from_address`, then `nonce`, then `tx_id`
+- peer and sync validation re-runs native transfer checks against chain-before-block state
 - transfers do not create blocks by themselves and only ride inside certified meme-mined blocks
 - settled transactions are marked with `status = settled`, `included_block_hash`, `included_block_height`, and `settled_at`
 - final balances are derived from accepted chain blocks, including settled incoming and outgoing native transfers
@@ -374,9 +375,9 @@ These endpoints are read-only and do not expose private keys, session tokens, st
 Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 - old development wallets are not the native account registry
-- native transfer records do not change balances yet
+- non-final transfer records do not change settled balances by themselves
 - a recorded transaction is not the same thing as a settled transfer until it is included in an accepted meme-mined block
 
 ## Next Planned Steps
 
-- Task 8.7 hardens full block-with-transaction validation and peer compatibility
+- Task 8.8 focuses on wallet balances and transfer history cleanup

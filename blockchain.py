@@ -1411,11 +1411,10 @@ class Blockchain:
 
     @staticmethod
     def _native_block_sort_key(transaction):
-        admitted_at = str(transaction.get("admitted_at") or transaction.get("updated_at") or transaction.get("created_at") or "")
         from_address = str(transaction.get("from_address") or "")
         nonce = int(parse_transfer_nonce(transaction.get("nonce")))
         tx_id = str(transaction.get("tx_id") or "")
-        return (admitted_at, from_address, nonce, tx_id)
+        return (from_address, nonce, tx_id)
 
     @staticmethod
     def _serialize_native_transaction_for_block(transaction):
@@ -2093,6 +2092,7 @@ class Blockchain:
         balances: dict[str, Decimal] = dict(chain_state["balances"])
         seen_block_tx_ids = set()
         seen_block_nonces = set()
+        validated_transactions = []
 
         for index, transaction in enumerate(native_transactions):
             if not isinstance(transaction, dict):
@@ -2205,6 +2205,16 @@ class Blockchain:
             seen_prior_tx_ids.add(tx_id)
             seen_block_tx_ids.add(tx_id)
             seen_block_nonces.add(sender_nonce_key)
+            validated_transactions.append(validated_transaction)
+
+        expected_order = sorted(validated_transactions, key=self._native_block_sort_key)
+        if [transaction.get("tx_id") for transaction in validated_transactions] != [
+            transaction.get("tx_id") for transaction in expected_order
+        ]:
+            self._raise_native_block_validation_error(
+                "transaction_order_invalid",
+                "Block native transaction ordering does not match the canonical block ordering policy.",
+            )
 
         return True
 

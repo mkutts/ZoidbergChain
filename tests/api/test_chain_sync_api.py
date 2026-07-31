@@ -1,3 +1,5 @@
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from fastapi.testclient import TestClient
 
 from block import Block
@@ -35,6 +37,53 @@ def _register_peer(node_id="peer-node-1", url="http://peer-one.test:8000"):
         url=url,
         network_name="zoidberg-testnet",
     )
+
+
+def _sign_message(message, account):
+    signed = Account.sign_message(encode_defunct(text=message), account.key)
+    return signed.signature.hex()
+
+
+def _fund_native_wallet(blockchain, wallet_address, amount="25"):
+    blockchain.chain[0].transactions.append(
+        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
+    )
+    blockchain.chain[0].hash = blockchain.chain[0].calculate_hash()
+
+
+def _verified_headers(client, account):
+    challenge = client.post("/auth/wallet/challenge", json={"wallet_address": account.address})
+    verify = client.post(
+        "/auth/wallet/verify",
+        json={
+            "wallet_address": account.address,
+            "message": challenge.json()["message"],
+            "signature": _sign_message(challenge.json()["message"], account),
+        },
+    )
+    return {"Authorization": f"Bearer {verify.json()['session_token']}"}
+
+
+def _submit_transfer_intent(client, account, headers, **overrides):
+    challenge_payload = {
+        "from_address": account.address,
+        "to_address": overrides.get("to_address", Account.create().address),
+        "amount": overrides.get("amount", "4"),
+        "fee": overrides.get("fee", "0"),
+        "memo": overrides.get("memo", "chain sync"),
+    }
+    challenge = client.post("/auth/wallet/transfer-challenge", json=challenge_payload, headers=headers).json()
+    payload = {
+        "from_address": account.address,
+        "to_address": challenge["transfer_preview"]["to_address"],
+        "amount": challenge["transfer_preview"]["amount"],
+        "fee": challenge["transfer_preview"]["fee"],
+        "memo": challenge_payload["memo"],
+        "message": challenge["message"],
+        "signature": _sign_message(challenge["message"], account),
+        "admit_to_mempool": overrides.get("admit_to_mempool", False),
+    }
+    return client.post("/transfers/submit", json=payload, headers=headers)
 
 
 def _chain_score(chain):
@@ -141,6 +190,31 @@ def _certified_chain_from_base(
     peer_chain = list(blockchain.chain)
     blockchain.chain = saved_chain
     return peer_chain, block
+
+
+def _peer_chain_with_native_transfer(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    sender = Account.create()
+    recipient = Account.create()
+    _fund_native_wallet(blockchain, sender.address, "10")
+    headers = _verified_headers(client, sender)
+    transfer_response = _submit_transfer_intent(
+        client,
+        sender,
+        headers,
+        to_address=recipient.address,
+        amount="4",
+        admit_to_mempool=True,
+    )
+    tx_id = transfer_response.json()["tx_id"]
+    block = _mint_certified_block(
+        blockchain,
+        submission_image,
+        wallets,
+        "Peer synced native transfer block",
+        "peer-sync-native-voter",
+    )
+    return list(blockchain.chain), block, tx_id, sender.address.lower(), recipient.address.lower()
 
 
 def _summary(
@@ -573,3 +647,76 @@ def test_successful_sync_preserves_existing_submissions_and_votes(
     assert blockchain.get_submission(submission.submission_id) is submission
     assert vote in blockchain.votes
     assert blockchain.get_latest_block().hash == peer_block.hash
+
+
+def test_sync_reconstructs_settled_native_transactions_and_balances_from_valid_peer_chain(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    peer_chain, peer_block, tx_id, sender_address, recipient_address = _peer_chain_with_native_transfer(
+        blockchain,
+        submission_image,
+        wallets,
+    )
+    blockchain.chain = [peer_chain[0]]
+    blockchain.native_transactions = []
+    blockchain.transfer_intents = []
+    blockchain.pending_transactions = []
+    client = _client(blockchain)
+    _register_peer()
+    _mock_peer_chain(monkeypatch, peer_chain)
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["synced"] == 1
+    assert blockchain.get_latest_block().hash == peer_block.hash
+    assert blockchain.get_native_transaction(tx_id)["status"] == "settled"
+    assert blockchain.get_native_balance_snapshot(sender_address)["final_balance"] == "6"
+    assert blockchain.get_native_balance_snapshot(recipient_address)["final_balance"] == "4"
+    assert blockchain.list_mempool_transactions() == []
+
+
+def test_sync_rejects_invalid_native_transfer_block_without_mutating_local_state(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    peer_chain, _peer_block, tx_id, sender_address, recipient_address = _peer_chain_with_native_transfer(
+        blockchain,
+        submission_image,
+        wallets,
+    )
+    invalid_block = peer_chain[-1].to_dict()
+    invalid_block["native_transactions"][0]["network"] = "zoidberg-mainnet"
+    invalid_block["transactions_hash"] = blockchain._compute_block_native_transactions_hash(
+        invalid_block["native_transactions"]
+    )
+    invalid_block["hash"] = blockchain.calculate_hash_from_dict(invalid_block)
+
+    blockchain.chain = [peer_chain[0]]
+    blockchain.native_transactions = []
+    blockchain.transfer_intents = []
+    blockchain.pending_transactions = []
+    client = _client(blockchain)
+    _register_peer()
+    _mock_peer_chain(
+        monkeypatch,
+        peer_chain,
+        summary_overrides={"latest_block_hash": invalid_block["hash"]},
+        blocks_override=[peer_chain[0].to_dict(), invalid_block],
+    )
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["failed"] == 1
+    assert response.json()["results"][0]["status"] == "failed"
+    assert "network does not match" in response.json()["results"][0]["reason"].lower()
+    assert blockchain.get_latest_block().index == 0
+    assert blockchain.get_native_transaction(tx_id) is None
+    assert blockchain.get_native_balance_snapshot(sender_address)["final_balance"] == "10"
+    assert blockchain.get_native_balance_snapshot(recipient_address)["final_balance"] == "0"

@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.6 adds meme-block settlement on top of local mempool handling, sender nonce reservation, available-balance limits, and peer transaction gossip.
+As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.7 adds stronger block and sync validation on top of local mempool handling, sender nonce reservation, available-balance limits, peer transaction gossip, and meme-block settlement.
 
 ## Core Model
 
@@ -87,7 +87,6 @@ Task 8.4 mempool rules:
 - mempool transactions remain non-final
 - mempool transactions still reserve nonce and available balance
 - local mempool ordering is deterministic
-- local mempool ordering is deterministic
 - mempool transactions remain non-final until accepted block inclusion
 
 Task 8.5 peer rules:
@@ -106,6 +105,14 @@ Task 8.6 settlement rules:
 - settled outgoing transfers reduce final balance
 - settled incoming transfers increase final balance
 - included transactions are removed from the local mempool
+
+Task 8.7 validation rules:
+
+- peer blocks with native transfers validate against chain-before-block state
+- synced chains with native transfers are validated block by block in order
+- canonical block ordering for native transfers is `from_address`, then `nonce`, then `tx_id`
+- peer-provided local transaction status is not authoritative for settlement
+- mempools remain local and are not consensus-wide
 
 ## Balance Fields
 
@@ -134,7 +141,7 @@ That also means:
 
 ## Next Planned Steps
 
-- Task 8.7 hardens block validation and peer-chain compatibility for native transfers
+- Task 8.8 focuses on wallet balances and transfer history cleanup
 
 ## Compatibility Notes
 

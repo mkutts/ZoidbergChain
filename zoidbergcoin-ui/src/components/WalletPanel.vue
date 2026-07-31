@@ -181,7 +181,7 @@
                       </div>
                     </div>
                     <p v-if="transfer.memo" class="wallet-meta history-note">Memo: {{ transfer.memo }}</p>
-                    <p class="wallet-meta history-note">Pending transaction processing. This signed transfer intent has not moved balances yet.</p>
+                    <p class="wallet-meta history-note">Signed pending transfer. It reduces available balance now, but final balance changes only after block inclusion.</p>
                   </li>
                 </ul>
               </template>
@@ -320,7 +320,7 @@ const nativeBalanceLabel = computed(() => {
 });
 const balanceNote = computed(() => (
   accountSummary.value?.note
-  || 'Pending transfer intents do not affect balance until transaction processing is enabled.'
+  || 'Pending outgoing transactions reduce available balance, but final balance changes only after block inclusion.'
 ));
 const sessionExpiryLabel = computed(() => {
   if (!wallet.state.sessionExpiresAt) {

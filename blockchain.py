@@ -1578,7 +1578,7 @@ class Blockchain:
 
     @staticmethod
     def _native_funds_reserved_statuses():
-        return set()
+        return {"signed_pending", "validated_pending", "mempool"}
 
     def _get_reserved_native_transactions_for_wallet(self, wallet_address, *, exclude_tx_ids=None):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)

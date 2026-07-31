@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of July 30, 2026, signed native transfer intents exist and Task 8.2 records them as canonical non-final native transactions with nonce tracking and replay protection.
+As of July 31, 2026, signed native transfer intents exist and Task 8.3 records them as canonical non-final native transactions with nonce tracking, replay protection, and available-balance enforcement.
 
 ## Purpose
 
@@ -106,7 +106,7 @@ Supported statuses:
 
 Current submit-time status is `signed_pending`.
 
-In Task 8.2, `signed_pending` also reserves the sender nonce.
+In Task 8.3, `signed_pending` also reserves the sender nonce and reduces available balance.
 
 ## tx_id Computation
 
@@ -165,7 +165,17 @@ Read endpoint:
 
 - `GET /accounts/{wallet_address}/nonce`
 
-Balances are still not spend-limited by nonce reservation alone. Balance sufficiency remains deferred to Task 8.3.
+## Balance Policy
+
+Task 8.3 rules:
+
+- `final_balance` is chain-derived only
+- `pending_outgoing` includes accepted outgoing non-final transfers and uses `amount + fee`
+- `pending_incoming` is display-only and does not increase available balance
+- `available_balance = final_balance - pending_outgoing`
+- accepted `signed_pending` transfers reduce available balance
+- final balance does not change until later block inclusion and settlement work
+- nonzero fees are not enabled yet
 
 ## Submit And Read Flow
 
@@ -192,16 +202,15 @@ Read endpoints:
 
 ## Important Current Limits
 
-Task 8.1 does not yet:
-- enforce balance sufficiency
+Task 8.3 still does not:
 - admit transactions to a mempool as part of normal submit flow
 - gossip transactions to peers
 - include transactions in blocks
 - settle transfers
-- mutate balances from transfer records
+- mutate final balances from transfer records
 
-Balances stay unchanged until later transaction-processing tasks.
+Final balances stay unchanged until later transaction-processing tasks.
 
 ## Next Planned Steps
 
-- Task 8.3 adds balance sufficiency enforcement
+- Task 8.4 adds mempool storage and validation

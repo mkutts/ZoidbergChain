@@ -563,8 +563,8 @@ def test_transfer_equal_to_available_balance_is_accepted(blockchain):
     assert response.status_code == 200
     balance_state = client.get(f"/accounts/{account.address.lower()}").json()
     assert balance_state["final_balance"] == "5"
-    assert balance_state["pending_outgoing"] == "0"
-    assert balance_state["available_balance"] == "5"
+    assert balance_state["pending_outgoing"] == "5"
+    assert balance_state["available_balance"] == "0"
 
 
 def test_lower_nonce_is_rejected_after_first_accepted_transaction(blockchain):
@@ -595,10 +595,10 @@ def test_submit_with_admit_to_mempool_still_records_signed_pending_transaction(b
     assert "not settled" in body["message"].lower()
     balance_state = client.get(f"/accounts/{account.address.lower()}").json()
     assert balance_state["final_balance"] == "5"
-    assert balance_state["pending_outgoing"] == "0"
-    assert balance_state["available_balance"] == "5"
+    assert balance_state["pending_outgoing"] == "4"
+    assert balance_state["available_balance"] == "1"
 
-def test_transfer_above_available_balance_is_still_recorded_for_future_processing(blockchain):
+def test_transfer_above_available_balance_is_rejected_and_not_recorded(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "5")
@@ -608,14 +608,15 @@ def test_transfer_above_available_balance_is_still_recorded_for_future_processin
     nonce_state = client.get(f"/accounts/{account.address.lower()}/nonce").json()
     history = client.get(f"/accounts/{account.address.lower()}/transactions").json()["transactions"]
 
-    assert response.status_code == 200
-    assert nonce_state["next_nonce"] == 2
-    assert nonce_state["reserved_nonces"] == [1]
-    assert len(history) == 1
+    assert response.status_code == 400
+    assert "insufficient available balance" in response.json()["detail"].lower()
+    assert nonce_state["next_nonce"] == 1
+    assert nonce_state["reserved_nonces"] == []
+    assert history == []
     assert blockchain.get_native_balance(account.address.lower()) == 5
 
 
-def test_multiple_pending_transfers_do_not_change_balance_snapshot(blockchain):
+def test_multiple_pending_transfers_cannot_overcommit_funds(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()
     _fund_native_wallet(blockchain, account.address, "5")
@@ -628,13 +629,14 @@ def test_multiple_pending_transfers_do_not_change_balance_snapshot(blockchain):
     nonce_state = client.get(f"/accounts/{account.address.lower()}/nonce").json()
 
     assert first.status_code == 200
-    assert second.status_code == 200
+    assert second.status_code == 400
+    assert "insufficient available balance" in second.json()["detail"].lower()
     assert third.status_code == 200
     assert balance_state["final_balance"] == "5"
-    assert balance_state["pending_outgoing"] == "0"
-    assert balance_state["available_balance"] == "5"
-    assert nonce_state["next_nonce"] == 4
-    assert nonce_state["reserved_nonces"] == [1, 2, 3]
+    assert balance_state["pending_outgoing"] == "5"
+    assert balance_state["available_balance"] == "0"
+    assert nonce_state["next_nonce"] == 3
+    assert nonce_state["reserved_nonces"] == [1, 2]
 
 
 def test_pending_incoming_does_not_increase_available_balance(blockchain):
@@ -649,7 +651,7 @@ def test_pending_incoming_does_not_increase_available_balance(blockchain):
 
     assert response.status_code == 200
     assert recipient_summary["final_balance"] == "0"
-    assert recipient_summary["pending_incoming"] == "0"
+    assert recipient_summary["pending_incoming"] == "4"
     assert recipient_summary["available_balance"] == "0"
 
 
@@ -667,9 +669,30 @@ def test_wallet_balance_endpoint_returns_full_balance_snapshot(blockchain):
     body = response.json()
     assert body["final_balance"] == "5"
     assert body["native_balance"] == "5"
-    assert body["pending_outgoing"] == "0"
+    assert body["pending_outgoing"] == "4"
     assert body["pending_incoming"] == "0"
-    assert body["available_balance"] == "5"
+    assert body["available_balance"] == "1"
+    assert body["symbol"] == "ZOID"
+
+
+def test_native_account_balance_endpoint_returns_balance_snapshot(blockchain):
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "5")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers, amount="4")
+    response = client.get(f"/accounts/{account.address.lower()}/balance")
+
+    assert submit_response.status_code == 200
+    assert response.status_code == 200
+    body = response.json()
+    assert body["wallet_address"] == account.address.lower()
+    assert body["final_balance"] == "5"
+    assert body["native_balance"] == "5"
+    assert body["pending_outgoing"] == "4"
+    assert body["pending_incoming"] == "0"
+    assert body["available_balance"] == "1"
     assert body["symbol"] == "ZOID"
 
 

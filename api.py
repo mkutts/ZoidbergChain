@@ -816,9 +816,11 @@ def _build_account_summary(normalized_wallet: str):
         "submission_count": len(submissions),
         "vote_count": len(votes),
         "reward_count": len(rewards),
+        "transaction_count": len(transactions),
+        "pending_transaction_count": _count_pending_transfer_intents(transactions),
         "pending_transfer_count": _count_pending_transfer_intents(transactions),
         "note": (
-            "Signed native transactions are recorded for future processing but do not change balances yet. "
+            "Pending outgoing transactions reduce available balance but are not settled until included in a block. "
             "Native accounts do not need to be pre-registered in the old development-only server wallet list. "
             "A verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance."
         ),
@@ -1447,6 +1449,7 @@ async def submit_transfer_intent(
         )
         if str(verification["fee"]) != "0":
             raise ValueError("Nonzero fees are not enabled yet.")
+        blockchain.validate_transaction_balance_sufficiency(transaction_preview.to_dict())
         transfer_intent = blockchain.create_signed_transfer_intent(
             from_address=str(verification["from_address"]),
             to_address=str(verification["to_address"]),
@@ -2907,6 +2910,32 @@ async def get_native_account_transactions(request: Request, wallet_address: str)
         logging.error("ERROR retrieving native account transactions for wallet %s: %s", _short_key(wallet_address), e)
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
+
+@app.get("/accounts/{wallet_address}/balance")
+@api_limit("public_read")
+async def get_native_account_balance(request: Request, wallet_address: str):
+    try:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+        balance_snapshot = blockchain.get_native_balance_snapshot(normalized_wallet)
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "account_type": "metamask_native",
+            "final_balance": balance_snapshot["final_balance"],
+            "native_balance": balance_snapshot["native_balance"],
+            "pending_outgoing": balance_snapshot["pending_outgoing"],
+            "pending_incoming": balance_snapshot["pending_incoming"],
+            "available_balance": balance_snapshot["available_balance"],
+            "symbol": TICKER,
+            "network_name": NETWORK_NAME,
+            "note": "Pending outgoing transactions reduce available balance but are not settled until included in a block.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("ERROR retrieving native account balance for wallet %s: %s", _short_key(wallet_address), e)
+        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+
 @app.get("/get_balance")
 @api_limit("public_read")
 async def get_balance(
@@ -2944,7 +2973,7 @@ async def get_native_wallet_balance(request: Request, wallet_address: str):
             "available_balance": balance_snapshot["available_balance"],
             "symbol": TICKER,
             "network_name": NETWORK_NAME,
-            "note": "Signed native transaction records do not change balances until later transaction processing is enabled.",
+            "note": "Pending outgoing transactions reduce available balance but are not settled until included in a block.",
         }
     except HTTPException:
         raise

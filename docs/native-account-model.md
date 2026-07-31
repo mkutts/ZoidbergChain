@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of July 30, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.2 enforces sender nonce reservation for accepted signed native transactions.
+As of July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.3 enforces sender nonce reservation plus available-balance limits for accepted signed native transactions.
 
 ## Core Model
 
@@ -31,6 +31,7 @@ Primary read endpoints:
 - `GET /accounts/{wallet_address}/rewards`
 - `GET /accounts/{wallet_address}/transfers`
 - `GET /accounts/{wallet_address}/transactions`
+- `GET /accounts/{wallet_address}/balance`
 
 Compatibility read endpoints:
 
@@ -57,12 +58,15 @@ Current meaning of `signed_pending`:
 - the transaction can be queried
 - it is not settled
 - it reserves the sender nonce
-- it does not change balances yet
+- it reduces available balance
+- it does not change final balance yet
 
-Task 8.1 account rules:
+Task 8.3 account rules:
 
 - balances are chain-derived only
-- transfer records do not mutate balances yet
+- pending outgoing transfers reduce available balance
+- pending incoming transfers do not increase available balance
+- transfer records do not mutate final balances yet
 - transaction history may show outgoing and incoming signed records
 - native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
 - old development wallets are not the native account registry
@@ -76,7 +80,7 @@ Task 8.2 nonce rules:
 - conflicting same-sender same-nonce transaction is rejected
 - `GET /accounts/{wallet_address}/nonce` exposes `next_nonce`, `used_nonces`, `reserved_nonces`, policy, and initial nonce
 
-## Task 8.1 Balance Reminder
+## Balance Fields
 
 Native account summaries still expose the balance snapshot fields:
 
@@ -86,17 +90,23 @@ Native account summaries still expose the balance snapshot fields:
 - `pending_incoming`
 - `available_balance`
 
-For Task 8.1, recorded transfer records do not change balances yet.
+For Task 8.3:
 
-That means:
+- `pending_outgoing` includes accepted outgoing non-final transfers
+- `pending_incoming` is display-only
+- `available_balance = final_balance - pending_outgoing`
+- `native_balance` remains equal to `final_balance` for compatibility
+- final balances still do not change until later block inclusion and settlement work
+
+That also means:
 
 - `signed_pending` is not the same as settled
 - transfer recording must not be described as complete or confirmed
-- balance mutation is deferred to later transaction-processing work
+- final-balance mutation is deferred to later transaction-processing work
 
 ## Next Planned Steps
 
-- Task 8.3 adds balance sufficiency enforcement
+- Task 8.4 adds mempool storage and validation
 
 ## Compatibility Notes
 

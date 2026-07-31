@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of July 30, 2026, Task 8.2 is the current implemented phase of the native transaction layer.
+As of July 31, 2026, Task 8.3 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.2 adds nonce tracking and replay protection on top of the Task 8.1 canonical transaction record.
+Task 8.3 adds balance sufficiency and available-balance accounting on top of the Task 8.2 nonce and replay-protection layer.
 
 Implemented now:
 
@@ -19,10 +19,13 @@ Implemented now:
 - strict sequential nonce tracking
 - replay protection and duplicate idempotency
 - nonce read endpoint
+- pending outgoing balance reservation
+- pending incoming balance display
+- available-balance enforcement on signed transfer submission
+- native account balance endpoint
 
 Not implemented yet:
 
-- balance sufficiency enforcement
 - mempool validation or admission requirements
 - peer transaction gossip
 - block inclusion
@@ -86,7 +89,8 @@ Meaning of `signed_pending`:
 - the transaction can be queried by `GET /transactions/{tx_id}`
 - the transaction is not settled
 - the transaction reserves its sender nonce
-- balances do not change yet
+- the transaction reduces available balance
+- final balance does not change yet
 
 ## Deterministic tx_id Rule
 
@@ -208,6 +212,49 @@ Task 8.2 also enforces:
 - conflicting same-sender same-nonce submission is rejected
 - accepted `signed_pending` records reserve nonce across restart
 
+Task 8.3 also enforces:
+
+- amount plus fee must be less than or equal to available balance
+- insufficient submissions are rejected before transaction record acceptance
+- insufficient submissions do not reserve nonce
+- insufficient submissions do not change balance state
+
+## Balance Model
+
+Task 8.3 balance fields:
+
+- `final_balance`: chain-derived native balance only
+- `pending_outgoing`: accepted outgoing non-final native transfers, including `amount + fee`
+- `pending_incoming`: accepted incoming non-final native transfers, display only
+- `available_balance = final_balance - pending_outgoing`
+- `native_balance`: compatibility field equal to `final_balance` for now
+
+Statuses that reserve funds:
+
+- `signed_pending`
+- `validated_pending`
+- `mempool`
+
+Statuses that do not reserve funds:
+
+- `rejected`
+- `failed`
+- `expired`
+- `included`
+- `settled`
+
+Current fee policy:
+
+- fee field exists for forward compatibility
+- nonzero fees are not enabled yet
+- sufficiency math still uses `amount + fee`
+
+Current read surfaces:
+
+- `GET /accounts/{wallet_address}`
+- `GET /accounts/{wallet_address}/balance`
+- compatibility: `GET /wallets/{wallet_address}/balance`
+
 ## Read APIs
 
 Task 8.1 read surfaces:
@@ -233,4 +280,4 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 ## Next Planned Steps
 
-- Task 8.3 adds balance sufficiency enforcement
+- Task 8.4 adds mempool storage and validation

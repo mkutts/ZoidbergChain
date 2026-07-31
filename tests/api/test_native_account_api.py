@@ -29,6 +29,8 @@ def test_native_account_summary_returns_zero_state_for_unknown_wallet(blockchain
     assert body["submission_count"] == 0
     assert body["vote_count"] == 0
     assert body["reward_count"] == 0
+    assert body["transaction_count"] == 0
+    assert body["pending_transaction_count"] == 0
     assert body["pending_transfer_count"] == 0
     assert body["symbol"] == "ZOID"
     assert "do not need to be pre-registered" in body["note"].lower()
@@ -117,10 +119,12 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
     assert summary["submission_count"] == 1
     assert summary["vote_count"] == 1
     assert summary["reward_count"] == 1
+    assert summary["transaction_count"] == 1
+    assert summary["pending_transaction_count"] == 1
     assert summary["pending_transfer_count"] == 1
     assert summary["final_balance"] == summary["native_balance"]
     assert float(summary["native_balance"]) >= 5.0
-    assert summary["pending_outgoing"] == "0"
+    assert summary["pending_outgoing"] == "3"
     assert summary["pending_incoming"] == "0"
 
     submissions = submissions_response.json()["submissions"]
@@ -163,3 +167,21 @@ def test_native_account_endpoints_reject_invalid_address(blockchain):
 
     assert response.status_code == 400
     assert "ethereum-style 0x address" in response.json()["detail"].lower()
+
+
+def test_native_account_balance_endpoint_returns_safe_balance_snapshot(blockchain):
+    client = _client(blockchain)
+    wallet_address = _create_metamask_account().address
+
+    response = client.get(f"/accounts/{wallet_address}/balance")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["wallet_address"] == wallet_address.lower()
+    assert body["final_balance"] == "0"
+    assert body["native_balance"] == "0"
+    assert body["pending_outgoing"] == "0"
+    assert body["pending_incoming"] == "0"
+    assert body["available_balance"] == "0"
+    assert body["symbol"] == "ZOID"
+    assert "session_token" not in str(body)

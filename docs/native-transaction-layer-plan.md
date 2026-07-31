@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of Friday, July 31, 2026, Task 8.4 is the current implemented phase of the native transaction layer.
+As of Friday, July 31, 2026, Task 8.5 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.4 adds local mempool validation, admission, storage, and revalidation on top of the Task 8.3 balance-sufficiency layer.
+Task 8.5 adds peer gossip and lightweight peer mempool sync on top of the Task 8.4 local mempool layer.
 
 Implemented now:
 
@@ -27,10 +27,14 @@ Implemented now:
 - local mempool admission endpoint
 - local mempool read endpoints
 - local mempool revalidation endpoint
+- peer transaction receive endpoint
+- transaction broadcast endpoint
+- peer transaction fetch endpoint
+- peer mempool summary endpoint
+- lightweight peer transaction and mempool sync helpers
 
 Not implemented yet:
 
-- peer transaction gossip
 - block inclusion
 - settlement
 - balance mutation from transfer records
@@ -307,6 +311,40 @@ Ordering policy:
 - then `nonce` ascending
 - then `tx_id` ascending
 
+## Peer Transaction Gossip
+
+Task 8.5 architecture:
+
+- user transaction signatures authorize the transfer itself
+- peer auth or signed peer messages authorize node-to-node transport
+- peer-received transactions do not require local wallet sessions
+- local nodes validate peer transactions independently before mempool admission
+- mempools remain local and are not consensus-critical yet
+
+Peer endpoints:
+
+- `POST /peers/transactions/receive`
+- `GET /peers/transactions/{tx_id}`
+- `GET /peers/mempool/summary`
+- `POST /transactions/{tx_id}/broadcast`
+
+Sync helpers:
+
+- `sync_transaction_from_peer(...)`
+- `sync_mempool_from_peer(...)`
+
+Trust rules:
+
+- do not trust peer-provided local status blindly
+- do not trust peer local-only fields such as `admitted_at`, `created_at`, `updated_at`, or `rejection_reason`
+- canonical payload, `tx_id`, signed message, and signature remain authoritative
+- local validation may reject transactions another peer accepted
+
+Auto-broadcast decision:
+
+- automatic gossip on local mempool admission remains disabled for now
+- manual broadcast is available through `POST /transactions/{tx_id}/broadcast`
+
 ## Read APIs
 
 Task 8.1 read surfaces:
@@ -332,5 +370,4 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 ## Next Planned Steps
 
-- Task 8.5 adds peer transaction gossip
 - Task 8.6 adds block inclusion and settlement

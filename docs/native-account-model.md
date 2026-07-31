@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.4 adds local mempool handling on top of sender nonce reservation and available-balance limits for accepted signed native transactions.
+As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.5 adds peer transaction gossip on top of local mempool handling, sender nonce reservation, and available-balance limits for accepted signed native transactions.
 
 ## Core Model
 
@@ -89,6 +89,14 @@ Task 8.4 mempool rules:
 - local mempool ordering is deterministic
 - no peer gossip, block inclusion, or settlement is implemented yet
 
+Task 8.5 peer rules:
+
+- peer-received transactions do not require local wallet sessions
+- peer transport auth is separate from user transaction signatures
+- local nodes may reject peer transactions during local validation
+- peer mempools are not consensus-critical
+- final balances still do not change
+
 ## Balance Fields
 
 Native account summaries still expose the balance snapshot fields:
@@ -115,7 +123,6 @@ That also means:
 
 ## Next Planned Steps
 
-- Task 8.5 adds peer transaction gossip
 - Task 8.6 adds block inclusion and settlement
 
 ## Compatibility Notes

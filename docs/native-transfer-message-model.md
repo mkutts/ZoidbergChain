@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.4 records them as canonical non-final native transactions with nonce tracking, replay protection, available-balance enforcement, and local mempool admission.
+As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.5 records them as canonical non-final native transactions with nonce tracking, replay protection, available-balance enforcement, local mempool admission, and peer gossip support.
 
 ## Purpose
 
@@ -203,6 +203,24 @@ Current mempool endpoints:
 
 Mempool transactions are still not settled and do not change final balance.
 
+## Peer Gossip Policy
+
+Task 8.5 adds:
+
+- peer transaction receive at `POST /peers/transactions/receive`
+- peer transaction fetch at `GET /peers/transactions/{tx_id}`
+- peer mempool summary at `GET /peers/mempool/summary`
+- manual transaction broadcast at `POST /transactions/{tx_id}/broadcast`
+- lightweight peer mempool sync helpers
+
+Current rules:
+
+- peer transport auth is separate from the user transaction signature
+- peer-received transactions do not require local wallet sessions
+- local validation may reject a peer transaction that another node accepted
+- mempools are local candidate pools and are not consensus-critical yet
+- no automatic broadcast is required for this phase
+
 ## Submit And Read Flow
 
 Current flow:
@@ -239,5 +257,4 @@ Final balances stay unchanged until later transaction-processing tasks.
 
 ## Next Planned Steps
 
-- Task 8.5 adds peer transaction gossip
 - Task 8.6 adds block inclusion and settlement

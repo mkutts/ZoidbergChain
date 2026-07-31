@@ -12,9 +12,6 @@ from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 from wallet_auth import WalletAuthManager
 
-pytestmark = pytest.mark.skip(reason="Deferred until post-Task 8.1 block inclusion work.")
-
-
 def _client(blockchain):
     import config
     import api

@@ -542,6 +542,8 @@ def _serialize_transfer_intent(transfer_intent):
         status_detail = "Admitted to the local mempool. Not settled until included in a block."
     elif status == "validated_pending":
         status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+    elif status == "settled":
+        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
     elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
@@ -574,6 +576,8 @@ def _serialize_native_transaction(transaction):
         status_detail = "Admitted to the local mempool. Not settled until included in a block."
     elif status == "validated_pending":
         status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+    elif status == "settled":
+        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
     elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
@@ -1505,9 +1509,7 @@ async def submit_transfer_intent(
         body["admitted_at"] = admission.get("admitted_at")
         body["message"] = admission["message"]
         return body
-    body["message"] = (
-        "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
-    )
+    body["message"] = "Signed native ZOID transaction recorded. It is not settled until included in a meme-mined block."
     return body
 
 
@@ -2889,7 +2891,7 @@ async def get_native_account_transfers(request: Request, wallet_address: str):
             "account_type": "metamask_native",
             "network_name": NETWORK_NAME,
             "transfers": _get_account_transfers(normalized_wallet),
-            "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+            "note": "Transfer intents are pending and non-final until included in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -2924,7 +2926,7 @@ async def get_native_account_transactions(request: Request, wallet_address: str)
             "account_type": "metamask_native",
             "network_name": NETWORK_NAME,
             "transactions": _get_account_transactions(normalized_wallet),
-            "note": "Signed pending transactions are recorded but not settled until transaction processing is enabled.",
+            "note": "Signed pending transactions remain non-final until included in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -3037,7 +3039,7 @@ async def get_wallet_transfer_intents(request: Request, wallet_address: str):
             "wallet_address": normalized_wallet,
             "network_name": NETWORK_NAME,
             "transfers": transfers,
-            "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+            "note": "Transfer intents are pending and non-final until included in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -3055,7 +3057,7 @@ async def get_wallet_transactions(request: Request, wallet_address: str):
             "wallet_address": normalized_wallet,
             "network_name": NETWORK_NAME,
             "transactions": _get_account_transactions(normalized_wallet),
-            "note": "Signed pending transactions are recorded but not settled until transaction processing is enabled.",
+            "note": "Signed pending transactions remain non-final until included in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -3072,7 +3074,7 @@ async def get_transfer_intent(request: Request, transfer_id: str):
         raise HTTPException(status_code=404, detail=f"Transfer intent not found: {transfer_id}")
     return {
         "transfer": _serialize_transfer_intent(transfer_intent),
-        "note": "Transfer intents are pending and non-final until transaction processing is enabled.",
+        "note": "Transfer intents are pending and non-final until included in a meme-mined block.",
     }
 
 
@@ -3084,7 +3086,7 @@ async def get_native_transaction(request: Request, tx_id: str):
         raise HTTPException(status_code=404, detail=f"Transaction not found: {tx_id}")
     return {
         "transaction": _serialize_native_transaction(transaction),
-        "note": "Recorded as a signed native ZOID transaction. Not settled yet.",
+        "note": "Native ZOID transaction record. Non-final until included in a meme-mined block unless status is settled.",
     }
 
 

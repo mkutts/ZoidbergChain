@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.5 adds peer transaction gossip on top of local mempool handling, sender nonce reservation, and available-balance limits for accepted signed native transactions.
+As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.6 adds meme-block settlement on top of local mempool handling, sender nonce reservation, available-balance limits, and peer transaction gossip.
 
 ## Core Model
 
@@ -67,7 +67,7 @@ Task 8.3 account rules:
 - balances are chain-derived only
 - pending outgoing transfers reduce available balance
 - pending incoming transfers do not increase available balance
-- transfer records do not mutate final balances yet
+- non-final transfer records do not mutate final balances by themselves
 - transaction history may show outgoing and incoming signed records
 - native accounts remain MetaMask/Ethereum-style `0x` ZoidbergChain accounts
 - old development wallets are not the native account registry
@@ -87,7 +87,8 @@ Task 8.4 mempool rules:
 - mempool transactions remain non-final
 - mempool transactions still reserve nonce and available balance
 - local mempool ordering is deterministic
-- no peer gossip, block inclusion, or settlement is implemented yet
+- local mempool ordering is deterministic
+- mempool transactions remain non-final until accepted block inclusion
 
 Task 8.5 peer rules:
 
@@ -95,11 +96,20 @@ Task 8.5 peer rules:
 - peer transport auth is separate from user transaction signatures
 - local nodes may reject peer transactions during local validation
 - peer mempools are not consensus-critical
-- final balances still do not change
+
+Task 8.6 settlement rules:
+
+- certified meme-mined blocks may include native transactions from the local mempool
+- transfer-only blocks are still not allowed
+- included transactions become `settled` immediately after accepted block persistence
+- settled transactions no longer count toward `pending_outgoing` or `pending_incoming`
+- settled outgoing transfers reduce final balance
+- settled incoming transfers increase final balance
+- included transactions are removed from the local mempool
 
 ## Balance Fields
 
-Native account summaries still expose the balance snapshot fields:
+Native account summaries expose these balance snapshot fields:
 
 - `final_balance`
 - `native_balance`
@@ -107,23 +117,24 @@ Native account summaries still expose the balance snapshot fields:
 - `pending_incoming`
 - `available_balance`
 
-For Task 8.3:
+Current balance rules:
 
 - `pending_outgoing` includes accepted outgoing non-final transfers
 - `pending_incoming` is display-only
 - `available_balance = final_balance - pending_outgoing`
 - `native_balance` remains equal to `final_balance` for compatibility
-- final balances still do not change until later block inclusion and settlement work
+- final balance is chain-derived and includes settled native transfers from accepted blocks
 
 That also means:
 
 - `signed_pending` is not the same as settled
+- `mempool` is not the same as settled
 - transfer recording must not be described as complete or confirmed
-- final-balance mutation is deferred to later transaction-processing work
+- settlement happens only through accepted meme-mined blocks
 
 ## Next Planned Steps
 
-- Task 8.6 adds block inclusion and settlement
+- Task 8.7 hardens block validation and peer-chain compatibility for native transfers
 
 ## Compatibility Notes
 

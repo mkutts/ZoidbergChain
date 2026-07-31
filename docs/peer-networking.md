@@ -1,6 +1,6 @@
 # Peer Networking
 
-As of Friday, July 31, 2026, ZoidbergChain peer networking supports native transaction gossip in addition to existing submission, vote, certificate, and block transport.
+As of Friday, July 31, 2026, ZoidbergChain peer networking supports native transaction gossip in addition to existing submission, vote, certificate, and block transport, and peer-received blocks may now carry settled native transfers.
 
 ## Transaction Transport Model
 
@@ -61,11 +61,9 @@ Mempools are local candidate pools and are not consensus-critical yet.
 
 Not implemented yet:
 
-- block inclusion of native transfers
-- settlement of native transfers
 - replacement policy
 - mempool consensus
 
 ## Next Step
 
-- Task 8.6 adds native transfer inclusion in meme-mined blocks and settlement behavior
+- Task 8.7 hardens full block-with-transaction validation and peer compatibility

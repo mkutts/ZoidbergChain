@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of Friday, July 31, 2026, Task 8.5 is the current implemented phase of the native transaction layer.
+As of Friday, July 31, 2026, Task 8.6 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.5 adds peer gossip and lightweight peer mempool sync on top of the Task 8.4 local mempool layer.
+Task 8.6 adds meme-block inclusion and settlement for valid native ZOID transfers on top of the Task 8.5 peer gossip and local mempool layer.
 
 Implemented now:
 
@@ -32,12 +32,16 @@ Implemented now:
 - peer transaction fetch endpoint
 - peer mempool summary endpoint
 - lightweight peer transaction and mempool sync helpers
+- deterministic native transaction selection for meme-mined blocks
+- native transaction settlement on accepted block persistence
+- settled balance mutation from accepted chain blocks
+- mempool cleanup after block inclusion
 
 Not implemented yet:
 
-- block inclusion
-- settlement
-- balance mutation from transfer records
+- replacement policy
+- full mempool consensus
+- deep peer block validation hardening
 - wrapped ZOID or ERC-20 behavior
 
 ## Canonical NativeTransaction Shape
@@ -203,7 +207,7 @@ Returned response:
   "tx_id": "...",
   "transfer_id": "...",
   "status": "signed_pending",
-  "message": "Signed native ZOID transaction recorded. It is not settled until transaction processing is enabled."
+  "message": "Signed native ZOID transaction recorded. It is not settled until included in a meme-mined block."
 }
 ```
 
@@ -275,9 +279,9 @@ Task 8.4 uses these non-final statuses:
 Task 8.4 rules:
 
 - only `mempool` or `validated_pending` transactions are future block-inclusion candidates
-- `signed_pending` alone is not enough for future block inclusion
-- mempool transactions remain non-final
-- final balances still do not change
+- `signed_pending` alone is not enough for block inclusion
+- mempool transactions remain non-final until block inclusion
+- final balances change only after accepted chain settlement
 
 Validation checks used for local mempool admission:
 
@@ -313,7 +317,7 @@ Ordering policy:
 
 ## Peer Transaction Gossip
 
-Task 8.5 architecture:
+Task 8.5 and 8.6 architecture:
 
 - user transaction signatures authorize the transfer itself
 - peer auth or signed peer messages authorize node-to-node transport
@@ -343,6 +347,11 @@ Trust rules:
 Auto-broadcast decision:
 
 - automatic gossip on local mempool admission remains disabled for now
+- accepted meme-mined blocks may include up to `MAX_TRANSACTIONS_PER_BLOCK` native transfers
+- transaction ordering is deterministic and block-local validation runs again at mint time
+- transfers do not create blocks by themselves and only ride inside certified meme-mined blocks
+- settled transactions are marked with `status = settled`, `included_block_hash`, `included_block_height`, and `settled_at`
+- final balances are derived from accepted chain blocks, including settled incoming and outgoing native transfers
 - manual broadcast is available through `POST /transactions/{tx_id}/broadcast`
 
 ## Read APIs
@@ -366,8 +375,8 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 - old development wallets are not the native account registry
 - native transfer records do not change balances yet
-- a recorded transaction is not the same thing as a settled transfer
+- a recorded transaction is not the same thing as a settled transfer until it is included in an accepted meme-mined block
 
 ## Next Planned Steps
 
-- Task 8.6 adds block inclusion and settlement
+- Task 8.7 hardens full block-with-transaction validation and peer compatibility

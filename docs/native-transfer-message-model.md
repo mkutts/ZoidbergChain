@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.5 records them as canonical non-final native transactions with nonce tracking, replay protection, available-balance enforcement, local mempool admission, and peer gossip support.
+As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.6 carries canonical native transactions through nonce validation, balance reservation, peer gossip, meme-block inclusion, and final settlement.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Native ZOID transfers are ZoidbergChain-native messages, not Ethereum or ERC-20 
 
 - MetaMask is used for signing
 - the `0x...` address is the native ZoidbergChain account identifier
-- signing a transfer message does not settle the transfer
+- signing a transfer message alone does not settle the transfer
 
 ## Canonical Signed Transfer Payload
 
@@ -174,7 +174,7 @@ Task 8.3 rules:
 - `pending_incoming` is display-only and does not increase available balance
 - `available_balance = final_balance - pending_outgoing`
 - accepted `signed_pending` transfers reduce available balance
-- final balance does not change until later block inclusion and settlement work
+- final balance changes only after the transaction is included in an accepted meme-mined block
 - nonzero fees are not enabled yet
 
 ## Local Mempool Policy
@@ -201,7 +201,7 @@ Current mempool endpoints:
 - `GET /mempool/{tx_id}`
 - `POST /mempool/revalidate`
 
-Mempool transactions are still not settled and do not change final balance.
+Mempool transactions remain non-final until included in a meme-mined block.
 
 ## Peer Gossip Policy
 
@@ -220,6 +220,24 @@ Current rules:
 - local validation may reject a peer transaction that another node accepted
 - mempools are local candidate pools and are not consensus-critical yet
 - no automatic broadcast is required for this phase
+
+## Block Inclusion And Settlement
+
+Task 8.6 adds:
+
+- deterministic transaction selection from the local mempool during certified meme minting
+- block-native transaction fields: `native_transactions`, `transaction_ids`, `transaction_count`, and `transactions_hash`
+- settlement to `status = settled` immediately after accepted local or peer block persistence
+- `included_block_hash`, `included_block_height`, and `settled_at` tracking
+
+Current rules:
+
+- transfers do not create blocks by themselves
+- transfers may only ride inside certified meme-mined blocks
+- local nodes revalidate tx shape, signature, network, nonce, and available balance at block construction time
+- transaction ordering is deterministic and does not use fee priority
+- included transactions are removed from the local mempool
+- settled transfers change final balances through accepted chain state
 
 ## Submit And Read Flow
 
@@ -246,15 +264,13 @@ Read endpoints:
 
 ## Important Current Limits
 
-Task 8.3 still does not:
+Current limits:
 - admit transactions to a mempool as part of normal submit flow
-- gossip transactions to peers
-- include transactions in blocks
-- settle transfers
-- mutate final balances from transfer records
-
-Final balances stay unchanged until later transaction-processing tasks.
+- create transfer-only blocks
+- support replacement policy
+- provide full mempool consensus across peers
+- support wrapped ZOID or ERC-20 behavior
 
 ## Next Planned Steps
 
-- Task 8.6 adds block inclusion and settlement
+- Task 8.7 strengthens block validation and peer compatibility for blocks carrying native transfers

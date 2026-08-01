@@ -199,7 +199,7 @@ ALLOW_INSECURE_LOCAL_PEERS = _env_flag(
     _CURRENT_SECURITY_DEFAULTS["ALLOW_INSECURE_LOCAL_PEERS"],
 )
 ENABLE_RATE_LIMITING = _env_flag_any(
-    ("ENABLE_RATE_LIMITING", "RATE_LIMIT_ENABLED"),
+    ("ENABLE_RATE_LIMITING", "RATE_LIMIT_ENABLED", "RATE_LIMITING_ENABLED"),
     _CURRENT_SECURITY_DEFAULTS["ENABLE_RATE_LIMITING"],
 )
 ENABLE_SIGNED_PEER_MESSAGES = _env_flag(
@@ -314,6 +314,13 @@ def _load_allowed_cors_origins():
     if explicit_origins:
         return tuple(dict.fromkeys(explicit_origins))
 
+    frontend_origin = (os.getenv("FRONTEND_ORIGIN") or "").strip()
+    if frontend_origin:
+        default_origins = [frontend_origin]
+        if ENVIRONMENT == "development":
+            default_origins = list(DEFAULT_DEVELOPMENT_ORIGINS) + default_origins
+        return tuple(dict.fromkeys(default_origins))
+
     default_origins = list(DEFAULT_PUBLIC_DEMO_ORIGINS)
     if ENVIRONMENT == "development":
         default_origins = list(DEFAULT_DEVELOPMENT_ORIGINS) + default_origins
@@ -416,6 +423,8 @@ if STORAGE_BACKEND not in VALID_STORAGE_BACKENDS:
     )
 SQLITE_DB_PATH = _env_value("SQLITE_DB_PATH", _DATA_PATHS["sqlite_db_path"])
 LOG_DIR = _clean_path(_env_value("LOG_DIR", os.path.join(DATA_DIR, "logs")))
+LOG_LEVEL = _env_value("LOG_LEVEL", "INFO").upper()
+API_BASE_URL = _env_value("API_BASE_URL", PUBLIC_NODE_URL)
 PUBLIC_DEMO_MODE = _env_flag("PUBLIC_DEMO_MODE", ENVIRONMENT in {"testnet", "production"})
 CORS_ALLOWED_ORIGINS = _load_allowed_cors_origins()
 

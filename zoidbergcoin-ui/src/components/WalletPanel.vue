@@ -6,6 +6,9 @@
       <p class="wallet-note">
         MetaMask provides the signing key for your native ZoidbergChain account. Native ZOID lives on ZoidbergChain, settles in meme-mined blocks, and does not appear in normal MetaMask yet.
       </p>
+      <p v-if="showPublicDemoNotice" class="wallet-demo-note">
+        Controlled testnet. Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
+      </p>
     </div>
 
     <div class="wallet-card" :class="{ connected: wallet.state.isConnected }">
@@ -341,8 +344,10 @@ import {
   formatTransferIntentTimestamp,
   humanizeNativeTransferError,
 } from '../utils/nativeWalletUi.js';
+import { isPublicDemoMode } from '../utils/runtimeConfig';
 
 const wallet = useWallet();
+const showPublicDemoNotice = isPublicDemoMode();
 const copyButtonLabel = ref('Copy Full Address');
 const accountSummary = ref(null);
 const isBalanceLoading = ref(false);
@@ -783,6 +788,11 @@ onBeforeUnmount(() => {
 .wallet-note,
 .wallet-meta {
   color: #b8b8b8;
+  line-height: 1.5;
+}
+
+.wallet-demo-note {
+  color: #ffd58a;
   line-height: 1.5;
 }
 

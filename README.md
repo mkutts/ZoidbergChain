@@ -59,4 +59,6 @@ See the detailed runbooks in:
 
 - [docs/public-demo-deployment-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/public-demo-deployment-checklist.md)
 - [docs/backup-restore-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/backup-restore-runbook.md)
+- [docs/live-domain-deployment-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/live-domain-deployment-checklist.md)
 - [docs/testnet-reset-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-reset-runbook.md)
+- [docs/live-domain-deployment-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/live-domain-deployment-runbook.md)

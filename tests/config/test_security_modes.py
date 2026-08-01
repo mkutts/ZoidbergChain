@@ -122,6 +122,12 @@ def test_rate_limiting_default_differs_by_environment(environment, expected_rate
         assert config.rate_limiting_enabled() is expected_rate_limiting
 
 
+def test_rate_limiting_enabled_alias_is_supported():
+    with loaded_config(ENVIRONMENT="testnet", RATE_LIMITING_ENABLED="false") as config:
+        assert config.ENABLE_RATE_LIMITING is False
+        assert config.rate_limiting_enabled() is False
+
+
 @pytest.mark.parametrize(
     ("environment", "expected_peer_auth"),
     [
@@ -224,3 +230,11 @@ def test_cors_allowed_origins_can_be_overridden_explicitly():
             "https://demo.zoidbergcoin.com",
             "https://zoidbergcoin.com",
         ]
+
+
+def test_frontend_origin_is_used_when_explicit_cors_list_is_absent():
+    with loaded_config(
+        ENVIRONMENT="production",
+        FRONTEND_ORIGIN="https://zoidbergcoin.com",
+    ) as config:
+        assert config.cors_allowed_origins() == ["https://zoidbergcoin.com"]

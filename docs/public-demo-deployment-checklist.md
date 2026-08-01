@@ -5,6 +5,8 @@ Use this checklist before exposing the Stage 1 public demo.
 - `ENVIRONMENT=testnet` or equivalent production-like demo mode is set.
 - `PUBLIC_API_MODE=true` is set.
 - `PUBLIC_DEMO_MODE=true` is set.
+- `API_BASE_URL=https://zoidbergcoin.com/api` is set for the frontend build.
+- `PUBLIC_NODE_URL=https://zoidbergcoin.com` is set.
 - dev tools are disabled.
 - private key export is disabled.
 - reset endpoints are disabled.
@@ -14,6 +16,7 @@ Use this checklist before exposing the Stage 1 public demo.
 - upload limits are enabled.
 - strict MIME validation is enabled.
 - CORS is restricted to the intended frontend origins.
+- `zoidbergcoin.com` and `www.zoidbergcoin.com` DNS records are in place.
 - HTTPS is configured.
 - `VITE_API_BASE_URL` points to the intended public API origin.
 - `NODE_DATA_DIR`, `CONTENT_STORAGE_DIR`, and `LOG_DIR` are configured.
@@ -26,3 +29,4 @@ Use this checklist before exposing the Stage 1 public demo.
 - two-node native transfer test passes.
 - the public demo disclaimer is visible in the UI.
 - the old `/wallets/...` compatibility reads were checked and return safe read-only data.
+- `https://zoidbergcoin.com/api/health` responds successfully.

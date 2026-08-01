@@ -61,10 +61,12 @@ from validators import (
 )
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
+    API_BASE_URL,
     COIN_NAME,
     TICKER,
     ENABLE_RATE_LIMITING,
     LOG_DIR,
+    LOG_LEVEL,
     PEER_SIGNATURE_WINDOW_SECONDS,
     ENVIRONMENT,
     ENABLE_STRICT_MIME_VALIDATION,
@@ -150,9 +152,10 @@ from peer_sync import (
     sync_missing_content,
 )
 
+os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
-    filename="api.log",  # Save logs to a file
-    level=logging.INFO,  # Set log level to INFO
+    filename=os.path.join(LOG_DIR, "api.log"),
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)

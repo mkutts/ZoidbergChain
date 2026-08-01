@@ -1,0 +1,17 @@
+[Unit]
+Description=ZoidbergChain FastAPI backend
+After=network.target
+
+[Service]
+Type=simple
+User=zoidbergchain
+Group=www-data
+WorkingDirectory=/srv/zoidbergchain/current
+EnvironmentFile=/etc/zoidbergchain/zoidbergchain.env
+ExecStart=/srv/zoidbergchain/venv/bin/python -m uvicorn api:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

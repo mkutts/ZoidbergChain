@@ -1,4 +1,11 @@
-const IMPORT_META_ENV = import.meta?.env || {};
+const IMPORT_META_ENV = {
+  MODE: import.meta.env.MODE,
+  PROD: import.meta.env.PROD,
+  VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
+  VITE_APP_ENVIRONMENT: import.meta.env.VITE_APP_ENVIRONMENT,
+  VITE_PUBLIC_DEMO_MODE: import.meta.env.VITE_PUBLIC_DEMO_MODE,
+  VITE_ENABLE_DEV_TOOLS: import.meta.env.VITE_ENABLE_DEV_TOOLS,
+};
 
 function normalizeEnvironment(rawEnvironment) {
   const normalized = String(rawEnvironment || '').trim().toLowerCase();

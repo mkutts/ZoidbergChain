@@ -18,6 +18,11 @@ Task 8 is complete for controlled dev/testnet use.
 - two-node native transfer verification exists
 - Task 8.10 validation, reliability, and regression review is complete
 
+Next major phase:
+
+- Task 9 - Public Demo / Testnet Deployment Readiness
+- see [roadmap.md](/C:/Users/mattk/ZoidbergChain/docs/roadmap.md) for the full Stage 1 through Stage 4 path
+
 ## Threat Model Summary
 
 - native ZOID transfers are signed ZoidbergChain messages, not Ethereum or ERC-20 transfers
@@ -70,5 +75,7 @@ Task 8 is complete for controlled dev/testnet use.
 - mempools are still local, not consensus-wide
 - no transfer-only blocks
 - no wrapped ZOID or ERC-20 behavior
+- old `/wallets/...` compatibility read endpoints still exist
+- not production/mainnet ready
 - no external production security audit yet
 - treat the current feature set as controlled dev/testnet only unless hardened further

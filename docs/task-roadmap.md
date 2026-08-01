@@ -2,6 +2,30 @@
 
 This roadmap captures the current documented task sequence for the native wallet and MetaMask signature identity work.
 
+## Current Status
+
+ZoidbergChain is complete through Task 8 for controlled dev/testnet use.
+
+Completed now:
+
+- Task 1: Coin Rules and Submission Lifecycle
+- Task 2: Peer-to-Peer Networking
+- Task 3: Meme Proof of Originality Consensus
+- Task 4: Security and Key Management
+- Task 5: Storage Hardening
+- Task 6: Content Storage and Transport
+- Task 7: MetaMask Native Wallet Identity
+- Task 8: Native Transaction Layer Hardening
+
+Known intentional limitations:
+
+- no replacement policy
+- mempools are local, not consensus-wide
+- transfer-only blocks are intentionally unsupported
+- no wrapped ZOID / ERC-20 behavior
+- not production/mainnet ready
+- dev/testnet only until later hardening
+
 ## Task 7: Native Wallet + MetaMask Signature Identity
 
 - 7.0A Architecture decision worksheet
@@ -57,10 +81,39 @@ Known remaining limitations by design:
 - old `/wallets/...` compatibility read endpoints still exist
 - appropriate for controlled dev/testnet use, not production-hardening complete
 
-## Next Phase
+## Stage Definitions
 
-- Task 9 Node identity/open network prep
-- Task 10 Public testnet deployment
-- Task 11 Wallet UX / MetaMask Snap or custom wallet
-- Task 12 Wrapped ZOID bridge planning
-- Task 13 Liquidity / exchange readiness
+Stage 1:
+Public demo / controlled testnet explorer after Task 9.
+
+Stage 2:
+Invite-only public testnet after Task 10.
+
+Stage 3:
+Open public testnet after Tasks 11-13.
+
+Stage 4:
+Mainnet / real value readiness after Tasks 14-18 and external review.
+
+## Next Major Phase
+
+Task 9: Public Demo / Testnet Deployment Readiness.
+
+This phase makes `zoidbergcoin.com` safe to show publicly as a controlled demo/testnet explorer without changing consensus, storage defaults, or the native transaction model.
+
+## Tasks 9-18
+
+- Task 9: Public Demo / Testnet Deployment Readiness
+- Task 10: Voting Identity, Anti-Sybil Rules, and Voter Incentives
+- Task 11: Multi-Media Original Content Support
+- Task 12: Content Compression, Storage Strategy, and Chain Bloat Prevention
+- Task 13: Public Content Moderation and Abuse Controls
+- Task 14: Production Node and Validator Hardening
+- Task 15: Transaction Policy Completion
+- Task 16: Token Economics and Reward Policy Finalization
+- Task 17: Wrapped ZOID / ERC-20 Bridge Planning
+- Task 18: External Review / Audit / Mainnet Launch Checklist
+
+Detailed staged roadmap:
+
+- see [roadmap.md](/C:/Users/mattk/ZoidbergChain/docs/roadmap.md)

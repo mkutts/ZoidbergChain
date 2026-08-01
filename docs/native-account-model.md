@@ -2,6 +2,16 @@
 
 As of Saturday, August 1, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.10 hardens wallet balances, transfer history wording, persistence safety, and the native account UX for controlled dev/testnet use.
 
+## Current Status
+
+Current status:
+
+- ZoidbergChain is complete through Task 8 for controlled dev/testnet use
+- MetaMask-backed native accounts use canonical native transaction records
+- old `/wallets/...` endpoints remain read-only compatibility surfaces
+- the current roadmap moves next to Task 9 public demo and testnet deployment readiness
+- later stages are documented in [roadmap.md](/C:/Users/mattk/ZoidbergChain/docs/roadmap.md)
+
 ## Core Model
 
 - a verified MetaMask signer becomes a native ZoidbergChain account

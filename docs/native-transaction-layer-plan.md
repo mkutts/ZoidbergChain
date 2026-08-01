@@ -2,6 +2,27 @@
 
 As of Saturday, August 1, 2026, Task 8.10 is the current implemented phase of the native transaction layer.
 
+## Current Status
+
+ZoidbergChain is complete through Task 8 for controlled dev/testnet use.
+
+- native ZOID transfers are MetaMask-signed
+- transactions persist as canonical records with deterministic `tx_id`
+- nonce and replay protection are active
+- balance sufficiency and available-balance enforcement are active
+- local mempool lifecycle exists
+- peer transaction gossip exists
+- native transfers can be included in certified meme-mined blocks
+- transfers settle only inside accepted meme-mined blocks
+- peer block validation checks native transfer transactions
+- two-node native transfer verification exists
+- Task 8.10 validation, reliability, and regression review is complete
+
+Next major phase:
+
+- Task 9 - Public Demo / Testnet Deployment Readiness
+- see [roadmap.md](/C:/Users/mattk/ZoidbergChain/docs/roadmap.md) for the Stage 1 through Stage 4 path
+
 ## Current Scope
 
 Task 8.10 hardens the native transaction layer for controlled development and testnet use on top of the earlier recording, nonce, balance, mempool, gossip, settlement, validation, UX, and two-node verification work.

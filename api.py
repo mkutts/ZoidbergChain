@@ -537,13 +537,15 @@ def _serialize_block(block):
 
 def _serialize_transfer_intent(transfer_intent):
     status = transfer_intent.get("status")
-    status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
+    status_detail = "Signed native ZOID transfer recorded. Not settled yet."
     if status == "mempool":
-        status_detail = "Admitted to the local mempool. Not settled until included in a block."
+        status_detail = "In local mempool. Not settled yet."
     elif status == "validated_pending":
-        status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+        status_detail = "Signed native ZOID transfer recorded. Not settled yet."
+    elif status == "included":
+        status_detail = "Included in meme-mined block."
     elif status == "settled":
-        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
+        status_detail = "Settled on ZoidbergChain."
     elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":
@@ -571,13 +573,15 @@ def _serialize_transfer_intent(transfer_intent):
 
 def _serialize_native_transaction(transaction):
     status = transaction.get("status")
-    status_detail = "Recorded as a signed native ZOID transaction. Not settled yet."
+    status_detail = "Signed native ZOID transfer recorded. Not settled yet."
     if status == "mempool":
-        status_detail = "Admitted to the local mempool. Not settled until included in a block."
+        status_detail = "In local mempool. Not settled yet."
     elif status == "validated_pending":
-        status_detail = "Validated and eligible for local mempool handling. Not settled yet."
+        status_detail = "Signed native ZOID transfer recorded. Not settled yet."
+    elif status == "included":
+        status_detail = "Included in meme-mined block."
     elif status == "settled":
-        status_detail = "Included in a meme-mined block and settled on ZoidbergChain."
+        status_detail = "Settled on ZoidbergChain."
     elif status == "rejected":
         status_detail = "Rejected during transaction validation. Not settled."
     elif status == "expired":

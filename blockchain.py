@@ -198,6 +198,138 @@ class Blockchain:
         candidate = str(value or "").strip()
         return candidate
 
+    @staticmethod
+    def _build_transfer_intent_record_from_transaction(
+        transaction,
+        *,
+        transfer_id=None,
+        signed_at=None,
+        created_at=None,
+        updated_at=None,
+    ):
+        payload = transaction.to_dict() if hasattr(transaction, "to_dict") else dict(transaction or {})
+        record = {
+            "transfer_id": str(transfer_id or os.urandom(16).hex()),
+            "tx_id": payload.get("tx_id"),
+            "from_address": payload.get("from_address"),
+            "to_address": payload.get("to_address"),
+            "amount": payload.get("amount"),
+            "fee": payload.get("fee"),
+            "memo": payload.get("memo"),
+            "network": payload.get("network"),
+            "signature_scheme": payload.get("signature_scheme"),
+            "signature": payload.get("signature"),
+            "signed_message": payload.get("signed_message"),
+            "signed_message_hash": payload.get("signed_message_hash"),
+            "transfer_nonce": payload.get("nonce"),
+            "signed_at": str(signed_at or payload.get("timestamp") or payload.get("created_at") or Blockchain._utc_now_iso()),
+            "status": payload.get("status"),
+            "created_at": str(created_at or payload.get("created_at") or Blockchain._utc_now_iso()),
+        }
+        if updated_at not in (None, ""):
+            record["updated_at"] = str(updated_at)
+        return record
+
+    def _restore_native_transaction_state(self, raw_transactions, raw_transfer_intents):
+        sanitized_transactions = []
+        sanitized_transfer_intents = []
+        seen_tx_ids = set()
+        seen_nonce_keys = {}
+        transfer_ids = set()
+        transfer_tx_ids = set()
+        changed = False
+        removed = 0
+
+        for transaction in list(raw_transactions or []):
+            if not isinstance(transaction, dict):
+                changed = True
+                removed += 1
+                continue
+            try:
+                validated_transaction = self.validate_signed_native_transaction(transaction)
+            except ValueError:
+                changed = True
+                removed += 1
+                continue
+
+            tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
+            if tx_id in seen_tx_ids:
+                changed = True
+                removed += 1
+                continue
+
+            status = str(validated_transaction.get("status") or "").strip().lower()
+            if status in self._native_nonce_unavailable_statuses():
+                nonce_key = (
+                    self._normalize_native_wallet_identity(validated_transaction.get("from_address")),
+                    self._coerce_native_nonce(validated_transaction.get("nonce")),
+                )
+                existing_tx_id = seen_nonce_keys.get(nonce_key)
+                if existing_tx_id is not None and existing_tx_id != tx_id:
+                    changed = True
+                    removed += 1
+                    continue
+                seen_nonce_keys[nonce_key] = tx_id
+
+            if dict(transaction) != validated_transaction:
+                changed = True
+            sanitized_transactions.append(validated_transaction)
+            seen_tx_ids.add(tx_id)
+
+        transactions_by_tx_id = {
+            str(transaction.get("tx_id") or "").strip().lower(): dict(transaction)
+            for transaction in sanitized_transactions
+        }
+
+        for transfer_intent in list(raw_transfer_intents or []):
+            if not isinstance(transfer_intent, dict):
+                changed = True
+                removed += 1
+                continue
+
+            transfer_id = str(transfer_intent.get("transfer_id") or "").strip()
+            tx_id = str(transfer_intent.get("tx_id") or "").strip().lower()
+            if not transfer_id or transfer_id in transfer_ids or not tx_id or tx_id in transfer_tx_ids:
+                changed = True
+                removed += 1
+                continue
+
+            transaction = transactions_by_tx_id.get(tx_id)
+            if transaction is None:
+                changed = True
+                removed += 1
+                continue
+
+            rebuilt_record = self._build_transfer_intent_record_from_transaction(
+                transaction,
+                transfer_id=transfer_id,
+                signed_at=transfer_intent.get("signed_at"),
+                created_at=transfer_intent.get("created_at"),
+                updated_at=transfer_intent.get("updated_at"),
+            )
+            if dict(transfer_intent) != rebuilt_record:
+                changed = True
+            sanitized_transfer_intents.append(rebuilt_record)
+            transfer_ids.add(transfer_id)
+            transfer_tx_ids.add(tx_id)
+
+        for transaction in sanitized_transactions:
+            tx_id = str(transaction.get("tx_id") or "").strip().lower()
+            if tx_id in transfer_tx_ids:
+                continue
+            sanitized_transfer_intents.append(
+                self._build_transfer_intent_record_from_transaction(transaction)
+            )
+            transfer_tx_ids.add(tx_id)
+            changed = True
+
+        return {
+            "native_transactions": sanitized_transactions,
+            "transfer_intents": sanitized_transfer_intents,
+            "changed": changed,
+            "removed": removed,
+        }
+
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
@@ -258,8 +390,12 @@ class Blockchain:
                 ]
                 self.mint_queue = loaded_data.get("mint_queue", [])
                 self.votes = loaded_data.get("votes", [])
-                self.transfer_intents = loaded_data.get("transfer_intents", [])
-                self.native_transactions = loaded_data.get("native_transactions", [])
+                native_state = self._restore_native_transaction_state(
+                    loaded_data.get("native_transactions", []),
+                    loaded_data.get("transfer_intents", []),
+                )
+                self.transfer_intents = native_state["transfer_intents"]
+                self.native_transactions = native_state["native_transactions"]
                 self.originality_certificates = [
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
@@ -268,8 +404,13 @@ class Blockchain:
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
                 mempool_report = self.revalidate_mempool_transactions(save=False)
-                if mempool_report["removed"] > 0:
+                if native_state["changed"] or mempool_report["removed"] > 0:
                     self.save_blockchain()
+                if native_state["removed"] > 0:
+                    print(
+                        "Debug: Dropped invalid native transaction state during load - "
+                        f"{native_state['removed']} record(s) removed."
+                    )
                 print(f"Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"Debug: Wallets loaded: {len(self.wallets)} wallets")
                 return True
@@ -1219,24 +1360,11 @@ class Blockchain:
             duplicate_record = dict(existing_transfer_intent)
             duplicate_record["duplicate"] = True
             return duplicate_record
-        record = {
-            "transfer_id": os.urandom(16).hex(),
-            "tx_id": transaction.tx_id,
-            "from_address": transaction.from_address,
-            "to_address": transaction.to_address,
-            "amount": transaction.amount,
-            "fee": transaction.fee,
-            "memo": transaction.memo,
-            "network": transaction.network,
-            "signature_scheme": transaction.signature_scheme,
-            "signature": transaction.signature,
-            "signed_message": transaction.signed_message,
-            "signed_message_hash": transaction.signed_message_hash,
-            "transfer_nonce": transaction.nonce,
-            "signed_at": str(signed_at),
-            "status": transaction.status,
-            "created_at": transaction.created_at,
-        }
+        record = self._build_transfer_intent_record_from_transaction(
+            transaction,
+            signed_at=signed_at,
+            created_at=transaction.created_at,
+        )
         if not record["from_address"] or not record["to_address"]:
             raise ValueError("Transfer intent wallet addresses are invalid.")
         self.transfer_intents.append(record)

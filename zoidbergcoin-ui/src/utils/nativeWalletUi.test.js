@@ -19,7 +19,7 @@ test('buildNativeBalanceSummary keeps final balance visible and does not require
 
   assert.deepEqual(rows, [
     {
-      label: 'Final native ZOID balance',
+      label: 'Final balance',
       value: '15 ZOID',
     },
   ]);
@@ -38,8 +38,8 @@ test('buildNativeBalanceSummary includes pending and available values when prese
   assert.equal(rows.length, 4);
   assert.equal(rows[1].label, 'Available to spend');
   assert.equal(rows[1].value, '15 ZOID');
-  assert.equal(rows[2].label, 'Pending Outgoing');
-  assert.equal(rows[3].label, 'Pending Incoming');
+  assert.equal(rows[2].label, 'Pending outgoing');
+  assert.equal(rows[3].label, 'Pending incoming');
 });
 
 test('describeTransferIntentDirection detects outgoing and incoming transfer history', () => {
@@ -67,9 +67,17 @@ test('describeTransferIntentDirection detects outgoing and incoming transfer his
 });
 
 test('describeTransferIntentStatus keeps signed pending copy non-final', () => {
-  assert.equal(describeTransferIntentStatus('signed_pending'), 'Signed, not in mempool');
-  assert.equal(describeTransferIntentStatus('mempool'), 'In local mempool');
-  assert.equal(describeTransferIntentStatus('settled'), 'Settled on ZoidbergChain');
+  assert.equal(
+    describeTransferIntentStatus('signed_pending'),
+    'Signed native ZOID transfer recorded. Not settled yet.',
+  );
+  assert.equal(
+    describeTransferIntentStatus('mempool'),
+    'In local mempool. Not settled yet.',
+  );
+  assert.equal(describeTransferIntentStatus('settled'), 'Settled on ZoidbergChain.');
+  assert.doesNotMatch(describeTransferIntentStatus('signed_pending'), /settled on zoidbergchain/i);
+  assert.doesNotMatch(describeTransferIntentStatus('mempool'), /confirmed/i);
 });
 
 test('formatTransferIntentTimestamp prefers later lifecycle timestamps', () => {

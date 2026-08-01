@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.8 cleans up the native ZOID wallet and transaction UX on top of nonce validation, balance reservation, peer gossip, meme-block inclusion, final settlement, and stronger block validation.
+As of Saturday, August 1, 2026, Task 8.10 has completed a security and validation pass over signed native transfer intents, canonical transaction storage, mempool handling, peer gossip, block settlement, and wallet wording.
 
 ## Purpose
 
@@ -252,6 +252,7 @@ Current flow:
 4. The backend stores a local transfer intent record.
 5. The backend stores a canonical `NativeTransaction` record with deterministic `tx_id`.
 6. The accepted `signed_pending` record reserves the sender nonce.
+7. Storage reload revalidates canonical native transaction records before they can reserve nonce or balance again.
 
 The submit response now includes both identifiers:
 
@@ -270,6 +271,11 @@ Canonical UX rules:
 - `/accounts/{wallet_address}/transactions` is the primary history surface
 - `/wallets/{wallet_address}/transactions` remains a compatibility read
 - native ZOID wording must not describe these records as Ethereum or ERC-20 transfers
+- preferred lifecycle wording is:
+- `Signed native ZOID transfer recorded. Not settled yet.`
+- `In local mempool. Not settled yet.`
+- `Included in meme-mined block.`
+- `Settled on ZoidbergChain.`
 
 ## Important Current Limits
 
@@ -278,7 +284,5 @@ Current limits:
 - support replacement policy
 - provide full mempool consensus across peers
 - support wrapped ZOID or ERC-20 behavior
-
-## Next Planned Steps
-
-- Task 8.9 is the two-node end-to-end native transfer test
+- no external production security audit exists yet
+- the current hardening target remains controlled dev/testnet use

@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of Friday, July 31, 2026, Task 8.8 is the current implemented phase of the native transaction layer.
+As of Saturday, August 1, 2026, Task 8.10 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.8 cleans up the canonical native account surface, wallet balance wording, transfer history UX, and native ZOID explorer presentation.
+Task 8.10 hardens the native transaction layer for controlled development and testnet use on top of the earlier recording, nonce, balance, mempool, gossip, settlement, validation, UX, and two-node verification work.
 
 Implemented now:
 
@@ -357,6 +357,8 @@ Auto-broadcast decision:
 - settled transactions are marked with `status = settled`, `included_block_hash`, `included_block_height`, and `settled_at`
 - final balances are derived from accepted chain blocks, including settled incoming and outgoing native transfers
 - manual broadcast is available through `POST /transactions/{tx_id}/broadcast`
+- storage reload now revalidates canonical native transaction records and drops malformed or conflicting persisted state before reuse
+- backup/export/import snapshots now preserve `transfer_intents` and `native_transactions`
 
 ## Read APIs
 
@@ -381,6 +383,19 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 - non-final transfer records do not change settled balances by themselves
 - a recorded transaction is not the same thing as a settled transfer until it is included in an accepted meme-mined block
 
-## Next Planned Steps
+## Security Notes
 
-- Task 8.9 is the two-node end-to-end native transfer test
+- signed message verification is independent from local wallet session state
+- peer-received transactions validate by canonical payload and recovered signer, not browser session
+- mempool admission is local-only and non-final
+- settled balance changes happen only from accepted meme-mined blocks
+- malformed persisted native transaction records are discarded on reload instead of being trusted blindly
+
+## Known Limits
+
+- replacement policy is still not implemented
+- mempools are still local rather than consensus-wide
+- transfer-only blocks remain intentionally unsupported
+- wrapped ZOID and ERC-20 behavior are intentionally unsupported
+- no external production security audit has been completed yet
+- dev/testnet use only unless the system is hardened further

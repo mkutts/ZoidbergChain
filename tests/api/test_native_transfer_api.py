@@ -552,6 +552,35 @@ def test_nonce_state_survives_storage_reload(backend_factory, isolated_data_dir)
     assert reloaded.get_reserved_nonces(account.address.lower()) == [1]
 
 
+@pytest.mark.parametrize("backend_factory", [_json_backend, _sqlite_backend])
+def test_reload_discards_corrupted_native_transaction_state(backend_factory, isolated_data_dir):
+    backend = backend_factory(isolated_data_dir, "corrupt-native-state")
+    blockchain = _create_blockchain_with_backend(backend)
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    headers = _verified_headers(client, account)
+
+    submit_response = _submit_transfer_intent(client, account, headers)
+    assert submit_response.status_code == 200
+    tx_id = submit_response.json()["tx_id"]
+
+    blockchain.native_transactions[0]["tx_id"] = "0" * 64
+    blockchain.save_blockchain()
+
+    reloaded = Blockchain(
+        project_owner_wallet=blockchain.project_owner_wallet,
+        Contributor_one=blockchain.Contributor_one,
+        Contributor_two=blockchain.Contributor_two,
+        storage_backend=backend,
+    )
+
+    assert reloaded.get_native_transaction(tx_id) is None
+    assert reloaded.get_transfer_intent_by_tx_id(tx_id) is None
+    assert reloaded.get_reserved_nonces(account.address.lower()) == []
+    assert reloaded.get_next_nonce(account.address.lower()) == 1
+
+
 def test_transfer_equal_to_available_balance_is_accepted(blockchain):
     client, _ = _client(blockchain)
     account = _create_account()

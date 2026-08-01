@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.8 cleans up wallet balances, transfer history wording, and the canonical native account UX on top of local mempool handling, sender nonce reservation, peer transaction gossip, meme-block settlement, and stronger block validation.
+As of Saturday, August 1, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.10 hardens wallet balances, transfer history wording, persistence safety, and the native account UX for controlled dev/testnet use.
 
 ## Core Model
 
@@ -151,11 +151,11 @@ Canonical native account history now centers on `GET /accounts/{wallet_address}/
 
 User-facing lifecycle wording:
 
-- `signed_pending`: signed, not in mempool
-- `validated_pending`: validated, pending mempool
-- `mempool`: in local mempool
-- `included`: included in meme-mined block
-- `settled`: settled on ZoidbergChain
+- `signed_pending`: Signed native ZOID transfer recorded. Not settled yet.
+- `validated_pending`: Signed native ZOID transfer recorded. Not settled yet.
+- `mempool`: In local mempool. Not settled yet.
+- `included`: Included in meme-mined block.
+- `settled`: Settled on ZoidbergChain.
 - `rejected`: rejected
 - `failed`: failed
 - `expired`: expired
@@ -174,10 +174,9 @@ Important wording:
 - pending outgoing transfers reduce available balance
 - transfer-only blocks remain disallowed by design
 - replacement policy still is not implemented
-
-## Next Planned Steps
-
-- Task 8.9 is the two-node end-to-end native transfer test
+- persistence reload revalidates native transactions before nonce or balance reservation is trusted again
+- backup/export/import snapshots now preserve native transfer state
+- current hardening level is for controlled dev/testnet use, not production deployment
 
 ## Compatibility Notes
 

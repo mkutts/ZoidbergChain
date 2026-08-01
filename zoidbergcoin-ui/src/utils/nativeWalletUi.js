@@ -5,7 +5,7 @@ export function buildNativeBalanceSummary(balance = {}) {
 
   if (finalBalance !== undefined && finalBalance !== null && finalBalance !== '') {
     rows.push({
-      label: 'Final native ZOID balance',
+      label: 'Final balance',
       value: `${finalBalance} ${symbol}`,
     });
   }
@@ -19,14 +19,14 @@ export function buildNativeBalanceSummary(balance = {}) {
 
   if (balance.pending_outgoing && balance.pending_outgoing !== '0') {
     rows.push({
-      label: 'Pending Outgoing',
+      label: 'Pending outgoing',
       value: `${balance.pending_outgoing} ${symbol}`,
     });
   }
 
   if (balance.pending_incoming && balance.pending_incoming !== '0') {
     rows.push({
-      label: 'Pending Incoming',
+      label: 'Pending incoming',
       value: `${balance.pending_incoming} ${symbol}`,
     });
   }
@@ -51,19 +51,19 @@ export function describeTransferIntentDirection(transfer, verifiedWalletAddress)
 export function describeTransferIntentStatus(status) {
   const normalized = String(status || '').trim().toLowerCase();
   if (normalized === 'signed_pending') {
-    return 'Signed, not in mempool';
+    return 'Signed native ZOID transfer recorded. Not settled yet.';
   }
   if (normalized === 'validated_pending') {
-    return 'Validated, pending mempool';
+    return 'Signed native ZOID transfer recorded. Not settled yet.';
   }
   if (normalized === 'mempool') {
-    return 'In local mempool';
+    return 'In local mempool. Not settled yet.';
   }
   if (normalized === 'included') {
-    return 'Included in meme-mined block';
+    return 'Included in meme-mined block.';
   }
   if (normalized === 'settled') {
-    return 'Settled on ZoidbergChain';
+    return 'Settled on ZoidbergChain.';
   }
   if (normalized === 'rejected') {
     return 'Rejected';

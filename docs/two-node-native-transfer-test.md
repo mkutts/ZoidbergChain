@@ -1,6 +1,6 @@
 # Two-Node Native Transfer Test
 
-This runbook covers the automated two-node native ZOID transfer verification added for Task 8.9.
+This runbook covers the automated two-node native ZOID transfer verification added for Task 8.9 and retained as Task 8 closeout evidence for controlled dev/testnet use.
 
 ## What it proves
 

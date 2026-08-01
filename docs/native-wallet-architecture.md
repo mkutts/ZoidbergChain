@@ -200,7 +200,7 @@ Task 7.7 defines the canonical native ZOID transfer message model only. It does 
 - Native transfers are MetaMask-signed ZoidbergChain messages, not ERC-20 transfers.
 - Task 7.8 is the planned transfer-submission step.
 - Task 7.9 defines the mempool and inclusion design plan.
-- Task 8 is the planned hardening step for balances, replay protection, mempool behavior, fees, and block inclusion.
+- Task 8 is now complete for controlled dev/testnet use and hardens balances, replay protection, mempool behavior, peer gossip, transfer-bearing block validation, and block inclusion.
 - The detailed transfer payload, canonical signing message, provisional decimal strategy, and future transfer statuses are documented in [docs/native-transfer-message-model.md](C:/Users/mattk/ZoidbergChain/docs/native-transfer-message-model.md).
 - The full transaction lifecycle, nonce strategy, balance model, fee policy, mempool rules, and future inclusion plan are documented in [docs/native-transaction-layer-plan.md](C:/Users/mattk/ZoidbergChain/docs/native-transaction-layer-plan.md).
 
@@ -212,15 +212,15 @@ Task 7.7 defines the canonical native ZOID transfer message model only. It does 
 - `GET /transfers/{transfer_id}` and `GET /accounts/{wallet_address}/transfers` expose safe transfer-intent history for the native account model.
 - Signed transfer intents do not settle funds yet.
 - Signed transfer intents do not reduce final native balance yet.
-- Signed transfer intents are not yet peer-propagated or block-included.
+- Signed transfer intents now flow into canonical native transaction records, local mempool handling, peer gossip, and certified meme-mined block inclusion.
 
 ## Task 7.9 Transaction Layer Plan
 
-- Task 7.9 documents the future path from `signed_pending` transfer intent to `validated_pending`, `mempool`, `included`, and `settled` native transaction states.
+- Task 7.9 documents the transaction-state path that Task 8 now implements from `signed_pending` to `validated_pending`, `mempool`, `included`, and `settled`.
 - Only included and settled transactions should affect final balances.
 - The recommended initial nonce policy is strict sequential sender nonces with no gaps and no replacement policy.
 - The recommended initial fee policy is that the `fee` field exists but must remain `0` until explicit fee design is introduced.
-- Mempool transactions remain a Task 8 implementation concern, not a Task 7.9 behavior change.
+- Mempool transactions are now implemented in Task 8 while Task 7.9 remains the original design reference.
 - Transfer inclusion in meme-mined blocks must not change Meme Proof of Originality or originality scoring.
 - Wrapped ZOID remains a later bridge or liquidity feature and is not part of this native transaction-settlement plan.
 

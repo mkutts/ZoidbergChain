@@ -25,7 +25,7 @@
         </p>
 
         <div v-if="wallet.state.isVerifiedSession" class="native-balance-card">
-          <span class="native-balance-label">Final native ZOID balance</span>
+          <span class="native-balance-label">Final balance</span>
           <strong class="native-balance-value">{{ nativeBalanceLabel }}</strong>
           <div v-if="balanceSummaryRows.length" class="wallet-summary-list">
             <div v-for="row in balanceSummaryRows" :key="row.label" class="wallet-summary-row">

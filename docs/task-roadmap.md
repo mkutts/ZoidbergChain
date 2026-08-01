@@ -19,9 +19,10 @@ This roadmap captures the current documented task sequence for the native wallet
 - 7.10 Wallet balance and transaction UI
 - 7.12 Wallet/account terminology cleanup + native account view
 
-## Future Tasks
+## Task 8: Native Transaction Hardening
 
-- Task 8 Native transaction hardening
+Status: complete for controlled dev/testnet use as of Saturday, August 1, 2026.
+
 - 8.1 Transaction ID + canonical transaction record
 - 8.2 Nonce tracking and replay protection
 - 8.3 Balance sufficiency / available balance
@@ -31,7 +32,33 @@ This roadmap captures the current documented task sequence for the native wallet
 - 8.7 Block validation with transfers
 - 8.8 Wallet balances and transfer history
 - 8.9 Two-node transfer test
-- 8.10 Transaction layer security pass
+- 8.10 Transaction layer validation / reliability / security pass
+
+Task 8 now includes:
+
+- MetaMask-signed native ZOID transfers
+- canonical `tx_id` transaction records
+- nonce and replay protection
+- balance sufficiency and available-balance enforcement
+- local mempool lifecycle
+- peer transaction gossip
+- native transfer inclusion in certified meme-mined blocks
+- settlement only inside accepted meme-mined blocks
+- peer block validation for transfer-bearing blocks
+- two-node native transfer verification
+- Task 8.10 validation, reliability, and regression review
+
+Known remaining limitations by design:
+
+- no replacement policy yet
+- mempools are local, not consensus-wide
+- transfer-only blocks remain intentionally unsupported
+- no wrapped ZOID / ERC-20 behavior
+- old `/wallets/...` compatibility read endpoints still exist
+- appropriate for controlled dev/testnet use, not production-hardening complete
+
+## Next Phase
+
 - Task 9 Node identity/open network prep
 - Task 10 Public testnet deployment
 - Task 11 Wallet UX / MetaMask Snap or custom wallet

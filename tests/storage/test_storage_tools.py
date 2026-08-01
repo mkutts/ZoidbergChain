@@ -5,12 +5,20 @@ import json
 from pathlib import Path
 
 import pytest
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 import config
 import storage_tools
 from blockchain import Blockchain
+from native_transfer import (
+    build_transfer_signing_message,
+    hash_transfer_signing_message,
+    validate_native_transfer_message,
+)
 from peers import PeerStore
 from storage import JSONStorageBackend, SQLiteStorageBackend
+from transaction import Transaction
 from wallet import Wallet
 from submission import VOTE_ORIGINAL
 
@@ -18,6 +26,11 @@ from submission import VOTE_ORIGINAL
 def _reload_config():
     importlib.reload(config)
     importlib.reload(storage_tools)
+
+
+def _sign_message(message, account):
+    signed = Account.sign_message(encode_defunct(text=message), account.key)
+    return signed.signature.hex()
 
 
 def _seed_backend(backend, submission_image, *, owner=None, contributor_one=None, contributor_two=None):
@@ -79,6 +92,52 @@ def _seed_backend(backend, submission_image, *, owner=None, contributor_one=None
     }
 
 
+def _seed_native_transfer(blockchain, *, amount="2", memo="storage snapshot transfer"):
+    sender = Account.create()
+    recipient = Account.create()
+    blockchain.chain[0].transactions.append(
+        Transaction(sender="GENESIS", recipient=sender.address.lower(), amount=10.0, tip=0)
+    )
+    transfer_message = validate_native_transfer_message(
+        {
+            "action": "transfer_zoid",
+            "network": config.NETWORK_NAME,
+            "from_address": sender.address,
+            "to_address": recipient.address,
+            "amount": amount,
+            "fee": "0",
+            "nonce": "1",
+            "timestamp": "2026-08-01T12:00:00+00:00",
+            "memo": memo,
+        },
+        network_name=config.NETWORK_NAME,
+    )
+    signing_message = build_transfer_signing_message(transfer_message)
+    record = blockchain.create_signed_transfer_intent(
+        from_address=transfer_message.from_address,
+        to_address=transfer_message.to_address,
+        amount=transfer_message.amount,
+        fee=transfer_message.fee,
+        memo=transfer_message.memo,
+        network=transfer_message.network,
+        signature_scheme="personal_sign",
+        signature=_sign_message(signing_message, sender),
+        signed_message_hash=hash_transfer_signing_message(signing_message),
+        signed_message=signing_message,
+        transfer_nonce=transfer_message.nonce,
+        transaction_timestamp=transfer_message.timestamp,
+        signed_at=transfer_message.timestamp,
+        status="signed_pending",
+    )
+    blockchain.save_blockchain()
+    return {
+        "sender": sender,
+        "recipient": recipient,
+        "record": record,
+        "transaction": blockchain.get_native_transaction(record["tx_id"]),
+    }
+
+
 def _json_backend(base_dir, name="node"):
     node_dir = base_dir / name
     return JSONStorageBackend(
@@ -133,6 +192,8 @@ def test_export_includes_core_state_and_excludes_private_keys_by_default(backend
     assert exported["state"]["submissions"]
     assert exported["state"]["content_objects"]
     assert exported["state"]["votes"]
+    assert "transfer_intents" in exported["state"]
+    assert "native_transactions" in exported["state"]
     assert exported["state"]["originality_certificates"]
     assert exported["state"]["peers"]
     assert seeded["owner"].private_key not in output_path.read_text(encoding="utf-8")
@@ -215,6 +276,33 @@ def test_import_round_trip_into_empty_backend(backend_factory, isolated_data_dir
     assert reloaded.get_originality_certificate(seeded["certificate"].certificate_id) is not None
     assert reloaded.get_submission_votes(seeded["submission"].submission_id)["votes"]
     assert reloaded.get_latest_block().hash == seeded["backend"].load_chain()[-1]["hash"]
+
+
+@pytest.mark.parametrize(
+    "backend_factory",
+    [_json_backend, _sqlite_backend],
+)
+def test_export_and_import_preserve_native_transaction_state(backend_factory, isolated_data_dir, submission_image):
+    source_backend = backend_factory(isolated_data_dir, "native-source")
+    seeded = _seed_backend(source_backend, submission_image)
+    native_seed = _seed_native_transfer(seeded["blockchain"])
+    export_path = isolated_data_dir / "native-snapshot.json"
+    storage_tools.export_storage(seeded["backend"], output_path=export_path)
+
+    snapshot = json.loads(export_path.read_text(encoding="utf-8"))
+    assert snapshot["state"]["transfer_intents"][0]["tx_id"] == native_seed["record"]["tx_id"]
+    assert snapshot["state"]["native_transactions"][0]["tx_id"] == native_seed["record"]["tx_id"]
+
+    target_backend = backend_factory(isolated_data_dir, "native-target")
+    storage_tools.import_storage(target_backend, input_path=export_path)
+    reloaded = Blockchain(storage_backend=target_backend)
+
+    stored_intent = reloaded.get_transfer_intent(native_seed["record"]["transfer_id"])
+    stored_transaction = reloaded.get_native_transaction(native_seed["record"]["tx_id"])
+    assert stored_intent is not None
+    assert stored_transaction is not None
+    assert stored_intent["tx_id"] == native_seed["record"]["tx_id"]
+    assert stored_transaction["status"] == "signed_pending"
 
 
 def test_import_refuses_overwrite_by_default(isolated_data_dir, submission_image):

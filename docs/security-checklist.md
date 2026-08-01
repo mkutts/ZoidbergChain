@@ -1,67 +1,74 @@
-# ZoidbergChain Security Checklist
+# Native Transaction Security Checklist
 
-## Environment settings
+As of Saturday, August 1, 2026, this checklist covers the current Task 8.10 native transaction hardening pass.
 
-- `ENVIRONMENT=development` is for local work only.
-- `ENVIRONMENT=testnet` and `ENVIRONMENT=production` must be treated as public-facing modes.
-- `PUBLIC_API_MODE=true` should be enabled for any public deployment.
-- Never deploy a public server with `ENVIRONMENT=development` or `PUBLIC_API_MODE=false`.
+## Task 8 Closeout Status
 
-## Private key exposure
+Task 8 is complete for controlled dev/testnet use.
 
-- Public API responses must never include `private_key`, `privateKey`, `signing_key`, `seed`, `secret`, or raw key material.
-- Private key export is only allowed in development when `ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT=true`.
-- Dev wallet export endpoints must remain blocked in testnet and production.
+- native ZOID transfers are MetaMask-signed
+- transactions persist as canonical records with deterministic `tx_id`
+- nonce and replay protection are active
+- balance sufficiency and available-balance enforcement are active
+- local mempool lifecycle exists
+- peer transaction gossip exists
+- native transfers can be included in certified meme-mined blocks
+- transfers settle only inside accepted meme-mined blocks
+- peer block validation checks native transfer transactions
+- two-node native transfer verification exists
+- Task 8.10 validation, reliability, and regression review is complete
 
-## Dev endpoints
+## Threat Model Summary
 
-- `/dev/*` endpoints are development-only.
-- `/dev/*` endpoints must be blocked in testnet and production.
-- `/dev/*` endpoints must also be blocked when `PUBLIC_API_MODE=true`.
-- Dev reset and debug routes must never be exposed on a public node.
+- native ZOID transfers are signed ZoidbergChain messages, not Ethereum or ERC-20 transfers
+- wallet session state is required for local user submit flows only
+- peer-delivered transactions must validate by canonical payload and recovered signer without local browser session trust
+- mempool state is local and non-final
+- settlement happens only inside accepted meme-mined blocks
+- backup, export, import, and reload flows must preserve canonical native transaction state without exposing secrets
 
-## Peer authentication
+## Manual Verification Checklist
 
-- Peer receive/register routes require shared-secret auth when `REQUIRE_PEER_AUTH=true`.
-- Signed peer messages are required when `ENABLE_SIGNED_PEER_MESSAGES=true`.
-- Shared secrets must never be logged or returned in responses.
-- Testnet and production must use a non-default `PEER_SHARED_SECRET`.
+- connect MetaMask
+- verify wallet session
+- request a native transfer signing challenge
+- confirm the signing message includes action, network, sender, recipient, amount, fee, nonce, timestamp, and memo when present
+- reject a tampered transfer message
+- reject a duplicate nonce
+- reject insufficient available balance
+- reject wrong-network transfer payloads
+- reject invalid signature payloads
+- record a valid signed transfer
+- confirm the UI says `Signed native ZOID transfer recorded. Not settled yet.`
+- admit a valid transaction to the local mempool
+- reject invalid mempool admission
+- confirm the UI says `In local mempool. Not settled yet.`
+- broadcast a valid transaction to a peer
+- reject an invalid peer transaction
+- mint a meme-mined block with the transaction
+- reject an invalid transfer-bearing block
+- sync a valid transfer-bearing block from a peer
+- confirm balances match after sync
+- confirm no private keys, session tokens, peer secrets, file paths, or stack traces appear in public read responses
+- confirm pending UI never says settled, confirmed, payment complete, Ethereum transfer, or ERC-20 transfer
 
-## Signed peer messages
+## Automated Coverage Targets
 
-- Signed peer requests must include the expected headers and body hash.
-- Expired timestamps, replayed nonces, and invalid signatures must be rejected.
-- Public read endpoints must not require peer auth or signed headers.
+- signature mismatch and malformed signature rejection
+- deterministic `tx_id` generation and stable canonical serialization
+- strict sequential nonce enforcement and duplicate idempotency
+- available-balance enforcement for pending outgoing transfers
+- mempool revalidation and safe public serialization
+- peer receive and broadcast failure handling
+- transfer-bearing block validation against chain-before-block balances and nonces
+- storage reload cleanup of malformed native transaction state
+- backup/export/import preservation of canonical native transaction records
 
-## Rate limiting
+## Known Intentional Limits
 
-- Rate limiting is disabled by default in development.
-- Rate limiting is enabled in testnet and production.
-- Write-heavy endpoints should be tighter than read endpoints.
-- Peer sync and peer receive routes should remain usable for normal node operation.
-
-## Logging
-
-- Do not log private keys, secrets, seed phrases, or raw signatures.
-- Do not log full request URLs if query strings can contain sensitive values.
-- Prefer short public-key or address fragments when a reference is needed in logs.
-
-## Known remaining limitations
-
-- Wallet private keys are still stored server-side for local development workflows.
-- Full client-side signing is not implemented yet.
-- There is no independent public/private node identity key infrastructure yet.
-- Shared-secret peer auth is acceptable for controlled environments, but not ideal for open public networks.
-- There is no formal third-party security audit yet.
-- Secret management still relies on environment configuration rather than a dedicated production secret manager.
-
-## Before public deployment
-
-- Set `ENVIRONMENT=production`.
-- Set `PUBLIC_API_MODE=true`.
-- Set `REQUIRE_PEER_AUTH=true`.
-- Set `ENABLE_RATE_LIMITING=true`.
-- Use a real `PEER_SHARED_SECRET`.
-- Confirm `/dev/*` routes are blocked.
-- Confirm no public endpoint returns private key material or raw secrets.
-- Confirm logs do not include request secrets or private keys.
+- no replacement policy yet
+- mempools are still local, not consensus-wide
+- no transfer-only blocks
+- no wrapped ZOID or ERC-20 behavior
+- no external production security audit yet
+- treat the current feature set as controlled dev/testnet only unless hardened further

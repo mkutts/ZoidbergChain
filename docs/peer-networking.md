@@ -1,6 +1,6 @@
 # Peer Networking
 
-As of Friday, July 31, 2026, ZoidbergChain peer networking supports native transaction gossip in addition to existing submission, vote, certificate, and block transport, and peer-received blocks may carry settled native transfers that must validate against chain-before-block state.
+As of Saturday, August 1, 2026, ZoidbergChain peer networking supports native transaction gossip in addition to existing submission, vote, certificate, and block transport, and Task 8.10 hardens peer-received transaction and block handling for controlled dev/testnet use.
 
 ## Transaction Transport Model
 
@@ -54,6 +54,8 @@ Current behavior:
 - missing transactions may be fetched individually
 - each receiving node still performs its own validation
 - mempools may differ between peers
+- failed peer mempool admission does not roll back unrelated local settled state
+- malformed peer transaction payloads are dropped instead of being trusted into storage
 
 Mempools are local candidate pools and are not consensus-critical yet.
 
@@ -65,6 +67,9 @@ Not implemented yet:
 - mempool consensus
 - transfer-only blocks
 
-## Next Step
+## Security Notes
 
-- Task 8.9 is the two-node end-to-end native transfer test
+- peer transport authorization and user transfer signatures are separate checks
+- peer-received transactions never require a browser wallet session
+- peer-provided local-only fields are ignored and local status is decided by the receiving node
+- current behavior remains appropriate for controlled dev/testnet use rather than production deployment

@@ -236,6 +236,41 @@ def test_receive_peer_transaction_rejects_conflicting_same_sender_nonce(blockcha
     assert first.status_code == 200
     assert second.status_code == 409
     assert second.json()["reason"] == "conflicting_nonce"
+    assert client.get(f"/wallets/{account.address.lower()}/balance").json()["pending_outgoing"] == "4"
+    assert client.get("/mempool").json()["count"] == 1
+
+
+def test_receive_peer_transaction_rejects_invalid_signature_without_reserving_balance(blockchain):
+    client, api = _client(blockchain)
+    _register_peer(api)
+    account = Account.create()
+    _fund_native_wallet(blockchain, account.address, "10")
+    transaction = _build_signed_transaction(account, amount="4")
+    transaction["signature"] = _sign_message(transaction["signed_message"], Account.create())
+    rebuilt = build_native_transaction(
+        network=transaction["network"],
+        from_address=transaction["from_address"],
+        to_address=transaction["to_address"],
+        amount=transaction["amount"],
+        fee=transaction["fee"],
+        nonce=transaction["nonce"],
+        memo=transaction["memo"],
+        timestamp=transaction["timestamp"],
+        signature=transaction["signature"],
+        signature_scheme=transaction["signature_scheme"],
+        signed_message=transaction["signed_message"],
+        signed_message_hash=transaction["signed_message_hash"],
+        status="signed_pending",
+        created_at=transaction["created_at"],
+        updated_at=transaction["updated_at"],
+    ).to_dict()
+
+    response = client.post("/peers/transactions/receive", json=_receive_payload(rebuilt))
+
+    assert response.status_code == 400
+    assert response.json()["reason"] == "invalid_signature"
+    assert client.get(f"/wallets/{account.address.lower()}/balance").json()["pending_outgoing"] == "0"
+    assert client.get("/mempool").json()["count"] == 0
 
 
 def test_receive_peer_transaction_rejects_insufficient_available_balance(blockchain):

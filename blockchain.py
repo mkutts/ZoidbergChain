@@ -1328,6 +1328,17 @@ class Blockchain:
         self.native_transactions[index] = dict(transaction)
         return self.native_transactions[index]
 
+    def discard_native_transaction(self, tx_id):
+        native_index = self._find_native_transaction_index(tx_id)
+        if native_index is None:
+            return False
+        del self.native_transactions[native_index]
+
+        transfer_index = self._find_transfer_intent_index_by_tx_id(tx_id)
+        if transfer_index is not None:
+            del self.transfer_intents[transfer_index]
+        return True
+
     def update_native_transaction_status(
         self,
         tx_id,

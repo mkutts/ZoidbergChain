@@ -525,6 +525,8 @@ def receive_peer_transaction(
     if not isinstance(transaction_payload, dict):
         raise MalformedTransactionError("Transaction payload must be an object.")
 
+    stored_transaction = None
+    duplicate = False
     try:
         stored_transaction, duplicate = blockchain.record_native_transaction(
             transaction_payload,
@@ -532,6 +534,8 @@ def receive_peer_transaction(
         )
         admitted = blockchain.admit_transaction_to_mempool(stored_transaction["tx_id"])
     except ValueError as exc:
+        if stored_transaction is not None and not duplicate:
+            blockchain.discard_native_transaction(stored_transaction["tx_id"])
         reason = _transaction_reason_from_error(str(exc))
         if reason == "conflicting_nonce":
             raise ConflictingTransactionError(str(exc)) from exc

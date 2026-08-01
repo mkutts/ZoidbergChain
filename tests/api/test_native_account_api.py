@@ -31,7 +31,9 @@ def test_native_account_summary_returns_zero_state_for_unknown_wallet(blockchain
     assert body["reward_count"] == 0
     assert body["transaction_count"] == 0
     assert body["pending_transaction_count"] == 0
+    assert body["settled_transaction_count"] == 0
     assert body["pending_transfer_count"] == 0
+    assert body["nonce"] == {"next_nonce": 1, "policy": "strict_sequential"}
     assert body["symbol"] == "ZOID"
     assert "do not need to be pre-registered" in body["note"].lower()
 
@@ -121,11 +123,14 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
     assert summary["reward_count"] == 1
     assert summary["transaction_count"] == 1
     assert summary["pending_transaction_count"] == 1
+    assert summary["settled_transaction_count"] == 0
     assert summary["pending_transfer_count"] == 1
     assert summary["final_balance"] == summary["native_balance"]
     assert float(summary["native_balance"]) >= 5.0
     assert summary["pending_outgoing"] == "3"
     assert summary["pending_incoming"] == "0"
+    assert summary["nonce"]["next_nonce"] == 2
+    assert summary["nonce"]["policy"] == "strict_sequential"
 
     submissions = submissions_response.json()["submissions"]
     assert len(submissions) == 1

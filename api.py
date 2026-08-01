@@ -810,12 +810,17 @@ def _count_pending_transfer_intents(transfers: list[dict[str, Any]]) -> int:
     return sum(1 for transfer in transfers if str(transfer.get("status") or "").strip().lower() in pending_statuses)
 
 
+def _count_settled_transactions(transactions: list[dict[str, Any]]) -> int:
+    return sum(1 for transaction in transactions if str(transaction.get("status") or "").strip().lower() == "settled")
+
+
 def _build_account_summary(normalized_wallet: str):
     submissions = _get_account_submissions(normalized_wallet)
     votes = _get_account_votes(normalized_wallet)
     rewards = _get_account_rewards(normalized_wallet)
     transactions = _get_account_transactions(normalized_wallet)
     balance_snapshot = blockchain.get_native_balance_snapshot(normalized_wallet)
+    nonce_state = blockchain.get_nonce_state(normalized_wallet)
     return {
         "wallet_address": normalized_wallet,
         "normalized_wallet_address": normalized_wallet,
@@ -832,9 +837,14 @@ def _build_account_summary(normalized_wallet: str):
         "reward_count": len(rewards),
         "transaction_count": len(transactions),
         "pending_transaction_count": _count_pending_transfer_intents(transactions),
+        "settled_transaction_count": _count_settled_transactions(transactions),
         "pending_transfer_count": _count_pending_transfer_intents(transactions),
+        "nonce": {
+            "next_nonce": nonce_state["next_nonce"],
+            "policy": nonce_state["policy"],
+        },
         "note": (
-            "Pending outgoing transactions reduce available balance but are not settled until included in a block. "
+            "Pending outgoing transactions reduce available balance. Final balance changes only when a transfer is settled in a meme-mined block. "
             "Native accounts do not need to be pre-registered in the old development-only server wallet list. "
             "A verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance."
         ),
@@ -2926,7 +2936,7 @@ async def get_native_account_transactions(request: Request, wallet_address: str)
             "account_type": "metamask_native",
             "network_name": NETWORK_NAME,
             "transactions": _get_account_transactions(normalized_wallet),
-            "note": "Signed pending transactions remain non-final until included in a meme-mined block.",
+            "note": "Canonical native ZOID transaction history for this MetaMask-backed ZoidbergChain account.",
         }
     except HTTPException:
         raise
@@ -2952,7 +2962,7 @@ async def get_native_account_balance(request: Request, wallet_address: str):
             "available_balance": balance_snapshot["available_balance"],
             "symbol": TICKER,
             "network_name": NETWORK_NAME,
-            "note": "Pending outgoing transactions reduce available balance but are not settled until included in a block.",
+            "note": "Pending outgoing transfers reduce available balance. Final balance changes only when a transfer is settled in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -2997,7 +3007,7 @@ async def get_native_wallet_balance(request: Request, wallet_address: str):
             "available_balance": balance_snapshot["available_balance"],
             "symbol": TICKER,
             "network_name": NETWORK_NAME,
-            "note": "Pending outgoing transactions reduce available balance but are not settled until included in a block.",
+            "note": "Legacy compatibility balance read. Pending outgoing transfers reduce available balance. Final balance changes only when a transfer is settled in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -3039,7 +3049,7 @@ async def get_wallet_transfer_intents(request: Request, wallet_address: str):
             "wallet_address": normalized_wallet,
             "network_name": NETWORK_NAME,
             "transfers": transfers,
-            "note": "Transfer intents are pending and non-final until included in a meme-mined block.",
+            "note": "Legacy compatibility transfer-intent read. Native ZOID transactions settle only when included in a meme-mined block.",
         }
     except HTTPException:
         raise
@@ -3057,7 +3067,7 @@ async def get_wallet_transactions(request: Request, wallet_address: str):
             "wallet_address": normalized_wallet,
             "network_name": NETWORK_NAME,
             "transactions": _get_account_transactions(normalized_wallet),
-            "note": "Signed pending transactions remain non-final until included in a meme-mined block.",
+            "note": "Legacy compatibility transaction history read for native ZOID account activity.",
         }
     except HTTPException:
         raise

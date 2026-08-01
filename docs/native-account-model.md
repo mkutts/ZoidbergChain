@@ -1,6 +1,6 @@
 # Native Account Model
 
-As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.7 adds stronger block and sync validation on top of local mempool handling, sender nonce reservation, available-balance limits, peer transaction gossip, and meme-block settlement.
+As of Friday, July 31, 2026, MetaMask-backed `0x...` addresses are the canonical native ZoidbergChain account identity, and Task 8.8 cleans up wallet balances, transfer history wording, and the canonical native account UX on top of local mempool handling, sender nonce reservation, peer transaction gossip, meme-block settlement, and stronger block validation.
 
 ## Core Model
 
@@ -38,6 +38,7 @@ Compatibility read endpoints:
 
 - `GET /wallets/{wallet_address}/transfers`
 - `GET /wallets/{wallet_address}/transactions`
+- `GET /wallets/{wallet_address}/balance`
 
 These endpoints:
 
@@ -45,6 +46,8 @@ These endpoints:
 - normalize addresses consistently
 - expose safe read-only fields
 - do not require the account to appear in the development wallet registry
+- treat `/accounts/...` as the canonical native account surface
+- keep `/wallets/...` reads as legacy compatibility endpoints for now
 
 ## Task 8.1 Transaction Recording
 
@@ -123,6 +126,8 @@ Native account summaries expose these balance snapshot fields:
 - `pending_outgoing`
 - `pending_incoming`
 - `available_balance`
+- `nonce.next_nonce`
+- `nonce.policy`
 
 Current balance rules:
 
@@ -131,6 +136,7 @@ Current balance rules:
 - `available_balance = final_balance - pending_outgoing`
 - `native_balance` remains equal to `final_balance` for compatibility
 - final balance is chain-derived and includes settled native transfers from accepted blocks
+- settled transaction counts and pending transaction counts come from canonical native transaction history
 
 That also means:
 
@@ -139,9 +145,39 @@ That also means:
 - transfer recording must not be described as complete or confirmed
 - settlement happens only through accepted meme-mined blocks
 
+## Transaction History UX
+
+Canonical native account history now centers on `GET /accounts/{wallet_address}/transactions`.
+
+User-facing lifecycle wording:
+
+- `signed_pending`: signed, not in mempool
+- `validated_pending`: validated, pending mempool
+- `mempool`: in local mempool
+- `included`: included in meme-mined block
+- `settled`: settled on ZoidbergChain
+- `rejected`: rejected
+- `failed`: failed
+- `expired`: expired
+
+History fields should clearly distinguish:
+
+- direction: incoming or outgoing
+- final balance versus available balance
+- pending outgoing versus pending incoming
+- included block height and hash for settled transfers
+- rejection reason for rejected transfers
+
+Important wording:
+
+- native ZOID is not an ERC-20 or Ethereum token balance
+- pending outgoing transfers reduce available balance
+- transfer-only blocks remain disallowed by design
+- replacement policy still is not implemented
+
 ## Next Planned Steps
 
-- Task 8.8 focuses on wallet balances and transfer history cleanup
+- Task 8.9 is the two-node end-to-end native transfer test
 
 ## Compatibility Notes
 

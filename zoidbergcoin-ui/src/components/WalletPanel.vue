@@ -2,9 +2,9 @@
   <section class="wallet-panel">
     <div class="wallet-copy">
       <p class="wallet-label">Native Account</p>
-      <h2>MetaMask-backed ZoidbergChain wallet</h2>
+      <h2>MetaMask-backed ZoidbergChain account</h2>
       <p class="wallet-note">
-        MetaMask provides the signing key for your native ZoidbergChain account. Native ZOID lives on ZoidbergChain and does not appear in normal MetaMask yet.
+        MetaMask provides the signing key for your native ZoidbergChain account. Native ZOID lives on ZoidbergChain, settles in meme-mined blocks, and does not appear in normal MetaMask yet.
       </p>
     </div>
 
@@ -16,7 +16,7 @@
       <template v-if="wallet.state.isConnected">
         <p class="address-short">{{ shortenedAddress }}</p>
         <p class="address-full">{{ wallet.state.normalizedWalletAddress }}</p>
-        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified MetaMask-backed ZoidbergChain wallet. This session is the active native account identity for signed submissions, votes, rewards, and future transfer intents.</p>
+        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified MetaMask-backed ZoidbergChain account. This session is the active native account identity for signed submissions, votes, rewards, and native ZOID transfers.</p>
         <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore the active native ZoidbergChain account identity.</p>
         <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet before using it as a native ZoidbergChain account identity.</p>
         <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
@@ -25,7 +25,7 @@
         </p>
 
         <div v-if="wallet.state.isVerifiedSession" class="native-balance-card">
-          <span class="native-balance-label">Native ZOID balance on ZoidbergChain</span>
+          <span class="native-balance-label">Final native ZOID balance</span>
           <strong class="native-balance-value">{{ nativeBalanceLabel }}</strong>
           <div v-if="balanceSummaryRows.length" class="wallet-summary-list">
             <div v-for="row in balanceSummaryRows" :key="row.label" class="wallet-summary-row">
@@ -39,7 +39,7 @@
 
         <div v-if="wallet.state.isVerifiedSession" class="reward-card">
           <div class="history-header">
-            <span class="native-balance-label">Native ZoidbergChain account activity</span>
+            <span class="native-balance-label">Canonical native account summary</span>
             <button
               type="button"
               class="wallet-btn secondary compact"
@@ -91,7 +91,7 @@
         </div>
 
         <div class="transfer-card">
-          <span class="native-balance-label">Native ZOID Transfer Preview</span>
+          <span class="native-balance-label">Native ZOID transfer</span>
           <template v-if="wallet.state.isVerifiedSession">
             <p class="wallet-meta">{{ transferWarning }}</p>
             <p class="wallet-meta">Current next nonce: <strong>{{ nextTransferNonceLabel }}</strong></p>
@@ -118,7 +118,7 @@
                 @click="submitTransferIntent"
                 :disabled="isTransferSubmitting"
               >
-                {{ isTransferSubmitting ? 'Signing Transfer Intent...' : 'Sign Native Transfer Intent' }}
+                {{ isTransferSubmitting ? 'Signing Native Transfer...' : 'Sign Native ZOID Transfer' }}
               </button>
               <button
                 type="button"
@@ -126,7 +126,7 @@
                 @click="refreshTransferHistory"
                 :disabled="isTransferHistoryLoading"
               >
-                {{ isTransferHistoryLoading ? 'Refreshing Transfers...' : 'Refresh Transfer History' }}
+                {{ isTransferHistoryLoading ? 'Refreshing History...' : 'Refresh Transaction History' }}
               </button>
               <button
                 type="button"
@@ -140,24 +140,24 @@
             <p v-if="transferSuccessMessage" class="wallet-meta transfer-success">{{ transferSuccessMessage }}</p>
             <p v-if="transferError" class="wallet-error">{{ transferError }}</p>
             <div class="transfer-history">
-              <p class="wallet-meta transfer-history-title">Signed Transfer Intent History</p>
-              <p v-if="!transferHistory.length" class="wallet-meta">No signed transfer intents yet.</p>
+              <p class="wallet-meta transfer-history-title">Native ZOID transaction history</p>
+              <p v-if="!transferHistory.length" class="wallet-meta">No native ZOID transactions yet.</p>
               <template v-else>
-                <p class="wallet-meta">Pending transaction processing. These records are not settled yet.</p>
+                <p class="wallet-meta">Signed and mempool transactions are non-final. Settled transactions show their meme-mined block reference.</p>
                 <ul class="history-list">
-                  <li v-for="transfer in transferHistory" :key="transfer.transfer_id" class="history-card">
+                  <li v-for="transfer in transferHistory" :key="transfer.tx_id || transfer.transfer_id" class="history-card">
                     <div class="history-title-row">
                       <strong>{{ transferStatusLabel(transfer.status) }}</strong>
                       <span>{{ transferDirection(transfer) }}</span>
                     </div>
                     <div class="history-grid">
                       <div>
-                        <span>Transfer ID</span>
-                        <strong>{{ shortenTransferId(transfer.transfer_id) }}</strong>
+                        <span>Tx ID</span>
+                        <strong>{{ shortenTransferId(transfer.tx_id || transfer.transfer_id) }}</strong>
                       </div>
                       <div>
                         <span>Status</span>
-                        <strong>{{ transfer.status }}</strong>
+                        <strong>{{ transferStatusLabel(transfer.status) }}</strong>
                       </div>
                       <div>
                         <span>From Native Account</span>
@@ -180,15 +180,29 @@
                         <strong>{{ transfer.nonce || transfer.transfer_nonce || 'Missing' }}</strong>
                       </div>
                       <div>
-                        <span>Signed At</span>
-                        <strong>{{ formatDateTime(transferTimestamp(transfer)) || 'Unknown time' }}</strong>
+                        <span>Created At</span>
+                        <strong>{{ formatDateTime(transfer.created_at || transferTimestamp(transfer)) || 'Unknown time' }}</strong>
                       </div>
                       <div>
-                        <span>Settlement</span>
-                        <strong>Not settled yet</strong>
+                        <span>Admitted At</span>
+                        <strong>{{ formatDateTime(transfer.admitted_at) || 'Not admitted' }}</strong>
+                      </div>
+                      <div>
+                        <span>Included Block Height</span>
+                        <strong>{{ transfer.included_block_height ?? 'Pending' }}</strong>
+                      </div>
+                      <div>
+                        <span>Included Block Hash</span>
+                        <strong>{{ formatHistoryValue(transfer.included_block_hash) }}</strong>
+                      </div>
+                      <div>
+                        <span>Settled At</span>
+                        <strong>{{ formatDateTime(transfer.settled_at) || 'Not settled' }}</strong>
                       </div>
                     </div>
                     <p v-if="transfer.memo" class="wallet-meta history-note">Memo: {{ transfer.memo }}</p>
+                    <p v-if="transfer.rejection_reason" class="wallet-meta history-note">Rejection reason: {{ transfer.rejection_reason }}</p>
+                    <p v-if="transfer.status_detail" class="wallet-meta history-note">{{ transfer.status_detail }}</p>
                     <div v-if="transfer.status === 'signed_pending' && transfer.tx_id" class="wallet-actions">
                       <button
                         type="button"
@@ -199,16 +213,16 @@
                         {{ isMempoolSubmitting ? 'Admitting...' : 'Admit to Mempool' }}
                       </button>
                     </div>
-                    <p class="wallet-meta history-note">Signed pending transfer. It reduces available balance now, but final balance changes only after block inclusion.</p>
+                    <p v-if="transfer.status === 'signed_pending'" class="wallet-meta history-note">Signed native ZOID transfer. It reduces available balance now, but final balance changes only after settlement in a meme-mined block.</p>
                   </li>
                 </ul>
               </template>
             </div>
             <div class="transfer-history">
-              <p class="wallet-meta transfer-history-title">Local Mempool</p>
+              <p class="wallet-meta transfer-history-title">Local mempool</p>
               <p v-if="!mempoolTransactions.length" class="wallet-meta">No local mempool transactions.</p>
               <template v-else>
-                <p class="wallet-meta">Admitted to local mempool. Not settled yet.</p>
+                <p class="wallet-meta">The mempool is local to this node. Transactions settle only when included in an accepted meme-mined block.</p>
                 <ul class="history-list">
                   <li v-for="transaction in mempoolTransactions" :key="transaction.tx_id" class="history-card">
                     <div class="history-title-row">
@@ -222,7 +236,15 @@
                       </div>
                       <div>
                         <span>Status</span>
-                        <strong>{{ transaction.status }}</strong>
+                        <strong>{{ transferStatusLabel(transaction.status) }}</strong>
+                      </div>
+                      <div>
+                        <span>From Native Account</span>
+                        <strong>{{ wallet.shortenAddress(transaction.from_address) }}</strong>
+                      </div>
+                      <div>
+                        <span>To Native Account</span>
+                        <strong>{{ wallet.shortenAddress(transaction.to_address) }}</strong>
                       </div>
                       <div>
                         <span>Amount</span>
@@ -231,6 +253,10 @@
                       <div>
                         <span>Nonce</span>
                         <strong>{{ transaction.nonce || 'Missing' }}</strong>
+                      </div>
+                      <div>
+                        <span>Admitted At</span>
+                        <strong>{{ formatDateTime(transaction.admitted_at) || 'Unknown time' }}</strong>
                       </div>
                     </div>
                   </li>
@@ -313,6 +339,7 @@ import {
   describeTransferIntentDirection,
   describeTransferIntentStatus,
   formatTransferIntentTimestamp,
+  humanizeNativeTransferError,
 } from '../utils/nativeWalletUi.js';
 
 const wallet = useWallet();
@@ -345,8 +372,9 @@ const transferService = createNativeTransferService({
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);
 const nativeBalanceSymbol = computed(() => accountSummary.value?.symbol || 'ZOID');
-const nextTransferNonceLabel = computed(() => nonceState.value?.next_nonce ?? '--');
+const nextTransferNonceLabel = computed(() => nonceState.value?.next_nonce ?? accountSummary.value?.nonce?.next_nonce ?? '--');
 const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
+  final_balance: accountSummary.value?.final_balance,
   native_balance: accountSummary.value?.native_balance,
   pending_outgoing: accountSummary.value?.pending_outgoing,
   pending_incoming: accountSummary.value?.pending_incoming,
@@ -356,17 +384,19 @@ const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
 const accountSummaryRows = computed(() => {
   const summary = accountSummary.value || {};
   return [
-    { label: 'Native Account Type', value: summary.account_type === 'metamask_native' ? 'MetaMask-backed ZoidbergChain wallet' : 'Unknown' },
+    { label: 'Native Account Type', value: summary.account_type === 'metamask_native' ? 'MetaMask-backed ZoidbergChain account' : 'Unknown' },
     { label: 'Network', value: summary.network_name || 'Unknown' },
+    { label: 'Verified Session', value: wallet.state.isVerifiedSession ? 'Verified' : 'Not verified' },
     { label: 'Submissions', value: summary.submission_count ?? 0 },
     { label: 'Votes', value: summary.vote_count ?? 0 },
     { label: 'Rewards', value: summary.reward_count ?? 0 },
-    { label: 'Pending Transfer Intents', value: summary.pending_transfer_count ?? 0 },
+    { label: 'Pending Transactions', value: summary.pending_transaction_count ?? 0 },
+    { label: 'Settled Transactions', value: summary.settled_transaction_count ?? 0 },
     { label: 'Next Transfer Nonce', value: nextTransferNonceLabel.value },
   ];
 });
 const nativeBalanceLabel = computed(() => {
-  const balance = accountSummary.value?.native_balance;
+  const balance = accountSummary.value?.final_balance ?? accountSummary.value?.native_balance;
   if (balance === null || balance === undefined || balance === '') {
     return '--';
   }
@@ -374,7 +404,7 @@ const nativeBalanceLabel = computed(() => {
 });
 const balanceNote = computed(() => (
   accountSummary.value?.note
-  || 'Pending outgoing transactions reduce available balance, but final balance changes only after block inclusion.'
+  || 'Pending outgoing transfers reduce available balance. Final balance changes only when a transfer is settled in a meme-mined block.'
 ));
 const sessionExpiryLabel = computed(() => {
   if (!wallet.state.sessionExpiresAt) {
@@ -473,7 +503,7 @@ async function refreshAccountSummary() {
     accountSummary.value = response.data || null;
   } catch (error) {
     accountSummary.value = null;
-    balanceError.value = getApiErrorMessage(error, 'Failed to load native ZOID balance.');
+    balanceError.value = getApiErrorMessage(error, 'Failed to load native ZOID account summary.');
   } finally {
     isBalanceLoading.value = false;
   }
@@ -509,11 +539,11 @@ async function refreshTransferHistory() {
   isTransferHistoryLoading.value = true;
   transferError.value = '';
   try {
-    const response = await apiClient.get(`/accounts/${wallet.state.verifiedWalletAddress}/transfers`);
-    transferHistory.value = Array.isArray(response.data.transfers) ? response.data.transfers : [];
+    const response = await apiClient.get(`/accounts/${wallet.state.verifiedWalletAddress}/transactions`);
+    transferHistory.value = Array.isArray(response.data.transactions) ? response.data.transactions : [];
   } catch (error) {
     transferHistory.value = [];
-    transferError.value = getApiErrorMessage(error, 'Failed to load transfer intent history.');
+    transferError.value = getApiErrorMessage(error, 'Failed to load native ZOID transaction history.');
   } finally {
     isTransferHistoryLoading.value = false;
   }
@@ -560,13 +590,12 @@ async function admitTransferToMempool(transfer) {
   transferSuccessMessage.value = '';
   try {
     await apiClient.post(`/transactions/${transfer.tx_id}/admit`);
-    transferSuccessMessage.value = 'Admitted to local mempool - not settled yet.';
-    await refreshAccountSummary();
-    await refreshTransferHistory();
-    await refreshNonceState();
-    await refreshMempool();
+    transferSuccessMessage.value = 'Transaction admitted to local mempool. Not settled yet.';
+    await refreshAccountData();
   } catch (error) {
-    transferError.value = getApiErrorMessage(error, 'Failed to admit transaction to local mempool.');
+    transferError.value = humanizeNativeTransferError(
+      getApiErrorMessage(error, 'Failed to admit transaction to local mempool.'),
+    );
   } finally {
     isMempoolSubmitting.value = false;
   }
@@ -591,24 +620,17 @@ async function submitTransferIntent() {
       availableBalance: accountSummary.value?.available_balance ?? null,
     });
     if (result.duplicate) {
-      transferSuccessMessage.value = `Transaction ${result.tx_id} was already recorded at nonce ${result.nonce || result.transfer_nonce}. It is still signed_pending and not settled yet.`;
+      transferSuccessMessage.value = `Signed native ZOID transfer already recorded at nonce ${result.nonce || result.transfer_nonce}. Not settled yet.`;
     } else {
-      transferSuccessMessage.value = `Signed native transaction recorded. Tx ${result.tx_id} uses nonce ${result.nonce || result.transfer_nonce} and is not settled yet.`;
+      transferSuccessMessage.value = `Signed native ZOID transfer recorded. Tx ${result.tx_id} uses nonce ${result.nonce || result.transfer_nonce}. Not settled yet.`;
     }
     transferForm.value.toAddress = '';
     transferForm.value.amount = '';
     transferForm.value.memo = '';
-    await refreshTransferHistory();
-    await refreshAccountSummary();
-    await refreshNonceState();
-    await refreshMempool();
+    await refreshAccountData();
   } catch (error) {
-    const message = error?.message || 'Native transfer intent submission failed.';
-    if (/nonce already used or reserved|next expected nonce/i.test(message)) {
-      transferError.value = 'Nonce already used or reserved. Refresh and try again.';
-    } else {
-      transferError.value = message;
-    }
+    const message = error?.message || 'Native transfer submission failed.';
+    transferError.value = humanizeNativeTransferError(message);
   } finally {
     isTransferSubmitting.value = false;
   }
@@ -667,7 +689,7 @@ function formatDateTime(value) {
 }
 
 function handleBalanceRefreshEvent() {
-  refreshAccountSummary();
+  refreshAccountData();
 }
 
 watch(

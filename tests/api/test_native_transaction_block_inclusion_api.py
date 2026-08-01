@@ -166,6 +166,8 @@ def test_mint_includes_and_settles_one_mempool_transaction(blockchain, submissio
     assert body["block"]["native_transactions"][0]["tx_id"] == tx_id
 
     transaction_response = client.get(f"/transactions/{tx_id}")
+    sender_history = client.get(f"/accounts/{sender.address.lower()}/transactions").json()
+    recipient_history = client.get(f"/accounts/{recipient.address.lower()}/transactions").json()
     sender_balance = client.get(f"/wallets/{sender.address.lower()}/balance").json()
     recipient_balance = client.get(f"/wallets/{recipient.address.lower()}/balance").json()
     mempool = client.get("/mempool").json()
@@ -176,6 +178,13 @@ def test_mint_includes_and_settles_one_mempool_transaction(blockchain, submissio
     assert transaction["included_block_hash"] == body["block_hash"]
     assert transaction["included_block_height"] == body["block_height"]
     assert transaction["settled_at"] is not None
+    assert sender_history["transactions"][0]["status"] == "settled"
+    assert sender_history["transactions"][0]["included_block_hash"] == body["block_hash"]
+    assert sender_history["transactions"][0]["included_block_height"] == body["block_height"]
+    assert sender_history["transactions"][0]["direction"] == "outgoing"
+    assert recipient_history["transactions"][0]["status"] == "settled"
+    assert recipient_history["transactions"][0]["included_block_hash"] == body["block_hash"]
+    assert recipient_history["transactions"][0]["direction"] == "incoming"
     assert sender_balance["final_balance"] == "6"
     assert sender_balance["pending_outgoing"] == "0"
     assert sender_balance["available_balance"] == "6"

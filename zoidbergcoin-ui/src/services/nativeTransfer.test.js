@@ -143,6 +143,7 @@ test('submitSignedTransferIntent surfaces MetaMask rejection clearly', async () 
   );
 });
 
-test('pending warning copy stays non-final', () => {
-  assert.match(TRANSFER_PENDING_WARNING, /not settled/i);
+test('pending warning copy stays non-final and mentions meme-mined settlement', () => {
+  assert.match(TRANSFER_PENDING_WARNING, /final balance changes only when/i);
+  assert.match(TRANSFER_PENDING_WARNING, /meme-mined block/i);
 });

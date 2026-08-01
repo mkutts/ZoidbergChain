@@ -1,6 +1,6 @@
 import { normalizeWalletAddress } from '../utils/walletAddress.js';
 
-export const TRANSFER_PENDING_WARNING = 'This signs a native ZOID transfer intent on ZoidbergChain. Transfers are not settled until transaction processing is enabled.';
+export const TRANSFER_PENDING_WARNING = 'This signs a native ZOID transfer on ZoidbergChain. Pending outgoing transfers reduce available balance. Final balance changes only when a transfer is settled in a meme-mined block.';
 
 function parseDecimalToMicroUnits(value) {
   const candidate = String(value || '').trim();

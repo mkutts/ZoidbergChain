@@ -7,6 +7,7 @@ import {
   describeTransferIntentDirection,
   describeTransferIntentStatus,
   formatTransferIntentTimestamp,
+  humanizeNativeTransferError,
 } from './nativeWalletUi.js';
 
 test('buildNativeBalanceSummary keeps final balance visible and does not require pending fields', () => {
@@ -18,7 +19,7 @@ test('buildNativeBalanceSummary keeps final balance visible and does not require
 
   assert.deepEqual(rows, [
     {
-      label: 'Final Native ZOID Balance',
+      label: 'Final native ZOID balance',
       value: '15 ZOID',
     },
   ]);
@@ -35,9 +36,10 @@ test('buildNativeBalanceSummary includes pending and available values when prese
   });
 
   assert.equal(rows.length, 4);
-  assert.equal(rows[1].label, 'Pending Outgoing');
-  assert.equal(rows[2].label, 'Pending Incoming');
-  assert.equal(rows[3].label, 'Available Balance');
+  assert.equal(rows[1].label, 'Available to spend');
+  assert.equal(rows[1].value, '15 ZOID');
+  assert.equal(rows[2].label, 'Pending Outgoing');
+  assert.equal(rows[3].label, 'Pending Incoming');
 });
 
 test('describeTransferIntentDirection detects outgoing and incoming transfer history', () => {
@@ -65,17 +67,31 @@ test('describeTransferIntentDirection detects outgoing and incoming transfer his
 });
 
 test('describeTransferIntentStatus keeps signed pending copy non-final', () => {
-  assert.equal(describeTransferIntentStatus('signed_pending'), 'Signed transfer intent');
-  assert.equal(describeTransferIntentStatus('mempool'), 'Pending transaction processing');
+  assert.equal(describeTransferIntentStatus('signed_pending'), 'Signed, not in mempool');
+  assert.equal(describeTransferIntentStatus('mempool'), 'In local mempool');
+  assert.equal(describeTransferIntentStatus('settled'), 'Settled on ZoidbergChain');
 });
 
-test('formatTransferIntentTimestamp prefers signed timestamp', () => {
+test('formatTransferIntentTimestamp prefers later lifecycle timestamps', () => {
   assert.equal(
     formatTransferIntentTimestamp({
+      settled_at: '2026-07-16T02:00:00+00:00',
+      admitted_at: '2026-07-16T01:30:00+00:00',
       signed_at: '2026-07-16T01:00:00+00:00',
       created_at: '2026-07-16T00:00:00+00:00',
     }),
-    '2026-07-16T01:00:00+00:00',
+    '2026-07-16T02:00:00+00:00',
+  );
+});
+
+test('humanizeNativeTransferError maps common backend reasons to account-friendly copy', () => {
+  assert.equal(
+    humanizeNativeTransferError('insufficient_available_balance'),
+    'Available to spend is too low for that native ZOID transfer.',
+  );
+  assert.equal(
+    humanizeNativeTransferError('network does not match the active ZoidbergChain network.'),
+    'This transfer belongs to a different ZoidbergChain network.',
   );
 });
 

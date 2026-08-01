@@ -74,7 +74,7 @@
             <div class="block-heading">
               <div>
                 <p class="section-label">Block #{{ block.index }}</p>
-                <h3>{{ block.index === 0 ? 'Genesis Block' : 'Meme Block' }}</h3>
+                <h3>{{ block.index === 0 ? 'Genesis Block' : 'Meme-mined Block' }}</h3>
               </div>
               <span :class="block.certificate_id ? 'status-pill ready' : 'status-pill'">
                 {{ block.certificate_id ? 'Certified' : 'No Certificate Required' }}
@@ -152,6 +152,10 @@
                 <span>Storage Status</span>
                 <strong>{{ formatContentStatus(block.storage_status) }}</strong>
               </div>
+              <div>
+                <span>Native Transfer Count</span>
+                <strong>{{ block.transaction_count ?? 0 }}</strong>
+              </div>
             </div>
 
             <div class="content-state-line">
@@ -159,6 +163,45 @@
               <a v-if="block.download_url" :href="contentUrl(block.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
+            </div>
+
+            <div v-if="(block.transaction_count ?? 0) > 0" class="native-transfer-panel">
+              <div class="history-header">
+                <span class="native-transfer-label">Native ZOID transfers included</span>
+                <span class="status-pill ready">{{ block.transaction_count }} settled</span>
+              </div>
+              <div class="detail-grid">
+                <div>
+                  <span>Transaction IDs</span>
+                  <strong>{{ joinTransactionIds(block.transaction_ids) }}</strong>
+                </div>
+              </div>
+              <ul class="native-transfer-list">
+                <li v-for="transaction in block.native_transactions || []" :key="transaction.tx_id" class="native-transfer-item">
+                  <div class="history-title-row">
+                    <strong>{{ shortenHash(transaction.tx_id) }}</strong>
+                    <span>Settled on ZoidbergChain</span>
+                  </div>
+                  <div class="detail-grid">
+                    <div>
+                      <span>From</span>
+                      <strong>{{ shortenKey(transaction.from_address) }}</strong>
+                    </div>
+                    <div>
+                      <span>To</span>
+                      <strong>{{ shortenKey(transaction.to_address) }}</strong>
+                    </div>
+                    <div>
+                      <span>Amount</span>
+                      <strong>{{ transaction.amount }} ZOID</strong>
+                    </div>
+                    <div>
+                      <span>Nonce</span>
+                      <strong>{{ transaction.nonce ?? 'Missing' }}</strong>
+                    </div>
+                  </div>
+                </li>
+              </ul>
             </div>
 
             <div v-if="!hasContentPreview(block) && block.meme && block.meme.encoded_image" class="meme-container">
@@ -245,6 +288,12 @@ export default {
         return key || 'Unknown';
       }
       return `${String(key).slice(0, 10)}...${String(key).slice(-8)}`;
+    },
+    joinTransactionIds(transactionIds) {
+      if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+        return 'None';
+      }
+      return transactionIds.map((txId) => this.shortenHash(txId)).join(', ');
     },
     hasContentPreview(record) {
       return Boolean(record?.download_url || this.isTextContent(record) || this.isImageContent(record));
@@ -513,6 +562,38 @@ h3 {
   color: #8eb9ff;
   font-size: 0.88rem;
   font-weight: 700;
+}
+
+.native-transfer-panel {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(141, 245, 166, 0.16);
+  border-radius: 8px;
+  background: rgba(141, 245, 166, 0.06);
+}
+
+.native-transfer-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #b8b8b8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.native-transfer-list {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.native-transfer-item {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(19, 19, 19, 0.55);
 }
 
 .block-heading {

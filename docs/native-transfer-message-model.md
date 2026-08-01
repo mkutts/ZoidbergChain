@@ -1,6 +1,6 @@
 # Native Transfer Message Model
 
-As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.7 carries canonical native transactions through nonce validation, balance reservation, peer gossip, meme-block inclusion, final settlement, and stronger block validation.
+As of Friday, July 31, 2026, signed native transfer intents exist and Task 8.8 cleans up the native ZOID wallet and transaction UX on top of nonce validation, balance reservation, peer gossip, meme-block inclusion, final settlement, and stronger block validation.
 
 ## Purpose
 
@@ -265,6 +265,12 @@ Read endpoints:
 - `GET /accounts/{wallet_address}/transactions`
 - compatibility: `GET /wallets/{wallet_address}/transactions`
 
+Canonical UX rules:
+
+- `/accounts/{wallet_address}/transactions` is the primary history surface
+- `/wallets/{wallet_address}/transactions` remains a compatibility read
+- native ZOID wording must not describe these records as Ethereum or ERC-20 transfers
+
 ## Important Current Limits
 
 Current limits:
@@ -275,4 +281,4 @@ Current limits:
 
 ## Next Planned Steps
 
-- Task 8.8 focuses on wallet balances and transfer history cleanup
+- Task 8.9 is the two-node end-to-end native transfer test

@@ -5,8 +5,15 @@ export function buildNativeBalanceSummary(balance = {}) {
 
   if (finalBalance !== undefined && finalBalance !== null && finalBalance !== '') {
     rows.push({
-      label: 'Final Native ZOID Balance',
+      label: 'Final native ZOID balance',
       value: `${finalBalance} ${symbol}`,
+    });
+  }
+
+  if (balance.available_balance !== undefined && balance.available_balance !== null && balance.available_balance !== '') {
+    rows.push({
+      label: 'Available to spend',
+      value: `${balance.available_balance} ${symbol}`,
     });
   }
 
@@ -21,13 +28,6 @@ export function buildNativeBalanceSummary(balance = {}) {
     rows.push({
       label: 'Pending Incoming',
       value: `${balance.pending_incoming} ${symbol}`,
-    });
-  }
-
-  if (balance.available_balance !== undefined && balance.available_balance !== null && balance.available_balance !== '') {
-    rows.push({
-      label: 'Available Balance',
-      value: `${balance.available_balance} ${symbol}`,
     });
   }
 
@@ -51,22 +51,81 @@ export function describeTransferIntentDirection(transfer, verifiedWalletAddress)
 export function describeTransferIntentStatus(status) {
   const normalized = String(status || '').trim().toLowerCase();
   if (normalized === 'signed_pending') {
-    return 'Signed transfer intent';
+    return 'Signed, not in mempool';
   }
   if (normalized === 'validated_pending') {
-    return 'Validated pending transaction';
+    return 'Validated, pending mempool';
   }
   if (normalized === 'mempool') {
-    return 'Pending transaction processing';
+    return 'In local mempool';
+  }
+  if (normalized === 'included') {
+    return 'Included in meme-mined block';
+  }
+  if (normalized === 'settled') {
+    return 'Settled on ZoidbergChain';
+  }
+  if (normalized === 'rejected') {
+    return 'Rejected';
+  }
+  if (normalized === 'failed') {
+    return 'Failed';
+  }
+  if (normalized === 'expired') {
+    return 'Expired';
   }
   if (!normalized) {
-    return 'Transfer intent';
+    return 'Native ZOID transaction';
   }
   return normalized.replace(/_/g, ' ');
 }
 
 export function formatTransferIntentTimestamp(transfer) {
-  return transfer?.signed_at || transfer?.created_at || '';
+  return transfer?.settled_at || transfer?.admitted_at || transfer?.signed_at || transfer?.created_at || '';
+}
+
+export function humanizeNativeTransferError(message) {
+  const normalized = String(message || '').trim();
+  const lower = normalized.toLowerCase();
+
+  if (lower.includes('insufficient_available_balance') || lower.includes('insufficient available balance')) {
+    return 'Available to spend is too low for that native ZOID transfer.';
+  }
+  if (lower.includes('nonce_too_low') || lower.includes('lower than the next expected nonce')) {
+    return 'The transfer nonce is too low. Refresh the account and try again.';
+  }
+  if (lower.includes('nonce_gap') || lower.includes('ahead of the next expected nonce')) {
+    return 'The transfer nonce is ahead of the next expected value. Refresh the account and try again.';
+  }
+  if (lower.includes('duplicate_nonce') || lower.includes('nonce already used or reserved')) {
+    return 'That nonce is already used or reserved. Refresh the account and try again.';
+  }
+  if (lower.includes('duplicate_transaction_id')) {
+    return 'This native ZOID transaction is already recorded on this node.';
+  }
+  if (lower.includes('invalid_signature')) {
+    return 'The native ZOID signature could not be verified.';
+  }
+  if (lower.includes('wrong_network') || lower.includes('different network') || lower.includes('network does not match')) {
+    return 'This transfer belongs to a different ZoidbergChain network.';
+  }
+  if (lower.includes('invalid_fee') || lower.includes('nonzero fee')) {
+    return 'Native ZOID transfer fees are not enabled on this network yet.';
+  }
+  if (lower.includes('transaction_already_settled') || lower.includes('already settled')) {
+    return 'This transaction is already settled on ZoidbergChain.';
+  }
+  if (lower.includes('transaction not found')) {
+    return 'The requested native ZOID transaction was not found.';
+  }
+  if (lower.includes('peer_broadcast_failed')) {
+    return 'Peer broadcast failed. The transaction may still remain local to this node.';
+  }
+  if (lower.includes('mempool_admission_failed') || lower.includes('not eligible for mempool admission')) {
+    return 'The transaction could not be admitted to the local mempool.';
+  }
+
+  return normalized;
 }
 
 export function buildRewardSummary(reward) {

@@ -1,10 +1,10 @@
 # Native Transaction Layer Plan
 
-As of Friday, July 31, 2026, Task 8.7 is the current implemented phase of the native transaction layer.
+As of Friday, July 31, 2026, Task 8.8 is the current implemented phase of the native transaction layer.
 
 ## Current Scope
 
-Task 8.7 hardens block validation and chain-sync handling for meme blocks that carry native ZOID transfers.
+Task 8.8 cleans up the canonical native account surface, wallet balance wording, transfer history UX, and native ZOID explorer presentation.
 
 Implemented now:
 
@@ -36,6 +36,9 @@ Implemented now:
 - native transaction settlement on accepted block persistence
 - settled balance mutation from accepted chain blocks
 - mempool cleanup after block inclusion
+- canonical `/accounts/...` account summary and transaction history surface
+- wallet summary counts for pending, settled, and nonce status
+- wallet and explorer wording aligned with native ZOID settlement lifecycle
 
 Not implemented yet:
 
@@ -380,4 +383,4 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 
 ## Next Planned Steps
 
-- Task 8.8 focuses on wallet balances and transfer history cleanup
+- Task 8.9 is the two-node end-to-end native transfer test

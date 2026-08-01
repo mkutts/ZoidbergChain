@@ -67,4 +67,4 @@ Not implemented yet:
 
 ## Next Step
 
-- Task 8.8 focuses on wallet balances and transfer history cleanup
+- Task 8.9 is the two-node end-to-end native transfer test

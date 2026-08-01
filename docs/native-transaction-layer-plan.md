@@ -68,6 +68,13 @@ Not implemented yet:
 - consensus-wide mempool rules
 - wrapped ZOID or ERC-20 behavior
 
+Task 9 public-demo/testnet readiness adds:
+
+- environment-aware dev-tool lockdown
+- safe public health metadata
+- public-demo wording that native ZOID is not an ERC-20 and not a MetaMask token balance
+- deployment-oriented CORS and upload-limit configuration
+
 ## Canonical NativeTransaction Shape
 
 Task 8.1 stores these fields:
@@ -215,6 +222,12 @@ Exact duplicate behavior:
 Nonce read surface:
 
 - `GET /accounts/{wallet_address}/nonce`
+
+Public demo constraints:
+
+- transfer-only blocks remain unsupported
+- mempools remain local and are not consensus-wide
+- the Stage 1 public demo is not mainnet
 
 ## Submit-Time Behavior
 

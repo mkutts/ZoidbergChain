@@ -298,10 +298,15 @@ def test_chain_summary_endpoint(blockchain):
 
     assert response.status_code == 200
     assert response.json() == {
+        "status": "ok",
         "network_name": "zoidberg-testnet",
         "node_id": "local-node",
+        "environment": "development",
+        "public_demo_mode": False,
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,
+        "storage_backend": "json",
+        "peer_count": 0,
         "genesis_hash": blockchain.chain[0].hash,
         "cumulative_originality_score": 0,
         "cumulative_work": None,

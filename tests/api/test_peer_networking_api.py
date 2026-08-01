@@ -24,11 +24,16 @@ def test_node_info_response(blockchain):
 
     assert response.status_code == 200
     assert response.json() == {
+        "status": "ok",
         "node_id": "local-node",
         "public_node_url": "http://localhost:8000",
         "network_name": "zoidberg-testnet",
+        "environment": "development",
+        "public_demo_mode": False,
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,
+        "storage_backend": "json",
+        "peer_count": 0,
         "cumulative_originality_score": 0,
     }
 

@@ -70,6 +70,7 @@ Stage 1 public label:
 Scope:
 
 - production/testnet environment configuration
+- controlled public-demo labeling
 - disable dev-only multi-account tools outside development
 - disable dev wallet generation outside development
 - disable dev reset endpoints outside development
@@ -87,6 +88,14 @@ Scope:
 - backup/restore runbook
 - testnet reset runbook
 - documentation that public demo/testnet ZOID has no real monetary value and may reset
+
+Stage 1 deployment expectations:
+
+- `ENVIRONMENT=testnet` for the public demo
+- dev-only endpoints return safe `403` responses outside development
+- `GET /health`, `GET /node-info`, and `GET /chain/summary` expose safe deployment metadata only
+- public CORS defaults target `zoidbergcoin.com` and `www.zoidbergcoin.com`
+- frontend labels explicitly say controlled testnet, no real monetary value, may reset, and not mainnet
 
 Important distinction:
 

@@ -1,5 +1,6 @@
 <template>
   <div class="home-container">
+    <PublicDemoBanner v-if="showPublicDemoBanner" />
     <h1>ZoidbergCoin</h1>
     <p class="subtitle">The Meme-Centric Blockchain</p>
 
@@ -34,10 +35,13 @@
 
 <script>
 import { apiClient, getApiErrorMessage } from '../config/api';
+import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import WalletPanel from '../components/WalletPanel.vue';
+import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
 
 export default {
   components: {
+    PublicDemoBanner,
     WalletPanel,
   },
   data() {
@@ -45,7 +49,8 @@ export default {
       walletDetails: null,
       successMessage: '',
       errorMessage: '',
-      showDevWalletTools: import.meta.env.DEV,
+      showDevWalletTools: showDevelopmentTools(),
+      showPublicDemoBanner: isPublicDemoMode(),
       whitePaperURL: '/ZoidbergCoin_WhitePaper.pdf',
     };
   },

@@ -28,11 +28,13 @@ def _set_security_mode(
     import api
 
     reset_enabled = environment == "development" if allow_reset is None else allow_reset
+    monkeypatch.setattr(api, "ENVIRONMENT", environment)
     monkeypatch.setattr(api, "is_development", lambda: environment == "development")
     monkeypatch.setattr(api, "is_production", lambda: environment == "production")
     monkeypatch.setattr(api, "allow_private_key_export", lambda: allow_export)
     monkeypatch.setattr(api, "allow_dev_reset_endpoints", lambda: reset_enabled)
     monkeypatch.setattr(api, "public_api_mode_enabled", lambda: public_api_mode)
+    monkeypatch.setattr(api, "public_demo_mode_enabled", lambda: environment in {"testnet", "production"})
 
 
 def _assert_no_sensitive_fields(payload):
@@ -85,11 +87,9 @@ def test_wallet_creation_does_not_expose_private_key_in_testnet(blockchain, monk
 
     response = client.post("/generate_wallet")
 
-    assert response.status_code == 200
-    body = response.json()
-    _assert_no_sensitive_fields(body)
-    assert body["wallet"].keys() == {"public_key", "balance"}
-    assert body["key_export"]["enabled"] is False
+    assert response.status_code == 403
+    _assert_no_sensitive_fields(response.json())
+    assert response.json()["detail"] == "Development wallet generation is disabled."
 
 
 def test_wallet_creation_does_not_expose_private_key_in_production(blockchain, monkeypatch):
@@ -98,11 +98,41 @@ def test_wallet_creation_does_not_expose_private_key_in_production(blockchain, m
 
     response = client.post("/generate_wallet")
 
+    assert response.status_code == 403
+    _assert_no_sensitive_fields(response.json())
+    assert response.json()["detail"] == "Development wallet generation is disabled."
+
+
+def test_health_endpoint_returns_safe_public_metadata(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "testnet", allow_export=False, public_api_mode=True)
+    client = _client(blockchain)
+
+    response = client.get("/health")
+
     assert response.status_code == 200
     body = response.json()
+    assert body["status"] == "ok"
+    assert body["environment"] == "testnet"
+    assert body["public_demo_mode"] is True
+    assert "storage_backend" in body
+    assert "peer_count" in body
     _assert_no_sensitive_fields(body)
-    assert body["wallet"].keys() == {"public_key", "balance"}
-    assert body["key_export"]["enabled"] is False
+    assert "public_node_url" not in body
+    assert "path" not in body
+
+
+def test_chain_summary_returns_safe_public_metadata(blockchain, monkeypatch):
+    _set_security_mode(monkeypatch, "production", allow_export=False, public_api_mode=True)
+    client = _client(blockchain)
+
+    response = client.get("/chain/summary")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["environment"] == "production"
+    assert body["public_demo_mode"] is True
+    assert "genesis_hash" in body
+    _assert_no_sensitive_fields(body)
 
 
 def test_dev_private_key_export_works_in_development_when_enabled(blockchain, monkeypatch):

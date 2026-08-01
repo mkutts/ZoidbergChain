@@ -2,6 +2,15 @@
 
 This frontend presents native ZOID activity for MetaMask-backed ZoidbergChain accounts.
 
+For the Stage 1 public deployment, the UI should visibly say:
+
+- ZoidbergChain controlled testnet
+- Test ZOID has no real monetary value
+- This network may reset
+- Not mainnet
+- Native ZOID lives on ZoidbergChain, not Ethereum
+- MetaMask signs ZoidbergChain actions
+
 ## Native Account UX
 
 - Canonical account reads use `/accounts/{wallet_address}` and related `/accounts/...` endpoints.
@@ -32,5 +41,6 @@ This frontend presents native ZOID activity for MetaMask-backed ZoidbergChain ac
 
 - Native ZOID is native to ZoidbergChain.
 - Do not describe these balances or transfers as Ethereum balances, ERC-20 balances, or MetaMask token transfers.
+- Do not describe the public demo as mainnet, real money, investment, or Ethereum transfer support.
 - Transfer-only blocks remain disallowed by design.
 - Replacement policy is still not implemented.

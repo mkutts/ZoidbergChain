@@ -1,5 +1,6 @@
 <template>
   <div class="blockchain-page">
+    <PublicDemoBanner v-if="showPublicDemoBanner" />
     <header class="explorer-header">
       <div>
         <p class="eyebrow">Blockchain Explorer</p>
@@ -216,8 +217,13 @@
 
 <script>
 import { apiClient, buildApiUrl, getApiErrorMessage } from '../config/api';
+import PublicDemoBanner from '../components/PublicDemoBanner.vue';
+import { isPublicDemoMode } from '../utils/runtimeConfig';
 
 export default {
+  components: {
+    PublicDemoBanner,
+  },
   data() {
     return {
       chain: [],
@@ -225,6 +231,7 @@ export default {
       errorMessage: '',
       summaryError: '',
       isLoading: false,
+      showPublicDemoBanner: isPublicDemoMode(),
     };
   },
   async created() {

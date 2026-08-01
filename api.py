@@ -64,26 +64,31 @@ from config import (
     COIN_NAME,
     TICKER,
     ENABLE_RATE_LIMITING,
+    LOG_DIR,
     PEER_SIGNATURE_WINDOW_SECONDS,
     ENVIRONMENT,
     ENABLE_STRICT_MIME_VALIDATION,
     MAX_CAPTION_LENGTH,
+    MAX_CONTENT_FILE_SIZE_BYTES,
+    MAX_TEXT_CONTENT_BYTES,
+    NODE_DATA_DIR,
     NETWORK_NAME,
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
     SUBMISSIONS_DIR,
-    MAX_CONTENT_FILE_SIZE_BYTES,
     MAX_FILENAME_LENGTH,
-    MAX_TEXT_CONTENT_BYTES,
+    STORAGE_BACKEND,
     VOTING_WINDOW_HOURS,
     allow_dev_reset_endpoints,
     allow_private_key_export,
+    cors_allowed_origins,
     get_rate_limit,
     peer_replay_protection_enabled,
     is_development,
     is_production,
     public_api_mode_enabled,
+    public_demo_mode_enabled,
     peer_auth_required,
     peer_shared_secret,
     peer_shared_secret_is_configured,
@@ -981,6 +986,36 @@ def require_development_mode(feature_enabled=True, feature_name="Development too
         )
 
 
+def _public_error(detail, *, status_code=400, code=None):
+    body = {"detail": detail}
+    if code:
+        body["code"] = code
+    return JSONResponse(status_code=status_code, content=body)
+
+
+def _safe_server_error():
+    return _public_error(
+        "Internal server error.",
+        status_code=500,
+        code="internal_server_error",
+    )
+
+
+def _health_payload():
+    latest_block = blockchain.get_latest_block()
+    return {
+        "status": "ok",
+        "network_name": NETWORK_NAME,
+        "node_id": NODE_ID,
+        "environment": ENVIRONMENT,
+        "public_demo_mode": public_demo_mode_enabled(),
+        "chain_height": latest_block.index,
+        "latest_block_hash": latest_block.hash,
+        "storage_backend": STORAGE_BACKEND,
+        "peer_count": len(peer_store.list_active_peers(network_name=NETWORK_NAME)),
+    }
+
+
 async def require_mint_queue_management_access(
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
@@ -1056,7 +1091,8 @@ def log_startup_security_config():
         "public_node_url=%s public_api_mode=%s require_peer_auth=%s "
         "signed_peer_messages=%s peer_signature_window_seconds=%s "
         "peer_replay_protection_enabled=%s peer_secret_configured=%s "
-        "allow_dev_wallet_private_key_export=%s",
+        "allow_dev_wallet_private_key_export=%s public_demo_mode=%s "
+        "storage_backend=%s cors_allowed_origins=%s node_data_dir=%s log_dir=%s",
         ENVIRONMENT,
         NETWORK_NAME,
         NODE_ID,
@@ -1068,6 +1104,11 @@ def log_startup_security_config():
         peer_replay_protection_enabled(),
         peer_shared_secret_is_configured(),
         allow_private_key_export(),
+        public_demo_mode_enabled(),
+        STORAGE_BACKEND,
+        ",".join(cors_allowed_origins()),
+        NODE_DATA_DIR,
+        LOG_DIR,
     )
 
 @asynccontextmanager
@@ -1082,11 +1123,7 @@ app = FastAPI(lifespan=lifespan)
 # CORS: allow both local and live frontend origins.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://zoidbergcoin.com",
-    ],
+    allow_origins=cors_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1099,9 +1136,10 @@ limiter = Limiter(key_func=get_remote_address, enabled=ENABLE_RATE_LIMITING)
 app.state.limiter = limiter
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
-    return JSONResponse(
+    return _public_error(
+        "Rate limit exceeded. Try again later.",
         status_code=429,
-        content={"detail": "Rate limit exceeded. Try again later."},
+        code="rate_limit_exceeded",
     )
 
 app.add_middleware(SlowAPIMiddleware)
@@ -1138,7 +1176,7 @@ def _verified_wallet_dependency(authorization: str | None = Header(default=None)
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     """Preserve expected FastAPI/HTTPException responses."""
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return _public_error(exc.detail, status_code=exc.status_code)
 
 
 @app.middleware("http")
@@ -1156,10 +1194,10 @@ async def log_requests(request: Request, call_next):
 async def global_exception_handler(request: Request, exc: Exception):
     """Global error handler to log unexpected errors."""
     if isinstance(exc, StarletteHTTPException):
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        return _public_error(exc.detail, status_code=exc.status_code)
 
-    logging.error(f"Exception: {str(exc)} - {request.method} {request.url.path}")
-    return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return _safe_server_error()
 
 # ✅ Serve the Home Page (Splash Page)
 @app.get("/")
@@ -1220,8 +1258,9 @@ async def dev_reset_blockchain(request: Request):
             "warning": DEV_ENDPOINT_WARNING,
             **_reset_blockchain_to_genesis(),
         }
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    except Exception:
+        logger.exception("Development reset failed")
+        return _safe_server_error()
 
 
 @app.post("/reset_blockchain")
@@ -1262,18 +1301,22 @@ async def sync_blockchain(request: Request):
     return {"chain": blockchain.get_chain()}
 
 
+@app.get("/health")
+@api_limit("public_read")
+async def health(request: Request):
+    return _health_payload()
+
+
 @app.get("/node-info")
 @api_limit("public_read")
 async def node_info(request: Request):
-    latest_block = blockchain.get_latest_block()
-    return {
+    payload = _health_payload()
+    payload.update({
         "node_id": NODE_ID,
         "public_node_url": PUBLIC_NODE_URL,
-        "network_name": NETWORK_NAME,
-        "chain_height": latest_block.index,
-        "latest_block_hash": latest_block.hash,
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
-    }
+    })
+    return payload
 
 
 @app.post("/auth/wallet/challenge")
@@ -1793,16 +1836,13 @@ async def get_chain(request: Request):
 @app.get("/chain/summary")
 @api_limit("public_read")
 async def chain_summary(request: Request):
-    latest_block = blockchain.get_latest_block()
-    return {
-        "network_name": NETWORK_NAME,
-        "node_id": NODE_ID,
-        "chain_height": latest_block.index,
-        "latest_block_hash": latest_block.hash,
+    payload = _health_payload()
+    payload.update({
         "genesis_hash": blockchain.chain[0].hash,
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
         "cumulative_work": None,
-    }
+    })
+    return payload
 
 
 @app.get("/chain/blocks")
@@ -1949,8 +1989,9 @@ async def get_wallets(request: Request):
                 for key, wallet in blockchain.wallets.items()
             ],
         }
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    except Exception:
+        logger.exception("Failed to retrieve development wallet summaries")
+        return _safe_server_error()
 
 
 @app.get("/dev/wallets")
@@ -2790,6 +2831,7 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
     """
     Generate a development-only server wallet.
     """
+    require_development_mode(True, "Development wallet generation")
     wallet = Wallet()
     blockchain.wallets[wallet.public_key] = wallet  # Register the wallet in the blockchain
 

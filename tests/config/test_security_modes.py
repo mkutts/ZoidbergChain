@@ -18,7 +18,9 @@ _CONFIG_ENV_KEYS = (
     "RATE_LIMIT_ENABLED",
     "REQUIRE_PEER_AUTH",
     "PUBLIC_API_MODE",
+    "PUBLIC_DEMO_MODE",
     "PEER_SHARED_SECRET",
+    "CORS_ALLOWED_ORIGINS",
     "RATE_LIMIT_TRANSACTION_CREATE",
     "RATE_LIMIT_WALLET_CREATE",
     "RATE_LIMIT_SUBMISSION_CREATE",
@@ -77,6 +79,13 @@ def test_default_environment_is_development():
         assert config.is_development()
         assert not config.is_testnet()
         assert not config.is_production()
+        assert config.public_demo_mode_enabled() is False
+        assert config.cors_allowed_origins() == [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "https://zoidbergcoin.com",
+            "https://www.zoidbergcoin.com",
+        ]
         assert config.ENABLE_SIGNED_PEER_MESSAGES is False
         assert config.PEER_SIGNATURE_WINDOW_SECONDS == 300
         assert config.PEER_REPLAY_PROTECTION_ENABLED is False
@@ -133,6 +142,7 @@ def test_helper_functions_return_correct_values_for_testnet():
         assert not config.is_development()
         assert not config.is_production()
         assert config.public_api_mode_enabled() is True
+        assert config.public_demo_mode_enabled() is True
         assert config.require_peer_auth() is True
         assert config.allow_private_key_export() is False
         assert config.allow_dev_reset_endpoints() is False
@@ -140,6 +150,10 @@ def test_helper_functions_return_correct_values_for_testnet():
         assert config.signed_peer_messages_enabled() is True
         assert config.peer_signature_window_seconds() == 300
         assert config.peer_replay_protection_enabled() is True
+        assert config.cors_allowed_origins() == [
+            "https://zoidbergcoin.com",
+            "https://www.zoidbergcoin.com",
+        ]
         assert config.get_rate_limit("wallet_create") == "10/minute"
         assert config.get_rate_limit("public_read") == "180/minute"
 
@@ -199,3 +213,14 @@ def test_signed_peer_messages_require_non_default_secret_in_development_when_ena
 def test_development_allows_peer_auth_secret_to_be_missing():
     with loaded_config(ENVIRONMENT="development", PEER_SHARED_SECRET="") as config:
         assert config.REQUIRE_PEER_AUTH is False
+
+
+def test_cors_allowed_origins_can_be_overridden_explicitly():
+    with loaded_config(
+        ENVIRONMENT="production",
+        CORS_ALLOWED_ORIGINS="https://demo.zoidbergcoin.com, https://zoidbergcoin.com",
+    ) as config:
+        assert config.cors_allowed_origins() == [
+            "https://demo.zoidbergcoin.com",
+            "https://zoidbergcoin.com",
+        ]

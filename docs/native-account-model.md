@@ -11,6 +11,7 @@ Current status:
 - old `/wallets/...` endpoints remain read-only compatibility surfaces
 - the current roadmap moves next to Task 9 public demo and testnet deployment readiness
 - later stages are documented in [roadmap.md](/C:/Users/mattk/ZoidbergChain/docs/roadmap.md)
+- the public demo is labeled as a controlled testnet with no real monetary value
 
 ## Core Model
 
@@ -181,12 +182,19 @@ History fields should clearly distinguish:
 Important wording:
 
 - native ZOID is not an ERC-20 or Ethereum token balance
+- native ZOID lives on ZoidbergChain, not Ethereum
+- MetaMask signs ZoidbergChain actions but does not hold a normal MetaMask token balance for native ZOID
 - pending outgoing transfers reduce available balance
 - transfer-only blocks remain disallowed by design
 - replacement policy still is not implemented
 - persistence reload revalidates native transactions before nonce or balance reservation is trusted again
 - backup/export/import snapshots now preserve native transfer state
 - current hardening level is for controlled dev/testnet use, not production deployment
+
+Public demo note:
+
+- disabling development multi-account helpers does not stop one real person from making many real MetaMask wallets
+- that anti-Sybil problem remains part of Task 10
 
 ## Compatibility Notes
 

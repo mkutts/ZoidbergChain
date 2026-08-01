@@ -1,5 +1,6 @@
 <template>
   <div class="dashboard-page">
+    <PublicDemoBanner v-if="showPublicDemoBanner" />
     <header class="dashboard-header">
       <div>
         <p class="eyebrow">Originality Consensus</p>
@@ -732,11 +733,14 @@
 
 <script>
 import { apiClient, buildApiUrl, getApiErrorMessage, publicApiClient } from '../config/api';
+import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import WalletPanel from '../components/WalletPanel.vue';
 import { useWallet } from '../services/wallet';
+import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
 
 export default {
   components: {
+    PublicDemoBanner,
     WalletPanel,
   },
   data() {
@@ -781,7 +785,8 @@ export default {
       isSummaryLoading: false,
       isRefreshing: false,
       mintingSubmissionId: '',
-      showMintQueueTools: import.meta.env.DEV,
+      showMintQueueTools: showDevelopmentTools(),
+      showPublicDemoBanner: isPublicDemoMode(),
     };
   },
   computed: {

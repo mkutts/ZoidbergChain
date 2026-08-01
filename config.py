@@ -19,6 +19,14 @@ UNSURE_VOTE_WEIGHT = 0.0
 
 VALID_ENVIRONMENTS = {"development", "testnet", "production"}
 VALID_STORAGE_BACKENDS = {"json", "sqlite"}
+DEFAULT_PUBLIC_DEMO_ORIGINS = (
+    "https://zoidbergcoin.com",
+    "https://www.zoidbergcoin.com",
+)
+DEFAULT_DEVELOPMENT_ORIGINS = (
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+)
 
 _SECURITY_DEFAULTS = {
     "development": {
@@ -149,6 +157,16 @@ def _env_int(name, default):
         return int(value.strip())
     except (AttributeError, ValueError):
         raise ValueError(f"Invalid integer value for {name}: {value!r}.")
+
+
+def _split_csv(value):
+    if value is None:
+        return []
+    return [
+        item.strip()
+        for item in str(value).split(",")
+        if item and item.strip()
+    ]
 
 
 def _load_environment():
@@ -291,6 +309,17 @@ def _env_value(name, default):
     return value.strip()
 
 
+def _load_allowed_cors_origins():
+    explicit_origins = _split_csv(os.getenv("CORS_ALLOWED_ORIGINS"))
+    if explicit_origins:
+        return tuple(dict.fromkeys(explicit_origins))
+
+    default_origins = list(DEFAULT_PUBLIC_DEMO_ORIGINS)
+    if ENVIRONMENT == "development":
+        default_origins = list(DEFAULT_DEVELOPMENT_ORIGINS) + default_origins
+    return tuple(dict.fromkeys(default_origins))
+
+
 RATE_LIMIT_TRANSACTION_CREATE = _env_value_any(
     ("RATE_LIMIT_TRANSACTION_CREATE", "TRANSACTION_RATE_LIMIT"),
     _CURRENT_RATE_LIMIT_DEFAULTS["RATE_LIMIT_TRANSACTION_CREATE"],
@@ -386,5 +415,16 @@ if STORAGE_BACKEND not in VALID_STORAGE_BACKENDS:
         f"Expected one of: {supported_backends}."
     )
 SQLITE_DB_PATH = _env_value("SQLITE_DB_PATH", _DATA_PATHS["sqlite_db_path"])
+LOG_DIR = _clean_path(_env_value("LOG_DIR", os.path.join(DATA_DIR, "logs")))
+PUBLIC_DEMO_MODE = _env_flag("PUBLIC_DEMO_MODE", ENVIRONMENT in {"testnet", "production"})
+CORS_ALLOWED_ORIGINS = _load_allowed_cors_origins()
 
 validate_peer_auth_config()
+
+
+def cors_allowed_origins():
+    return list(CORS_ALLOWED_ORIGINS)
+
+
+def public_demo_mode_enabled():
+    return PUBLIC_DEMO_MODE

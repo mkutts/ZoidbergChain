@@ -72,4 +72,11 @@ Not implemented yet:
 - peer transport authorization and user transfer signatures are separate checks
 - peer-received transactions never require a browser wallet session
 - peer-provided local-only fields are ignored and local status is decided by the receiving node
+- testnet and production should run with a real peer secret, signed peer messages, and restricted CORS
 - current behavior remains appropriate for controlled dev/testnet use rather than production deployment
+
+## Public Demo Notes
+
+- Stage 1 public deployment is a controlled testnet, not mainnet
+- `GET /health`, `GET /node-info`, and `GET /chain/summary` are the safe public status surfaces
+- peer counts may be exposed in health metadata, but peer secrets and internal file paths must never be exposed

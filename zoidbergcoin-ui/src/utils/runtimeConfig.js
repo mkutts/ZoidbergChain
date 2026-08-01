@@ -1,42 +1,60 @@
 const IMPORT_META_ENV = {
-  MODE: import.meta.env.MODE,
-  PROD: import.meta.env.PROD,
-  VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
-  VITE_APP_ENVIRONMENT: import.meta.env.VITE_APP_ENVIRONMENT,
-  VITE_PUBLIC_DEMO_MODE: import.meta.env.VITE_PUBLIC_DEMO_MODE,
-  VITE_ENABLE_DEV_TOOLS: import.meta.env.VITE_ENABLE_DEV_TOOLS,
+  MODE: import.meta.env?.MODE,
+  PROD: import.meta.env?.PROD,
+  VITE_ENVIRONMENT: import.meta.env?.VITE_ENVIRONMENT,
+  VITE_APP_ENVIRONMENT: import.meta.env?.VITE_APP_ENVIRONMENT,
+  VITE_PUBLIC_DEMO_MODE: import.meta.env?.VITE_PUBLIC_DEMO_MODE,
+  VITE_ENABLE_DEV_TOOLS: import.meta.env?.VITE_ENABLE_DEV_TOOLS,
 };
 
-function normalizeEnvironment(rawEnvironment) {
+function normalizeEnvironment(rawEnvironment, env = IMPORT_META_ENV) {
   const normalized = String(rawEnvironment || '').trim().toLowerCase();
   if (['development', 'testnet', 'production'].includes(normalized)) {
     return normalized;
   }
-  return IMPORT_META_ENV.PROD ? 'production' : 'development';
+  return env.PROD ? 'production' : 'development';
 }
 
-export function getAppEnvironment() {
+function envFlag(rawValue) {
+  if (typeof rawValue !== 'string' || !rawValue.trim()) {
+    return null;
+  }
+  const normalized = rawValue.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+  return null;
+}
+
+export function getAppEnvironment(env = IMPORT_META_ENV) {
   return normalizeEnvironment(
-    IMPORT_META_ENV.VITE_ENVIRONMENT
-    || IMPORT_META_ENV.VITE_APP_ENVIRONMENT
-    || IMPORT_META_ENV.MODE,
+    env.VITE_ENVIRONMENT
+    || env.VITE_APP_ENVIRONMENT
+    || env.MODE,
+    env,
   );
 }
 
-export function isPublicDemoMode() {
-  const explicit = IMPORT_META_ENV.VITE_PUBLIC_DEMO_MODE;
-  if (typeof explicit === 'string' && explicit.trim()) {
-    return ['1', 'true', 'yes', 'on'].includes(explicit.trim().toLowerCase());
+export function isPublicDemoMode(env = IMPORT_META_ENV) {
+  const explicit = envFlag(env.VITE_PUBLIC_DEMO_MODE);
+  if (explicit !== null) {
+    return explicit;
   }
-  return getAppEnvironment() !== 'development';
+  return getAppEnvironment(env) !== 'development';
 }
 
-export function showDevelopmentTools() {
-  const explicit = IMPORT_META_ENV.VITE_ENABLE_DEV_TOOLS;
-  if (typeof explicit === 'string' && explicit.trim()) {
-    return ['1', 'true', 'yes', 'on'].includes(explicit.trim().toLowerCase());
+export function showDevelopmentTools(env = IMPORT_META_ENV) {
+  if (isPublicDemoMode(env)) {
+    return false;
   }
-  return getAppEnvironment() === 'development' && !isPublicDemoMode();
+  const explicit = envFlag(env.VITE_ENABLE_DEV_TOOLS);
+  if (explicit !== null) {
+    return explicit;
+  }
+  return getAppEnvironment(env) === 'development';
 }
 
 export function publicDemoBannerLines() {

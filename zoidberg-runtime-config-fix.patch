@@ -1,0 +1,29 @@
+From 949025465fcf70af66aa5256fd6ef4faba15b5d2 Mon Sep 17 00:00:00 2001
+From: Your Name <you@example.com>
+Date: Sat, 1 Aug 2026 23:45:17 +0000
+Subject: [PATCH] fixed banner issue
+
+---
+ zoidbergcoin-ui/src/utils/runtimeConfig.js | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/zoidbergcoin-ui/src/utils/runtimeConfig.js b/zoidbergcoin-ui/src/utils/runtimeConfig.js
+index e7e2b59..0fabc1f 100644
+--- a/zoidbergcoin-ui/src/utils/runtimeConfig.js
++++ b/zoidbergcoin-ui/src/utils/runtimeConfig.js
+@@ -1,4 +1,11 @@
+-const IMPORT_META_ENV = import.meta?.env || {};
++const IMPORT_META_ENV = {
++  MODE: import.meta.env.MODE,
++  PROD: import.meta.env.PROD,
++  VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
++  VITE_APP_ENVIRONMENT: import.meta.env.VITE_APP_ENVIRONMENT,
++  VITE_PUBLIC_DEMO_MODE: import.meta.env.VITE_PUBLIC_DEMO_MODE,
++  VITE_ENABLE_DEV_TOOLS: import.meta.env.VITE_ENABLE_DEV_TOOLS,
++};
+ 
+ function normalizeEnvironment(rawEnvironment) {
+   const normalized = String(rawEnvironment || '').trim().toLowerCase();
+-- 
+2.43.0
+

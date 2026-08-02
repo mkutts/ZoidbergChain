@@ -281,6 +281,14 @@
           {{ votingIdentityHint }}
         </p>
 
+        <div class="review-policy-panel">
+          <p class="section-label">Reviewer Eligibility</p>
+          <strong>{{ reviewPolicySummary }}</strong>
+          <p class="hint">{{ reviewPolicyWarning }}</p>
+          <p v-if="reviewerEligibilityMessage" class="status-message error">{{ reviewerEligibilityMessage }}</p>
+          <p v-if="reviewPolicyError" class="status-message error">{{ reviewPolicyError }}</p>
+        </div>
+
         <div v-if="voteMessage || voteError || evaluateMessage || evaluateError" class="message-grid">
           <p v-if="voteMessage" class="status-message success">{{ voteMessage }}</p>
           <p v-if="voteError" class="status-message error">{{ voteError }}</p>
@@ -736,6 +744,12 @@ import { apiClient, buildApiUrl, getApiErrorMessage, publicApiClient } from '../
 import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import WalletPanel from '../components/WalletPanel.vue';
 import { useWallet } from '../services/wallet';
+import {
+  buildReviewerEligibilityMessage,
+  buildReviewPolicySummary,
+  buildReviewPolicyWarning,
+  normalizeReviewPolicyResponse,
+} from '../utils/reviewPolicy';
 import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
 
 export default {
@@ -771,6 +785,8 @@ export default {
       errorMessage: '',
       voteMessage: '',
       voteError: '',
+      reviewPolicy: null,
+      reviewPolicyError: '',
       evaluateMessage: '',
       evaluateError: '',
       mintMessage: '',
@@ -857,10 +873,27 @@ export default {
       }
       return 'Verify wallet before voting. New normal votes now require a verified session plus a direct MetaMask signature.';
     },
+    reviewPolicySummary() {
+      return this.reviewPolicy ? buildReviewPolicySummary(this.reviewPolicy) : 'Loading reviewer policy...';
+    },
+    reviewPolicyWarning() {
+      return buildReviewPolicyWarning(this.reviewPolicy);
+    },
+    reviewerEligibilityMessage() {
+      return buildReviewerEligibilityMessage(this.reviewPolicy);
+    },
   },
   async created() {
     await this.walletManager.detectMetaMask();
     await this.refreshWorkflow();
+  },
+  watch: {
+    voteWalletAddress() {
+      this.fetchReviewPolicy();
+    },
+    hasVerifiedWalletIdentity() {
+      this.fetchReviewPolicy();
+    },
   },
   methods: {
     async blockMinting(submission) {
@@ -918,6 +951,7 @@ export default {
           this.fetchSubmissions(false),
           this.fetchMintQueue(false),
           this.fetchRecentBlocks(),
+          this.fetchReviewPolicy(),
         ]);
         await this.loadVisibleCertificates(true);
       } finally {
@@ -1150,6 +1184,19 @@ export default {
         this.isSummaryLoading = false;
       }
     },
+    async fetchReviewPolicy() {
+      this.reviewPolicyError = '';
+      try {
+        const client = this.hasVerifiedWalletIdentity ? apiClient : publicApiClient;
+        const params = this.voteWalletAddress ? { wallet_address: this.voteWalletAddress } : {};
+        const response = await client.get('/review/policy', { params });
+        this.reviewPolicy = normalizeReviewPolicyResponse(response.data);
+      } catch (error) {
+        console.error('Error fetching review policy:', error);
+        this.reviewPolicy = null;
+        this.reviewPolicyError = getApiErrorMessage(error, 'Failed to load reviewer policy.');
+      }
+    },
     async fetchSubmissions(loadCertificates = true) {
       this.isLoading = true;
       this.voteError = '';
@@ -1264,6 +1311,9 @@ export default {
     },
     voteDisabled(submission) {
       if (!this.walletManager.state.isConnected || !this.hasVerifiedWalletIdentity || !this.voteWalletAddress) {
+        return true;
+      }
+      if (this.reviewPolicy?.eligibility?.eligible === false) {
         return true;
       }
       if (submission?.submitter === this.voteWalletAddress) {
@@ -1392,6 +1442,10 @@ export default {
         this.voteError = 'Verify wallet before voting.';
         return;
       }
+      if (this.reviewPolicy?.eligibility?.eligible === false) {
+        this.voteError = this.reviewerEligibilityMessage || 'This wallet is not currently eligible to review.';
+        return;
+      }
 
       const submission = this.submissions.find((item) => item.submission_id === submissionId);
       if (!submission) {
@@ -1444,9 +1498,11 @@ export default {
         });
         this.voteMessage = `${response.data.message || 'Vote recorded successfully.'} Vote: ${this.formatStatus(voteType)}.`;
         await this.fetchSubmissions();
+        await this.fetchReviewPolicy();
       } catch (error) {
         console.error('Error recording vote:', error);
         this.voteError = getApiErrorMessage(error, 'Failed to record vote.');
+        await this.fetchReviewPolicy();
       }
     },
     async evaluateSubmission(submissionId) {
@@ -1821,6 +1877,17 @@ h3 {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.22);
+}
+
+.review-policy-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid rgba(255, 184, 77, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 184, 77, 0.08);
 }
 
 .btn {

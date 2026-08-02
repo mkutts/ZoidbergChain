@@ -7,6 +7,7 @@ from submission import VOTE_ORIGINAL
 def _client(blockchain):
     import api
 
+    api.limiter.reset()
     api.blockchain = blockchain
     api.peer_store = PeerStore()
     return TestClient(api.app)

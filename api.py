@@ -114,6 +114,12 @@ from native_transfer import (
     parse_native_zoid_amount,
     parse_transfer_signing_message,
 )
+from review_policy import (
+    build_public_policy_summary,
+    current_day_window,
+    evaluate_review_eligibility,
+    load_review_policy_config,
+)
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -863,6 +869,43 @@ def _build_account_summary(normalized_wallet: str):
     }
 
 
+def _current_review_policy_config():
+    return load_review_policy_config(ENVIRONMENT)
+
+
+def _review_eligibility_for_wallet(wallet_address: str, *, now: float | None = None):
+    config = _current_review_policy_config()
+    activity_summary = blockchain.get_account_activity_summary(wallet_address, now=now)
+    recent_vote_count = blockchain.count_votes_by_wallet_since(
+        wallet_address,
+        current_day_window(now=now),
+    )
+    decision = evaluate_review_eligibility(
+        config,
+        wallet_address=wallet_address,
+        activity_summary=activity_summary,
+        recent_vote_count=recent_vote_count,
+    )
+    return config, decision
+
+
+def _review_policy_http_exception(reason: str, recommended_action: str):
+    raise HTTPException(
+        status_code=403,
+        detail={
+            "error": "reviewer_not_eligible",
+            "reason": reason,
+            "recommended_action": recommended_action,
+        },
+    )
+
+
+def _enforce_review_policy(wallet_address: str):
+    _, decision = _review_eligibility_for_wallet(wallet_address)
+    if not decision.eligible:
+        _review_policy_http_exception(decision.reason, decision.recommended_action)
+
+
 def _require_content_reference(content_hash: str | None, content_id: str | None):
     normalized_hash = (content_hash or "").strip() or None
     normalized_id = (content_id or "").strip() or None
@@ -1407,6 +1450,7 @@ async def create_wallet_vote_challenge(
         raise HTTPException(status_code=400, detail="Submission creator cannot vote on their own submission.")
     if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes):
         raise HTTPException(status_code=400, detail="Wallet has already voted on this submission.")
+    _enforce_review_policy(wallet_address)
 
     try:
         challenge = wallet_auth_manager.issue_vote_challenge(
@@ -1419,6 +1463,45 @@ async def create_wallet_vote_challenge(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return challenge
+
+
+@app.get("/review/policy")
+@api_limit("public_read")
+async def get_review_policy(
+    request: Request,
+    wallet_address: str | None = Query(default=None),
+    authorization: str | None = Header(default=None),
+):
+    config = _current_review_policy_config()
+    normalized_wallet = None
+
+    if authorization:
+        try:
+            verified_wallet = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+        except HTTPException as exc:
+            raise HTTPException(status_code=401, detail=exc.detail) from exc
+        normalized_wallet = verified_wallet
+        if wallet_address:
+            requested_wallet = _normalize_native_account_address(wallet_address)
+            if requested_wallet != verified_wallet:
+                raise HTTPException(
+                    status_code=403,
+                    detail="wallet_address must match the verified wallet session.",
+                )
+    elif wallet_address:
+        normalized_wallet = _normalize_native_account_address(wallet_address)
+
+    eligibility = None
+    if normalized_wallet:
+        _, eligibility = _review_eligibility_for_wallet(normalized_wallet)
+    return build_public_policy_summary(
+        config,
+        wallet_address=normalized_wallet,
+        eligibility=eligibility,
+    )
 
 
 @app.post("/auth/wallet/transfer-challenge")
@@ -2552,6 +2635,7 @@ async def vote_on_submission(
         normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
         if normalized_wallet is None or normalized_wallet != verified_wallet:
             raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+        _enforce_review_policy(verified_wallet)
 
         try:
             verification = wallet_auth_manager.verify_vote_signature(

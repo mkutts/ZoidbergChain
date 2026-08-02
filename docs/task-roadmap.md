@@ -117,3 +117,16 @@ This phase makes `zoidbergcoin.com` safe to show publicly as a controlled demo/t
 Detailed staged roadmap:
 
 - see [roadmap.md](/C:/Users/mattk/ZoidbergChain/docs/roadmap.md)
+
+## Task 10.1 Status
+
+Task 10.1 adds the voting eligibility foundation for the invite-only public testnet:
+
+- configurable reviewer modes: `open`, `allowlist`, `activity`, and `hybrid`
+- a public `/review/policy` explanation endpoint for tester-facing visibility
+- wallet denylist support and optional daily vote caps
+- activity-based reviewer qualification using current on-chain account history where available
+
+This remains controlled-testnet anti-Sybil friction only. It is not KYC, proof-of-personhood, staking, or a complete solution to multi-wallet abuse.
+
+Task 10.2 is still reserved for voter reward logic tied to the final majority side.

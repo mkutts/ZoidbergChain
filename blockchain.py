@@ -88,6 +88,25 @@ def _hash_number(value):
     return str(value)
 
 
+def _coerce_timestamp(value):
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    candidate = str(value).strip()
+    if not candidate:
+        return None
+    try:
+        return float(candidate)
+    except ValueError:
+        pass
+    try:
+        normalized = candidate.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).timestamp()
+    except ValueError:
+        return None
+
+
 class NativeBlockValidationError(ValueError):
     def __init__(self, code, message, *, details=None):
         super().__init__(message)
@@ -1379,6 +1398,107 @@ class Blockchain:
 
     def get_native_transaction(self, tx_id):
         return self.storage.get_native_transaction(tx_id, self.native_transactions)
+
+    def _wallet_matches_submission(self, submission, normalized_wallet):
+        for candidate in [
+            getattr(submission, "creator_wallet_address", None),
+            getattr(submission, "submitter", None),
+        ]:
+            if self._normalize_native_wallet_identity(candidate) == normalized_wallet:
+                return True
+        return False
+
+    def _wallet_matches_vote(self, vote, normalized_wallet):
+        for candidate in [vote.get("voter_wallet_address"), vote.get("voter")]:
+            if self._normalize_native_wallet_identity(candidate) == normalized_wallet:
+                return True
+        return False
+
+    def count_votes_by_wallet_since(self, wallet_address, since_timestamp):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return 0
+        count = 0
+        for vote in self.votes:
+            created_at = _coerce_timestamp(vote.get("created_at")) or 0
+            if created_at < float(since_timestamp):
+                continue
+            if self._wallet_matches_vote(vote, normalized_wallet):
+                count += 1
+        return count
+
+    def get_account_activity_summary(self, wallet_address, *, now=None):
+        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
+        if normalized_wallet is None:
+            return {
+                "wallet_address": str(wallet_address or "").strip(),
+                "normalized_wallet_address": None,
+                "exists": False,
+                "first_activity_at": None,
+                "account_age_seconds": 0,
+                "submission_count": 0,
+                "vote_count": 0,
+                "reward_count": 0,
+                "settled_transfer_count": 0,
+                "settled_balance_zoid": "0",
+            }
+
+        submissions = [
+            submission
+            for submission in self.submissions
+            if self._wallet_matches_submission(submission, normalized_wallet)
+        ]
+        votes = [
+            vote
+            for vote in self.votes
+            if self._wallet_matches_vote(vote, normalized_wallet)
+        ]
+        rewards = self.get_reward_records_for_wallet(normalized_wallet)
+        transactions = self.get_native_transactions_for_wallet(normalized_wallet)
+        settled_transfer_count = sum(
+            1
+            for transaction in transactions
+            if str(transaction.get("status") or "").strip().lower() == "settled"
+        )
+
+        activity_timestamps = []
+        for submission in submissions:
+            timestamp = _coerce_timestamp(getattr(submission, "created_at", None))
+            if timestamp is not None:
+                activity_timestamps.append(timestamp)
+        for vote in votes:
+            timestamp = _coerce_timestamp(vote.get("created_at"))
+            if timestamp is not None:
+                activity_timestamps.append(timestamp)
+        for reward in rewards:
+            timestamp = _coerce_timestamp(reward.get("minted_at"))
+            if timestamp is not None:
+                activity_timestamps.append(timestamp)
+        for transaction in transactions:
+            timestamp = _coerce_timestamp(
+                transaction.get("created_at")
+                or transaction.get("updated_at")
+                or transaction.get("timestamp")
+            )
+            if timestamp is not None:
+                activity_timestamps.append(timestamp)
+
+        first_activity_at = min(activity_timestamps) if activity_timestamps else None
+        current_time = float(now if now is not None else time.time())
+        account_age_seconds = max(0, int(current_time - first_activity_at)) if first_activity_at is not None else 0
+        settled_balance_zoid = self.get_native_balance_snapshot(normalized_wallet)["final_balance"]
+        return {
+            "wallet_address": normalized_wallet,
+            "normalized_wallet_address": normalized_wallet,
+            "exists": bool(activity_timestamps) or Decimal(settled_balance_zoid) > Decimal("0"),
+            "first_activity_at": first_activity_at,
+            "account_age_seconds": account_age_seconds,
+            "submission_count": len(submissions),
+            "vote_count": len(votes),
+            "reward_count": len(rewards),
+            "settled_transfer_count": settled_transfer_count,
+            "settled_balance_zoid": settled_balance_zoid,
+        }
 
     def get_transfer_intents_for_wallet(self, wallet_address):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)

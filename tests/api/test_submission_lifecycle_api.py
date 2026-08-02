@@ -19,6 +19,7 @@ from submission import (
 def _client(blockchain):
     import api
 
+    api.limiter.reset()
     api.blockchain = blockchain
     api.wallet_auth_manager = WalletAuthManager(
         network_name=api.NETWORK_NAME,

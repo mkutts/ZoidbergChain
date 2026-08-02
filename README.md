@@ -13,7 +13,7 @@ Stage 1 is a controlled public demo at `zoidbergcoin.com` with these public labe
 
 Current known limitations:
 
-- no anti-Sybil rules yet
+- anti-Sybil behavior is only reduced by reviewer eligibility friction, not solved
 - no voter rewards yet
 - no replacement policy
 - mempools are local, not consensus-wide
@@ -54,6 +54,38 @@ Reverse proxy:
 - proxy API traffic to the backend host and port
 - serve the frontend build output as the public site
 - allow only expected public origins through CORS
+
+## Task 10.1 Voting Eligibility Policy
+
+Task 10.1 adds a configurable reviewer eligibility policy layer ahead of originality voting.
+
+- `open`: low-friction mode for local development and simple demos
+- `allowlist`: only operator-approved wallets may review
+- `activity`: wallets must satisfy one or more configured activity thresholds
+- `hybrid`: wallets may qualify through the allowlist or through activity
+
+Important honesty note:
+
+- this is anti-Sybil friction for a controlled testnet
+- it is not proof-of-personhood
+- it does not stop one real person from creating many MetaMask wallets
+- there is still no KYC, staking cost, or external identity proof
+
+Recommended defaults by environment:
+
+- `development`: leave `REVIEW_ELIGIBILITY_MODE=open`
+- `testnet`: prefer `allowlist` or `hybrid`
+- `production`: prefer `allowlist` or `hybrid` with explicit thresholds and operator review
+
+Example controlled testnet settings:
+
+- `REVIEW_ELIGIBILITY_MODE=allowlist`
+- `REVIEW_ALLOWLIST_WALLETS=0xabc...,0xdef...`
+- `REVIEW_DENYLIST_WALLETS=0xdead...`
+- `MAX_REVIEW_VOTES_PER_WALLET_PER_DAY=10`
+- `REVIEW_POLICY_PUBLIC_LABEL=Invite-only testnet reviewer policy`
+
+Task 10.1 only adds the eligibility foundation. Voter rewards for the final majority side are intentionally deferred to Task 10.2.
 
 See the detailed runbooks in:
 

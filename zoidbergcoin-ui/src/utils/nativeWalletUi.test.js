@@ -118,3 +118,21 @@ test('buildRewardSummary exposes reward history fields cleanly', () => {
   assert.equal(summary[1].value, 'meme_mining_reward');
   assert.equal(summary[6].value, '2026-07-16T00:00:00+00:00');
 });
+
+test('buildRewardSummary labels voter majority rewards clearly', () => {
+  const summary = buildRewardSummary({
+    reward_amount: '0.5',
+    reward_type: 'voter_majority_reward',
+    submission_id: 'submission-2',
+    vote_choice: 'original',
+    final_decision: 'original',
+    block_height: 22,
+    block_hash: 'hash-2',
+    minted_at: '2026-08-02T00:00:00+00:00',
+  });
+
+  assert.equal(summary[1].value, 'Voter majority reward');
+  assert.equal(summary[4].label, 'Rewarded Vote Side');
+  assert.equal(summary[4].value, 'ORIGINAL');
+  assert.equal(summary[5].label, 'Vote Choice');
+});

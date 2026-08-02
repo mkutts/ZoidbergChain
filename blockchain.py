@@ -5,6 +5,7 @@ import math
 import time
 import base64
 import re
+from collections import Counter
 from PIL import Image
 import imagehash
 from concurrent.futures import ThreadPoolExecutor
@@ -22,6 +23,7 @@ from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
     COIN_NAME,
+    ENVIRONMENT,
     MEME_BLOCK_REWARD,
     MAX_TRANSACTIONS_PER_BLOCK,
     MIN_VOTE_FLOOR,
@@ -30,8 +32,16 @@ from config import (
     ORIGINALITY_APPROVAL_THRESHOLD,
     REWARD_POOL_SUPPLY,
     TOTAL_SUPPLY,
+    VOTER_REWARDS_ENABLED,
+    VOTER_REWARD_APPROVAL_SIDE,
+    VOTER_REWARD_MAX_PER_WALLET_ZOID,
+    VOTER_REWARD_MIN_DECISIVE_VOTES,
+    VOTER_REWARD_POOL_PER_DECISION_ZOID,
+    VOTER_REWARD_REJECTION_SIDE,
+    VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE,
     VOTING_WINDOW_HOURS,
 )
+from review_policy import current_day_window, evaluate_review_eligibility, load_review_policy_config
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from content import (
     CONTENT_TYPE_IMAGE,
@@ -105,6 +115,9 @@ def _coerce_timestamp(value):
         return datetime.fromisoformat(normalized).timestamp()
     except ValueError:
         return None
+
+
+_NATIVE_ZOID_REWARD_SCALE = Decimal("1000000")
 
 
 class NativeBlockValidationError(ValueError):
@@ -354,6 +367,26 @@ class Blockchain:
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
         print("Debug: Blockchain and wallets saved successfully.")
 
+    def recompute_reward_pool_balance(self, *, chain=None):
+        reward_pool = float(REWARD_POOL_SUPPLY)
+        initial_reward_pool = float(REWARD_POOL_SUPPLY)
+        for block in chain or self.chain:
+            transactions = block.get("transactions", []) if isinstance(block, dict) else block.transactions
+            for transaction in transactions:
+                sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
+                amount_value = transaction.get("amount") if isinstance(transaction, dict) else transaction.amount
+                tip_value = transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip
+                sender = self._normalize_native_wallet_identity(sender_value) or sender_value
+                tip = float(tip_value or 0)
+                if sender not in {None, "", "GENESIS", "REWARD_POOL"} and tip > 0:
+                    tip_split = {"miner": 0.25, "reward_pool": 0.75} if reward_pool < (initial_reward_pool * 0.25) else {"miner": 0.5, "reward_pool": 0.5}
+                    reward_pool += tip * tip_split["reward_pool"]
+                if sender_value == "REWARD_POOL":
+                    reward_pool -= float(amount_value or 0)
+        self.reward_pool = reward_pool
+        self.initial_reward_pool = initial_reward_pool
+        return reward_pool
+
     def load_blockchain(self):
         """Load blockchain state from disk if it exists, ensuring wallets persist."""
         try:
@@ -387,6 +420,7 @@ class Blockchain:
                         reward_amount=block_data.get("reward_amount"),
                         reward_source=block_data.get("reward_source"),
                         minted_at=block_data.get("minted_at"),
+                        voter_rewards=block_data.get("voter_rewards", []),
                         native_transactions=block_data.get("native_transactions", []),
                         transaction_ids=block_data.get("transaction_ids"),
                         transaction_count=block_data.get("transaction_count"),
@@ -419,6 +453,7 @@ class Blockchain:
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
                 ]
+                self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
@@ -1309,32 +1344,496 @@ class Blockchain:
             "minted_at": minted_at,
         }
 
+    @staticmethod
+    def _block_voter_rewards(block) -> list[dict[str, object]]:
+        if isinstance(block, dict):
+            return list(block.get("voter_rewards", []) or [])
+        return list(getattr(block, "voter_rewards", []) or [])
+
+    @staticmethod
+    def _reward_record_sort_key(record):
+        block_height = record.get("block_height")
+        minted_at = record.get("minted_at")
+        reward_id = record.get("reward_id") or ""
+        return (
+            -(int(block_height) if isinstance(block_height, int) else -1),
+            -(int(minted_at) if isinstance(minted_at, (int, float)) else -1),
+            str(reward_id),
+        )
+
+    @staticmethod
+    def _reward_units_from_decimal(amount: Decimal) -> int:
+        return int((amount * _NATIVE_ZOID_REWARD_SCALE).to_integral_value())
+
+    @staticmethod
+    def _decimal_from_reward_units(units: int) -> Decimal:
+        return Decimal(units) / _NATIVE_ZOID_REWARD_SCALE
+
+    def _reward_units_from_amount_string(self, amount, *, allow_zero=True) -> int:
+        normalized_amount = parse_native_zoid_amount(amount or "0", allow_zero=allow_zero)
+        return self._reward_units_from_decimal(Decimal(normalized_amount))
+
+    def _normalize_reward_amount(self, amount: Decimal | int) -> str:
+        decimal_amount = amount if isinstance(amount, Decimal) else self._decimal_from_reward_units(int(amount))
+        return self._normalize_decimal_value(decimal_amount)
+
+    def _reward_id(self, submission_id, wallet_address, final_decision):
+        return f"voter_reward:{submission_id}:{wallet_address}:{final_decision}"
+
+    @staticmethod
+    def _is_creator_reward_transaction(transaction) -> bool:
+        sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
+        if sender_value != "REWARD_POOL":
+            return False
+        return float(transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip) == 0.0
+
+    def _build_creator_reward_record(self, block):
+        reward_recipient = self._normalize_native_wallet_identity(
+            block.get("reward_recipient") if isinstance(block, dict) else getattr(block, "reward_recipient", None)
+        )
+        if reward_recipient is None:
+            return None
+        reward_type = block.get("reward_type") if isinstance(block, dict) else getattr(block, "reward_type", None)
+        if reward_type != "meme_mining_reward":
+            return None
+        submission_id = block.get("submission_id") if isinstance(block, dict) else getattr(block, "submission_id", None)
+        minted_at = block.get("minted_at") if isinstance(block, dict) else getattr(block, "minted_at", None)
+        block_hash = block.get("hash") if isinstance(block, dict) else getattr(block, "hash", None)
+        block_height = block.get("index") if isinstance(block, dict) else getattr(block, "index", None)
+        certificate_id = block.get("certificate_id") if isinstance(block, dict) else getattr(block, "certificate_id", None)
+        content_hash = block.get("content_hash") if isinstance(block, dict) else getattr(block, "content_hash", None)
+        return {
+            "reward_id": f"creator_reward:{submission_id or block_hash}:{reward_recipient}",
+            "reward_type": reward_type,
+            "reward_recipient": reward_recipient,
+            "reward_amount": block.get("reward_amount") if isinstance(block, dict) else getattr(block, "reward_amount", None),
+            "reward_source": block.get("reward_source") if isinstance(block, dict) else getattr(block, "reward_source", None),
+            "reward_status": "settled",
+            "settlement_state": "final",
+            "submission_id": submission_id,
+            "certificate_id": certificate_id,
+            "content_hash": content_hash,
+            "block_hash": block_hash,
+            "block_height": block_height,
+            "created_at": minted_at,
+            "finalized_at": minted_at,
+            "minted_at": minted_at,
+            "network_name": NETWORK_NAME,
+        }
+
+    def _build_voter_reward_record(self, reward_entry, block):
+        reward_recipient = self._normalize_native_wallet_identity(reward_entry.get("reward_recipient"))
+        if reward_recipient is None:
+            return None
+        minted_at = block.get("minted_at") if isinstance(block, dict) else getattr(block, "minted_at", None)
+        block_hash = block.get("hash") if isinstance(block, dict) else getattr(block, "hash", None)
+        block_height = block.get("index") if isinstance(block, dict) else getattr(block, "index", None)
+        return {
+            "reward_id": reward_entry.get("reward_id"),
+            "reward_type": reward_entry.get("reward_type", "voter_majority_reward"),
+            "reward_recipient": reward_recipient,
+            "voter_wallet_address": reward_recipient,
+            "reward_amount": reward_entry.get("reward_amount"),
+            "reward_source": reward_entry.get("reward_source", "reward_pool"),
+            "reward_status": "settled",
+            "settlement_state": "final",
+            "submission_id": reward_entry.get("submission_id"),
+            "certificate_id": reward_entry.get("certificate_id"),
+            "content_hash": reward_entry.get("content_hash"),
+            "vote_choice": reward_entry.get("vote_choice"),
+            "final_decision": reward_entry.get("final_decision"),
+            "decision_reason": reward_entry.get("decision_reason"),
+            "decision_finalized_at": reward_entry.get("decision_finalized_at"),
+            "created_at": reward_entry.get("created_at") or minted_at,
+            "finalized_at": reward_entry.get("finalized_at") or minted_at,
+            "minted_at": minted_at,
+            "block_hash": block_hash,
+            "block_height": block_height,
+            "network_name": reward_entry.get("network_name") or NETWORK_NAME,
+        }
+
+    def _all_reward_records(self):
+        reward_records = []
+        for block in self.chain:
+            creator_record = self._build_creator_reward_record(block)
+            if creator_record is not None:
+                reward_records.append(creator_record)
+            for reward_entry in self._block_voter_rewards(block):
+                voter_record = self._build_voter_reward_record(reward_entry, block)
+                if voter_record is not None:
+                    reward_records.append(voter_record)
+        reward_records.sort(key=self._reward_record_sort_key)
+        return reward_records
+
+    def _get_reward_record(self, reward_id):
+        for reward_record in self._all_reward_records():
+            if reward_record.get("reward_id") == reward_id:
+                return reward_record
+        return None
+
+    def _get_settled_voter_reward_ids(self, *, chain=None):
+        settled_ids = set()
+        for block in chain or self.chain:
+            for reward_entry in self._block_voter_rewards(block):
+                reward_id = str(reward_entry.get("reward_id") or "").strip()
+                if reward_id:
+                    settled_ids.add(reward_id)
+        return settled_ids
+
+    @staticmethod
+    def _block_reward_transactions(block) -> list[dict[str, object]]:
+        transactions = block.get("transactions", []) if isinstance(block, dict) else getattr(block, "transactions", [])
+        reward_transactions = []
+        for transaction in transactions:
+            sender_value = transaction.get("sender") if isinstance(transaction, dict) else getattr(transaction, "sender", None)
+            if sender_value != "REWARD_POOL":
+                continue
+            reward_transactions.append(
+                transaction.to_dict() if hasattr(transaction, "to_dict") else dict(transaction)
+            )
+        return reward_transactions
+
+    def _build_reward_transaction_key(self, recipient, amount) -> tuple[str, int]:
+        normalized_recipient = self._normalize_native_wallet_identity(recipient)
+        if normalized_recipient is None:
+            raise ValueError("Reward recipient is invalid.")
+        reward_units = self._reward_units_from_amount_string(amount, allow_zero=False)
+        return normalized_recipient, reward_units
+
+    def _expected_voter_reward_records_by_id(self, submission_id):
+        plan = self.build_submission_voter_reward_plan(submission_id)
+        if not plan.get("eligible"):
+            return {}
+        return {
+            str(record.get("reward_id")): record
+            for record in plan.get("reward_records", [])
+            if record.get("reward_id")
+        }
+
+    def _decision_finalized_at_for_submission(self, submission, vote_summary, *, now=None):
+        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
+        if certificate is not None and certificate.approved_at is not None:
+            return certificate.approved_at
+        if getattr(submission, "decision_finalized_at", None) is not None:
+            return submission.decision_finalized_at
+        vote_timestamps = [
+            _coerce_timestamp(vote.get("created_at"))
+            for vote in vote_summary.get("votes", [])
+        ]
+        vote_timestamps = [timestamp for timestamp in vote_timestamps if timestamp is not None]
+        if vote_timestamps:
+            return max(vote_timestamps)
+        return float(now if now is not None else time.time())
+
+    def get_submission_reward_decision(self, submission_id, *, now=None):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        decision_now = float(now if now is not None else time.time())
+        vote_summary = self.get_submission_votes(submission_id)
+        decisive_vote_total = vote_summary["counts"][VOTE_ORIGINAL] + vote_summary["counts"][VOTE_NOT_ORIGINAL]
+        if decisive_vote_total < VOTER_REWARD_MIN_DECISIVE_VOTES:
+            return None
+
+        certificate = self.get_originality_certificate_for_submission(submission_id)
+        decision_reason = getattr(submission, "decision_reason", None)
+        if certificate is not None or submission.status in {APPROVED, QUEUED, MINTED}:
+            return {
+                "submission_id": submission_id,
+                "outcome": "approved_original",
+                "final_decision": VOTER_REWARD_APPROVAL_SIDE,
+                "vote_choice": VOTE_ORIGINAL,
+                "certificate_id": certificate.certificate_id if certificate else getattr(submission, "certificate_id", None),
+                "content_hash": submission.content_hash,
+                "decision_reason": decision_reason or "approved_by_vote",
+                "decision_finalized_at": self._decision_finalized_at_for_submission(
+                    submission,
+                    vote_summary,
+                    now=decision_now,
+                ),
+            }
+
+        if submission.status != REJECTED:
+            return None
+        if decision_reason not in {None, "rejected_by_vote"}:
+            return None
+
+        voting_window_expired = decision_now >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
+        minimum_votes = self.get_voting_threshold(now=decision_now)["minimum_votes"]
+        minimum_votes_reached = len(vote_summary["votes"]) >= minimum_votes
+        if not (voting_window_expired or minimum_votes_reached):
+            return None
+        if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
+            return None
+
+        return {
+            "submission_id": submission_id,
+            "outcome": "rejected_not_original",
+            "final_decision": VOTER_REWARD_REJECTION_SIDE,
+            "vote_choice": VOTE_NOT_ORIGINAL,
+            "certificate_id": None,
+            "content_hash": submission.content_hash,
+            "decision_reason": decision_reason or "rejected_by_vote",
+            "decision_finalized_at": self._decision_finalized_at_for_submission(
+                submission,
+                vote_summary,
+                now=decision_now,
+            ),
+        }
+
+    def _eligible_voter_reward_wallets(self, reward_decision):
+        vote_summary = self.get_submission_votes(reward_decision["submission_id"])
+        target_vote = reward_decision["vote_choice"]
+        qualifying_votes = [
+            vote
+            for vote in vote_summary["votes"]
+            if vote.get("vote_type") == target_vote
+        ]
+        qualifying_votes.sort(
+            key=lambda vote: (
+                self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter")) or "",
+                _coerce_timestamp(vote.get("created_at")) or 0,
+            )
+        )
+        if not VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE:
+            return qualifying_votes
+
+        config = load_review_policy_config(ENVIRONMENT)
+        eligible_votes = []
+        for vote in qualifying_votes:
+            wallet_address = self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter"))
+            if wallet_address is None:
+                continue
+            activity_summary = self.get_account_activity_summary(wallet_address)
+            recent_vote_count = self.count_votes_by_wallet_since(wallet_address, current_day_window())
+            eligibility = evaluate_review_eligibility(
+                config,
+                wallet_address=wallet_address,
+                activity_summary=activity_summary,
+                recent_vote_count=recent_vote_count,
+            )
+            if eligibility.eligible:
+                eligible_votes.append(vote)
+        return eligible_votes
+
+    def build_submission_voter_reward_plan(self, submission_id, *, now=None):
+        reward_decision = self.get_submission_reward_decision(submission_id, now=now)
+        if reward_decision is None:
+            return {
+                "submission_id": submission_id,
+                "rewards_enabled": VOTER_REWARDS_ENABLED,
+                "eligible": False,
+                "reason": "decision_not_reward_eligible",
+                "reward_records": [],
+                "reward_count": 0,
+                "reward_amount_per_voter": "0",
+                "total_distributed": "0",
+                "undistributed_remainder": "0",
+            }
+
+        majority_votes = self._eligible_voter_reward_wallets(reward_decision)
+        if not VOTER_REWARDS_ENABLED:
+            return {
+                **reward_decision,
+                "rewards_enabled": False,
+                "eligible": False,
+                "reason": "voter_rewards_disabled",
+                "reward_records": [],
+                "reward_count": 0,
+                "reward_amount_per_voter": "0",
+                "total_distributed": "0",
+                "undistributed_remainder": "0",
+            }
+
+        if not majority_votes:
+            return {
+                **reward_decision,
+                "rewards_enabled": True,
+                "eligible": False,
+                "reason": "no_eligible_majority_voters",
+                "reward_records": [],
+                "reward_count": 0,
+                "reward_amount_per_voter": "0",
+                "total_distributed": "0",
+                "undistributed_remainder": self._normalize_reward_amount(
+                    self._reward_units_from_amount_string(
+                        VOTER_REWARD_POOL_PER_DECISION_ZOID,
+                        allow_zero=True,
+                    )
+                ),
+            }
+
+        total_units = self._reward_units_from_amount_string(
+            VOTER_REWARD_POOL_PER_DECISION_ZOID,
+            allow_zero=True,
+        )
+        if total_units <= 0:
+            return {
+                **reward_decision,
+                "rewards_enabled": True,
+                "eligible": False,
+                "reason": "reward_pool_zero",
+                "reward_records": [],
+                "reward_count": 0,
+                "reward_amount_per_voter": "0",
+                "total_distributed": "0",
+                "undistributed_remainder": "0",
+            }
+
+        per_wallet_units = total_units // len(majority_votes)
+        max_per_wallet_units = self._reward_units_from_amount_string(
+            VOTER_REWARD_MAX_PER_WALLET_ZOID,
+            allow_zero=True,
+        )
+        if max_per_wallet_units > 0:
+            per_wallet_units = min(per_wallet_units, max_per_wallet_units)
+        if per_wallet_units <= 0:
+            return {
+                **reward_decision,
+                "rewards_enabled": True,
+                "eligible": False,
+                "reason": "reward_amount_rounds_to_zero",
+                "reward_records": [],
+                "reward_count": 0,
+                "reward_amount_per_voter": "0",
+                "total_distributed": "0",
+                "undistributed_remainder": self._normalize_reward_amount(total_units),
+            }
+
+        reward_amount = self._normalize_reward_amount(per_wallet_units)
+        reward_records = []
+        for vote in majority_votes:
+            wallet_address = self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter"))
+            if wallet_address is None:
+                continue
+            reward_records.append(
+                {
+                    "reward_id": self._reward_id(submission_id, wallet_address, reward_decision["final_decision"]),
+                    "reward_type": "voter_majority_reward",
+                    "reward_recipient": wallet_address,
+                    "voter_wallet_address": wallet_address,
+                    "reward_amount": reward_amount,
+                    "reward_source": "reward_pool",
+                    "reward_status": "pending",
+                    "submission_id": submission_id,
+                    "certificate_id": reward_decision.get("certificate_id"),
+                    "content_hash": reward_decision.get("content_hash"),
+                    "vote_choice": reward_decision["vote_choice"],
+                    "final_decision": reward_decision["final_decision"],
+                    "decision_reason": reward_decision["decision_reason"],
+                    "decision_finalized_at": reward_decision["decision_finalized_at"],
+                    "created_at": reward_decision["decision_finalized_at"],
+                    "network_name": NETWORK_NAME,
+                }
+            )
+
+        distributed_units = per_wallet_units * len(reward_records)
+        return {
+            **reward_decision,
+            "rewards_enabled": True,
+            "eligible": True,
+            "reason": "reward_plan_ready",
+            "reward_records": reward_records,
+            "reward_count": len(reward_records),
+            "reward_amount_per_voter": reward_amount,
+            "total_distributed": self._normalize_reward_amount(distributed_units),
+            "undistributed_remainder": self._normalize_reward_amount(total_units - distributed_units),
+        }
+
+    def _due_voter_reward_records(self):
+        settled_reward_ids = self._get_settled_voter_reward_ids()
+        due_records = []
+        for submission in self.submissions:
+            plan = self.build_submission_voter_reward_plan(submission.submission_id)
+            if not plan.get("eligible"):
+                continue
+            for reward_record in plan["reward_records"]:
+                if reward_record["reward_id"] in settled_reward_ids:
+                    continue
+                due_records.append(reward_record)
+        due_records.sort(
+            key=lambda record: (
+                record.get("decision_finalized_at") or 0,
+                record.get("submission_id") or "",
+                record.get("reward_recipient") or "",
+            )
+        )
+        return due_records
+
+    def _select_voter_reward_records_for_block(self):
+        selected = []
+        skipped = []
+        remaining_units = self._reward_units_from_decimal(Decimal(str(self.reward_pool))) - self._reward_units_from_decimal(Decimal(str(MEME_BLOCK_REWARD)))
+        if remaining_units <= 0:
+            return {"selected": [], "skipped": self._due_voter_reward_records()}
+        grouped_records: dict[str, list[dict[str, object]]] = {}
+        for reward_record in self._due_voter_reward_records():
+            grouped_records.setdefault(str(reward_record.get("submission_id") or ""), []).append(reward_record)
+
+        for submission_id in sorted(grouped_records.keys()):
+            group = grouped_records[submission_id]
+            group_units = sum(self._reward_units_from_amount_string(record["reward_amount"], allow_zero=False) for record in group)
+            if group_units > remaining_units:
+                skipped.extend(group)
+                continue
+            selected.extend(group)
+            remaining_units -= group_units
+        return {"selected": selected, "skipped": skipped}
+
+    def get_submission_voter_reward_summary(self, submission_id, *, now=None):
+        plan = self.build_submission_voter_reward_plan(submission_id, now=now)
+        settled_records = [
+            reward_record
+            for reward_record in self._all_reward_records()
+            if reward_record.get("reward_type") == "voter_majority_reward"
+            and reward_record.get("submission_id") == submission_id
+        ]
+        settled_reward_ids = {reward_record.get("reward_id") for reward_record in settled_records}
+        pending_records = [
+            reward_record
+            for reward_record in plan.get("reward_records", [])
+            if reward_record.get("reward_id") not in settled_reward_ids
+        ]
+        reward_amount_per_voter = plan.get("reward_amount_per_voter", "0")
+        if settled_records:
+            reward_amount_per_voter = settled_records[0].get("reward_amount", reward_amount_per_voter)
+        total_distributed = self._normalize_reward_amount(
+            sum(
+                self._reward_units_from_amount_string(record.get("reward_amount") or "0", allow_zero=True)
+                for record in settled_records
+            )
+        )
+        return {
+            "submission_id": submission_id,
+            "voter_rewards_enabled": VOTER_REWARDS_ENABLED,
+            "eligible": bool(plan.get("eligible")),
+            "reason": plan.get("reason"),
+            "final_majority_side": plan.get("final_decision"),
+            "decision_reason": plan.get("decision_reason"),
+            "reward_status": "finalized" if settled_records and not pending_records else ("pending" if pending_records else "none"),
+            "reward_amount_per_voter": reward_amount_per_voter,
+            "rewarded_voter_count": len(settled_records),
+            "pending_voter_count": len(pending_records),
+            "total_distributed": total_distributed,
+            "undistributed_remainder": plan.get("undistributed_remainder", "0"),
+            "review_eligibility_required": VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE,
+            "reward_records": settled_records,
+            "pending_reward_records": pending_records,
+        }
+
     def get_reward_records_for_wallet(self, wallet_address):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:
             return []
 
-        reward_records = []
-        for block in self.chain:
-            reward_type = getattr(block, "reward_type", None)
-            reward_recipient = self._normalize_native_wallet_identity(getattr(block, "reward_recipient", None))
-            if reward_type != "meme_mining_reward" or reward_recipient != normalized_wallet:
-                continue
-            reward_records.append(
-                {
-                    "reward_type": reward_type,
-                    "reward_recipient": reward_recipient,
-                    "reward_amount": getattr(block, "reward_amount", None),
-                    "reward_source": getattr(block, "reward_source", None),
-                    "submission_id": getattr(block, "submission_id", None),
-                    "certificate_id": getattr(block, "certificate_id", None),
-                    "content_hash": getattr(block, "content_hash", None),
-                    "block_hash": getattr(block, "hash", None),
-                    "block_height": getattr(block, "index", None),
-                    "minted_at": getattr(block, "minted_at", getattr(block, "timestamp", None)),
-                }
-            )
-        return reward_records
+        return [
+            reward_record
+            for reward_record in self._all_reward_records()
+            if self._normalize_native_wallet_identity(
+                reward_record.get("reward_recipient") or reward_record.get("voter_wallet_address")
+            ) == normalized_wallet
+        ]
 
     def create_signed_transfer_intent(
         self,
@@ -2696,6 +3195,8 @@ class Blockchain:
 
         if not automated_originality_passed:
             submission.transition_to(REJECTED)
+            submission.decision_reason = "automated_originality_rejected"
+            submission.decision_finalized_at = now
             result["status"] = submission.status
             result["reason"] = "automated_originality_rejected"
             return result
@@ -2725,9 +3226,13 @@ class Blockchain:
                 if self.get_originality_certificate_for_submission(submission_id) is None:
                     raise ValueError("certificate could not be retrieved after approval")
                 self.save_blockchain()
+                submission.decision_reason = "approved_by_vote"
+                submission.decision_finalized_at = now
             except Exception as exc:
                 submission.status = previous_status
                 submission.certificate_id = previous_certificate_id
+                submission.decision_reason = None
+                submission.decision_finalized_at = None
                 if not existing_certificate and created_certificate_id:
                     self.originality_certificates = [
                         stored_certificate
@@ -2740,6 +3245,8 @@ class Blockchain:
             result["reason"] = "approved_by_vote"
         else:
             submission.transition_to(REJECTED)
+            submission.decision_reason = "rejected_by_vote"
+            submission.decision_finalized_at = now
             result["reason"] = "rejected_by_vote"
 
         result["status"] = submission.status
@@ -3373,8 +3880,8 @@ class Blockchain:
             self.wallets[miner].stored_balance = total_miner_tips  # âœ… Store the initial balance
             print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} {COIN_NAME}")
 
-        # Add mining reward
-        mining_reward = MEME_BLOCK_REWARD
+        # Add creator reward
+        mining_reward = float(MEME_BLOCK_REWARD)
         if self.reward_pool < mining_reward:
             print("Error: Insufficient funds in the reward pool.")
             return False
@@ -3386,8 +3893,22 @@ class Blockchain:
                 raise ValueError("Minting reward recipient is missing or invalid for this submission.")
             reward_receiver = normalized_reward_receiver
 
-        reward_transaction = Transaction("REWARD_POOL", reward_receiver, mining_reward)
+        voter_reward_plan = (
+            self._select_voter_reward_records_for_block()
+            if VOTER_REWARDS_ENABLED and certificate is not None
+            else {"selected": [], "skipped": []}
+        )
+        voter_reward_transactions = [
+            Transaction("REWARD_POOL", reward_record["reward_recipient"], float(reward_record["reward_amount"]))
+            for reward_record in voter_reward_plan["selected"]
+        ]
+        total_voter_reward_amount = sum(
+            float(reward_record["reward_amount"])
+            for reward_record in voter_reward_plan["selected"]
+        )
+        reward_transaction = Transaction("REWARD_POOL", reward_receiver, float(mining_reward))
         self.reward_pool -= mining_reward
+        self.reward_pool -= total_voter_reward_amount
 
         # Create the new block
         latest_block = self.get_latest_block()
@@ -3406,7 +3927,7 @@ class Blockchain:
             index=latest_block.index + 1,
             previous_hash=latest_block.hash,
             timestamp=minted_at,
-            transactions=[reward_transaction] + valid_transactions,
+            transactions=voter_reward_transactions + [reward_transaction] + valid_transactions,
             meme={"encoded_image": meme_encoded, "text": text_content},
             miner=miner,
             native_transactions=native_transactions_for_block,
@@ -3415,6 +3936,7 @@ class Blockchain:
             transactions_hash=native_transaction_plan["transactions_hash"],
             **(self.certificate_block_metadata(certificate) if certificate else {}),
             **reward_metadata,
+            voter_rewards=voter_reward_plan["selected"],
         )
         if certificate is not None:
             new_block.reward_type = "meme_mining_reward"
@@ -3422,6 +3944,7 @@ class Blockchain:
             new_block.reward_amount = float(mining_reward)
             new_block.reward_source = "reward_pool"
             new_block.minted_at = minted_at
+            new_block.voter_rewards = list(voter_reward_plan["selected"])
             new_block.hash = new_block.calculate_hash()
         self.chain.append(new_block)
         self.settle_block_native_transactions(new_block)
@@ -3631,12 +4154,195 @@ class Blockchain:
         self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
         return True
 
+    def _validate_block_voter_rewards(self, block_dict, *, prior_chain=None):
+        voter_rewards = block_dict.get("voter_rewards")
+        if voter_rewards in (None, []):
+            return []
+        if not isinstance(voter_rewards, list):
+            self._raise_native_block_validation_error(
+                "invalid_voter_reward_metadata",
+                "Block voter_rewards must be a list when provided.",
+                block_index=block_dict.get("index"),
+            )
+
+        prior_reward_ids = self._get_settled_voter_reward_ids(chain=self.chain_to_dicts(prior_chain or []))
+        seen_reward_ids = set()
+        validated_rewards = []
+
+        for reward_entry in voter_rewards:
+            if not isinstance(reward_entry, dict):
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Each voter reward entry must be an object.",
+                    block_index=block_dict.get("index"),
+                )
+
+            required_fields = [
+                "reward_id",
+                "reward_type",
+                "reward_recipient",
+                "reward_amount",
+                "reward_source",
+                "submission_id",
+                "vote_choice",
+                "final_decision",
+                "decision_reason",
+                "decision_finalized_at",
+                "created_at",
+                "network_name",
+            ]
+            for field_name in required_fields:
+                field_value = reward_entry.get(field_name)
+                if field_value is None or (isinstance(field_value, str) and not field_value.strip()):
+                    self._raise_native_block_validation_error(
+                        "invalid_voter_reward_metadata",
+                        f"Block voter reward metadata missing {field_name}.",
+                        block_index=block_dict.get("index"),
+                        field_name=field_name,
+                    )
+
+            reward_id = str(reward_entry["reward_id"]).strip()
+            if reward_id in seen_reward_ids:
+                self._raise_native_block_validation_error(
+                    "duplicate_reward",
+                    "Block contains duplicate voter reward IDs.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+            if reward_id in prior_reward_ids:
+                self._raise_native_block_validation_error(
+                    "duplicate_reward",
+                    "Block duplicates a voter reward that was already settled earlier in the chain.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+
+            reward_type = str(reward_entry["reward_type"]).strip()
+            if reward_type != "voter_majority_reward":
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward_type is invalid.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+
+            reward_source = str(reward_entry["reward_source"]).strip()
+            if reward_source != "reward_pool":
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward_source is invalid.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+
+            normalized_reward_recipient = self._normalize_native_wallet_identity(reward_entry["reward_recipient"])
+            if normalized_reward_recipient is None:
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward_recipient is invalid.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+
+            vote_choice = str(reward_entry["vote_choice"]).strip().lower()
+            final_decision = str(reward_entry["final_decision"]).strip().lower()
+            if vote_choice not in {VOTE_ORIGINAL, VOTE_NOT_ORIGINAL}:
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward vote_choice must be decisive.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+            if final_decision not in {VOTER_REWARD_APPROVAL_SIDE, VOTER_REWARD_REJECTION_SIDE}:
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward final_decision is invalid.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+            if (final_decision == VOTER_REWARD_APPROVAL_SIDE and vote_choice != VOTE_ORIGINAL) or (
+                final_decision == VOTER_REWARD_REJECTION_SIDE and vote_choice != VOTE_NOT_ORIGINAL
+            ):
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward vote_choice does not match final_decision.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+
+            try:
+                reward_key = self._build_reward_transaction_key(
+                    normalized_reward_recipient,
+                    reward_entry["reward_amount"],
+                )
+            except ValueError as exc:
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    str(exc),
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                )
+
+            submission_id = str(reward_entry["submission_id"]).strip()
+            expected_rewards = self._expected_voter_reward_records_by_id(submission_id)
+            expected_reward = expected_rewards.get(reward_id)
+            if expected_reward is None:
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Block voter reward does not match the deterministic reward plan for this submission.",
+                    block_index=block_dict.get("index"),
+                    reward_id=reward_id,
+                    submission_id=submission_id,
+                )
+
+            expected_fields = [
+                "reward_type",
+                "reward_recipient",
+                "reward_amount",
+                "reward_source",
+                "submission_id",
+                "certificate_id",
+                "content_hash",
+                "vote_choice",
+                "final_decision",
+                "decision_reason",
+                "decision_finalized_at",
+                "created_at",
+                "network_name",
+            ]
+            for field_name in expected_fields:
+                if reward_entry.get(field_name) != expected_reward.get(field_name):
+                    self._raise_native_block_validation_error(
+                        "invalid_voter_reward_metadata",
+                        f"Block voter reward {field_name} does not match the deterministic reward plan.",
+                        block_index=block_dict.get("index"),
+                        reward_id=reward_id,
+                        field_name=field_name,
+                    )
+
+            seen_reward_ids.add(reward_id)
+            validated_rewards.append(
+                {
+                    "reward_id": reward_id,
+                    "reward_key": reward_key,
+                }
+            )
+
+        return validated_rewards
+
     def validate_block_certificate_metadata(self, block_dict, *, prior_chain=None):
         if block_dict.get("index") == 0:
             return True
 
         metadata = self.extract_block_certificate_metadata(block_dict)
+        validated_voter_rewards = self._validate_block_voter_rewards(block_dict, prior_chain=prior_chain)
         if not metadata:
+            if validated_voter_rewards:
+                self._raise_native_block_validation_error(
+                    "invalid_voter_reward_metadata",
+                    "Blocks with voter rewards must include certified meme block metadata.",
+                    block_index=block_dict.get("index"),
+                )
             return True
 
         required_fields = [
@@ -3792,6 +4498,39 @@ class Blockchain:
                     "duplicate_reward",
                     "Block duplicates the meme reward for an already minted submission.",
                     submission_id=metadata["submission_id"],
+                )
+
+        expected_reward_transaction_keys = [
+            validated_reward["reward_key"]
+            for validated_reward in validated_voter_rewards
+        ]
+        if expected_reward_transaction_keys:
+            reward_transaction_counter = Counter()
+            for transaction in self._block_reward_transactions(block_dict):
+                try:
+                    reward_key = self._build_reward_transaction_key(
+                        transaction.get("recipient"),
+                        transaction.get("amount"),
+                    )
+                except ValueError:
+                    self._raise_native_block_validation_error(
+                        "invalid_reward_metadata",
+                        "Block contains an invalid REWARD_POOL transaction.",
+                        block_index=block_dict.get("index"),
+                    )
+                reward_transaction_counter[reward_key] += 1
+
+            expected_reward_counter = Counter(expected_reward_transaction_keys)
+            if any(
+                reward_transaction_counter[reward_key] < expected_count
+                for reward_key, expected_count in expected_reward_counter.items()
+            ):
+                self._raise_native_block_validation_error(
+                    "invalid_reward_metadata",
+                    "Block voter reward transactions do not match the declared reward metadata.",
+                    block_index=block_dict.get("index"),
+                    expected_voter_reward_transactions=sum(expected_reward_counter.values()),
+                    actual_reward_transactions=sum(reward_transaction_counter.values()),
                 )
 
         content_object = self.get_content_object_by_hash(metadata["content_hash"])

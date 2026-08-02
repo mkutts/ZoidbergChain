@@ -72,6 +72,8 @@ class Submission:
     submission_nonce: str | None = None
     signed_at: str | None = None
     identity_source: str | None = None
+    decision_reason: str | None = None
+    decision_finalized_at: float | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
@@ -99,7 +101,7 @@ class Submission:
         return self
 
     def to_dict(self):
-        return {
+        payload = {
             "submission_id": self.submission_id,
             "image_path": self.image_path,
             "text_content": self.text_content,
@@ -124,6 +126,11 @@ class Submission:
             "signed_at": self.signed_at,
             "identity_source": self.identity_source,
         }
+        if self.decision_reason is not None:
+            payload["decision_reason"] = self.decision_reason
+        if self.decision_finalized_at is not None:
+            payload["decision_finalized_at"] = self.decision_finalized_at
+        return payload
 
     @classmethod
     def from_dict(cls, data):
@@ -151,4 +158,6 @@ class Submission:
             submission_nonce=data.get("submission_nonce"),
             signed_at=data.get("signed_at"),
             identity_source=data.get("identity_source"),
+            decision_reason=data.get("decision_reason"),
+            decision_finalized_at=data.get("decision_finalized_at"),
         )

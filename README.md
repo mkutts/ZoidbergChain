@@ -85,7 +85,46 @@ Example controlled testnet settings:
 - `MAX_REVIEW_VOTES_PER_WALLET_PER_DAY=10`
 - `REVIEW_POLICY_PUBLIC_LABEL=Invite-only testnet reviewer policy`
 
-Task 10.1 only adds the eligibility foundation. Voter rewards for the final majority side are intentionally deferred to Task 10.2.
+## Task 10.2 Voter Majority Rewards
+
+As of Sunday, August 2, 2026, Task 10.2 adds native ZOID voter rewards for eligible voters on the final decisive majority side.
+
+Reward rules:
+
+- `UNSURE` votes never receive voter rewards.
+- If a submission is approved as original, creator reward behavior stays the same and eligible `ORIGINAL` voters split the voter reward pool.
+- If a submission is rejected as not original, the creator receives no creator reward and eligible `NOT_ORIGINAL` voters split the voter reward pool.
+- If a submission closes without a decisive approval or rejection outcome, no voter rewards are paid.
+
+Finality and double-pay protection:
+
+- voter rewards follow the existing chain accounting model and become final only when represented inside an accepted certified meme block
+- approved-side voter rewards settle in the same mint block as the creator reward
+- rejected-side voter rewards stay pending until the next accepted certified meme block settles them
+- each payout uses a deterministic reward ID of the form `voter_reward:{submission_id}:{wallet_address}:{final_decision}`
+- duplicate reward IDs are rejected during block validation so reruns, sync, and remint-style replay cannot double-pay the same voter
+
+Reward configuration:
+
+- `VOTER_REWARDS_ENABLED`
+- `VOTER_REWARD_POOL_PER_DECISION_ZOID`
+- `VOTER_REWARD_MAX_PER_WALLET_ZOID`
+- `VOTER_REWARD_MIN_DECISIVE_VOTES`
+- `VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE`
+- `VOTER_REWARD_APPROVAL_SIDE=original`
+- `VOTER_REWARD_REJECTION_SIDE=not_original`
+
+Recommended defaults by environment:
+
+- `development`: small pool is fine for local testing
+- `testnet`: keep rewards disabled unless operators explicitly want them on
+- `production`: keep rewards disabled unless operators explicitly enable them with deliberate thresholds
+
+Important honesty note:
+
+- voter rewards are testnet ZOID only
+- this remains anti-Sybil friction, not proof-of-personhood
+- reviewer eligibility can reduce easy abuse but does not stop one real person from controlling many wallets
 
 See the detailed runbooks in:
 

@@ -2088,6 +2088,7 @@ def _normalize_block_payload(block_payload):
             "reward_amount",
             "reward_source",
             "minted_at",
+            "voter_rewards",
             "native_transactions",
             "transaction_ids",
             "transaction_count",
@@ -2163,6 +2164,7 @@ def _normalize_block_payload(block_payload):
         reward_amount=block_payload.get("reward_amount"),
         reward_source=block_payload.get("reward_source"),
         minted_at=block_payload.get("minted_at"),
+        voter_rewards=block_payload.get("voter_rewards", []),
         native_transactions=block_payload.get("native_transactions", []),
         transaction_ids=block_payload.get("transaction_ids"),
         transaction_count=block_payload.get("transaction_count"),
@@ -2455,6 +2457,8 @@ def _normalize_submission_payload(submission_payload):
             "content_hash",
             "content_id",
             "certificate_id",
+            "decision_reason",
+            "decision_finalized_at",
             "mint_blocked",
             "mint_block_reason",
             "mint_blocked_at",
@@ -2543,6 +2547,16 @@ def _normalize_submission_payload(submission_payload):
 
     normalized["status"] = PENDING
     normalized["hard_reject_reason"] = None
+    normalized["decision_reason"] = submission_payload.get("decision_reason")
+    decision_finalized_at = submission_payload.get("decision_finalized_at")
+    if decision_finalized_at is not None:
+        try:
+            decision_finalized_at = float(decision_finalized_at)
+        except (TypeError, ValueError):
+            raise MalformedSubmissionError("Submission decision_finalized_at must be a valid timestamp.")
+        if not math.isfinite(decision_finalized_at) or decision_finalized_at < 0:
+            raise MalformedSubmissionError("Submission decision_finalized_at must be a valid timestamp.")
+    normalized["decision_finalized_at"] = decision_finalized_at
     normalized["creator_wallet_address"] = submission_payload.get("creator_wallet_address") or normalized["submitter"]
     normalized["signature_scheme"] = submission_payload.get("signature_scheme")
     normalized["submission_signature"] = submission_payload.get("submission_signature")

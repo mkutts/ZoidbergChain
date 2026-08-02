@@ -77,7 +77,9 @@
           </div>
           <p v-if="rewardError" class="wallet-error">{{ rewardError }}</p>
           <p v-else-if="!rewardHistory.length" class="wallet-meta">No native ZOID rewards yet.</p>
-          <ul v-else class="history-list">
+          <template v-else>
+            <p class="wallet-meta">Voter rewards are testnet ZOID only and go only to voters on the final majority side.</p>
+            <ul class="history-list">
             <li v-for="reward in rewardHistory" :key="reward.block_hash || reward.submission_id || reward.minted_at" class="history-card">
               <div class="history-title-row">
                 <strong>{{ reward.reward_amount }} {{ nativeBalanceSymbol }}</strong>
@@ -90,7 +92,8 @@
                 </div>
               </div>
             </li>
-          </ul>
+            </ul>
+          </template>
         </div>
 
         <div class="transfer-card">

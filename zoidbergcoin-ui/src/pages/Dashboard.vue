@@ -289,6 +289,12 @@
           <p v-if="reviewPolicyError" class="status-message error">{{ reviewPolicyError }}</p>
         </div>
 
+        <div class="reward-policy-panel">
+          <p class="section-label">Voter Rewards</p>
+          <strong>Final majority-side voters can receive testnet ZOID.</strong>
+          <p v-for="line in voterRewardPolicyLines" :key="line" class="hint">{{ line }}</p>
+        </div>
+
         <div v-if="voteMessage || voteError || evaluateMessage || evaluateError" class="message-grid">
           <p v-if="voteMessage" class="status-message success">{{ voteMessage }}</p>
           <p v-if="voteError" class="status-message error">{{ voteError }}</p>
@@ -336,6 +342,10 @@
               <p v-if="currentWalletVoteForSubmission(submission)" class="meta">
                 Your vote: {{ formatStatus(currentWalletVoteForSubmission(submission).vote_type) }}
               </p>
+              <div class="reward-summary-panel">
+                <p class="section-label">Voter Reward</p>
+                <strong>{{ describeSubmissionReward(submission) }}</strong>
+              </div>
               <div class="vote-actions">
                 <button @click="vote(submission.submission_id, 'original')" class="btn vote" :disabled="voteDisabled(submission)">
                   Original
@@ -430,6 +440,56 @@
               <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
+            </div>
+            <div class="reward-summary-panel">
+              <p class="section-label">Voter Reward</p>
+              <strong>{{ describeSubmissionReward(submission) }}</strong>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section v-if="rejectedSubmissions.length > 0" class="section-panel resolved-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Rejected Decisions</p>
+            <h2>Not Original Outcomes</h2>
+          </div>
+          <span class="workflow-chip warning-chip">Finalized</span>
+        </div>
+
+        <div class="submission-list">
+          <article v-for="submission in rejectedSubmissions" :key="submission.submission_id" class="submission-card">
+            <div class="submission-header">
+              <span class="status-pill pending">{{ formatStatus(submission.status) }}</span>
+              <span>{{ formatDate(submission.created_at) }}</span>
+            </div>
+            <div v-if="hasContentPreview(submission)" class="content-preview">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Rejected submission preview" class="content-image">
+              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+            </div>
+            <p class="submission-text">{{ submission.text_content }}</p>
+            <div class="detail-grid">
+              <div>
+                <span>Submission ID</span>
+                <strong>{{ shortenHash(submission.submission_id) }}</strong>
+              </div>
+              <div>
+                <span>Decision</span>
+                <strong>{{ formatStatus(submission.decision_reason || 'rejected') }}</strong>
+              </div>
+              <div>
+                <span>Content Hash</span>
+                <strong>{{ shortenHash(submission.content_hash) }}</strong>
+              </div>
+              <div>
+                <span>Creator Account</span>
+                <strong>{{ shortenKey(submission.creator_wallet_address || submission.submitter) }}</strong>
+              </div>
+            </div>
+            <div class="reward-summary-panel">
+              <p class="section-label">Voter Reward</p>
+              <strong>{{ describeSubmissionReward(submission) }}</strong>
             </div>
           </article>
         </div>
@@ -595,6 +655,11 @@
               {{ formatMintReason(submission.mint_block_reason) }}
             </p>
 
+            <div class="reward-summary-panel">
+              <p class="section-label">Voter Reward</p>
+              <strong>{{ describeSubmissionReward(submission) }}</strong>
+            </div>
+
             <div class="card-actions">
               <button
                 v-if="showMintQueueTools && submission.submission_id && !submission.mint_blocked"
@@ -707,6 +772,10 @@
                 <span>Native ZOID Reward Amount</span>
                 <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
               </div>
+              <div v-if="Array.isArray(block.voter_rewards) && block.voter_rewards.length">
+                <span>Voter Reward Settlements</span>
+                <strong>{{ block.voter_rewards.length }}</strong>
+              </div>
               <div v-if="block.certificate_id">
                 <span>Approval</span>
                 <strong>{{ formatPercent(block.approval_percentage) }}</strong>
@@ -723,6 +792,9 @@
                 View Content
               </a>
             </div>
+            <p v-if="Array.isArray(block.voter_rewards) && block.voter_rewards.length" class="hint">
+              {{ describeBlockVoterRewards(block) }}
+            </p>
 
             <div v-if="!hasContentPreview(block) && block.meme && block.meme.encoded_image" class="meme-container">
               <img :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="meme-image" />
@@ -750,6 +822,11 @@ import {
   buildReviewPolicyWarning,
   normalizeReviewPolicyResponse,
 } from '../utils/reviewPolicy';
+import {
+  buildVoterRewardRulesCopy,
+  describeBlockVoterRewardSettlements,
+  describeSubmissionVoterReward,
+} from '../utils/voterRewards';
 import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
 
 export default {
@@ -811,6 +888,9 @@ export default {
     },
     approvedCertificateSubmissions() {
       return this.approvedSubmissions.filter((submission) => this.getCertificate(submission));
+    },
+    rejectedSubmissions() {
+      return this.submissions.filter((submission) => submission.status === 'rejected');
     },
     approvedMissingCertificateSubmissions() {
       return this.approvedSubmissions.filter(
@@ -881,6 +961,9 @@ export default {
     },
     reviewerEligibilityMessage() {
       return buildReviewerEligibilityMessage(this.reviewPolicy);
+    },
+    voterRewardPolicyLines() {
+      return buildVoterRewardRulesCopy();
     },
   },
   async created() {
@@ -1415,6 +1498,12 @@ export default {
       };
       return labels[normalized] || String(reason || 'Minting is blocked.');
     },
+    describeSubmissionReward(submission) {
+      return describeSubmissionVoterReward(submission?.voter_reward_summary);
+    },
+    describeBlockVoterRewards(block) {
+      return describeBlockVoterRewardSettlements(block);
+    },
     formatContentStatus(status) {
       if (!status) {
         return 'Missing';
@@ -1684,6 +1773,7 @@ h3 {
     "content content"
     "submit voting"
     "approved voting"
+    "resolved voting"
     "missing voting"
     "queue blocks";
   gap: 22px;
@@ -1712,6 +1802,10 @@ h3 {
 
 .missing-panel {
   grid-area: missing;
+}
+
+.resolved-panel {
+  grid-area: resolved;
 }
 
 .queue-panel {
@@ -1879,15 +1973,30 @@ h3 {
   background: rgba(0, 0, 0, 0.22);
 }
 
-.review-policy-panel {
+.review-policy-panel,
+.reward-policy-panel,
+.reward-summary-panel {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 18px;
   padding: 16px;
-  border: 1px solid rgba(255, 184, 77, 0.35);
   border-radius: 8px;
+}
+
+.review-policy-panel,
+.reward-policy-panel {
+  margin-bottom: 18px;
+}
+
+.review-policy-panel {
+  border: 1px solid rgba(255, 184, 77, 0.35);
   background: rgba(255, 184, 77, 0.08);
+}
+
+.reward-policy-panel,
+.reward-summary-panel {
+  border: 1px solid rgba(141, 245, 166, 0.25);
+  background: rgba(141, 245, 166, 0.06);
 }
 
 .btn {

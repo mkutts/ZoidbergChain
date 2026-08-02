@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal, InvalidOperation
 
 
 COIN_NAME = "ZoidbergCoin"
@@ -100,6 +101,36 @@ _RATE_LIMIT_DEFAULTS = {
     },
 }
 
+_VOTER_REWARD_DEFAULTS = {
+    "development": {
+        "VOTER_REWARDS_ENABLED": False,
+        "VOTER_REWARD_POOL_PER_DECISION_ZOID": "1",
+        "VOTER_REWARD_MAX_PER_WALLET_ZOID": "0",
+        "VOTER_REWARD_MIN_DECISIVE_VOTES": 1,
+        "VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE": True,
+        "VOTER_REWARD_APPROVAL_SIDE": "original",
+        "VOTER_REWARD_REJECTION_SIDE": "not_original",
+    },
+    "testnet": {
+        "VOTER_REWARDS_ENABLED": False,
+        "VOTER_REWARD_POOL_PER_DECISION_ZOID": "1",
+        "VOTER_REWARD_MAX_PER_WALLET_ZOID": "0",
+        "VOTER_REWARD_MIN_DECISIVE_VOTES": 1,
+        "VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE": True,
+        "VOTER_REWARD_APPROVAL_SIDE": "original",
+        "VOTER_REWARD_REJECTION_SIDE": "not_original",
+    },
+    "production": {
+        "VOTER_REWARDS_ENABLED": False,
+        "VOTER_REWARD_POOL_PER_DECISION_ZOID": "1",
+        "VOTER_REWARD_MAX_PER_WALLET_ZOID": "0",
+        "VOTER_REWARD_MIN_DECISIVE_VOTES": 1,
+        "VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE": True,
+        "VOTER_REWARD_APPROVAL_SIDE": "original",
+        "VOTER_REWARD_REJECTION_SIDE": "not_original",
+    },
+}
+
 
 def _clean_path(value):
     cleaned = (value or ".").strip()
@@ -159,6 +190,20 @@ def _env_int(name, default):
         raise ValueError(f"Invalid integer value for {name}: {value!r}.")
 
 
+def _env_decimal_string(name, default, *, minimum=Decimal("0")):
+    value = os.getenv(name)
+    if value is None:
+        return str(default)
+    candidate = str(value).strip()
+    try:
+        decimal_value = Decimal(candidate)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"Invalid decimal value for {name}: {value!r}.") from exc
+    if decimal_value < minimum:
+        raise ValueError(f"Invalid decimal value for {name}: {value!r}.")
+    return candidate
+
+
 def _split_csv(value):
     if value is None:
         return []
@@ -185,6 +230,7 @@ ENVIRONMENT = _load_environment()
 APP_ENV = ENVIRONMENT
 _CURRENT_SECURITY_DEFAULTS = _SECURITY_DEFAULTS[ENVIRONMENT]
 _CURRENT_RATE_LIMIT_DEFAULTS = _RATE_LIMIT_DEFAULTS[ENVIRONMENT]
+_CURRENT_VOTER_REWARD_DEFAULTS = _VOTER_REWARD_DEFAULTS[ENVIRONMENT]
 
 ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT = _env_flag(
     "ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT",
@@ -426,6 +472,40 @@ LOG_DIR = _clean_path(_env_value("LOG_DIR", os.path.join(DATA_DIR, "logs")))
 LOG_LEVEL = _env_value("LOG_LEVEL", "INFO").upper()
 API_BASE_URL = _env_value("API_BASE_URL", PUBLIC_NODE_URL)
 PUBLIC_DEMO_MODE = _env_flag("PUBLIC_DEMO_MODE", ENVIRONMENT in {"testnet", "production"})
+VOTER_REWARDS_ENABLED = _env_flag(
+    "VOTER_REWARDS_ENABLED",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARDS_ENABLED"],
+)
+VOTER_REWARD_POOL_PER_DECISION_ZOID = _env_decimal_string(
+    "VOTER_REWARD_POOL_PER_DECISION_ZOID",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARD_POOL_PER_DECISION_ZOID"],
+)
+VOTER_REWARD_MAX_PER_WALLET_ZOID = _env_decimal_string(
+    "VOTER_REWARD_MAX_PER_WALLET_ZOID",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARD_MAX_PER_WALLET_ZOID"],
+)
+VOTER_REWARD_MIN_DECISIVE_VOTES = _env_int(
+    "VOTER_REWARD_MIN_DECISIVE_VOTES",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARD_MIN_DECISIVE_VOTES"],
+)
+if VOTER_REWARD_MIN_DECISIVE_VOTES < 1:
+    raise ValueError("VOTER_REWARD_MIN_DECISIVE_VOTES must be at least 1.")
+VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE = _env_flag(
+    "VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE"],
+)
+VOTER_REWARD_APPROVAL_SIDE = _env_value(
+    "VOTER_REWARD_APPROVAL_SIDE",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARD_APPROVAL_SIDE"],
+).strip().lower()
+VOTER_REWARD_REJECTION_SIDE = _env_value(
+    "VOTER_REWARD_REJECTION_SIDE",
+    _CURRENT_VOTER_REWARD_DEFAULTS["VOTER_REWARD_REJECTION_SIDE"],
+).strip().lower()
+if VOTER_REWARD_APPROVAL_SIDE not in {"original"}:
+    raise ValueError("VOTER_REWARD_APPROVAL_SIDE must be 'original'.")
+if VOTER_REWARD_REJECTION_SIDE not in {"not_original"}:
+    raise ValueError("VOTER_REWARD_REJECTION_SIDE must be 'not_original'.")
 CORS_ALLOWED_ORIGINS = _load_allowed_cors_origins()
 
 validate_peer_auth_config()

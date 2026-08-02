@@ -209,6 +209,8 @@ class PeerSubmissionPayload(_StrictBodyModel):
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    decision_reason: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
+    decision_finalized_at: Annotated[float, Field(ge=0)] | None = None
     mint_blocked: bool | None = None
     mint_block_reason: str | None = Field(default=None, max_length=MAX_METADATA_FIELD_LENGTH)
     mint_blocked_at: Annotated[float, Field(ge=0)] | None = None
@@ -292,6 +294,7 @@ class PeerBlockPayload(_StrictBodyModel):
     reward_amount: Annotated[float, Field(ge=0)] | None = None
     reward_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     minted_at: Annotated[float, Field(ge=0)] | None = None
+    voter_rewards: list[dict[str, Any]] | None = None
 
 
 class MintBlockRequest(_StrictBodyModel):
@@ -509,6 +512,9 @@ def _serialize_submission(submission):
         "content_hash": submission.content_hash,
         "content_id": submission.content_id,
         "certificate_id": submission.certificate_id,
+        "decision_reason": getattr(submission, "decision_reason", None),
+        "decision_finalized_at": getattr(submission, "decision_finalized_at", None),
+        "voter_reward_summary": blockchain.get_submission_voter_reward_summary(submission.submission_id),
     }
     if content_object is not None:
         body["content_type"] = content_object.content_type
@@ -2475,6 +2481,15 @@ async def get_submission_certificate(request: Request, submission_id: str):
     return {"certificate": _serialize_certificate(certificate)}
 
 
+@app.get("/submissions/{submission_id}/voter-rewards")
+@api_limit("public_read")
+async def get_submission_voter_rewards(request: Request, submission_id: str):
+    try:
+        return blockchain.get_submission_voter_reward_summary(submission_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.get("/certificates/{certificate_id}")
 @api_limit("public_read")
 async def get_certificate(request: Request, certificate_id: str):
@@ -2805,6 +2820,7 @@ async def evaluate_submission(
         "evaluation": evaluation,
         "submission": _serialize_submission(queued_submission or submission),
         "certificate": _serialize_certificate(certificate) if certificate else None,
+        "voter_reward_summary": blockchain.get_submission_voter_reward_summary(submission_id),
         "certificate_broadcast": certificate_broadcast,
     }
 
@@ -3426,6 +3442,7 @@ async def mint_queued_submission(
         "reward_recipient": latest_block.reward_recipient,
         "reward_amount": latest_block.reward_amount,
         "reward_type": latest_block.reward_type,
+        "voter_reward_summary": blockchain.get_submission_voter_reward_summary(submission_id),
         "transactions_included": getattr(latest_block, "transaction_count", 0) or 0,
         "transaction_ids": list(getattr(latest_block, "transaction_ids", []) or []),
         "broadcast": broadcast_result,

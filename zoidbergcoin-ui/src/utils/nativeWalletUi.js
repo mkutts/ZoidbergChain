@@ -129,11 +129,23 @@ export function humanizeNativeTransferError(message) {
 }
 
 export function buildRewardSummary(reward) {
+  const rewardType = String(reward?.reward_type || '').trim();
+  const isVoterReward = rewardType === 'voter_majority_reward';
+  const rewardTypeLabel = isVoterReward ? 'Voter majority reward' : (rewardType || 'Missing');
+  const finalDecision = String(reward?.final_decision || '').trim().toLowerCase();
+  const finalDecisionLabel = finalDecision === 'original'
+    ? 'ORIGINAL'
+    : (finalDecision === 'not_original' ? 'NOT_ORIGINAL' : 'Missing');
+
   return [
     { label: 'Native ZOID Reward Amount', value: reward?.reward_amount ?? 'Missing' },
-    { label: 'Reward Type', value: reward?.reward_type || 'Missing' },
+    { label: 'Reward Type', value: rewardTypeLabel },
     { label: 'Submission ID', value: reward?.submission_id || 'Missing' },
     { label: 'Certificate ID', value: reward?.certificate_id || 'Missing' },
+    ...(isVoterReward ? [
+      { label: 'Rewarded Vote Side', value: finalDecisionLabel },
+      { label: 'Vote Choice', value: reward?.vote_choice || 'Missing' },
+    ] : []),
     { label: 'Block Height', value: reward?.block_height ?? 'Missing' },
     { label: 'Block Hash', value: reward?.block_hash || 'Missing' },
     { label: 'Minted At', value: reward?.minted_at || 'Missing' },

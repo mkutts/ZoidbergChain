@@ -129,4 +129,35 @@ Task 10.1 adds the voting eligibility foundation for the invite-only public test
 
 This remains controlled-testnet anti-Sybil friction only. It is not KYC, proof-of-personhood, staking, or a complete solution to multi-wallet abuse.
 
-Task 10.2 is still reserved for voter reward logic tied to the final majority side.
+## Task 10.2 Status
+
+As of Sunday, August 2, 2026, Task 10.2 adds voter majority rewards tied to the final decisive originality outcome:
+
+- approved-as-original decisions reward eligible `ORIGINAL` voters
+- rejected-as-not-original decisions reward eligible `NOT_ORIGINAL` voters
+- `UNSURE` votes never receive voter rewards
+- creator reward behavior stays unchanged for approved content and stays absent for rejected content
+
+Settlement and idempotency:
+
+- voter rewards are not tracked in a disconnected side ledger
+- they settle as native `REWARD_POOL` transactions inside an accepted certified meme block
+- approved-side rewards settle in the mint block for that approved submission
+- rejected-side rewards settle in the next accepted certified meme block after the rejection is final
+- deterministic reward IDs prevent double-pay on reruns, sync, or replay attempts
+
+Reward controls:
+
+- `VOTER_REWARDS_ENABLED`
+- `VOTER_REWARD_POOL_PER_DECISION_ZOID`
+- `VOTER_REWARD_MAX_PER_WALLET_ZOID`
+- `VOTER_REWARD_MIN_DECISIVE_VOTES`
+- `VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE`
+- `VOTER_REWARD_APPROVAL_SIDE=original`
+- `VOTER_REWARD_REJECTION_SIDE=not_original`
+
+Limitations remain unchanged:
+
+- this is still controlled-testnet anti-Sybil friction only
+- there is still no proof-of-personhood, KYC, staking cost, or external identity check
+- operators should enable voter rewards on public testnet only with intentional reviewer-policy settings

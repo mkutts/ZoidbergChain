@@ -101,6 +101,7 @@ Finality and double-pay protection:
 - voter rewards follow the existing chain accounting model and become final only when represented inside an accepted certified meme block
 - approved-side voter rewards settle in the same mint block as the creator reward
 - rejected-side voter rewards stay pending until the next accepted certified meme block settles them
+- delayed rejected-side settlement does not block the currently minted approved-original submission from finalizing its own majority-voter rewards
 - each payout uses a deterministic reward ID of the form `voter_reward:{submission_id}:{wallet_address}:{final_decision}`
 - duplicate reward IDs are rejected during block validation so reruns, sync, and remint-style replay cannot double-pay the same voter
 

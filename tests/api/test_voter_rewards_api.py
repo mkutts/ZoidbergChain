@@ -114,6 +114,13 @@ def test_approved_submission_rewards_original_majority_voters(blockchain, monkey
     )
     assert evaluate_response.status_code == 200
 
+    pending_summary = client.get(f"/submissions/{submission['submission_id']}/voter-rewards").json()
+    assert pending_summary["reward_status"] == "pending"
+    assert pending_summary["rewarded_voter_count"] == 0
+    assert pending_summary["pending_voter_count"] == 3
+    assert len(pending_summary["reward_records"]) == 0
+    assert len(pending_summary["pending_reward_records"]) == 3
+
     minted = _mint_submission_via_api(client, submission["submission_id"])
     summary_response = client.get(f"/submissions/{submission['submission_id']}/voter-rewards")
     assert summary_response.status_code == 200
@@ -124,8 +131,11 @@ def test_approved_submission_rewards_original_majority_voters(blockchain, monkey
     assert summary["reward_status"] == "finalized"
     assert summary["final_majority_side"] == "original"
     assert summary["rewarded_voter_count"] == 3
+    assert summary["pending_voter_count"] == 0
     assert float(summary["reward_amount_per_voter"]) == 0.3
     assert float(summary["total_distributed"]) == 0.9
+    assert len(summary["reward_records"]) == 3
+    assert summary["pending_reward_records"] == []
     assert "super-secret-value" not in str(summary)
 
     creator_rewards = client.get(f"/accounts/{creator.address}/rewards").json()["rewards"]
@@ -141,6 +151,8 @@ def test_approved_submission_rewards_original_majority_voters(blockchain, monkey
         assert rewards[0]["final_decision"] == "original"
         assert rewards[0]["vote_choice"] == VOTE_ORIGINAL
         assert float(rewards[0]["reward_amount"]) == 0.3
+        assert rewards[0]["block_hash"] == minted["block"]["hash"]
+        assert rewards[0]["block_height"] == minted["block"]["index"]
 
     assert client.get(f"/accounts/{minority_voter.address}/rewards").json()["rewards"] == []
     assert client.get(f"/accounts/{unsure_voter.address}/rewards").json()["rewards"] == []
@@ -294,6 +306,103 @@ def test_voter_reward_cap_and_remainder_are_deterministic_and_not_due_after_mint
 
     second_mint = client.post(f"/mint-queue/{submission['submission_id']}/mint", data={"miner": _generate_wallet_via_api(client)})
     assert second_mint.status_code == 400
+    unchanged_summary = client.get(f"/submissions/{submission['submission_id']}/voter-rewards").json()
+    assert unchanged_summary["rewarded_voter_count"] == 4
+    assert unchanged_summary["pending_voter_count"] == 0
+
+
+def test_current_approved_submission_rewards_are_prioritized_over_older_delayed_rejected_rewards(blockchain, monkeypatch):
+    _configure_voter_rewards(monkeypatch, pool="0.9", require_review=False)
+    _clear_review_policy_env(monkeypatch)
+    client = _client(blockchain)
+
+    rejected_creator = _create_metamask_account()
+    rejected_creator_headers = _verify_wallet_session(client, rejected_creator)
+    rejected_voters = [(_create_metamask_account(), None) for _ in range(3)]
+    rejected_voters = [(account, _verify_wallet_session(client, account)) for account, _ in rejected_voters]
+    rejected_minority = _create_metamask_account()
+    rejected_unsure = _create_metamask_account()
+    rejected_minority_headers = _verify_wallet_session(client, rejected_minority)
+    rejected_unsure_headers = _verify_wallet_session(client, rejected_unsure)
+
+    rejected_submission = _submit_signed_text_submission(
+        client,
+        rejected_creator,
+        rejected_creator_headers,
+        text="older delayed rejected-side reward submission",
+    )
+    _cast_signed_votes(
+        client,
+        rejected_submission["submission_id"],
+        [
+            *[(account, headers, VOTE_NOT_ORIGINAL) for account, headers in rejected_voters],
+            (rejected_minority, rejected_minority_headers, VOTE_ORIGINAL),
+            (rejected_unsure, rejected_unsure_headers, VOTE_UNSURE),
+        ],
+    )
+    rejected_evaluate = client.post(
+        f"/submissions/{rejected_submission['submission_id']}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+    assert rejected_evaluate.status_code == 200
+    rejected_pending = client.get(f"/submissions/{rejected_submission['submission_id']}/voter-rewards").json()
+    assert rejected_pending["reward_status"] == "pending"
+    assert rejected_pending["pending_voter_count"] == 3
+
+    approved_creator = _create_metamask_account()
+    approved_creator_headers = _verify_wallet_session(client, approved_creator)
+    approved_voters = [(_create_metamask_account(), None) for _ in range(3)]
+    approved_voters = [(account, _verify_wallet_session(client, account)) for account, _ in approved_voters]
+    approved_minority = _create_metamask_account()
+    approved_minority_headers = _verify_wallet_session(client, approved_minority)
+    approved_unsure = _create_metamask_account()
+    approved_unsure_headers = _verify_wallet_session(client, approved_unsure)
+
+    approved_submission = _submit_signed_text_submission(
+        client,
+        approved_creator,
+        approved_creator_headers,
+        text="current approved-side reward submission",
+    )
+    _cast_signed_votes(
+        client,
+        approved_submission["submission_id"],
+        [
+            *[(account, headers, VOTE_ORIGINAL) for account, headers in approved_voters],
+            (approved_minority, approved_minority_headers, VOTE_NOT_ORIGINAL),
+            (approved_unsure, approved_unsure_headers, VOTE_UNSURE),
+        ],
+    )
+    approved_evaluate = client.post(
+        f"/submissions/{approved_submission['submission_id']}/evaluate",
+        data={"automated_originality_passed": "true"},
+    )
+    assert approved_evaluate.status_code == 200
+
+    # Only one 0.9-ZOID voter reward group can fit after the 5-ZOID creator reward.
+    blockchain.reward_pool = 6.0
+    minted = _mint_submission_via_api(client, approved_submission["submission_id"])
+
+    approved_summary = client.get(f"/submissions/{approved_submission['submission_id']}/voter-rewards").json()
+    rejected_summary = client.get(f"/submissions/{rejected_submission['submission_id']}/voter-rewards").json()
+
+    assert len(minted["block"]["voter_rewards"]) == 3
+    assert approved_summary["reward_status"] == "finalized"
+    assert approved_summary["rewarded_voter_count"] == 3
+    assert approved_summary["pending_voter_count"] == 0
+    assert rejected_summary["reward_status"] == "pending"
+    assert rejected_summary["rewarded_voter_count"] == 0
+    assert rejected_summary["pending_voter_count"] == 3
+
+    for account, _headers in approved_voters:
+        rewards = client.get(f"/accounts/{account.address}/rewards").json()["rewards"]
+        assert len(rewards) == 1
+        assert rewards[0]["reward_type"] == "voter_majority_reward"
+        assert rewards[0]["submission_id"] == approved_submission["submission_id"]
+
+    for account, _headers in rejected_voters:
+        rewards = client.get(f"/accounts/{account.address}/rewards").json()["rewards"]
+        assert rewards == []
 
 
 def test_denylisted_majority_voter_is_excluded_when_review_eligibility_is_required(blockchain, monkeypatch):

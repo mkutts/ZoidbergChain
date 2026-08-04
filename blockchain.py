@@ -1585,6 +1585,12 @@ class Blockchain:
     def _eligible_voter_reward_wallets(self, reward_decision):
         vote_summary = self.get_submission_votes(reward_decision["submission_id"])
         target_vote = reward_decision["vote_choice"]
+        submission = self.get_submission(reward_decision["submission_id"])
+        creator_wallet = None
+        if submission is not None:
+            creator_wallet = self._normalize_native_wallet_identity(
+                getattr(submission, "creator_wallet_address", None) or getattr(submission, "submitter", None)
+            )
         qualifying_votes = [
             vote
             for vote in vote_summary["votes"]
@@ -1596,6 +1602,17 @@ class Blockchain:
                 _coerce_timestamp(vote.get("created_at")) or 0,
             )
         )
+        unique_votes = []
+        seen_wallets = set()
+        for vote in qualifying_votes:
+            wallet_address = self._normalize_native_wallet_identity(
+                vote.get("voter_wallet_address") or vote.get("voter")
+            )
+            if wallet_address is None or wallet_address == creator_wallet or wallet_address in seen_wallets:
+                continue
+            seen_wallets.add(wallet_address)
+            unique_votes.append(vote)
+        qualifying_votes = unique_votes
         if not VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE:
             return qualifying_votes
 
@@ -1761,14 +1778,48 @@ class Blockchain:
         )
         return due_records
 
-    def _select_voter_reward_records_for_block(self):
+    def _priority_voter_reward_records_for_submission(self, submission_id):
+        plan = self.build_submission_voter_reward_plan(submission_id)
+        if not plan.get("eligible"):
+            return []
+        if plan.get("final_decision") != VOTER_REWARD_APPROVAL_SIDE:
+            return []
+        settled_reward_ids = self._get_settled_voter_reward_ids()
+        return [
+            reward_record
+            for reward_record in plan.get("reward_records", [])
+            if reward_record.get("reward_id") not in settled_reward_ids
+        ]
+
+    def _select_voter_reward_records_for_block(self, *, prioritized_submission_id=None):
         selected = []
         skipped = []
         remaining_units = self._reward_units_from_decimal(Decimal(str(self.reward_pool))) - self._reward_units_from_decimal(Decimal(str(MEME_BLOCK_REWARD)))
         if remaining_units <= 0:
             return {"selected": [], "skipped": self._due_voter_reward_records()}
+        selected_reward_ids = set()
+
+        if prioritized_submission_id:
+            prioritized_records = self._priority_voter_reward_records_for_submission(prioritized_submission_id)
+            prioritized_units = sum(
+                self._reward_units_from_amount_string(record["reward_amount"], allow_zero=False)
+                for record in prioritized_records
+            )
+            if prioritized_units > remaining_units:
+                raise ValueError("Insufficient reward pool to finalize approved-original voter rewards in the mint block.")
+            selected.extend(prioritized_records)
+            selected_reward_ids.update(
+                str(record.get("reward_id") or "").strip()
+                for record in prioritized_records
+                if record.get("reward_id")
+            )
+            remaining_units -= prioritized_units
+
         grouped_records: dict[str, list[dict[str, object]]] = {}
         for reward_record in self._due_voter_reward_records():
+            reward_id = str(reward_record.get("reward_id") or "").strip()
+            if reward_id and reward_id in selected_reward_ids:
+                continue
             grouped_records.setdefault(str(reward_record.get("submission_id") or ""), []).append(reward_record)
 
         for submission_id in sorted(grouped_records.keys()):
@@ -3894,7 +3945,9 @@ class Blockchain:
             reward_receiver = normalized_reward_receiver
 
         voter_reward_plan = (
-            self._select_voter_reward_records_for_block()
+            self._select_voter_reward_records_for_block(
+                prioritized_submission_id=certificate.submission_id,
+            )
             if VOTER_REWARDS_ENABLED and certificate is not None
             else {"selected": [], "skipped": []}
         )

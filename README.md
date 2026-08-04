@@ -14,7 +14,7 @@ Stage 1 is a controlled public demo at `zoidbergcoin.com` with these public labe
 Current known limitations:
 
 - anti-Sybil behavior is only reduced by reviewer eligibility friction, not solved
-- no voter rewards yet
+- voter rewards are testnet-only, node-configurable, and still conservative by default
 - no replacement policy
 - mempools are local, not consensus-wide
 - no transfer-only blocks
@@ -126,6 +126,17 @@ Important honesty note:
 - voter rewards are testnet ZOID only
 - this remains anti-Sybil friction, not proof-of-personhood
 - reviewer eligibility can reduce easy abuse but does not stop one real person from controlling many wallets
+
+## Task 10.3 QA Coverage
+
+Task 10.3 adds an end-to-end QA pass for public testnet voting eligibility and majority-side voter rewards.
+
+- integration flow coverage lives in `tests/integration/test_task_10_3_voting_rewards.py`
+- approved-original majority-side rewards are expected to remain pending before mint and become final in the accepted mint block
+- rejected-side `NOT_ORIGINAL` rewards are expected to remain pending until a later accepted certified block settles them
+- review eligibility still gates vote admission even when voter rewards are enabled
+- `VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE=true` can further exclude already-cast but now-ineligible voters from payout
+- frontend smoke coverage for banner, voter reward copy, and wallet reward labeling lives in `zoidbergcoin-ui/src/utils/runtimeConfig.test.js`, `zoidbergcoin-ui/src/utils/voterRewards.test.js`, and `zoidbergcoin-ui/src/utils/nativeWalletUi.test.js`
 
 See the detailed runbooks in:
 

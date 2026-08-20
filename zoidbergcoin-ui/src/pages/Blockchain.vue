@@ -723,5 +723,15 @@ h3 {
   .header-actions {
     width: 100%;
   }
+
+  .workflow-chip,
+  .status-pill {
+    white-space: normal;
+  }
+
+  .content-image,
+  .meme-image {
+    max-height: 260px;
+  }
 }
 </style>

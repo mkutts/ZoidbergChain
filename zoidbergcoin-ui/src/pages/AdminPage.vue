@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-shell">
+  <div class="admin-shell" :class="{ 'stacked-admin-shell': usesMobileCards }">
     <div class="admin-backdrop"></div>
     <main class="admin-content">
       <header class="hero-card">
@@ -141,7 +141,11 @@
 
             <template v-else>
               <div class="detail-block">
-                <p><strong>Request ID:</strong> {{ selectedRequest.request_id }}</p>
+                <p class="detail-line">
+                  <strong>Request ID:</strong>
+                  <span class="detail-value">{{ selectedRequest.request_id }}</span>
+                  <button class="ghost-button small-button" type="button" @click="copyText(selectedRequest.request_id)">Copy</button>
+                </p>
                 <p><strong>Name:</strong> {{ selectedRequest.name }}</p>
                 <p><strong>Email:</strong> {{ selectedRequest.email }}</p>
                 <p><strong>Handle:</strong> {{ selectedRequest.handle || 'None' }}</p>
@@ -239,7 +243,10 @@
                 Last login: {{ formatDate(account.last_login_at) }}
               </p>
               <div class="wallet-pill-row">
-                <span v-for="wallet in account.bound_wallets" :key="wallet" class="wallet-pill">{{ wallet }}</span>
+                <div v-for="walletRow in walletRows(account.bound_wallets)" :key="walletRow.walletAddress" class="wallet-row">
+                  <span class="wallet-pill" :title="walletRow.walletAddress">{{ walletRow.shortLabel }}</span>
+                  <button class="ghost-button small-button" type="button" @click="copyText(walletRow.walletAddress)">Copy</button>
+                </div>
                 <span v-if="account.bound_wallets.length === 0" class="muted-copy">No bound wallets</span>
               </div>
               <div class="inline-actions wrap-actions">
@@ -275,7 +282,10 @@
               </div>
 
               <div v-for="binding in admin.state.selectedAccount.wallet_bindings" :key="binding.wallet_address" class="binding-card">
-                <p><strong>{{ binding.wallet_address }}</strong></p>
+                <p class="detail-line">
+                  <strong>{{ binding.wallet_address }}</strong>
+                  <button class="ghost-button small-button" type="button" @click="copyText(binding.wallet_address)">Copy</button>
+                </p>
                 <p class="meta-row">Status: {{ binding.status }}</p>
                 <p class="meta-row">Bound: {{ formatDate(binding.bound_at) }}</p>
                 <button class="danger-button small-button" :disabled="admin.state.isSubmitting" @click="revokeWallet(binding.wallet_address)">
@@ -288,15 +298,21 @@
       </template>
 
       <p v-if="admin.state.successMessage" class="status-message success">{{ admin.state.successMessage }}</p>
+      <p v-if="copyFeedback" class="status-message success">{{ copyFeedback }}</p>
       <p v-if="admin.state.errorMessage" class="status-message error">{{ admin.state.errorMessage }}</p>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useAdmin } from '../services/admin.js';
-import { adminSafetyLines, shouldShowAdminDashboard } from '../utils/adminUi.js';
+import {
+  adminSafetyLines,
+  buildBoundWalletRows,
+  shouldShowAdminDashboard,
+  shouldUseStackedAdminCards,
+} from '../utils/adminUi.js';
 
 const admin = useAdmin();
 const safetyLines = adminSafetyLines();
@@ -306,6 +322,8 @@ const reviewedBy = ref('operator');
 const requestNotes = ref('');
 const requestMaxWallets = ref(1);
 const isRefreshing = ref(false);
+const viewportWidth = ref(typeof window === 'undefined' ? 0 : window.innerWidth);
+const copyFeedback = ref('');
 
 const inviteForm = reactive({
   name: '',
@@ -320,6 +338,7 @@ const inviteForm = reactive({
 const sessionState = computed(() => admin.state.session);
 const dashboardVisible = computed(() => shouldShowAdminDashboard(admin.state.session));
 const pendingRequests = computed(() => admin.state.requests.filter((request) => request.status === 'pending'));
+const usesMobileCards = computed(() => shouldUseStackedAdminCards(viewportWidth.value));
 
 function formatDate(value) {
   if (!value) {
@@ -337,6 +356,10 @@ function selectRequest(request) {
   requestNotes.value = request.operator_notes || '';
   requestMaxWallets.value = 1;
   reviewedBy.value = 'operator';
+}
+
+function walletRows(boundWallets) {
+  return buildBoundWalletRows(boundWallets);
 }
 
 async function refreshDashboard() {
@@ -429,12 +452,34 @@ async function copyInviteCode() {
     return;
   }
   await navigator.clipboard.writeText(admin.state.lastInviteCode);
+  copyFeedback.value = 'Invite code copied.';
+}
+
+async function copyText(value) {
+  if (!value || typeof navigator === 'undefined' || !navigator.clipboard) {
+    return;
+  }
+  await navigator.clipboard.writeText(String(value));
+  copyFeedback.value = 'Copied to clipboard.';
+}
+
+function handleResize() {
+  viewportWidth.value = typeof window === 'undefined' ? 0 : window.innerWidth;
 }
 
 onMounted(async () => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', handleResize);
+  }
   const session = await admin.loadSession();
   if (session?.authenticated) {
     await refreshDashboard();
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', handleResize);
   }
 });
 </script>
@@ -616,6 +661,7 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .wrap-actions {
@@ -631,6 +677,13 @@ onMounted(async () => {
 .wallet-pill-row {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wallet-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -675,6 +728,18 @@ onMounted(async () => {
   background: rgba(255, 205, 115, 0.12);
   color: #ffdfb1;
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.detail-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-value {
+  overflow-wrap: anywhere;
 }
 
 .empty-state {
@@ -706,6 +771,44 @@ onMounted(async () => {
 
   .accounts-panel {
     grid-column: span 1;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-shell {
+    padding: 22px 12px 40px;
+  }
+
+  .hero-card,
+  .warning-card,
+  .panel {
+    border-radius: 18px;
+  }
+
+  .hero-card,
+  .panel,
+  .warning-card {
+    padding: 16px;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .ghost-button,
+  .danger-button {
+    width: 100%;
+  }
+
+  .inline-actions,
+  .metric-row,
+  .wallet-pill-row,
+  .detail-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wallet-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

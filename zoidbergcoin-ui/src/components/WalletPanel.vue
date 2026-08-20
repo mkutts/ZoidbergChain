@@ -322,8 +322,11 @@
         <p v-if="wallet.state.lastConnectedAddress" class="wallet-meta">
           Last connected address: {{ wallet.shortenAddress(wallet.state.lastConnectedAddress) }}
         </p>
+        <p v-if="mobileWalletSupport.helperText" class="wallet-meta wallet-mobile-note">
+          {{ mobileWalletSupport.helperText }}
+        </p>
         <p v-if="!wallet.state.isMetaMaskAvailable" class="wallet-warning">
-          MetaMask was not detected in this browser. Install it to connect a wallet here.
+          {{ mobileWalletSupport.noProviderMessage || 'MetaMask was not detected in this browser. Install it to connect a wallet here.' }}
         </p>
         <div class="wallet-actions">
           <button
@@ -334,6 +337,13 @@
           >
             {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect MetaMask' }}
           </button>
+          <a
+            v-if="mobileWalletSupport.shouldShowOpenInMetaMask"
+            :href="mobileWalletSupport.openInMetaMaskUrl"
+            class="wallet-btn secondary wallet-link-btn"
+          >
+            Open in MetaMask
+          </a>
         </div>
       </template>
 
@@ -357,6 +367,7 @@ import {
   formatTransferIntentTimestamp,
   humanizeNativeTransferError,
 } from '../utils/nativeWalletUi.js';
+import { describeWalletSupport } from '../utils/mobileWallet.js';
 import { isPublicDemoMode } from '../utils/runtimeConfig';
 
 const wallet = useWallet();
@@ -386,6 +397,15 @@ const transferForm = ref({
 const transferService = createNativeTransferService({
   api: apiClient,
   getApiErrorMessage,
+});
+const mobileWalletSupport = ref({
+  isMobileDevice: false,
+  hasInjectedProvider: false,
+  isMetaMaskMobileBrowser: false,
+  helperText: '',
+  noProviderMessage: '',
+  openInMetaMaskUrl: '',
+  shouldShowOpenInMetaMask: false,
 });
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
@@ -545,8 +565,18 @@ const statusClass = computed(() => {
   return 'idle';
 });
 
+function refreshMobileWalletSupport() {
+  mobileWalletSupport.value = describeWalletSupport({
+    userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+    ethereum: typeof window === 'undefined' ? null : window.ethereum,
+    currentUrl: typeof window === 'undefined' ? '' : window.location.href,
+  });
+}
+
 async function connect() {
+  refreshMobileWalletSupport();
   await wallet.connectWallet();
+  refreshMobileWalletSupport();
 }
 
 async function verify() {
@@ -815,7 +845,9 @@ watch(
 );
 
 onMounted(async () => {
+  refreshMobileWalletSupport();
   await wallet.detectMetaMask();
+  refreshMobileWalletSupport();
   await refreshAccessStatus();
   if (typeof window !== 'undefined') {
     window.addEventListener('zoidberg-wallet-balance-refresh', handleBalanceRefreshEvent);
@@ -887,6 +919,10 @@ onBeforeUnmount(() => {
 .wallet-meta {
   color: #b8b8b8;
   line-height: 1.5;
+}
+
+.wallet-mobile-note {
+  color: #9fd3ff;
 }
 
 .wallet-demo-note {
@@ -1091,6 +1127,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   font-size: 0.94rem;
   font-weight: 700;
+  text-decoration: none;
 }
 
 .wallet-btn:disabled {
@@ -1146,6 +1183,41 @@ onBeforeUnmount(() => {
   .history-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 620px) {
+  .wallet-copy,
+  .wallet-card {
+    padding: 16px;
+  }
+
+  .address-short {
+    font-size: 1.18rem;
+  }
+
+  .wallet-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wallet-btn,
+  .wallet-link-btn {
+    width: 100%;
+  }
+
+  .wallet-summary-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .history-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .transfer-field input,
+  .transfer-field textarea {
+    font-size: 16px;
   }
 }
 </style>

@@ -2299,5 +2299,27 @@ h3 {
   .header-actions {
     width: 100%;
   }
+
+  .file-input,
+  .input-field {
+    font-size: 16px;
+  }
+
+  .vote-actions,
+  .card-actions,
+  .submission-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workflow-chip,
+  .status-pill,
+  .meta-chip {
+    white-space: normal;
+  }
+
+  .content-image {
+    max-height: 260px;
+  }
 }
 </style>

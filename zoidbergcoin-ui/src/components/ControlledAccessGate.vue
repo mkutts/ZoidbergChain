@@ -9,127 +9,206 @@
         Access is invite-only while we test voting, rewards, and network safety. Test ZOID has no real monetary value, and this does not represent mainnet.
       </p>
 
-      <div class="mode-switch">
-        <button type="button" class="mode-btn" :class="{ active: mode === 'returning' }" @click="mode = 'returning'">Returning Approved User</button>
-        <button type="button" class="mode-btn" :class="{ active: mode === 'login' }" @click="mode = 'login'">Enter Invite Code / Login</button>
+      <div class="entry-switch">
         <button
-          v-if="requestsEnabled"
           type="button"
-          class="mode-btn"
-          :class="{ active: mode === 'request' }"
-          @click="mode = 'request'"
+          class="entry-btn"
+          :class="{ active: entryMode === 'new' }"
+          @click="setEntryMode('new')"
         >
-          Request Access
+          New User
+        </button>
+        <button
+          type="button"
+          class="entry-btn"
+          :class="{ active: entryMode === 'returning' }"
+          @click="setEntryMode('returning')"
+        >
+          Returning Approved User
         </button>
       </div>
 
-      <div v-if="mode === 'returning'" class="panel-stack">
-        <p class="status returning-copy">
-          Returning user? Connect your approved wallet and sign the verification challenge. You should not need to reuse a redeemed invite code.
+      <p v-if="mobileWalletSupport.helperText" class="status info">{{ mobileWalletSupport.helperText }}</p>
+      <p v-if="mobileWalletSupport.noProviderMessage" class="status warning">{{ mobileWalletSupport.noProviderMessage }}</p>
+
+      <div v-if="mobileWalletSupport.shouldShowOpenInMetaMask" class="mobile-open-card">
+        <a
+          :href="mobileWalletSupport.openInMetaMaskUrl"
+          class="secondary-btn meta-mask-link"
+          @click="persistGateState"
+        >
+          Open in MetaMask
+        </a>
+        <p class="mobile-open-note">
+          Open the current page in MetaMask Mobile so wallet connection and signing can continue there.
         </p>
-
-        <div class="wallet-box">
-          <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
-          <p class="wallet-note">{{ walletNextStepText }}</p>
-          <div class="wallet-actions">
-            <button
-              v-if="actionState.showConnect"
-              type="button"
-              class="secondary-btn"
-              @click="connectWallet"
-              :disabled="wallet.state.connectionStatus === 'connecting'"
-            >
-              {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect Approved Wallet' }}
-            </button>
-            <button
-              v-else-if="actionState.showVerify"
-              type="button"
-              class="secondary-btn"
-              @click="verifyWallet"
-              :disabled="wallet.state.connectionStatus === 'verifying'"
-            >
-              {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Connected Wallet' }}
-            </button>
-          </div>
-        </div>
       </div>
 
-      <div v-else-if="mode === 'login'" class="panel-stack">
-        <label class="field">
-          <span>Invite / Access Code</span>
-          <input v-model.trim="inviteCode" type="text" placeholder="ZC-..." />
-        </label>
-        <button type="button" class="primary-btn" @click="login" :disabled="access.state.isLoggingIn || !inviteCode">
-          {{ access.state.isLoggingIn ? 'Checking Invite...' : 'Use Invite Code' }}
-        </button>
-        <p v-if="inviteAcceptedMessage" class="status success">{{ inviteAcceptedMessage }}</p>
-
-        <div class="wallet-box">
+      <div v-if="entryMode === 'returning'" class="panel-stack">
+        <div class="returning-panel">
+          <p class="section-label">Returning Approved Wallet</p>
+          <h2>{{ returningWalletGuidance.headline }}</h2>
+          <p class="wallet-note">{{ returningWalletGuidance.detail }}</p>
           <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
           <p class="wallet-note">{{ walletNextStepText }}</p>
+
+          <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
+          <p v-if="returningStatusMessage" class="status" :class="returningStatusClass">{{ returningStatusMessage }}</p>
+
           <div class="wallet-actions">
             <button
-              v-if="actionState.showConnect"
-              type="button"
-              class="secondary-btn"
-              @click="connectWallet"
-              :disabled="wallet.state.connectionStatus === 'connecting'"
-            >
-              {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect MetaMask' }}
-            </button>
-            <button
-              v-else-if="actionState.showVerify"
-              type="button"
-              class="secondary-btn"
-              @click="verifyWallet"
-              :disabled="wallet.state.connectionStatus === 'verifying'"
-            >
-              {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Wallet' }}
-            </button>
-            <button
-              v-else-if="actionState.showBind"
+              v-if="accessActionState.showConnect"
               type="button"
               class="primary-btn"
-              @click="bindWallet"
-              :disabled="access.state.isBindingWallet"
+              @click="continueReturningFlow"
+              :disabled="wallet.state.connectionStatus === 'connecting'"
             >
-              {{ access.state.isBindingWallet ? 'Binding Wallet...' : 'Bind Verified Wallet' }}
+              {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : returningWalletGuidance.actionLabel }}
+            </button>
+            <button
+              v-else-if="accessActionState.showVerify"
+              type="button"
+              class="primary-btn"
+              @click="continueReturningFlow"
+              :disabled="wallet.state.connectionStatus === 'verifying'"
+            >
+              {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : returningWalletGuidance.actionLabel }}
+            </button>
+            <button
+              v-else-if="wallet.state.isVerifiedSession && !access.state.me?.access_granted"
+              type="button"
+              class="secondary-btn"
+              @click="refreshReturningAccess"
+            >
+              {{ returningWalletGuidance.actionLabel }}
+            </button>
+            <button
+              v-if="showRetryButton"
+              type="button"
+              class="secondary-btn"
+              @click="retryPendingWalletAction"
+            >
+              Retry Wallet Step
+            </button>
+            <button
+              type="button"
+              class="ghost-btn"
+              @click="setEntryMode('new')"
+            >
+              I Need a New Invite
             </button>
           </div>
         </div>
       </div>
 
-      <form v-else-if="requestsEnabled" class="panel-stack" @submit.prevent="submitRequest">
-        <label class="field">
-          <span>Name</span>
-          <input v-model.trim="requestForm.name" type="text" required />
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input v-model.trim="requestForm.email" type="email" required />
-        </label>
-        <label class="field">
-          <span>Organization / Social Handle (Optional)</span>
-          <input v-model.trim="requestForm.handle" type="text" />
-        </label>
-        <label class="field">
-          <span>Reason For Access</span>
-          <textarea v-model.trim="requestForm.reason" rows="3" required />
-        </label>
-        <label class="field">
-          <span>Notes (Optional)</span>
-          <textarea v-model.trim="requestForm.notes" rows="3" />
-        </label>
-        <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingRequest">
-          {{ access.state.isSubmittingRequest ? 'Submitting Request...' : 'Submit Access Request' }}
-        </button>
-      </form>
+      <template v-else>
+        <div class="mode-switch">
+          <button
+            type="button"
+            class="mode-btn"
+            :class="{ active: newUserMode === 'invite' }"
+            @click="setNewUserMode('invite')"
+          >
+            Enter Invite Code
+          </button>
+          <button
+            v-if="requestsEnabled"
+            type="button"
+            class="mode-btn"
+            :class="{ active: newUserMode === 'request' }"
+            @click="setNewUserMode('request')"
+          >
+            Request Access
+          </button>
+        </div>
 
-      <div v-else class="panel-stack">
-        <p class="status">
-          New access requests are currently disabled on this node. Use an approved invite code from the operator to enter the controlled testnet.
-        </p>
-      </div>
+        <div v-if="newUserMode === 'invite'" class="panel-stack">
+          <label class="field">
+            <span>Invite / Access Code</span>
+            <input v-model.trim="inviteCode" type="text" placeholder="ZC-..." autocomplete="one-time-code" />
+          </label>
+          <button type="button" class="primary-btn" @click="login" :disabled="access.state.isLoggingIn || !inviteCode">
+            {{ access.state.isLoggingIn ? 'Checking Invite...' : 'Use Invite Code' }}
+          </button>
+          <p v-if="inviteAcceptedMessage" class="status success">{{ inviteAcceptedMessage }}</p>
+
+          <div class="wallet-box">
+            <p class="section-label">Wallet Bind</p>
+            <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
+            <p class="wallet-note">{{ walletNextStepText }}</p>
+            <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
+            <div class="wallet-actions">
+              <button
+                v-if="accessActionState.showConnect"
+                type="button"
+                class="secondary-btn"
+                @click="connectWallet"
+                :disabled="wallet.state.connectionStatus === 'connecting'"
+              >
+                {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect MetaMask' }}
+              </button>
+              <button
+                v-else-if="accessActionState.showVerify"
+                type="button"
+                class="secondary-btn"
+                @click="verifyWallet"
+                :disabled="wallet.state.connectionStatus === 'verifying'"
+              >
+                {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Wallet' }}
+              </button>
+              <button
+                v-else-if="accessActionState.showBind"
+                type="button"
+                class="primary-btn"
+                @click="bindWallet"
+                :disabled="access.state.isBindingWallet"
+              >
+                {{ access.state.isBindingWallet ? 'Binding Wallet...' : 'Bind Verified Wallet' }}
+              </button>
+              <button
+                v-if="showRetryButton"
+                type="button"
+                class="secondary-btn"
+                @click="retryPendingWalletAction"
+              >
+                Retry Wallet Step
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <form v-else-if="requestsEnabled" class="panel-stack" @submit.prevent="submitRequest">
+          <label class="field">
+            <span>Name</span>
+            <input v-model.trim="requestForm.name" type="text" required />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input v-model.trim="requestForm.email" type="email" required />
+          </label>
+          <label class="field">
+            <span>Organization / Social Handle (Optional)</span>
+            <input v-model.trim="requestForm.handle" type="text" />
+          </label>
+          <label class="field">
+            <span>Reason For Access</span>
+            <textarea v-model.trim="requestForm.reason" rows="3" required />
+          </label>
+          <label class="field">
+            <span>Notes (Optional)</span>
+            <textarea v-model.trim="requestForm.notes" rows="3" />
+          </label>
+          <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingRequest">
+            {{ access.state.isSubmittingRequest ? 'Submitting Request...' : 'Submit Access Request' }}
+          </button>
+        </form>
+
+        <div v-else class="panel-stack">
+          <p class="status">
+            New access requests are currently disabled on this node. Use an approved invite code from the operator to enter the controlled testnet.
+          </p>
+        </div>
+      </template>
 
       <p v-if="access.state.successMessage" class="status success">{{ access.state.successMessage }}</p>
       <p v-if="wallet.state.errorMessage" class="status error">{{ wallet.state.errorMessage }}</p>
@@ -139,7 +218,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import PublicDemoBanner from './PublicDemoBanner.vue';
 import { useWallet } from '../services/wallet';
 import { useAccess } from '../services/access';
@@ -148,13 +227,21 @@ import {
   getControlledAccessActionState,
   getControlledAccessNextStepText,
 } from '../utils/controlledAccessUi.js';
+import {
+  buildReturningWalletGuidance,
+  describeWalletSupport,
+} from '../utils/mobileWallet.js';
 
 const emit = defineEmits(['unlocked']);
 
+const ACCESS_GATE_STATE_KEY = 'zoidberg:access-gate-state';
 const wallet = useWallet();
 const access = useAccess();
-const mode = ref('returning');
+const entryMode = ref('new');
+const newUserMode = ref('invite');
 const inviteCode = ref('');
+const interruptedWalletMessage = ref('');
+const pendingWalletAction = ref('');
 const requestForm = ref({
   name: '',
   email: '',
@@ -162,6 +249,123 @@ const requestForm = ref({
   reason: '',
   notes: '',
 });
+const mobileWalletSupport = ref({
+  isMobileDevice: false,
+  hasInjectedProvider: false,
+  isMetaMaskMobileBrowser: false,
+  helperText: '',
+  noProviderMessage: '',
+  openInMetaMaskUrl: '',
+  shouldShowOpenInMetaMask: false,
+});
+
+function getStorage() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    return window.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+
+function refreshMobileWalletSupport() {
+  mobileWalletSupport.value = describeWalletSupport({
+    userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+    ethereum: typeof window === 'undefined' ? null : window.ethereum,
+    currentUrl: typeof window === 'undefined' ? '' : window.location.href,
+  });
+}
+
+function persistGateState() {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+  storage.setItem(
+    ACCESS_GATE_STATE_KEY,
+    JSON.stringify({
+      entryMode: entryMode.value,
+      newUserMode: newUserMode.value,
+      inviteCode: inviteCode.value,
+      pendingWalletAction: pendingWalletAction.value,
+      interruptedWalletMessage: interruptedWalletMessage.value,
+    }),
+  );
+}
+
+function restoreGateState() {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+  const raw = storage.getItem(ACCESS_GATE_STATE_KEY);
+  if (!raw) {
+    return;
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    entryMode.value = parsed.entryMode === 'returning' ? 'returning' : 'new';
+    newUserMode.value = parsed.newUserMode === 'request' ? 'request' : 'invite';
+    inviteCode.value = String(parsed.inviteCode || '');
+    pendingWalletAction.value = String(parsed.pendingWalletAction || '');
+    interruptedWalletMessage.value = String(parsed.interruptedWalletMessage || '');
+  } catch {
+    // Ignore malformed local gate state.
+  }
+}
+
+function setPendingWalletAction(action, message) {
+  pendingWalletAction.value = action;
+  interruptedWalletMessage.value = message;
+  persistGateState();
+}
+
+function clearPendingWalletAction() {
+  pendingWalletAction.value = '';
+  interruptedWalletMessage.value = '';
+  persistGateState();
+}
+
+function setEntryMode(mode) {
+  entryMode.value = mode === 'returning' ? 'returning' : 'new';
+}
+
+function setNewUserMode(mode) {
+  newUserMode.value = mode === 'request' ? 'request' : 'invite';
+}
+
+const accessMode = computed(() => (entryMode.value === 'returning' ? 'returning' : 'login'));
+
+const accessActionState = computed(() => getControlledAccessActionState({
+  mode: accessMode.value,
+  walletState: wallet.state,
+  accessState: access.state,
+}));
+
+const walletStatusText = computed(() => getAccessGateWalletStatusText(wallet.state));
+
+const walletNextStepText = computed(() => getControlledAccessNextStepText({
+  mode: accessMode.value,
+  walletState: wallet.state,
+  accessState: access.state,
+}));
+
+const returningWalletGuidance = computed(() => buildReturningWalletGuidance({
+  accessGranted: Boolean(access.state.me?.access_granted),
+  walletBound: Boolean(access.state.me?.wallet_bound || access.state.me?.wallet_binding?.wallet_address),
+  isVerifiedSession: wallet.state.isVerifiedSession,
+  isConnected: wallet.state.isConnected,
+}));
+
+const walletAccountStatus = computed(
+  () => String(access.state.me?.access_account?.status || '').trim().toLowerCase(),
+);
+
+const walletBindingStatus = computed(
+  () => String(access.state.me?.wallet_binding?.status || '').trim().toLowerCase(),
+);
 
 const accessLabel = computed(
   () => access.state.publicStatus?.access_public_label || '',
@@ -172,17 +376,7 @@ const requestsEnabled = computed(
 );
 
 const inviteAuthenticated = computed(
-  () => Boolean(access.state.me?.invite_authenticated || access.state.accessSessionToken),
-);
-
-const actionState = computed(() => getControlledAccessActionState({
-  mode: mode.value,
-  walletState: wallet.state,
-  accessState: access.state,
-}));
-
-const walletStatusText = computed(
-  () => getAccessGateWalletStatusText(wallet.state),
+  () => accessActionState.value.inviteAuthenticated,
 );
 
 const inviteAcceptedMessage = computed(() => {
@@ -192,39 +386,117 @@ const inviteAcceptedMessage = computed(() => {
   return 'Invite accepted. Connect and verify your MetaMask wallet to bind this access account.';
 });
 
-const walletNextStepText = computed(() => getControlledAccessNextStepText({
-  mode: mode.value,
-  walletState: wallet.state,
-  accessState: access.state,
-}));
+const returningStatusMessage = computed(() => {
+  if (!wallet.state.isVerifiedSession) {
+    return '';
+  }
+  if (walletBindingStatus.value === 'revoked') {
+    return 'This wallet binding was revoked. Request access or enter a fresh invite code from the operator.';
+  }
+  if (walletAccountStatus.value === 'suspended') {
+    return 'This approved wallet belongs to a suspended access account. Contact the operator for reactivation.';
+  }
+  if (walletAccountStatus.value === 'revoked') {
+    return 'This approved wallet belongs to a revoked access account. Contact the operator before trying again.';
+  }
+  if (access.state.me?.access_granted) {
+    return 'Approved wallet verified. Unlocking the controlled testnet now.';
+  }
+  if (access.state.me?.wallet_session_authenticated) {
+    return 'This wallet is not approved. Request access or enter an invite code.';
+  }
+  return '';
+});
+
+const returningStatusClass = computed(() => {
+  if (access.state.me?.access_granted) {
+    return 'success';
+  }
+  return 'error';
+});
+
+const showRetryButton = computed(
+  () => Boolean(pendingWalletAction.value) && !access.state.me?.access_granted,
+);
+
+async function refreshAccessAndUnlock() {
+  await access.refreshMe(wallet.getAuthorizationHeader());
+  if (access.isAppUnlocked()) {
+    clearPendingWalletAction();
+    emit('unlocked');
+  }
+}
 
 async function connectWallet() {
+  refreshMobileWalletSupport();
   await wallet.detectMetaMask();
-  await wallet.connectWallet();
+  refreshMobileWalletSupport();
+  const result = await wallet.connectWallet();
+  refreshMobileWalletSupport();
+  if (result && wallet.state.isVerifiedSession) {
+    await refreshAccessAndUnlock();
+  }
 }
 
 async function verifyWallet() {
-  await wallet.verifyWallet();
-  if (wallet.state.isVerifiedSession) {
-    await access.refreshMe(wallet.getAuthorizationHeader());
-    if (access.isAppUnlocked()) {
-      emit('unlocked');
-    }
+  setPendingWalletAction(
+    'verify_wallet',
+    'Wallet verification was interrupted. Reconnect the same approved wallet and try the signature again.',
+  );
+  const result = await wallet.verifyWallet();
+  if (result && wallet.state.isVerifiedSession) {
+    await refreshAccessAndUnlock();
+  }
+}
+
+async function bindWallet() {
+  setPendingWalletAction(
+    'bind_wallet',
+    'Wallet binding was interrupted. Return to this page, verify the same wallet again if needed, then retry binding.',
+  );
+  const result = await access.bindWallet(wallet.getAuthorizationHeader());
+  if (result) {
+    await refreshAccessAndUnlock();
   }
 }
 
 async function login() {
   const result = await access.loginWithCode(inviteCode.value);
-  if (result && wallet.state.isVerifiedSession) {
-    await access.refreshMe(wallet.getAuthorizationHeader());
+  if (result) {
+    inviteCode.value = '';
+    persistGateState();
+    if (wallet.state.isVerifiedSession) {
+      await refreshAccessAndUnlock();
+    }
   }
 }
 
-async function bindWallet() {
-  const result = await access.bindWallet(wallet.getAuthorizationHeader());
-  if (result && access.isAppUnlocked()) {
-    emit('unlocked');
+async function continueReturningFlow() {
+  if (!wallet.state.isConnected) {
+    await connectWallet();
+    return;
   }
+  if (!wallet.state.isVerifiedSession) {
+    await verifyWallet();
+    return;
+  }
+  await refreshAccessAndUnlock();
+}
+
+async function refreshReturningAccess() {
+  await refreshAccessAndUnlock();
+}
+
+async function retryPendingWalletAction() {
+  if (pendingWalletAction.value === 'bind_wallet') {
+    await bindWallet();
+    return;
+  }
+  if (!wallet.state.isConnected) {
+    await connectWallet();
+    return;
+  }
+  await verifyWallet();
 }
 
 async function submitRequest() {
@@ -239,6 +511,24 @@ async function submitRequest() {
     };
   }
 }
+
+watch([entryMode, newUserMode, inviteCode, pendingWalletAction, interruptedWalletMessage], () => {
+  persistGateState();
+});
+
+watch(
+  () => access.state.me?.access_granted,
+  (accessGranted) => {
+    if (accessGranted) {
+      clearPendingWalletAction();
+    }
+  },
+);
+
+onMounted(() => {
+  restoreGateState();
+  refreshMobileWalletSupport();
+});
 </script>
 
 <style scoped>
@@ -261,7 +551,8 @@ async function submitRequest() {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
-.eyebrow {
+.eyebrow,
+.section-label {
   margin: 0 0 10px;
   color: #ffcd73;
   font-size: 0.82rem;
@@ -275,43 +566,86 @@ async function submitRequest() {
   font-size: 0.95rem;
 }
 
-h1 {
+h1,
+h2 {
   margin: 0 0 12px;
-  font-size: 2rem;
   line-height: 1.1;
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+}
+
+.lead,
+.wallet-note,
+.mobile-open-note {
+  color: #dfd7c6;
+  line-height: 1.6;
 }
 
 .lead {
   margin: 0 0 22px;
-  line-height: 1.6;
-  color: #dfd7c6;
 }
 
-.mode-switch {
+.entry-switch,
+.mode-switch,
+.wallet-actions {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
+.entry-switch,
+.mode-switch {
+  margin-bottom: 18px;
+}
+
+.entry-btn,
 .mode-btn,
 .primary-btn,
-.secondary-btn {
+.secondary-btn,
+.ghost-btn,
+.meta-mask-link {
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px 16px;
   font: inherit;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.mode-btn {
+.entry-btn,
+.mode-btn,
+.ghost-btn {
   background: rgba(255, 255, 255, 0.07);
   color: #f7f0de;
 }
 
+.entry-btn.active,
 .mode-btn.active {
   background: #ffcd73;
   color: #20150a;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #ffcd73 0%, #ff8f5a 100%);
+  color: #20150a;
+  font-weight: 700;
+}
+
+.secondary-btn,
+.meta-mask-link {
+  background: rgba(116, 192, 252, 0.12);
+  color: #d8ecff;
+  border: 1px solid rgba(116, 192, 252, 0.18);
+}
+
+.ghost-btn {
+  border: 1px solid rgba(255, 205, 115, 0.18);
 }
 
 .panel-stack {
@@ -332,45 +666,58 @@ h1 {
 .field input,
 .field textarea {
   width: 100%;
+  min-height: 48px;
   border: 1px solid rgba(255, 205, 115, 0.18);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 12px 14px;
   background: rgba(255, 255, 255, 0.04);
   color: #f7f0de;
+  font: inherit;
 }
 
-.primary-btn {
-  background: linear-gradient(135deg, #ffcd73 0%, #ff8f5a 100%);
-  color: #20150a;
-  font-weight: 700;
+.field textarea {
+  min-height: 112px;
+  resize: vertical;
 }
 
-.secondary-btn {
-  background: rgba(116, 192, 252, 0.12);
-  color: #d8ecff;
-  border: 1px solid rgba(116, 192, 252, 0.18);
-}
-
-.wallet-box {
+.wallet-box,
+.returning-panel,
+.mobile-open-card {
   padding: 16px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
 }
 
-.wallet-line,
-.wallet-note {
-  margin: 0 0 10px;
+.returning-panel,
+.mobile-open-card {
+  border: 1px solid rgba(255, 205, 115, 0.14);
 }
 
-.wallet-actions {
-  display: flex;
+.mobile-open-card {
+  display: grid;
   gap: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.meta-mask-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+}
+
+.wallet-line,
+.wallet-note,
+.status {
+  margin: 0;
 }
 
 .status {
-  margin-top: 16px;
   line-height: 1.5;
+}
+
+.status + .status {
+  margin-top: 12px;
 }
 
 .status.success {
@@ -381,13 +728,74 @@ h1 {
   color: #ff9f9f;
 }
 
+.status.warning {
+  color: #ffd884;
+}
+
+.status.info {
+  color: #9fd3ff;
+}
+
 @media (max-width: 720px) {
+  .access-shell {
+    padding: 22px 12px 34px;
+  }
+
   .access-card {
-    padding: 22px 18px;
+    padding: 20px 16px;
+    border-radius: 20px;
   }
 
   h1 {
-    font-size: 1.6rem;
+    font-size: 1.65rem;
+  }
+
+  h2 {
+    font-size: 1.18rem;
+  }
+
+  .entry-switch,
+  .mode-switch,
+  .wallet-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .entry-btn,
+  .mode-btn,
+  .primary-btn,
+  .secondary-btn,
+  .ghost-btn,
+  .meta-mask-link {
+    width: 100%;
+    text-align: center;
+  }
+
+  .meta-mask-link {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .access-shell {
+    padding-inline: 10px;
+  }
+
+  .access-card {
+    padding: 18px 14px;
+  }
+
+  .eyebrow,
+  .section-label {
+    font-size: 0.76rem;
+    letter-spacing: 0.14em;
+  }
+
+  .lead,
+  .wallet-note,
+  .mobile-open-note,
+  .status {
+    font-size: 0.95rem;
   }
 }
 </style>

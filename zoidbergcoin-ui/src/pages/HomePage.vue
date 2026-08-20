@@ -127,7 +127,7 @@ h1 {
   padding: 25px;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(255, 0, 0, 0.5);
-  width: 340px;
+  width: min(340px, 100%);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -141,7 +141,7 @@ h1 {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(255, 0, 0, 0.5);
   text-align: left;
-  width: 360px;
+  width: min(360px, 100%);
 }
 
 .wallet-details p {
@@ -206,5 +206,20 @@ h1 {
 
 .secondary:hover {
   background: linear-gradient(135deg, #2455a5 0%, #123a70 100%);
+}
+
+@media (max-width: 620px) {
+  .home-container {
+    padding: 24px 12px 36px;
+  }
+
+  h1 {
+    font-size: 2.35rem;
+  }
+
+  .form-container,
+  .wallet-details {
+    padding: 18px;
+  }
 }
 </style>

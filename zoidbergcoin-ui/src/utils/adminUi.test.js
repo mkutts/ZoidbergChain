@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { adminSafetyLines, shouldShowAdminDashboard } from './adminUi.js';
+import {
+  adminSafetyLines,
+  buildBoundWalletRows,
+  shouldShowAdminDashboard,
+  shouldUseStackedAdminCards,
+} from './adminUi.js';
 
 test('unauthenticated admin state does not show the dashboard', () => {
   assert.equal(shouldShowAdminDashboard({ authenticated: false }), false);
@@ -10,6 +15,20 @@ test('unauthenticated admin state does not show the dashboard', () => {
 
 test('authenticated admin state shows the dashboard', () => {
   assert.equal(shouldShowAdminDashboard({ authenticated: true }), true);
+});
+
+test('admin mobile layout switches to stacked cards on phone-width screens', () => {
+  assert.equal(shouldUseStackedAdminCards(390), true);
+  assert.equal(shouldUseStackedAdminCards(1024), false);
+});
+
+test('bound wallet helper preserves copyable full addresses and short labels', () => {
+  const rows = buildBoundWalletRows([
+    '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+  ]);
+
+  assert.equal(rows[0].walletAddress, '0xabcdefabcdefabcdefabcdefabcdefabcdef1234');
+  assert.match(rows[0].shortLabel, /^0xabcdefab\.\.\.cdef1234$/i);
 });
 
 test('admin safety copy keeps public testnet warnings visible', () => {

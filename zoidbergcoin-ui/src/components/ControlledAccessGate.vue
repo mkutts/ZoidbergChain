@@ -10,6 +10,7 @@
       </p>
 
       <div class="mode-switch">
+        <button type="button" class="mode-btn" :class="{ active: mode === 'returning' }" @click="mode = 'returning'">Returning Approved User</button>
         <button type="button" class="mode-btn" :class="{ active: mode === 'login' }" @click="mode = 'login'">Enter Invite Code / Login</button>
         <button
           v-if="requestsEnabled"
@@ -22,7 +23,38 @@
         </button>
       </div>
 
-      <div v-if="mode === 'login'" class="panel-stack">
+      <div v-if="mode === 'returning'" class="panel-stack">
+        <p class="status returning-copy">
+          Returning user? Connect your approved wallet and sign the verification challenge. You should not need to reuse a redeemed invite code.
+        </p>
+
+        <div class="wallet-box">
+          <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
+          <p class="wallet-note">{{ walletNextStepText }}</p>
+          <div class="wallet-actions">
+            <button
+              v-if="actionState.showConnect"
+              type="button"
+              class="secondary-btn"
+              @click="connectWallet"
+              :disabled="wallet.state.connectionStatus === 'connecting'"
+            >
+              {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect Approved Wallet' }}
+            </button>
+            <button
+              v-else-if="actionState.showVerify"
+              type="button"
+              class="secondary-btn"
+              @click="verifyWallet"
+              :disabled="wallet.state.connectionStatus === 'verifying'"
+            >
+              {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Connected Wallet' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="mode === 'login'" class="panel-stack">
         <label class="field">
           <span>Invite / Access Code</span>
           <input v-model.trim="inviteCode" type="text" placeholder="ZC-..." />
@@ -37,7 +69,7 @@
           <p class="wallet-note">{{ walletNextStepText }}</p>
           <div class="wallet-actions">
             <button
-              v-if="inviteAuthenticated && !wallet.state.isConnected"
+              v-if="actionState.showConnect"
               type="button"
               class="secondary-btn"
               @click="connectWallet"
@@ -46,7 +78,7 @@
               {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect MetaMask' }}
             </button>
             <button
-              v-else-if="inviteAuthenticated && wallet.state.isConnected && !wallet.state.isVerifiedSession"
+              v-else-if="actionState.showVerify"
               type="button"
               class="secondary-btn"
               @click="verifyWallet"
@@ -55,7 +87,7 @@
               {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Wallet' }}
             </button>
             <button
-              v-else-if="canShowBindButton"
+              v-else-if="actionState.showBind"
               type="button"
               class="primary-btn"
               @click="bindWallet"
@@ -111,12 +143,17 @@ import { computed, ref } from 'vue';
 import PublicDemoBanner from './PublicDemoBanner.vue';
 import { useWallet } from '../services/wallet';
 import { useAccess } from '../services/access';
+import {
+  getAccessGateWalletStatusText,
+  getControlledAccessActionState,
+  getControlledAccessNextStepText,
+} from '../utils/controlledAccessUi.js';
 
 const emit = defineEmits(['unlocked']);
 
 const wallet = useWallet();
 const access = useAccess();
-const mode = ref('login');
+const mode = ref('returning');
 const inviteCode = ref('');
 const requestForm = ref({
   name: '',
@@ -124,16 +161,6 @@ const requestForm = ref({
   handle: '',
   reason: '',
   notes: '',
-});
-
-const walletStatusText = computed(() => {
-  if (wallet.state.isVerifiedSession) {
-    return `Verified wallet ${wallet.state.verifiedWalletAddress}`;
-  }
-  if (wallet.state.isConnected) {
-    return `Connected wallet ${wallet.state.normalizedWalletAddress}. Verify it before binding.`;
-  }
-  return 'No MetaMask wallet connected yet.';
 });
 
 const accessLabel = computed(
@@ -148,12 +175,14 @@ const inviteAuthenticated = computed(
   () => Boolean(access.state.me?.invite_authenticated || access.state.accessSessionToken),
 );
 
-const canShowBindButton = computed(
-  () => Boolean(
-    inviteAuthenticated.value
-    && wallet.state.isVerifiedSession
-    && !access.state.me?.wallet_bound,
-  ),
+const actionState = computed(() => getControlledAccessActionState({
+  mode: mode.value,
+  walletState: wallet.state,
+  accessState: access.state,
+}));
+
+const walletStatusText = computed(
+  () => getAccessGateWalletStatusText(wallet.state),
 );
 
 const inviteAcceptedMessage = computed(() => {
@@ -163,21 +192,11 @@ const inviteAcceptedMessage = computed(() => {
   return 'Invite accepted. Connect and verify your MetaMask wallet to bind this access account.';
 });
 
-const walletNextStepText = computed(() => {
-  if (!inviteAuthenticated.value) {
-    return 'Enter your invite code first. Wallet binding only starts after the invite is accepted.';
-  }
-  if (!wallet.state.isConnected) {
-    return 'Connect MetaMask to continue.';
-  }
-  if (!wallet.state.isVerifiedSession) {
-    return 'Verify this MetaMask wallet before binding it to the approved access account.';
-  }
-  if (!access.state.me?.wallet_bound) {
-    return 'Bind the first verified MetaMask wallet to the approved access account.';
-  }
-  return 'This MetaMask wallet is already bound to the approved access account.';
-});
+const walletNextStepText = computed(() => getControlledAccessNextStepText({
+  mode: mode.value,
+  walletState: wallet.state,
+  accessState: access.state,
+}));
 
 async function connectWallet() {
   await wallet.detectMetaMask();

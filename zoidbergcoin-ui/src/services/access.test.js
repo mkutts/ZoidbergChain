@@ -245,6 +245,88 @@ test('invite acceptance alone does not unlock a gated app', async () => {
   assert.equal(access.isAppUnlocked(), false);
 });
 
+test('previously bound wallet can reconnect and unlock without invite code', async () => {
+  const publicApi = createMockClient();
+  const api = createMockClient();
+  const storage = createMemoryStorage();
+
+  publicApi.getHandlers.set('/access/status', async () => ({
+    data: {
+      require_access_for_app: true,
+      access_control_mode: 'invite_only',
+    },
+  }));
+  publicApi.getHandlers.set('/access/me', async (options) => ({
+    data: {
+      invite_authenticated: false,
+      wallet_session_authenticated: true,
+      wallet_bound: true,
+      access_granted: true,
+      access_account: {
+        access_account_id: 'acct-returning',
+        status: 'active',
+      },
+      wallet_binding: {
+        wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+        status: 'active',
+      },
+      echoed_headers: options.headers,
+    },
+  }));
+
+  const access = createAccessService({
+    api,
+    publicApi,
+    storage,
+  });
+
+  await access.initialize({
+    Authorization: 'Bearer returning-wallet-session',
+  });
+
+  assert.equal(access.state.accessSessionToken, '');
+  assert.equal(access.state.me.invite_authenticated, false);
+  assert.equal(access.state.me.wallet_bound, true);
+  assert.equal(access.state.me.access_granted, true);
+  assert.equal(access.isAppUnlocked(), true);
+});
+
+test('unapproved wallet stays locked even after wallet verification refresh', async () => {
+  const publicApi = createMockClient();
+  const api = createMockClient();
+
+  publicApi.getHandlers.set('/access/status', async () => ({
+    data: {
+      require_access_for_app: true,
+      access_control_mode: 'invite_only',
+    },
+  }));
+  publicApi.getHandlers.set('/access/me', async () => ({
+    data: {
+      invite_authenticated: false,
+      wallet_session_authenticated: true,
+      wallet_bound: false,
+      access_granted: false,
+      access_account: null,
+      wallet_binding: null,
+    },
+  }));
+
+  const access = createAccessService({
+    api,
+    publicApi,
+    storage: createMemoryStorage(),
+  });
+
+  await access.initialize({
+    Authorization: 'Bearer unapproved-wallet-session',
+  });
+
+  assert.equal(access.state.me.wallet_bound, false);
+  assert.equal(access.state.me.access_granted, false);
+  assert.equal(access.isAppUnlocked(), false);
+});
+
 test('401 access session responses clear the cached invite session token', async () => {
   const publicApi = createMockClient();
   const api = createMockClient();

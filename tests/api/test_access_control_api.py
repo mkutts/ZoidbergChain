@@ -46,6 +46,12 @@ def _verify_wallet_session(client, account):
     return {"Authorization": f"Bearer {verify.json()['session_token']}"}
 
 
+def _logout_wallet_session(client, verified_headers):
+    response = client.post("/auth/wallet/logout", headers=verified_headers)
+    assert response.status_code == 200
+    return response.json()
+
+
 def _upload_text_content_via_api(client, submitter, text="access-controlled text content"):
     response = client.post(
         "/content/text",
@@ -257,6 +263,39 @@ def test_access_me_stays_locked_after_invite_login_until_wallet_is_bound(blockch
     assert after_payload["wallet_binding"]["wallet_address"] == wallet.address.lower()
 
 
+def test_bound_active_wallet_with_valid_wallet_session_returns_access_granted(blockchain, monkeypatch):
+    _configure_access(monkeypatch, MAX_WALLETS_PER_ACCESS_ACCOUNT=1)
+    client = _client(blockchain)
+    _account, access_code = _create_access_invite(blockchain, email="returning-approved@example.test", max_wallets=1)
+
+    login = _login_access_code(client, access_code)
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["wallet_session_authenticated"] is True
+    assert payload["wallet_bound"] is True
+    assert payload["access_granted"] is True
+
+
+def test_unbound_wallet_with_valid_wallet_session_returns_access_granted_false(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    wallet_headers = _verify_wallet_session(client, _create_account())
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["wallet_session_authenticated"] is True
+    assert payload["wallet_bound"] is False
+    assert payload["access_granted"] is False
+
+
 def test_redeemed_invite_code_cannot_be_reused(blockchain, monkeypatch):
     _configure_access(monkeypatch, MAX_WALLETS_PER_ACCESS_ACCOUNT=1)
     client = _client(blockchain)
@@ -399,6 +438,92 @@ def test_bound_wallet_can_recover_access_even_if_stale_access_session_header_is_
     payload = response.json()
     assert payload["wallet_bound"] is True
     assert payload["access_granted"] is True
+
+
+def test_suspended_account_with_valid_bound_wallet_session_returns_access_granted_false(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    account, access_code = _create_access_invite(blockchain, email="suspended-returning@example.test")
+    login = _login_access_code(client, access_code)
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    blockchain.update_access_account_status(account["access_account_id"], "suspended")
+    blockchain.save_blockchain()
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["wallet_session_authenticated"] is True
+    assert payload["wallet_bound"] is False
+    assert payload["access_granted"] is False
+    assert payload["access_account"]["status"] == "suspended"
+
+
+def test_revoked_wallet_binding_with_valid_wallet_session_returns_access_granted_false(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    account, access_code = _create_access_invite(blockchain, email="revoked-binding@example.test")
+    login = _login_access_code(client, access_code)
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    blockchain.revoke_wallet_binding(wallet.address)
+    blockchain.save_blockchain()
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["wallet_session_authenticated"] is True
+    assert payload["wallet_bound"] is False
+    assert payload["access_granted"] is False
+    assert payload["wallet_binding"]["status"] == "revoked"
+    assert payload["access_account"]["status"] == "active"
+
+
+def test_wallet_reconnect_does_not_require_invite_code(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    _account, access_code = _create_access_invite(blockchain, email="reconnect-no-invite@example.test")
+    login = _login_access_code(client, access_code)
+
+    wallet = _create_account()
+    first_wallet_headers = _verify_wallet_session(client, wallet)
+    assert _bind_wallet(client, login["access_session_token"], first_wallet_headers).status_code == 200
+
+    _logout_wallet_session(client, first_wallet_headers)
+    returning_wallet_headers = _verify_wallet_session(client, wallet)
+
+    response = client.get("/access/me", headers=returning_wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["invite_authenticated"] is False
+    assert payload["wallet_session_authenticated"] is True
+    assert payload["access_granted"] is True
+
+
+def test_wallet_disconnect_logout_does_not_delete_wallet_binding(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    account, access_code = _create_access_invite(blockchain, email="disconnect-binding@example.test")
+    login = _login_access_code(client, access_code)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    logout_result = _logout_wallet_session(client, wallet_headers)
+    binding = blockchain.get_wallet_binding(wallet.address)
+    account_after_logout = blockchain.get_access_account(account["access_account_id"])
+
+    assert logout_result["logged_out"] is True
+    assert binding["status"] == "active"
+    assert wallet.address.lower() in account_after_logout["bound_wallets"]
 
 
 def test_access_required_submission_and_vote_paths_allow_bound_wallets_only(blockchain, monkeypatch):

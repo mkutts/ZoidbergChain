@@ -1,7 +1,14 @@
 import axios from "axios";
 
-const IMPORT_META_ENV = import.meta?.env || {};
+const IMPORT_META_ENV = {
+  MODE: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.MODE : undefined,
+  PROD: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.PROD : undefined,
+  VITE_API_BASE_URL: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_API_BASE_URL : undefined,
+  VITE_API_BASE: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_API_BASE : undefined,
+  VITE_BACKEND_URL: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_BACKEND_URL : undefined,
+};
 const BROWSER_LOCATION = typeof window !== "undefined" ? window.location : null;
+
 export function createDefaultApiBaseUrl(importMetaEnv = {}, browserLocation = null) {
   const devApiHost = browserLocation?.hostname === "localhost"
     ? "localhost"
@@ -12,10 +19,27 @@ export function createDefaultApiBaseUrl(importMetaEnv = {}, browserLocation = nu
     : `http://${devApiHost}:8000`;
 }
 
-const DEFAULT_API_BASE_URL = createDefaultApiBaseUrl(IMPORT_META_ENV, BROWSER_LOCATION);
+function normalizeApiBaseUrl(value) {
+  return String(value || "").trim();
+}
 
-export const API_BASE_URL =
-  IMPORT_META_ENV.VITE_API_BASE_URL || DEFAULT_API_BASE_URL;
+export function resolveApiBaseUrl(importMetaEnv = {}, browserLocation = null) {
+  const configuredBaseUrl = [
+    importMetaEnv.VITE_API_BASE_URL,
+    importMetaEnv.VITE_API_BASE,
+    importMetaEnv.VITE_BACKEND_URL,
+  ]
+    .map(normalizeApiBaseUrl)
+    .find(Boolean);
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
+  }
+
+  return createDefaultApiBaseUrl(importMetaEnv, browserLocation);
+}
+
+export const API_BASE_URL = resolveApiBaseUrl(IMPORT_META_ENV, BROWSER_LOCATION);
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -19,6 +19,16 @@ _CONFIG_ENV_KEYS = (
     "REQUIRE_PEER_AUTH",
     "PUBLIC_API_MODE",
     "PUBLIC_DEMO_MODE",
+    "ACCESS_CONTROL_MODE",
+    "ACCESS_REQUESTS_ENABLED",
+    "ACCESS_DEV_BYPASS_ENABLED",
+    "REQUIRE_ACCESS_FOR_APP",
+    "REQUIRE_ACCESS_FOR_SUBMISSIONS",
+    "REQUIRE_ACCESS_FOR_VOTES",
+    "REQUIRE_ACCESS_FOR_REWARDS",
+    "REQUIRE_ACCESS_FOR_TRANSFERS",
+    "MAX_WALLETS_PER_ACCESS_ACCOUNT",
+    "ACCESS_PUBLIC_LABEL",
     "PEER_SHARED_SECRET",
     "CORS_ALLOWED_ORIGINS",
     "RATE_LIMIT_TRANSACTION_CREATE",
@@ -89,6 +99,13 @@ def test_default_environment_is_development():
         assert config.ENABLE_SIGNED_PEER_MESSAGES is False
         assert config.PEER_SIGNATURE_WINDOW_SECONDS == 300
         assert config.PEER_REPLAY_PROTECTION_ENABLED is False
+        assert config.ACCESS_CONTROL_MODE == "open"
+        assert config.ACCESS_DEV_BYPASS_ENABLED is True
+        assert config.REQUIRE_ACCESS_FOR_APP is False
+        assert config.REQUIRE_ACCESS_FOR_SUBMISSIONS is False
+        assert config.REQUIRE_ACCESS_FOR_VOTES is False
+        assert config.REQUIRE_ACCESS_FOR_REWARDS is False
+        assert config.REQUIRE_ACCESS_FOR_TRANSFERS is False
 
 
 def test_development_allows_dev_private_key_export():
@@ -156,12 +173,41 @@ def test_helper_functions_return_correct_values_for_testnet():
         assert config.signed_peer_messages_enabled() is True
         assert config.peer_signature_window_seconds() == 300
         assert config.peer_replay_protection_enabled() is True
+        assert config.ACCESS_CONTROL_MODE == "invite_only"
+        assert config.ACCESS_DEV_BYPASS_ENABLED is False
+        assert config.REQUIRE_ACCESS_FOR_APP is True
+        assert config.REQUIRE_ACCESS_FOR_SUBMISSIONS is True
+        assert config.REQUIRE_ACCESS_FOR_VOTES is True
+        assert config.REQUIRE_ACCESS_FOR_REWARDS is True
+        assert config.REQUIRE_ACCESS_FOR_TRANSFERS is True
+        assert config.MAX_WALLETS_PER_ACCESS_ACCOUNT == 1
         assert config.cors_allowed_origins() == [
             "https://zoidbergcoin.com",
             "https://www.zoidbergcoin.com",
         ]
         assert config.get_rate_limit("wallet_create") == "10/minute"
         assert config.get_rate_limit("public_read") == "180/minute"
+
+
+def test_access_dev_bypass_can_be_disabled_locally():
+    with loaded_config(
+        ENVIRONMENT="development",
+        ACCESS_CONTROL_MODE="invite_only",
+        ACCESS_DEV_BYPASS_ENABLED="false",
+        REQUIRE_ACCESS_FOR_APP="true",
+    ) as config:
+        assert config.ACCESS_CONTROL_MODE == "invite_only"
+        assert config.ACCESS_DEV_BYPASS_ENABLED is False
+        assert config.REQUIRE_ACCESS_FOR_APP is True
+
+
+@pytest.mark.parametrize("environment", ["testnet", "production"])
+def test_access_dev_bypass_is_ignored_outside_development(environment):
+    with loaded_config(
+        ENVIRONMENT=environment,
+        ACCESS_DEV_BYPASS_ENABLED="true",
+    ) as config:
+        assert config.ACCESS_DEV_BYPASS_ENABLED is False
 
 
 @pytest.mark.parametrize(

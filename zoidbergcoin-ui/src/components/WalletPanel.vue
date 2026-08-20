@@ -27,6 +27,15 @@
           Session expires at: {{ sessionExpiryLabel }}
         </p>
 
+        <div v-if="showAccessStatusCard" class="access-card">
+          <span class="native-balance-label">Controlled Access</span>
+          <strong :class="accessStatusClass">{{ accessStatusHeadline }}</strong>
+          <p class="wallet-meta">{{ accessStatusDetail }}</p>
+          <p v-if="accessAccountLine" class="wallet-meta">{{ accessAccountLine }}</p>
+          <p v-if="walletBindingLine" class="wallet-meta">{{ walletBindingLine }}</p>
+          <p v-if="access.state.errorMessage" class="wallet-error">{{ access.state.errorMessage }}</p>
+        </div>
+
         <div v-if="wallet.state.isVerifiedSession" class="native-balance-card">
           <span class="native-balance-label">Final balance</span>
           <strong class="native-balance-value">{{ nativeBalanceLabel }}</strong>
@@ -337,6 +346,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useWallet } from '../services/wallet';
+import { useAccess } from '../services/access';
 import { apiClient, getApiErrorMessage } from '../config/api';
 import { createNativeTransferService, TRANSFER_PENDING_WARNING } from '../services/nativeTransfer.js';
 import {
@@ -350,6 +360,7 @@ import {
 import { isPublicDemoMode } from '../utils/runtimeConfig';
 
 const wallet = useWallet();
+const access = useAccess();
 const showPublicDemoNotice = isPublicDemoMode();
 const copyButtonLabel = ref('Copy Full Address');
 const accountSummary = ref(null);
@@ -425,6 +436,80 @@ const sessionExpiryLabel = computed(() => {
   return new Date(parsed).toLocaleString();
 });
 
+const showAccessStatusCard = computed(() => {
+  const status = access.state.publicStatus;
+  const me = access.state.me;
+  return Boolean(
+    status?.require_access_for_app
+    || status?.require_access_for_submissions
+    || status?.require_access_for_votes
+    || status?.require_access_for_rewards
+    || status?.require_access_for_transfers
+    || me?.access_account
+    || me?.wallet_binding
+  );
+});
+
+const accessStatusHeadline = computed(() => {
+  if (access.state.me?.access_granted) {
+    return 'Bound active controlled-testnet access account';
+  }
+  if (access.state.me?.access_account && !access.state.me?.wallet_binding) {
+    return 'Invite accepted. Bind this verified wallet to unlock restricted actions.';
+  }
+  if (wallet.state.isVerifiedSession) {
+    return 'This verified wallet is not bound to an active controlled-testnet access account.';
+  }
+  if (access.requiresAppAccess()) {
+    return 'Invite-only access is required for this controlled testnet.';
+  }
+  return 'Open local development mode remains available.';
+});
+
+const accessStatusClass = computed(() => {
+  if (access.state.me?.access_granted) {
+    return 'access-success';
+  }
+  if (access.requiresAppAccess() || wallet.state.isVerifiedSession) {
+    return 'access-warning';
+  }
+  return 'access-neutral';
+});
+
+const accessStatusDetail = computed(() => {
+  const status = access.state.publicStatus || {};
+  if (access.state.me?.access_granted) {
+    return 'This wallet can submit, vote, receive gated voter rewards, and sign native transfers while the access account stays active.';
+  }
+  if (access.state.me?.access_account && !access.state.me?.wallet_binding) {
+    return 'The invite was accepted, but the first verified MetaMask wallet still needs to be bound to this access account.';
+  }
+  if (wallet.state.isVerifiedSession) {
+    return 'Restricted actions can still fail until the operator-approved access account is active and this wallet is bound to it.';
+  }
+  if (status.access_dev_bypass_enabled) {
+    return 'Development bypass is active locally, so normal testing stays open without an invite code.';
+  }
+  return 'This node can require operator-approved access before submissions, votes, rewards, or transfers are allowed.';
+});
+
+const accessAccountLine = computed(() => {
+  const account = access.state.me?.access_account;
+  if (!account) {
+    return '';
+  }
+  const status = String(account.status || 'unknown').replace(/_/g, ' ');
+  return `Access account ${account.email || account.name || account.access_account_id}: ${status}.`;
+});
+
+const walletBindingLine = computed(() => {
+  const binding = access.state.me?.wallet_binding;
+  if (!binding?.wallet_address) {
+    return '';
+  }
+  return `Bound wallet: ${wallet.shortenAddress(binding.wallet_address)} (${binding.status || 'unknown'}).`;
+});
+
 const statusText = computed(() => {
   if (wallet.state.isVerifiedSession) {
     return 'Verified ZoidbergChain Wallet';
@@ -467,12 +552,15 @@ async function connect() {
 async function verify() {
   const verification = await wallet.verifyWallet();
   if (verification) {
-    await refreshAccountData();
+    await Promise.all([
+      refreshAccountData(),
+      refreshAccessStatus(),
+    ]);
   }
 }
 
-function disconnect() {
-  wallet.disconnectWallet();
+async function disconnect() {
+  await wallet.disconnectWallet();
   copyButtonLabel.value = 'Copy Full Address';
   accountSummary.value = null;
   rewardHistory.value = [];
@@ -483,6 +571,7 @@ function disconnect() {
   transferError.value = '';
   transferSuccessMessage.value = '';
   nonceState.value = null;
+  await refreshAccessStatus();
 }
 
 async function copyAddress() {
@@ -654,6 +743,10 @@ async function refreshAccountData() {
   ]);
 }
 
+async function refreshAccessStatus() {
+  await access.refreshMe(wallet.getAuthorizationHeader());
+}
+
 function rewardSummary(reward) {
   return buildRewardSummary(reward);
 }
@@ -703,6 +796,7 @@ function handleBalanceRefreshEvent() {
 watch(
   () => [wallet.state.isVerifiedSession, wallet.state.verifiedWalletAddress],
   async ([isVerified, verifiedWalletAddress]) => {
+    await refreshAccessStatus();
     if (!isVerified || !verifiedWalletAddress) {
       accountSummary.value = null;
       balanceError.value = '';
@@ -722,6 +816,7 @@ watch(
 
 onMounted(async () => {
   await wallet.detectMetaMask();
+  await refreshAccessStatus();
   if (typeof window !== 'undefined') {
     window.addEventListener('zoidberg-wallet-balance-refresh', handleBalanceRefreshEvent);
   }
@@ -1009,6 +1104,26 @@ onBeforeUnmount(() => {
 
 .wallet-btn.secondary {
   background: linear-gradient(135deg, #4a90e2 0%, #2455a5 100%);
+}
+
+.access-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 205, 115, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 205, 115, 0.08);
+}
+
+.access-success {
+  color: #8df5a6;
+}
+
+.access-warning {
+  color: #ffd884;
+}
+
+.access-neutral {
+  color: #d7dce3;
 }
 
 .wallet-btn.ghost {

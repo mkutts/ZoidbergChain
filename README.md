@@ -138,10 +138,123 @@ Task 10.3 adds an end-to-end QA pass for public testnet voting eligibility and m
 - `VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE=true` can further exclude already-cast but now-ineligible voters from payout
 - frontend smoke coverage for banner, voter reward copy, and wallet reward labeling lives in `zoidbergcoin-ui/src/utils/runtimeConfig.test.js`, `zoidbergcoin-ui/src/utils/voterRewards.test.js`, and `zoidbergcoin-ui/src/utils/nativeWalletUi.test.js`
 
+## Task 10.4 Controlled Testnet Access
+
+Task 10.4 adds a simple operator-controlled access gate for a semi-private public demo/testnet.
+
+Important honesty note:
+
+- this is not proof-of-personhood, KYC, or real Sybil resistance
+- it is a controlled access and wallet-binding layer that reduces spam and slows easy multi-wallet abuse
+- one real person can still control more than one real MetaMask wallet outside the operator flow
+
+Core flow:
+
+- unapproved visitors can see a controlled-testnet access screen before the main app when `REQUIRE_ACCESS_FOR_APP=true`
+- visitors can submit an access request with name, email, optional handle, reason, and notes
+- operators can review requests locally with `scripts/access_admin.py`
+- approved testers receive a one-time invite/access code
+- the tester enters the invite code, then connects and verifies MetaMask, then binds the first approved wallet
+- restricted actions can then require that bound active access account
+
+Session model:
+
+- invite login creates a short-lived access session used only for the bind flow
+- MetaMask verification creates the existing verified wallet session
+- binding requires both sessions at the same time
+- a valid invite session alone does not unlock the app
+- a bound verified wallet can recover access later through wallet identity even after invite redemption
+
+Invite lifecycle:
+
+- newly approved access accounts store `invite_code_hash`, start with no bound wallets, and do not expose plaintext invite codes except at approval/create time
+- first successful wallet bind moves the code into redeemed state and clears the live invite hash
+- a redeemed code cannot be used for a fresh login again
+- the already-bound wallet can still recover access later through the verified wallet session without needing the invite code again
+
+Wallet behavior:
+
+- access follows the verified wallet identity, not browser local storage alone
+- switching MetaMask from Wallet A to Wallet B does not inherit Wallet A access
+- if `MAX_WALLETS_PER_ACCESS_ACCOUNT=1`, Wallet B cannot be added to the same account
+- switching back to Wallet A and verifying again restores access
+
+Backend enforcement:
+
+- `GET /access/status` returns public non-secret access mode information
+- `POST /access/request` stores pending access requests
+- `POST /access/login` accepts an invite/access code and issues a short-lived access session
+- `POST /access/bind-wallet` binds the verified MetaMask wallet to the approved access account
+- `GET /access/me` returns safe current access-account, wallet-binding, invite-session, and capability status
+- signed submissions, originality votes, gated voter rewards, and native transfer submission can all require a bound active access account
+
+Local developer safety:
+
+- in `development`, the default access mode is `open`
+- in `development`, `ACCESS_DEV_BYPASS_ENABLED=true` by default so normal local testing is not locked out
+- in `testnet` and `production`, the bypass is off and ignored outside development
+- invite-only local testing is still possible by explicitly setting `ACCESS_CONTROL_MODE=invite_only` and turning the bypass off
+
+Recommended controlled testnet settings:
+
+- `ACCESS_CONTROL_MODE=invite_only`
+- `ACCESS_REQUESTS_ENABLED=true`
+- `ACCESS_DEV_BYPASS_ENABLED=false`
+- `REQUIRE_ACCESS_FOR_APP=true`
+- `REQUIRE_ACCESS_FOR_SUBMISSIONS=true`
+- `REQUIRE_ACCESS_FOR_VOTES=true`
+- `REQUIRE_ACCESS_FOR_REWARDS=true`
+- `REQUIRE_ACCESS_FOR_TRANSFERS=true`
+- `MAX_WALLETS_PER_ACCESS_ACCOUNT=1`
+- `ACCESS_PUBLIC_LABEL=Controlled invite-only testnet`
+
+Operator CLI examples:
+
+- `python scripts/access_admin.py list-requests`
+- `python -m scripts.access_admin list-requests`
+- `python scripts/access_admin.py approve REQUEST_ID`
+- `python scripts/access_admin.py reject REQUEST_ID`
+- `python scripts/access_admin.py create-invite --name "Local Developer" --email "local@example.test"`
+- `python scripts/access_admin.py show-account ACCESS_ACCOUNT_ID`
+- `python scripts/access_admin.py suspend ACCESS_ACCOUNT_ID`
+- `python scripts/access_admin.py revoke-wallet 0xabc...`
+- `python scripts/access_admin.py doctor`
+
+Safe CLI notes:
+
+- `list-accounts` shows wallet counts, bound wallets, invite redemption state, approval time, and last login time
+- `show-account` prints one safe account view without invite hashes or secrets
+- `doctor` reports access mode, storage backend, data paths, account counts, and the fact that access sessions are memory-only for the current process
+
+Manual QA runbook:
+
+- A. Start the local backend in invite-only mode.
+- B. Submit Request Access.
+- C. Use the CLI to approve the request.
+- D. Record the one-time invite code.
+- E. Enter the invite code in the UI.
+- F. Confirm the invite is accepted.
+- G. Connect MetaMask Wallet A.
+- H. Verify Wallet A.
+- I. Bind Wallet A.
+- J. Confirm the app unlocks.
+- K. Run the CLI `list-accounts` command and confirm Wallet A is bound.
+- L. Refresh the browser and confirm Wallet A access can be recovered appropriately.
+- M. Switch MetaMask to Wallet B.
+- N. Confirm Wallet B does not inherit access.
+- O. Try binding Wallet B.
+- P. Confirm it is rejected because `MAX_WALLETS_PER_ACCESS_ACCOUNT=1`.
+- Q. Switch back to Wallet A.
+- R. Verify again if required.
+- S. Confirm access is restored.
+- T. Restart the backend.
+- U. Confirm wallet binding persists.
+
 See the detailed runbooks in:
 
 - [docs/public-demo-deployment-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/public-demo-deployment-checklist.md)
 - [docs/backup-restore-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/backup-restore-runbook.md)
+- [docs/frontend-test-procedure.md](/C:/Users/mattk/ZoidbergChain/docs/frontend-test-procedure.md)
 - [docs/live-domain-deployment-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/live-domain-deployment-checklist.md)
 - [docs/testnet-reset-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-reset-runbook.md)
 - [docs/live-domain-deployment-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/live-domain-deployment-runbook.md)

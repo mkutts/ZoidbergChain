@@ -131,6 +131,47 @@ _VOTER_REWARD_DEFAULTS = {
     },
 }
 
+VALID_ACCESS_CONTROL_MODES = {"open", "invite_only", "allowlist", "disabled"}
+
+_ACCESS_CONTROL_DEFAULTS = {
+    "development": {
+        "ACCESS_CONTROL_MODE": "open",
+        "ACCESS_REQUESTS_ENABLED": True,
+        "ACCESS_DEV_BYPASS_ENABLED": True,
+        "REQUIRE_ACCESS_FOR_APP": False,
+        "REQUIRE_ACCESS_FOR_SUBMISSIONS": False,
+        "REQUIRE_ACCESS_FOR_VOTES": False,
+        "REQUIRE_ACCESS_FOR_REWARDS": False,
+        "REQUIRE_ACCESS_FOR_TRANSFERS": False,
+        "MAX_WALLETS_PER_ACCESS_ACCOUNT": 5,
+        "ACCESS_PUBLIC_LABEL": "Open local development",
+    },
+    "testnet": {
+        "ACCESS_CONTROL_MODE": "invite_only",
+        "ACCESS_REQUESTS_ENABLED": True,
+        "ACCESS_DEV_BYPASS_ENABLED": False,
+        "REQUIRE_ACCESS_FOR_APP": True,
+        "REQUIRE_ACCESS_FOR_SUBMISSIONS": True,
+        "REQUIRE_ACCESS_FOR_VOTES": True,
+        "REQUIRE_ACCESS_FOR_REWARDS": True,
+        "REQUIRE_ACCESS_FOR_TRANSFERS": True,
+        "MAX_WALLETS_PER_ACCESS_ACCOUNT": 1,
+        "ACCESS_PUBLIC_LABEL": "Controlled invite-only testnet",
+    },
+    "production": {
+        "ACCESS_CONTROL_MODE": "invite_only",
+        "ACCESS_REQUESTS_ENABLED": True,
+        "ACCESS_DEV_BYPASS_ENABLED": False,
+        "REQUIRE_ACCESS_FOR_APP": True,
+        "REQUIRE_ACCESS_FOR_SUBMISSIONS": True,
+        "REQUIRE_ACCESS_FOR_VOTES": True,
+        "REQUIRE_ACCESS_FOR_REWARDS": True,
+        "REQUIRE_ACCESS_FOR_TRANSFERS": True,
+        "MAX_WALLETS_PER_ACCESS_ACCOUNT": 1,
+        "ACCESS_PUBLIC_LABEL": "Controlled invite-only network",
+    },
+}
+
 
 def _clean_path(value):
     cleaned = (value or ".").strip()
@@ -190,6 +231,21 @@ def _env_int(name, default):
         raise ValueError(f"Invalid integer value for {name}: {value!r}.")
 
 
+def _env_int_any(names, default, *, minimum=None):
+    for name in names:
+        value = os.getenv(name)
+        if value is None:
+            continue
+        try:
+            parsed = int(str(value).strip())
+        except (AttributeError, ValueError) as exc:
+            raise ValueError(f"Invalid integer value for {name}: {value!r}.") from exc
+        if minimum is not None and parsed < minimum:
+            raise ValueError(f"Invalid integer value for {name}: {value!r}.")
+        return parsed
+    return default
+
+
 def _env_decimal_string(name, default, *, minimum=Decimal("0")):
     value = os.getenv(name)
     if value is None:
@@ -231,6 +287,7 @@ APP_ENV = ENVIRONMENT
 _CURRENT_SECURITY_DEFAULTS = _SECURITY_DEFAULTS[ENVIRONMENT]
 _CURRENT_RATE_LIMIT_DEFAULTS = _RATE_LIMIT_DEFAULTS[ENVIRONMENT]
 _CURRENT_VOTER_REWARD_DEFAULTS = _VOTER_REWARD_DEFAULTS[ENVIRONMENT]
+_CURRENT_ACCESS_CONTROL_DEFAULTS = _ACCESS_CONTROL_DEFAULTS[ENVIRONMENT]
 
 ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT = _env_flag(
     "ALLOW_DEV_WALLET_PRIVATE_KEY_EXPORT",
@@ -264,6 +321,57 @@ REQUIRE_PEER_AUTH = _env_flag(
 PUBLIC_API_MODE = _env_flag(
     "PUBLIC_API_MODE",
     _CURRENT_SECURITY_DEFAULTS["PUBLIC_API_MODE"],
+)
+ACCESS_CONTROL_MODE = _env_value_any(
+    ("ACCESS_CONTROL_MODE",),
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["ACCESS_CONTROL_MODE"],
+).strip().lower()
+if ACCESS_CONTROL_MODE not in VALID_ACCESS_CONTROL_MODES:
+    valid_values = ", ".join(sorted(VALID_ACCESS_CONTROL_MODES))
+    raise ValueError(
+        f"Invalid ACCESS_CONTROL_MODE value: {ACCESS_CONTROL_MODE!r}. "
+        f"Expected one of: {valid_values}."
+    )
+ACCESS_REQUESTS_ENABLED = _env_flag(
+    "ACCESS_REQUESTS_ENABLED",
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["ACCESS_REQUESTS_ENABLED"],
+)
+ACCESS_DEV_BYPASS_ENABLED = (
+    _env_flag(
+        "ACCESS_DEV_BYPASS_ENABLED",
+        _CURRENT_ACCESS_CONTROL_DEFAULTS["ACCESS_DEV_BYPASS_ENABLED"],
+    )
+    if ENVIRONMENT == "development"
+    else False
+)
+REQUIRE_ACCESS_FOR_APP = _env_flag(
+    "REQUIRE_ACCESS_FOR_APP",
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["REQUIRE_ACCESS_FOR_APP"],
+)
+REQUIRE_ACCESS_FOR_SUBMISSIONS = _env_flag(
+    "REQUIRE_ACCESS_FOR_SUBMISSIONS",
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["REQUIRE_ACCESS_FOR_SUBMISSIONS"],
+)
+REQUIRE_ACCESS_FOR_VOTES = _env_flag(
+    "REQUIRE_ACCESS_FOR_VOTES",
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["REQUIRE_ACCESS_FOR_VOTES"],
+)
+REQUIRE_ACCESS_FOR_REWARDS = _env_flag(
+    "REQUIRE_ACCESS_FOR_REWARDS",
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["REQUIRE_ACCESS_FOR_REWARDS"],
+)
+REQUIRE_ACCESS_FOR_TRANSFERS = _env_flag(
+    "REQUIRE_ACCESS_FOR_TRANSFERS",
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["REQUIRE_ACCESS_FOR_TRANSFERS"],
+)
+MAX_WALLETS_PER_ACCESS_ACCOUNT = _env_int_any(
+    ("MAX_WALLETS_PER_ACCESS_ACCOUNT",),
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["MAX_WALLETS_PER_ACCESS_ACCOUNT"],
+    minimum=1,
+)
+ACCESS_PUBLIC_LABEL = _env_value_any(
+    ("ACCESS_PUBLIC_LABEL",),
+    _CURRENT_ACCESS_CONTROL_DEFAULTS["ACCESS_PUBLIC_LABEL"],
 )
 
 # Backward-compatible alias for existing imports and older local scripts.
@@ -316,6 +424,46 @@ def require_peer_auth():
 
 def public_api_mode_enabled():
     return PUBLIC_API_MODE
+
+
+def access_control_mode():
+    return ACCESS_CONTROL_MODE
+
+
+def access_requests_enabled():
+    return ACCESS_REQUESTS_ENABLED
+
+
+def access_dev_bypass_enabled():
+    return ACCESS_DEV_BYPASS_ENABLED
+
+
+def require_access_for_app():
+    return REQUIRE_ACCESS_FOR_APP
+
+
+def require_access_for_submissions():
+    return REQUIRE_ACCESS_FOR_SUBMISSIONS
+
+
+def require_access_for_votes():
+    return REQUIRE_ACCESS_FOR_VOTES
+
+
+def require_access_for_rewards():
+    return REQUIRE_ACCESS_FOR_REWARDS
+
+
+def require_access_for_transfers():
+    return REQUIRE_ACCESS_FOR_TRANSFERS
+
+
+def max_wallets_per_access_account():
+    return MAX_WALLETS_PER_ACCESS_ACCOUNT
+
+
+def access_public_label():
+    return ACCESS_PUBLIC_LABEL
 
 
 def peer_auth_required():

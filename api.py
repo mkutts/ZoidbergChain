@@ -62,8 +62,11 @@ from validators import (
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     API_BASE_URL,
+    ACCESS_CONTROL_MODE,
+    ACCESS_PUBLIC_LABEL,
     COIN_NAME,
     TICKER,
+    MAX_WALLETS_PER_ACCESS_ACCOUNT,
     ENABLE_RATE_LIMITING,
     LOG_DIR,
     LOG_LEVEL,
@@ -81,6 +84,13 @@ from config import (
     SUBMISSIONS_DIR,
     MAX_FILENAME_LENGTH,
     STORAGE_BACKEND,
+    ACCESS_REQUESTS_ENABLED,
+    ACCESS_DEV_BYPASS_ENABLED,
+    REQUIRE_ACCESS_FOR_APP,
+    REQUIRE_ACCESS_FOR_REWARDS,
+    REQUIRE_ACCESS_FOR_SUBMISSIONS,
+    REQUIRE_ACCESS_FOR_TRANSFERS,
+    REQUIRE_ACCESS_FOR_VOTES,
     VOTING_WINDOW_HOURS,
     allow_dev_reset_endpoints,
     allow_private_key_export,
@@ -113,6 +123,17 @@ from native_transfer import (
     hash_transfer_signing_message,
     parse_native_zoid_amount,
     parse_transfer_signing_message,
+)
+from access_control import (
+    AccessSessionManager,
+    access_decision_for_wallet,
+    access_feature_required,
+    access_mode_enforces_binding,
+    dev_bypass_effective,
+    normalize_email,
+    normalize_handle,
+    normalize_text_field,
+    public_access_status_payload,
 )
 from review_policy import (
     build_public_policy_summary,
@@ -418,6 +439,22 @@ class WalletTransferSubmitRequest(_StrictBodyModel):
     message: Annotated[str, Field(min_length=1, max_length=4096)]
     signature: Annotated[str, Field(min_length=1, max_length=4096)]
     admit_to_mempool: bool = False
+
+
+class AccessRequestCreate(_StrictBodyModel):
+    name: Annotated[str, Field(min_length=1, max_length=128)]
+    email: Annotated[str, Field(min_length=3, max_length=320)]
+    handle: Annotated[str | None, Field(default=None, max_length=128)] = None
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
+    notes: Annotated[str | None, Field(default=None, max_length=2000)] = None
+
+
+class AccessLoginRequest(_StrictBodyModel):
+    access_code: Annotated[str, Field(min_length=3, max_length=128)]
+
+
+class AccessBindWalletRequest(_StrictBodyModel):
+    wallet_address: Annotated[str | None, Field(default=None, max_length=128)] = None
 
 
 def _short_key(public_key):
@@ -1206,6 +1243,7 @@ wallet_auth_manager = WalletAuthManager(
     network_name=NETWORK_NAME,
     environment=ENVIRONMENT,
 )
+access_session_manager = AccessSessionManager()
 
 
 def sync_approved_submissions_to_mint_queue():
@@ -1223,6 +1261,128 @@ def sync_approved_submissions_to_mint_queue():
 
 def _verified_wallet_dependency(authorization: str | None = Header(default=None)):
     return resolve_verified_wallet_from_authorization(authorization, manager=wallet_auth_manager)
+
+
+def _access_session_dependency(x_zoid_access_session: str | None = Header(default=None, alias="X-ZOID-Access-Session")):
+    return x_zoid_access_session or ""
+
+
+def _public_access_account(account: dict | None) -> dict | None:
+    if not account:
+        return None
+    bound_wallets = list(account.get("bound_wallets", []))
+    return {
+        "access_account_id": account.get("access_account_id"),
+        "name": account.get("name"),
+        "email": account.get("email"),
+        "handle": account.get("handle"),
+        "status": account.get("status"),
+        "created_at": account.get("created_at"),
+        "approved_at": account.get("approved_at"),
+        "invite_code_redeemed_at": account.get("invite_code_redeemed_at"),
+        "bound_wallets": bound_wallets,
+        "wallet_count": len(bound_wallets),
+        "max_wallets": account.get("max_wallets"),
+        "notes": account.get("notes"),
+        "last_login_at": account.get("last_login_at"),
+    }
+
+
+def _public_access_request(request_record: dict | None) -> dict | None:
+    if not request_record:
+        return None
+    return {
+        "request_id": request_record.get("request_id"),
+        "name": request_record.get("name"),
+        "email": request_record.get("email"),
+        "handle": request_record.get("handle"),
+        "reason": request_record.get("reason"),
+        "notes": request_record.get("notes"),
+        "status": request_record.get("status"),
+        "created_at": request_record.get("created_at"),
+        "reviewed_at": request_record.get("reviewed_at"),
+        "reviewed_by": request_record.get("reviewed_by"),
+        "operator_notes": request_record.get("operator_notes"),
+        "approved_access_account_id": request_record.get("approved_access_account_id"),
+    }
+
+
+def _public_wallet_binding(binding: dict | None) -> dict | None:
+    if not binding:
+        return None
+    return {
+        "wallet_address": binding.get("wallet_address"),
+        "access_account_id": binding.get("access_account_id"),
+        "bound_at": binding.get("bound_at"),
+        "status": binding.get("status"),
+        "source": binding.get("source"),
+    }
+
+
+def _access_status_payload(
+    *,
+    wallet_address: str | None = None,
+    access_account: dict | None = None,
+    binding: dict | None = None,
+    session_access_account: dict | None = None,
+    invite_authenticated: bool = False,
+    wallet_session_authenticated: bool = False,
+):
+    effective_account = access_account or session_access_account
+    account_status = str(effective_account.get("status") or "").strip().lower() if effective_account else ""
+    wallet_bound = bool(
+        binding
+        and str(binding.get("status") or "").strip().lower() == "active"
+        and access_account
+        and str(access_account.get("status") or "").strip().lower() == "active"
+    )
+    access_granted = wallet_bound
+    wallet_count = len(list(effective_account.get("bound_wallets", []))) if effective_account else 0
+    payload = public_access_status_payload()
+    payload.update({
+        "authenticated": bool(invite_authenticated or wallet_session_authenticated),
+        "invite_authenticated": bool(invite_authenticated),
+        "wallet_session_authenticated": bool(wallet_session_authenticated),
+        "wallet_address": wallet_address,
+        "wallet_bound": wallet_bound,
+        "access_account_id": effective_account.get("access_account_id") if effective_account else None,
+        "status": account_status or None,
+        "access_account": _public_access_account(effective_account),
+        "wallet_binding": _public_wallet_binding(binding),
+        "access_granted": access_granted,
+        "max_wallets": effective_account.get("max_wallets") if effective_account else None,
+        "wallet_count": wallet_count,
+        "can_submit": bool(access_granted or not REQUIRE_ACCESS_FOR_SUBMISSIONS),
+        "can_vote": bool(access_granted or not REQUIRE_ACCESS_FOR_VOTES),
+        "can_receive_rewards": bool(access_granted or not REQUIRE_ACCESS_FOR_REWARDS),
+        "can_transfer": bool(access_granted or not REQUIRE_ACCESS_FOR_TRANSFERS),
+    })
+    return payload
+
+
+def _enforce_access_for_feature(wallet_address: str | None, *, feature: str):
+    blockchain.refresh_access_control_state_from_storage()
+    decision = access_decision_for_wallet(blockchain, wallet_address, feature=feature)
+    if decision.allowed:
+        return decision
+    detail = {
+        "error": "access_required",
+        "reason": decision.reason,
+        "feature": feature,
+        "message": "A bound active controlled-testnet access account is required for this action.",
+        "access_control_mode": ACCESS_CONTROL_MODE,
+        "recommended_action": "Enter an invite code or request access, then bind the verified MetaMask wallet.",
+    }
+    raise HTTPException(status_code=403, detail=detail)
+
+
+def _resolve_access_account_from_session(access_session_token: str):
+    access_account_id = access_session_manager.resolve_access_account_id(access_session_token)
+    blockchain.refresh_access_control_state_from_storage()
+    access_account = blockchain.get_access_account(access_account_id)
+    if access_account is None:
+        raise ValueError("Access account for this session no longer exists.")
+    return access_account
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -1371,6 +1531,181 @@ async def node_info(request: Request):
     return payload
 
 
+@app.get("/access/status")
+@api_limit("public_read")
+async def get_access_status(request: Request):
+    return public_access_status_payload()
+
+
+@app.post("/access/request")
+@api_limit("submission_create")
+async def create_access_request(request: Request, payload: AccessRequestCreate):
+    if not ACCESS_REQUESTS_ENABLED:
+        raise HTTPException(status_code=403, detail="Access requests are disabled on this node.")
+    if ACCESS_CONTROL_MODE == "disabled":
+        raise HTTPException(status_code=403, detail="Access control is disabled on this node.")
+    try:
+        access_request = blockchain.create_access_request(
+            name=payload.name,
+            email=payload.email,
+            handle=payload.handle,
+            reason=payload.reason,
+            notes=payload.notes,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "message": "Access request submitted.",
+        "request": _public_access_request(access_request),
+    }
+
+
+@app.post("/access/login")
+@api_limit("wallet_create")
+async def login_with_access_code(request: Request, payload: AccessLoginRequest):
+    blockchain.refresh_access_control_state_from_storage()
+    account = blockchain.resolve_access_account_by_invite_code(payload.access_code, include_redeemed=True)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Invalid invite/access code.")
+    if not account.get("invite_code_hash"):
+        raise HTTPException(status_code=409, detail="Invite/access code has already been redeemed.")
+    if str(account.get("status") or "").strip().lower() != "active":
+        raise HTTPException(status_code=403, detail="Access account is not active.")
+    session = access_session_manager.issue_session(account["access_account_id"])
+    blockchain.mark_access_account_login(account["access_account_id"])
+    blockchain.save_blockchain()
+    return {
+        "message": "Invite accepted. Connect and verify MetaMask to bind the wallet.",
+        "access_account": _public_access_account(account),
+        **session,
+    }
+
+
+@app.post("/access/bind-wallet")
+@api_limit("wallet_create")
+async def bind_access_wallet(
+    request: Request,
+    payload: AccessBindWalletRequest | None = None,
+    access_session_token: str = Depends(_access_session_dependency),
+    wallet_address: str = Depends(_verified_wallet_dependency),
+):
+    try:
+        access_account = _resolve_access_account_from_session(access_session_token)
+        normalized_payload_wallet = normalize_wallet_address(payload.wallet_address) if payload and payload.wallet_address else None
+        normalized_verified_wallet = normalize_wallet_address(wallet_address)
+        if normalized_payload_wallet and normalized_payload_wallet != normalized_verified_wallet:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "verified_wallet_mismatch",
+                    "reason": "verified_wallet_session_does_not_match_requested_wallet",
+                    "message": "The verified MetaMask wallet session does not match the requested wallet binding.",
+                },
+            )
+        binding = blockchain.bind_wallet_to_access_account(
+            access_account["access_account_id"],
+            wallet_address,
+            source="invite_code",
+        )
+        access_session_manager.mark_wallet_bound(access_session_token, wallet_address)
+        blockchain.save_blockchain()
+        access_account = blockchain.get_access_account(access_account["access_account_id"])
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = 400
+        if "missing access session" in detail.lower() or "no active access session" in detail.lower() or "expired" in detail.lower():
+            status_code = 401
+        elif "already associated with a different verified wallet" in detail.lower():
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "access_session_wallet_mismatch",
+                    "reason": "access_session_already_bound_to_different_wallet",
+                    "message": detail,
+                },
+            ) from exc
+        elif "already bound to a different access account" in detail.lower():
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "wallet_already_bound_elsewhere",
+                    "reason": "wallet_is_already_bound_to_different_access_account",
+                    "message": detail,
+                },
+            ) from exc
+        elif "maximum number of bound wallets" in detail.lower():
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "error": "wallet_limit_reached",
+                    "reason": "access_account_already_has_maximum_wallets",
+                    "message": detail,
+                },
+            ) from exc
+        elif "not found" in detail.lower() or "not active" in detail.lower():
+            status_code = 403
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+    return {
+        "message": "Wallet bound to controlled-testnet access account.",
+        "access_account": _public_access_account(access_account),
+        "wallet_binding": _public_wallet_binding(binding),
+        "access": _access_status_payload(
+            wallet_address=wallet_address,
+            access_account=access_account,
+            binding=binding,
+            session_access_account=access_account,
+            invite_authenticated=True,
+            wallet_session_authenticated=True,
+        ),
+    }
+
+
+@app.get("/access/me")
+@api_limit("public_read")
+async def get_access_me(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_zoid_access_session: str | None = Header(default=None, alias="X-ZOID-Access-Session"),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    wallet_address = None
+    access_account = None
+    binding = None
+    session_access_account = None
+    wallet_session_authenticated = False
+    invite_authenticated = False
+
+    if authorization:
+        try:
+            wallet_address = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+            wallet_session_authenticated = True
+            binding = blockchain.get_wallet_binding(wallet_address)
+            access_account = blockchain.get_access_account_for_wallet(wallet_address)
+        except HTTPException as exc:
+            raise HTTPException(status_code=401, detail=exc.detail) from exc
+
+    if x_zoid_access_session:
+        try:
+            session_access_account = _resolve_access_account_from_session(x_zoid_access_session)
+            invite_authenticated = True
+        except ValueError as exc:
+            if not wallet_session_authenticated or access_account is None:
+                raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    return _access_status_payload(
+        wallet_address=wallet_address,
+        access_account=access_account,
+        binding=binding,
+        session_access_account=session_access_account,
+        invite_authenticated=invite_authenticated,
+        wallet_session_authenticated=wallet_session_authenticated,
+    )
+
+
 @app.post("/auth/wallet/challenge")
 @api_limit("wallet_create")
 async def create_wallet_challenge(request: Request, payload: WalletChallengeRequest):
@@ -1419,6 +1754,7 @@ async def create_wallet_submission_challenge(
     normalized_wallet = normalize_wallet_address(payload.wallet_address)
     if normalized_wallet is None or normalized_wallet != wallet_address:
         raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+    _enforce_access_for_feature(wallet_address, feature="submissions")
 
     content_object = _require_content_reference(payload.content_hash, payload.content_id)
     safe_caption = validate_caption(payload.caption)
@@ -1446,6 +1782,7 @@ async def create_wallet_vote_challenge(
     normalized_wallet = normalize_wallet_address(payload.wallet_address)
     if normalized_wallet is None or normalized_wallet != wallet_address:
         raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+    _enforce_access_for_feature(wallet_address, feature="votes")
 
     submission = blockchain.get_submission(payload.submission_id)
     if not submission:
@@ -1520,6 +1857,7 @@ async def create_wallet_transfer_challenge(
     normalized_from = normalize_wallet_address(payload.from_address)
     if normalized_from is None or normalized_from != wallet_address:
         raise HTTPException(status_code=403, detail="from_address must match the verified wallet session.")
+    _enforce_access_for_feature(wallet_address, feature="transfers")
 
     try:
         expected_nonce = blockchain.get_next_nonce(wallet_address)
@@ -1586,6 +1924,7 @@ async def submit_transfer_intent(
     normalized_from = normalize_wallet_address(payload.from_address)
     if normalized_from is None or normalized_from != wallet_address:
         raise HTTPException(status_code=403, detail="from_address must match the verified wallet session.")
+    _enforce_access_for_feature(wallet_address, feature="transfers")
 
     starting_balance = blockchain.get_native_balance_snapshot(wallet_address)["native_balance"]
     try:
@@ -2339,6 +2678,7 @@ async def submit_content(
         normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
         if normalized_wallet is None or normalized_wallet != verified_wallet:
             raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+        _enforce_access_for_feature(verified_wallet, feature="submissions")
 
         try:
             verification = wallet_auth_manager.verify_submission_signature(
@@ -2650,6 +2990,7 @@ async def vote_on_submission(
         normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
         if normalized_wallet is None or normalized_wallet != verified_wallet:
             raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
+        _enforce_access_for_feature(verified_wallet, feature="votes")
         _enforce_review_policy(verified_wallet)
 
         try:

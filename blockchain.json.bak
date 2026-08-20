@@ -1260,7 +1260,7 @@
             "image_path": "content\\40\\c0\\40c0be0582f19e76398fed253c5d80348bc3bf199a18944822e6bbdbf9cdc7ce.jpg",
             "text_content": "reward test 2",
             "submitter": "0x4deb65a84605bea9113c9c36983a29f0b0c0b2f7",
-            "status": "queued",
+            "status": "minted",
             "created_at": 1785870867.4900088,
             "hard_reject_reason": null,
             "content_hash": "40c0be0582f19e76398fed253c5d80348bc3bf199a18944822e6bbdbf9cdc7ce",
@@ -1303,7 +1303,7 @@
                 "original_filename": "images.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785869401.8865306,
+            "verified_at": 1787237202.3003683,
             "verification_error": null
         },
         {
@@ -1325,7 +1325,7 @@
                 "original_filename": "image-1-8-6a26c8c34355c__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785869401.886798,
+            "verified_at": 1787237202.3005717,
             "verification_error": null
         },
         {
@@ -1370,7 +1370,7 @@
                 "original_filename": "image-1-2-6a2f98fe763a8__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785870867.48892,
+            "verified_at": 1787237202.3008778,
             "verification_error": null
         },
         {
@@ -1392,7 +1392,7 @@
                 "original_filename": "870740530199752705-png__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785869401.8874035,
+            "verified_at": 1787237202.3010418,
             "verification_error": null
         },
         {
@@ -1414,13 +1414,12 @@
                 "original_filename": "6a2f984602a33_random-memes-tiedyehomie__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1785869401.8875892,
+            "verified_at": 1787237202.3012269,
             "verification_error": null
         }
     ],
     "mint_queue": [
-        "a6df7f2c705d47039089c4054e5cceb2",
-        "b2bee88cdd404b5eb89b0eb4036518a3"
+        "a6df7f2c705d47039089c4054e5cceb2"
     ],
     "votes": [
         {
@@ -2172,6 +2171,157 @@
             "originality_score": 2.15
         }
     ],
+    "access_requests": [
+        {
+            "request_id": "085d704ba577eb8b726b78eff3252a7c",
+            "name": "test",
+            "email": "matt.kuttner@gmail.com",
+            "handle": "",
+            "reason": "testing",
+            "notes": "",
+            "status": "approved",
+            "created_at": "2026-08-11T19:08:51.147990+00:00",
+            "reviewed_at": "2026-08-11T19:17:57.328685+00:00",
+            "reviewed_by": "operator",
+            "operator_notes": "",
+            "approved_access_account_id": "e8873662dd91a5829025f619f10553d2"
+        },
+        {
+            "request_id": "55749deec536763f47450e164edc49d4",
+            "name": "J G Wentworth",
+            "email": "877cashnow@gmail.com",
+            "handle": "",
+            "reason": "testing",
+            "notes": "",
+            "status": "approved",
+            "created_at": "2026-08-12T16:47:04.153292+00:00",
+            "reviewed_at": "2026-08-12T16:48:01.881934+00:00",
+            "reviewed_by": "operator",
+            "operator_notes": "",
+            "approved_access_account_id": "7daceb1ae0d2c142d5fa2cacb8625f1a"
+        },
+        {
+            "request_id": "b7c0ba3ac045821a85a2b916e6b208ad",
+            "name": "J G Wentworth",
+            "email": "877cashnow@gmail.com",
+            "handle": "American Income Life",
+            "reason": "blow me",
+            "notes": "",
+            "status": "approved",
+            "created_at": "2026-08-20T14:30:18.287344+00:00",
+            "reviewed_at": "2026-08-20T14:35:56.221867+00:00",
+            "reviewed_by": "operator",
+            "operator_notes": "",
+            "approved_access_account_id": "0fb872cb3d1ecffc094f25cad2087906"
+        },
+        {
+            "request_id": "05ac11f634a5e18e65593764c7521efa",
+            "name": "h e huff and snuff",
+            "email": "noemial@ailife.com",
+            "handle": "American Income Life",
+            "reason": "testicles",
+            "notes": "",
+            "status": "approved",
+            "created_at": "2026-08-20T14:46:06.744080+00:00",
+            "reviewed_at": "2026-08-20T14:47:09.564397+00:00",
+            "reviewed_by": "operator",
+            "operator_notes": "",
+            "approved_access_account_id": "9937c3c3db727c646e0fda1b2fbf215e"
+        }
+    ],
+    "access_accounts": [
+        {
+            "access_account_id": "e8873662dd91a5829025f619f10553d2",
+            "name": "test",
+            "email": "matt.kuttner@gmail.com",
+            "handle": "",
+            "status": "active",
+            "created_at": "2026-08-11T19:17:57.328662+00:00",
+            "approved_at": "2026-08-11T19:17:57.328674+00:00",
+            "invite_code_hash": "ddc31cdd7a9a4578387ffc9cb021966d2680d08f26a87071f98ea96d76f65e48",
+            "redeemed_invite_code_hash": null,
+            "invite_code_redeemed_at": null,
+            "bound_wallets": [],
+            "max_wallets": 5,
+            "notes": "",
+            "operator_notes": "",
+            "reviewed_by": "operator",
+            "last_login_at": null
+        },
+        {
+            "access_account_id": "44dee7319973326a9d557e7d76b7ca09",
+            "name": "Local Developer One Wallet",
+            "email": "local-one@example.test",
+            "handle": "",
+            "status": "active",
+            "created_at": "2026-08-11T19:20:53.492251+00:00",
+            "approved_at": "2026-08-11T19:20:53.492264+00:00",
+            "invite_code_hash": "c4937dadc3f834688e1457a7003f564b3ebfaf18972c0abc975c9459a537f93a",
+            "redeemed_invite_code_hash": null,
+            "invite_code_redeemed_at": null,
+            "bound_wallets": [],
+            "max_wallets": 1,
+            "notes": "",
+            "operator_notes": "",
+            "reviewed_by": "operator",
+            "last_login_at": null
+        },
+        {
+            "access_account_id": "7daceb1ae0d2c142d5fa2cacb8625f1a",
+            "name": "J G Wentworth",
+            "email": "877cashnow@gmail.com",
+            "handle": "",
+            "status": "active",
+            "created_at": "2026-08-12T16:48:01.881912+00:00",
+            "approved_at": "2026-08-12T16:48:01.881923+00:00",
+            "invite_code_hash": "7c13d09f5b73662ed655add4fb1d8b70955725e2200c96c7bcaf1dcaea884b20",
+            "redeemed_invite_code_hash": null,
+            "invite_code_redeemed_at": null,
+            "bound_wallets": [],
+            "max_wallets": 5,
+            "notes": "",
+            "operator_notes": "",
+            "reviewed_by": "operator",
+            "last_login_at": null
+        },
+        {
+            "access_account_id": "0fb872cb3d1ecffc094f25cad2087906",
+            "name": "J G Wentworth",
+            "email": "877cashnow@gmail.com",
+            "handle": "American Income Life",
+            "status": "active",
+            "created_at": "2026-08-20T14:35:56.221844+00:00",
+            "approved_at": "2026-08-20T14:35:56.221856+00:00",
+            "invite_code_hash": "0a102b424c421fcb11e584cc684cb4fdf12e92312ba1593c589dffad7d32498a",
+            "redeemed_invite_code_hash": null,
+            "invite_code_redeemed_at": null,
+            "bound_wallets": [],
+            "max_wallets": 5,
+            "notes": "",
+            "operator_notes": "",
+            "reviewed_by": "operator",
+            "last_login_at": null
+        },
+        {
+            "access_account_id": "9937c3c3db727c646e0fda1b2fbf215e",
+            "name": "h e huff and snuff",
+            "email": "noemial@ailife.com",
+            "handle": "American Income Life",
+            "status": "active",
+            "created_at": "2026-08-20T14:47:09.564376+00:00",
+            "approved_at": "2026-08-20T14:47:09.564387+00:00",
+            "invite_code_hash": "5cedc2b4febd32a4d807096265f6f7b4d013da3b5cdcc7f42f4f8d8fc7aa1e3e",
+            "redeemed_invite_code_hash": null,
+            "invite_code_redeemed_at": null,
+            "bound_wallets": [],
+            "max_wallets": 1,
+            "notes": "",
+            "operator_notes": "",
+            "reviewed_by": "operator",
+            "last_login_at": "2026-08-20T14:47:21.592239+00:00"
+        }
+    ],
+    "wallet_bindings": [],
     "wallets": {
         "03be2c1470c4a6e6979073b53232974ebf1089f0a7454f435d7cf7a0b32154c28b": {
             "public_key": "03be2c1470c4a6e6979073b53232974ebf1089f0a7454f435d7cf7a0b32154c28b",
@@ -2240,6 +2390,114 @@
         "020e1040bddd904fcff8a91ab27b13a85f45ce3fa41cbe1cefc85d249ec80f0c9e": {
             "public_key": "020e1040bddd904fcff8a91ab27b13a85f45ce3fa41cbe1cefc85d249ec80f0c9e",
             "private_key": "bcb8e33836d857334425bb7fed5d11c9a46504ab3d4288e292c26f7ee26cc3a5"
+        },
+        "027b80f988090a71178ed15a5385e3454656878a07702ffe49b7941b5b9b4daf99": {
+            "public_key": "027b80f988090a71178ed15a5385e3454656878a07702ffe49b7941b5b9b4daf99",
+            "private_key": "ccde4598de66cfc9278b0e941212cf02beab7f6b65cbed56c7c2b1f10d7686fb"
+        },
+        "021a8522a3d894446e209f03198ac3b74b6119bfe0fc30afea5581753a4e88c0ad": {
+            "public_key": "021a8522a3d894446e209f03198ac3b74b6119bfe0fc30afea5581753a4e88c0ad",
+            "private_key": "1079a909f5e8fe1c48fa3f47a780dfec96b99743dc1cd31c738a85976c7ee45b"
+        },
+        "0361cfd75c682fab5cf8065966b44c20f8e919f72c5bfba2da81cc78b567ee0afb": {
+            "public_key": "0361cfd75c682fab5cf8065966b44c20f8e919f72c5bfba2da81cc78b567ee0afb",
+            "private_key": "a6b126b4fd7a0c6f80544a1d20fce209eda48421a35817acf95e29547cd94675"
+        },
+        "03e56ce0d687cf1efcff62ae7e2acbed96c40a936acee69d395121f87a9d6c26a4": {
+            "public_key": "03e56ce0d687cf1efcff62ae7e2acbed96c40a936acee69d395121f87a9d6c26a4",
+            "private_key": "9d3e254e25376ffa4a2f71f8cdbdb3e0ef75b9e584c274739be5c10b77ec58b9"
+        },
+        "03b200290b335a559f189ac5da4d2dada4c72006f790e8f622aecf0a977290d1d7": {
+            "public_key": "03b200290b335a559f189ac5da4d2dada4c72006f790e8f622aecf0a977290d1d7",
+            "private_key": "cdddf92b96b4f046e1c3aca55685aad69b438c8bd4affa584d36c60d8e57d468"
+        },
+        "024564ed23d172cb51c7fc19d5728b7dd42f551a88efa1c6df18b15abb162a821f": {
+            "public_key": "024564ed23d172cb51c7fc19d5728b7dd42f551a88efa1c6df18b15abb162a821f",
+            "private_key": "c1945c1b1af99194a6d6297f85ee46f8faec83a7a9f5eba8d15a110131bf1960"
+        },
+        "03cbfeb8d8db2f3d44eda00f74bef3a5c567c32b6a3850ffeb18b4fe1376adac80": {
+            "public_key": "03cbfeb8d8db2f3d44eda00f74bef3a5c567c32b6a3850ffeb18b4fe1376adac80",
+            "private_key": "ffab735a8515af058fc4965e382c1a9db853b627d94be7dfce19e43f2a2ef5ae"
+        },
+        "02d4c9589e8e50d36df276c6b8753e4d7c52b93890e4d1d2d6ec56287ab4bd9ec7": {
+            "public_key": "02d4c9589e8e50d36df276c6b8753e4d7c52b93890e4d1d2d6ec56287ab4bd9ec7",
+            "private_key": "7d370f0643c9ee6d4615c4427dd5d63cb76ff1f2398f3db97a89f256546d9d8d"
+        },
+        "024f86d4b6e531373a7919f95b3bc0bd7582b039c05c8a26ed04c0493777439fce": {
+            "public_key": "024f86d4b6e531373a7919f95b3bc0bd7582b039c05c8a26ed04c0493777439fce",
+            "private_key": "da4b8eda3df3d8c1baa4f0c2773c8e95f9b1695bfe1fbb37ac96b85bcf15d958"
+        },
+        "02069ac113d6ce84f7b357debbb4f7e468f29e64fd3cdf87074a5c6cfd3d1e20e0": {
+            "public_key": "02069ac113d6ce84f7b357debbb4f7e468f29e64fd3cdf87074a5c6cfd3d1e20e0",
+            "private_key": "0f9201e4e1cd9644f6a103985d032e16bce2fa138c0926b368f9594a9a9b4a29"
+        },
+        "03428c52af727c1cdd1694a05b79339995feba0172b66a3a726b1cd8d76d629baa": {
+            "public_key": "03428c52af727c1cdd1694a05b79339995feba0172b66a3a726b1cd8d76d629baa",
+            "private_key": "589e692d32513e8a4289b72b3e7c0d16ddd146da66c5a378dd702e34d315c160"
+        },
+        "027f82ddaf5380363dba4cd7fa202ac635f0a40cce866c2610cfd1d86eed6be9f6": {
+            "public_key": "027f82ddaf5380363dba4cd7fa202ac635f0a40cce866c2610cfd1d86eed6be9f6",
+            "private_key": "425231a0a93190bfa4a9aab97af2677a8726dc11608319975aacd5652908d3b9"
+        },
+        "030088d7f6775271ba8a9b8cfd490499f85d25faa6f326a8d39c17922617fa21e2": {
+            "public_key": "030088d7f6775271ba8a9b8cfd490499f85d25faa6f326a8d39c17922617fa21e2",
+            "private_key": "38c07b726ecfe4d152f6b5e7435337839e4418e6a4399ecaae72f95bed49a239"
+        },
+        "03133418ccbf0749c10869091ced3928ed50cec6d03c66e43ef664990ef77be318": {
+            "public_key": "03133418ccbf0749c10869091ced3928ed50cec6d03c66e43ef664990ef77be318",
+            "private_key": "cdb5f8d8a15c088cadb7fa57a2830422a543528161ae7301f13a702cdc55920b"
+        },
+        "021709dc5a8a5bc2cafcc9b93b7c7a889f37513af1965ce38ece9668fcc0d5b781": {
+            "public_key": "021709dc5a8a5bc2cafcc9b93b7c7a889f37513af1965ce38ece9668fcc0d5b781",
+            "private_key": "e0159129acea52a3584a7aa2187ec1cdef7fee2838f0e168f4df8ec5443ca810"
+        },
+        "038fc4b912ea3621f7c6faa7ed31c3101df654ab8f5b75e00ee88ecb14646c6a1f": {
+            "public_key": "038fc4b912ea3621f7c6faa7ed31c3101df654ab8f5b75e00ee88ecb14646c6a1f",
+            "private_key": "b75c81702034c01cfb1b9f7a83253d6711b8bc2121059d0ac2ccc92ebf63c925"
+        },
+        "03c0c5c27e7123218cf743fec696661ccea53e8f9c6f3068c2390cc592a7f1563a": {
+            "public_key": "03c0c5c27e7123218cf743fec696661ccea53e8f9c6f3068c2390cc592a7f1563a",
+            "private_key": "d72dc0a136228fb4b98b34ccbf07121688bc1e1255689ed80e9476387e928712"
+        },
+        "025d8d546865e2add1cb97613c5cc0680a9e3b2ba528b365c8453762b59bc31034": {
+            "public_key": "025d8d546865e2add1cb97613c5cc0680a9e3b2ba528b365c8453762b59bc31034",
+            "private_key": "76c2adbb18ccf02555c354c580f7c54c9bc68a0c60e92c9991ff16273e14ae89"
+        },
+        "029477aaf488c4b705a6ac4eb191aa825f929856c93def58d43ea7851a42631f06": {
+            "public_key": "029477aaf488c4b705a6ac4eb191aa825f929856c93def58d43ea7851a42631f06",
+            "private_key": "84d286b9c0300911ac411659e303c7dd3a3d930404a1d7d40e9e783cec69e6eb"
+        },
+        "03ccf14e218c638710081be516c9525c3e800327f3f54ea83898e96f09ecea6b0d": {
+            "public_key": "03ccf14e218c638710081be516c9525c3e800327f3f54ea83898e96f09ecea6b0d",
+            "private_key": "31a2c074e671ddde29e86736aef13c5e5499585a00f55d75ac1a1e67a6e7301d"
+        },
+        "03a11689454d9ae0a41b79eee74f3d76556149a2959a3447ae11e257f015a8161c": {
+            "public_key": "03a11689454d9ae0a41b79eee74f3d76556149a2959a3447ae11e257f015a8161c",
+            "private_key": "c47933d4e8526338c338c47d5e27c1d03e101d5c8b41ee121516a1f7286171ad"
+        },
+        "035459e72edcaa964fabeeef0eb62f2d7f654231bbb5ad3d5ca53c450ec0397264": {
+            "public_key": "035459e72edcaa964fabeeef0eb62f2d7f654231bbb5ad3d5ca53c450ec0397264",
+            "private_key": "1246fcd1f2fd6f23fecd656776b0dd2811ad8a717504bdc0f24ef371af150949"
+        },
+        "02dd9596c480c0d3d26b467f9ccfd0bcdf80674bbc85080527186f8598e8b96530": {
+            "public_key": "02dd9596c480c0d3d26b467f9ccfd0bcdf80674bbc85080527186f8598e8b96530",
+            "private_key": "70d93bffff7dd46b0654076a1aad9c78233f17781898b73fbf23d457bad07956"
+        },
+        "02fbcae218ebe730962f1b50de74830162c39a394ac75b150e9079309e283e1430": {
+            "public_key": "02fbcae218ebe730962f1b50de74830162c39a394ac75b150e9079309e283e1430",
+            "private_key": "fab1da6ca783a30b6136925476da631ea92d17534333d67f6b048dbe7277df00"
+        },
+        "03b719022f7b859401418b3407e311548a7cb669a2d88d7821fce4d5dc196d0537": {
+            "public_key": "03b719022f7b859401418b3407e311548a7cb669a2d88d7821fce4d5dc196d0537",
+            "private_key": "398239f43dabefebaeaf04c9502c6d2ba3f7fa37622290f749ec457068f67e86"
+        },
+        "033ab28b77bdc3a03b655280f2dcd0448bf378aa3e886fe4f1bd07161d37721a2e": {
+            "public_key": "033ab28b77bdc3a03b655280f2dcd0448bf378aa3e886fe4f1bd07161d37721a2e",
+            "private_key": "25bea1307d4a3a8b53ac4ec47462686295e7afcd391d9cbddc561b33140f3090"
+        },
+        "03eaf2e21a150ab1706df6a0a6d61a05fce6ff9d986c8f6762f9093cb11e38b6e1": {
+            "public_key": "03eaf2e21a150ab1706df6a0a6d61a05fce6ff9d986c8f6762f9093cb11e38b6e1",
+            "private_key": "b2b759a4a6080d85f6aa5fcd820be7ad480719fec55faa6a44316d5fce0ff335"
         }
     },
     "peers": []

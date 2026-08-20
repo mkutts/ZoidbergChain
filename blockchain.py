@@ -5,6 +5,7 @@ import math
 import time
 import base64
 import re
+import secrets
 from collections import Counter
 from PIL import Image
 import imagehash
@@ -31,6 +32,7 @@ from config import (
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     REWARD_POOL_SUPPLY,
+    REQUIRE_ACCESS_FOR_REWARDS,
     TOTAL_SUPPLY,
     VOTER_REWARDS_ENABLED,
     VOTER_REWARD_APPROVAL_SIDE,
@@ -85,6 +87,7 @@ from native_transfer import (
 from storage import create_storage_backend
 from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import normalize_wallet_address
+from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
 
 
 def _hash_number(value):
@@ -162,6 +165,10 @@ class Blockchain:
         self.transfer_intents = []  # Signed pending native transfer intents
         self.native_transactions = []  # Canonical native transaction records
         self.originality_certificates = []  # Community approval certificates
+        self.access_requests = []  # Controlled-testnet access requests
+        self.access_accounts = []  # Approved access accounts
+        self.wallet_bindings = []  # Wallet-to-access-account bindings
+        self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
@@ -214,6 +221,9 @@ class Blockchain:
                 certificate.to_dict()
                 for certificate in self.originality_certificates
             ],
+            "access_requests": self.access_requests,
+            "access_accounts": self.access_accounts,
+            "wallet_bindings": self.wallet_bindings,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
         }
 
@@ -367,6 +377,293 @@ class Blockchain:
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
         print("Debug: Blockchain and wallets saved successfully.")
 
+    def refresh_access_control_state_from_storage(self):
+        """Refresh only access-control records from storage without reloading the full chain."""
+        try:
+            loaded_data = self.storage.load_blockchain_state()
+        except Exception as exc:
+            print(f"Debug: Failed to refresh access control state from storage - {exc}")
+            return False
+
+        if not isinstance(loaded_data, dict):
+            return False
+
+        self.access_requests = list(loaded_data.get("access_requests", []) or [])
+        self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
+        self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
+        return True
+
+    @staticmethod
+    def _normalize_access_wallet(wallet_address):
+        return normalize_wallet_address(wallet_address or "")
+
+    def get_access_request(self, request_id):
+        candidate = str(request_id or "").strip()
+        if not candidate:
+            return None
+        for request_record in self.access_requests:
+            if str(request_record.get("request_id") or "").strip() == candidate:
+                return request_record
+        return None
+
+    def get_access_account(self, access_account_id):
+        candidate = str(access_account_id or "").strip()
+        if not candidate:
+            return None
+        for account in self.access_accounts:
+            if str(account.get("access_account_id") or "").strip() == candidate:
+                return account
+        return None
+
+    def get_wallet_binding(self, wallet_address):
+        normalized_wallet = self._normalize_access_wallet(wallet_address)
+        if normalized_wallet is None:
+            return None
+        for binding in self.wallet_bindings:
+            if self._normalize_access_wallet(binding.get("wallet_address")) == normalized_wallet:
+                return binding
+        return None
+
+    def get_access_account_for_wallet(self, wallet_address):
+        binding = self.get_wallet_binding(wallet_address)
+        if not binding:
+            return None
+        return self.get_access_account(binding.get("access_account_id"))
+
+    def list_access_requests(self, *, status=None):
+        if status is None:
+            return list(self.access_requests)
+        normalized_status = str(status or "").strip().lower()
+        return [
+            request_record
+            for request_record in self.access_requests
+            if str(request_record.get("status") or "").strip().lower() == normalized_status
+        ]
+
+    def list_access_accounts(self, *, status=None):
+        if status is None:
+            return list(self.access_accounts)
+        normalized_status = str(status or "").strip().lower()
+        return [
+            account
+            for account in self.access_accounts
+            if str(account.get("status") or "").strip().lower() == normalized_status
+        ]
+
+    def count_active_wallet_bindings(self):
+        return sum(
+            1
+            for binding in self.wallet_bindings
+            if str(binding.get("status") or "").strip().lower() == "active"
+        )
+
+    def create_access_request(self, *, name, email, handle=None, reason=None, notes=None):
+        normalized_email = normalize_email(email)
+        if not normalized_email:
+            raise ValueError("email is required.")
+        request_record = {
+            "request_id": secrets.token_hex(16),
+            "name": normalize_text_field(name),
+            "email": normalized_email,
+            "handle": normalize_handle(handle),
+            "reason": normalize_text_field(reason),
+            "notes": normalize_text_field(notes),
+            "status": "pending",
+            "created_at": utc_now_iso(),
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "operator_notes": "",
+            "approved_access_account_id": None,
+        }
+        self.access_requests.append(request_record)
+        return request_record
+
+    def _create_access_account_record(
+        self,
+        *,
+        name,
+        email,
+        handle=None,
+        notes=None,
+        reviewed_by="operator",
+        operator_notes=None,
+        max_wallets=1,
+    ):
+        access_code = generate_access_code()
+        account = {
+            "access_account_id": secrets.token_hex(16),
+            "name": normalize_text_field(name),
+            "email": normalize_email(email),
+            "handle": normalize_handle(handle),
+            "status": "active",
+            "created_at": utc_now_iso(),
+            "approved_at": utc_now_iso(),
+            "invite_code_hash": hash_access_code(access_code),
+            "redeemed_invite_code_hash": None,
+            "invite_code_redeemed_at": None,
+            "bound_wallets": [],
+            "max_wallets": int(max_wallets),
+            "notes": normalize_text_field(notes),
+            "operator_notes": normalize_text_field(operator_notes),
+            "reviewed_by": normalize_text_field(reviewed_by),
+            "last_login_at": None,
+        }
+        self.access_accounts.append(account)
+        return account, access_code
+
+    def create_access_invite(
+        self,
+        *,
+        name,
+        email,
+        handle=None,
+        notes=None,
+        reviewed_by="operator",
+        operator_notes=None,
+        max_wallets=1,
+    ):
+        if not normalize_email(email):
+            raise ValueError("email is required.")
+        return self._create_access_account_record(
+            name=name,
+            email=email,
+            handle=handle,
+            notes=notes,
+            reviewed_by=reviewed_by,
+            operator_notes=operator_notes,
+            max_wallets=max_wallets,
+        )
+
+    def approve_access_request(self, request_id, *, reviewed_by="operator", operator_notes=None, max_wallets=1):
+        request_record = self.get_access_request(request_id)
+        if request_record is None:
+            raise ValueError(f"Access request not found: {request_id}")
+        if str(request_record.get("status") or "").strip().lower() == "approved":
+            access_account = self.get_access_account(request_record.get("approved_access_account_id"))
+            if access_account is None:
+                raise ValueError("Access request was approved but the access account is missing.")
+            return access_account, None
+        if str(request_record.get("status") or "").strip().lower() == "rejected":
+            raise ValueError("Rejected access requests cannot be approved later.")
+        account, access_code = self._create_access_account_record(
+            name=request_record.get("name"),
+            email=request_record.get("email"),
+            handle=request_record.get("handle"),
+            notes=request_record.get("notes"),
+            reviewed_by=reviewed_by,
+            operator_notes=operator_notes,
+            max_wallets=max_wallets,
+        )
+        request_record["status"] = "approved"
+        request_record["reviewed_at"] = utc_now_iso()
+        request_record["reviewed_by"] = normalize_text_field(reviewed_by)
+        request_record["operator_notes"] = normalize_text_field(operator_notes)
+        request_record["approved_access_account_id"] = account["access_account_id"]
+        return account, access_code
+
+    def reject_access_request(self, request_id, *, reviewed_by="operator", operator_notes=None):
+        request_record = self.get_access_request(request_id)
+        if request_record is None:
+            raise ValueError(f"Access request not found: {request_id}")
+        request_record["status"] = "rejected"
+        request_record["reviewed_at"] = utc_now_iso()
+        request_record["reviewed_by"] = normalize_text_field(reviewed_by)
+        request_record["operator_notes"] = normalize_text_field(operator_notes)
+        return request_record
+
+    def resolve_access_account_by_invite_code(self, access_code, *, include_redeemed=False):
+        code_hash = hash_access_code(access_code)
+        for account in self.access_accounts:
+            if str(account.get("invite_code_hash") or "").strip() == code_hash:
+                return account
+            if include_redeemed and str(account.get("redeemed_invite_code_hash") or "").strip() == code_hash:
+                return account
+        return None
+
+    def mark_access_account_login(self, access_account_id):
+        account = self.get_access_account(access_account_id)
+        if account is None:
+            raise ValueError(f"Access account not found: {access_account_id}")
+        account["last_login_at"] = utc_now_iso()
+        return account
+
+    def bind_wallet_to_access_account(self, access_account_id, wallet_address, *, source="invite_code"):
+        account = self.get_access_account(access_account_id)
+        if account is None:
+            raise ValueError(f"Access account not found: {access_account_id}")
+        normalized_wallet = self._normalize_access_wallet(wallet_address)
+        if normalized_wallet is None:
+            raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
+        status = str(account.get("status") or "").strip().lower()
+        if status != "active":
+            raise ValueError(f"Access account is {status or 'inactive'}.")
+
+        existing_binding = self.get_wallet_binding(normalized_wallet)
+        if existing_binding:
+            existing_account_id = str(existing_binding.get("access_account_id") or "").strip()
+            if existing_account_id != account["access_account_id"]:
+                raise ValueError("Wallet is already bound to a different access account.")
+            if str(existing_binding.get("status") or "").strip().lower() != "active":
+                existing_binding["status"] = "active"
+                existing_binding["bound_at"] = existing_binding.get("bound_at") or utc_now_iso()
+            if normalized_wallet not in account["bound_wallets"]:
+                account["bound_wallets"].append(normalized_wallet)
+            if account.get("invite_code_hash"):
+                account["redeemed_invite_code_hash"] = account.get("invite_code_hash")
+                account["invite_code_hash"] = None
+            if account.get("redeemed_invite_code_hash") and not account.get("invite_code_redeemed_at"):
+                account["invite_code_redeemed_at"] = utc_now_iso()
+            return existing_binding
+
+        bound_wallets = [
+            wallet
+            for wallet in account.get("bound_wallets", [])
+            if self._normalize_access_wallet(wallet) is not None
+        ]
+        account["bound_wallets"] = bound_wallets
+        max_wallets = int(account.get("max_wallets") or 1)
+        if len(bound_wallets) >= max_wallets:
+            raise ValueError("Access account has reached the maximum number of bound wallets.")
+
+        binding = {
+            "wallet_address": normalized_wallet,
+            "access_account_id": account["access_account_id"],
+            "bound_at": utc_now_iso(),
+            "status": "active",
+            "source": normalize_text_field(source) or "invite_code",
+        }
+        self.wallet_bindings.append(binding)
+        account["bound_wallets"].append(normalized_wallet)
+        if account.get("invite_code_hash"):
+            account["redeemed_invite_code_hash"] = account.get("invite_code_hash")
+            account["invite_code_hash"] = None
+            account["invite_code_redeemed_at"] = utc_now_iso()
+        return binding
+
+    def update_access_account_status(self, access_account_id, status):
+        account = self.get_access_account(access_account_id)
+        if account is None:
+            raise ValueError(f"Access account not found: {access_account_id}")
+        normalized_status = str(status or "").strip().lower()
+        if normalized_status not in {"active", "suspended", "revoked"}:
+            raise ValueError("Access account status must be active, suspended, or revoked.")
+        account["status"] = normalized_status
+        return account
+
+    def revoke_wallet_binding(self, wallet_address):
+        binding = self.get_wallet_binding(wallet_address)
+        if binding is None:
+            raise ValueError(f"Wallet binding not found: {wallet_address}")
+        binding["status"] = "revoked"
+        account = self.get_access_account(binding.get("access_account_id"))
+        normalized_wallet = self._normalize_access_wallet(binding.get("wallet_address"))
+        if account is not None and normalized_wallet in account.get("bound_wallets", []):
+            account["bound_wallets"] = [
+                wallet for wallet in account.get("bound_wallets", [])
+                if self._normalize_access_wallet(wallet) != normalized_wallet
+            ]
+        return binding
+
     def recompute_reward_pool_balance(self, *, chain=None):
         reward_pool = float(REWARD_POOL_SUPPLY)
         initial_reward_pool = float(REWARD_POOL_SUPPLY)
@@ -453,6 +750,9 @@ class Blockchain:
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
                 ]
+                self.access_requests = list(loaded_data.get("access_requests", []) or [])
+                self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
+                self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
@@ -480,6 +780,9 @@ class Blockchain:
                 self.transfer_intents = []
                 self.native_transactions = []
                 self.originality_certificates = []
+                self.access_requests = []
+                self.access_accounts = []
+                self.wallet_bindings = []
 
         except FileNotFoundError:
             print("Debug: No saved blockchain found. Creating new blockchain.")
@@ -492,6 +795,9 @@ class Blockchain:
             self.transfer_intents = []
             self.native_transactions = []
             self.originality_certificates = []
+            self.access_requests = []
+            self.access_accounts = []
+            self.wallet_bindings = []
         except json.JSONDecodeError:
             print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
             self.chain = []
@@ -503,6 +809,9 @@ class Blockchain:
             self.transfer_intents = []
             self.native_transactions = []
             self.originality_certificates = []
+            self.access_requests = []
+            self.access_accounts = []
+            self.wallet_bindings = []
         except Exception as e:
             print(f"Debug: Unexpected error loading blockchain - {e}")
             self.chain = []
@@ -514,6 +823,9 @@ class Blockchain:
             self.transfer_intents = []
             self.native_transactions = []
             self.originality_certificates = []
+            self.access_requests = []
+            self.access_accounts = []
+            self.wallet_bindings = []
 
         return False
 
@@ -1604,6 +1916,7 @@ class Blockchain:
         )
         unique_votes = []
         seen_wallets = set()
+        excluded_voters = []
         for vote in qualifying_votes:
             wallet_address = self._normalize_native_wallet_identity(
                 vote.get("voter_wallet_address") or vote.get("voter")
@@ -1613,28 +1926,41 @@ class Blockchain:
             seen_wallets.add(wallet_address)
             unique_votes.append(vote)
         qualifying_votes = unique_votes
-        if not VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE:
-            return qualifying_votes
-
         config = load_review_policy_config(ENVIRONMENT)
         eligible_votes = []
         for vote in qualifying_votes:
             wallet_address = self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter"))
             if wallet_address is None:
                 continue
-            activity_summary = self.get_account_activity_summary(wallet_address)
-            recent_vote_count = self.count_votes_by_wallet_since(wallet_address, current_day_window())
-            eligibility = evaluate_review_eligibility(
-                config,
-                wallet_address=wallet_address,
-                activity_summary=activity_summary,
-                recent_vote_count=recent_vote_count,
-            )
-            if eligibility.eligible:
-                eligible_votes.append(vote)
+            if REQUIRE_ACCESS_FOR_REWARDS:
+                access_decision = access_decision_for_wallet(self, wallet_address, feature="rewards")
+                if not access_decision.allowed:
+                    excluded_voters.append({
+                        "wallet_address": wallet_address,
+                        "reason": access_decision.reason,
+                    })
+                    continue
+            if VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE:
+                activity_summary = self.get_account_activity_summary(wallet_address)
+                recent_vote_count = self.count_votes_by_wallet_since(wallet_address, current_day_window())
+                eligibility = evaluate_review_eligibility(
+                    config,
+                    wallet_address=wallet_address,
+                    activity_summary=activity_summary,
+                    recent_vote_count=recent_vote_count,
+                )
+                if not eligibility.eligible:
+                    excluded_voters.append({
+                        "wallet_address": wallet_address,
+                        "reason": "review_eligibility_required",
+                    })
+                    continue
+            eligible_votes.append(vote)
+        self._last_reward_excluded_voters = excluded_voters
         return eligible_votes
 
     def build_submission_voter_reward_plan(self, submission_id, *, now=None):
+        self._last_reward_excluded_voters = []
         reward_decision = self.get_submission_reward_decision(submission_id, now=now)
         if reward_decision is None:
             return {
@@ -1643,6 +1969,7 @@ class Blockchain:
                 "eligible": False,
                 "reason": "decision_not_reward_eligible",
                 "reward_records": [],
+                "excluded_voters": [],
                 "reward_count": 0,
                 "reward_amount_per_voter": "0",
                 "total_distributed": "0",
@@ -1657,6 +1984,7 @@ class Blockchain:
                 "eligible": False,
                 "reason": "voter_rewards_disabled",
                 "reward_records": [],
+                "excluded_voters": list(self._last_reward_excluded_voters),
                 "reward_count": 0,
                 "reward_amount_per_voter": "0",
                 "total_distributed": "0",
@@ -1670,6 +1998,7 @@ class Blockchain:
                 "eligible": False,
                 "reason": "no_eligible_majority_voters",
                 "reward_records": [],
+                "excluded_voters": list(self._last_reward_excluded_voters),
                 "reward_count": 0,
                 "reward_amount_per_voter": "0",
                 "total_distributed": "0",
@@ -1692,6 +2021,7 @@ class Blockchain:
                 "eligible": False,
                 "reason": "reward_pool_zero",
                 "reward_records": [],
+                "excluded_voters": list(self._last_reward_excluded_voters),
                 "reward_count": 0,
                 "reward_amount_per_voter": "0",
                 "total_distributed": "0",
@@ -1712,6 +2042,7 @@ class Blockchain:
                 "eligible": False,
                 "reason": "reward_amount_rounds_to_zero",
                 "reward_records": [],
+                "excluded_voters": list(self._last_reward_excluded_voters),
                 "reward_count": 0,
                 "reward_amount_per_voter": "0",
                 "total_distributed": "0",
@@ -1752,6 +2083,7 @@ class Blockchain:
             "eligible": True,
             "reason": "reward_plan_ready",
             "reward_records": reward_records,
+            "excluded_voters": list(self._last_reward_excluded_voters),
             "reward_count": len(reward_records),
             "reward_amount_per_voter": reward_amount,
             "total_distributed": self._normalize_reward_amount(distributed_units),
@@ -1860,6 +2192,7 @@ class Blockchain:
             "voter_rewards_enabled": VOTER_REWARDS_ENABLED,
             "eligible": bool(plan.get("eligible")),
             "reason": plan.get("reason"),
+            "excluded_voters": plan.get("excluded_voters", []),
             "final_majority_side": plan.get("final_decision"),
             "decision_reason": plan.get("decision_reason"),
             "reward_status": "finalized" if settled_records and not pending_records else ("pending" if pending_records else "none"),

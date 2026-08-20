@@ -143,7 +143,12 @@ def sign_peer_request(method, path, timestamp, nonce, body_bytes, secret=None):
 def _serialize_peer_body(payload):
     if payload is None:
         return b""
-    return json.dumps(payload, allow_nan=False).encode("utf-8")
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
 
 
 def _peer_request_headers(method, path, payload, origin_node_id):

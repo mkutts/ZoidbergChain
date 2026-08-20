@@ -1,7 +1,6 @@
 import peer_sync
 from fastapi.testclient import TestClient
 import pytest
-from httpx2._content import json_dumps
 
 from peers import PeerStore
 from submission import VOTE_ORIGINAL
@@ -68,7 +67,7 @@ def _configure_signed_peer_messages(
 
 
 def _signed_headers(method, path, payload, secret="super-secret-value", timestamp=1_700_000_000, nonce="nonce-1", node_id="peer-node-1"):
-    body_bytes = json_dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    body_bytes = peer_sync._serialize_peer_body(payload)
     signature = peer_sync.sign_peer_request(
         method=method,
         path=path,
@@ -433,7 +432,7 @@ def test_signed_peer_request_path_tampering_rejected(monkeypatch):
             method="POST",
             path="/peers/votes/receive",
             headers=headers,
-            body_bytes=json_dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8"),
+            body_bytes=peer_sync._serialize_peer_body(payload),
         )
 
 
@@ -452,7 +451,7 @@ def test_signed_peer_request_method_tampering_rejected(monkeypatch):
             method="GET",
             path="/peers/submissions/receive",
             headers=headers,
-            body_bytes=json_dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8"),
+            body_bytes=peer_sync._serialize_peer_body(payload),
         )
 
 

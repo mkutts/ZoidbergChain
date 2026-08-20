@@ -457,6 +457,24 @@ class Blockchain:
             if str(binding.get("status") or "").strip().lower() == "active"
         )
 
+    def list_wallet_bindings(self, *, access_account_id=None, status=None):
+        records = list(self.wallet_bindings)
+        if access_account_id is not None:
+            candidate_account_id = str(access_account_id or "").strip()
+            records = [
+                binding
+                for binding in records
+                if str(binding.get("access_account_id") or "").strip() == candidate_account_id
+            ]
+        if status is not None:
+            normalized_status = str(status or "").strip().lower()
+            records = [
+                binding
+                for binding in records
+                if str(binding.get("status") or "").strip().lower() == normalized_status
+            ]
+        return records
+
     def create_access_request(self, *, name, email, handle=None, reason=None, notes=None):
         normalized_email = normalize_email(email)
         if not normalized_email:

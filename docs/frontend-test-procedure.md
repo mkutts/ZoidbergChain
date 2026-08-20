@@ -101,6 +101,12 @@ Revoke a bound wallet:
 python -m scripts.access_admin revoke-wallet 0xabc123...
 ```
 
+Generate an admin password hash for the deployed `/admin` UI:
+
+```powershell
+python -m scripts.access_admin generate-admin-password-hash
+```
+
 If you prefer direct script execution, these should also work from the repo root:
 
 ```powershell
@@ -115,6 +121,7 @@ What to look for in the CLI output:
 - `approve`: returned one-time `invite_code`
 - `list-accounts`: `access_account_id`, status, `wallet_count`, `bound_wallets`, invite redemption state
 - `show-account`: account-specific status, wallet list, approval time, last login time
+- `generate-admin-password-hash`: `ADMIN_PASSWORD_HASH` value plus env setup instructions
 
 ## 2. Test Modes
 
@@ -257,6 +264,85 @@ Pass criteria:
 6. Sign the verification message in MetaMask.
 7. Confirm the UI now shows the wallet as verified.
 8. Confirm `Bind Verified Wallet` is now visible.
+
+## 9. Admin UI Test
+
+1. Make sure the backend is running with:
+   `ADMIN_UI_ENABLED=true`
+   `ADMIN_AUTH_ENABLED=true`
+   `ADMIN_PASSWORD_HASH=...`
+2. Open `/admin` in the browser.
+3. Confirm the admin login screen is shown instead of the normal app dashboard.
+4. Enter an invalid admin password.
+5. Confirm a clear login error appears.
+6. Enter the valid server-side admin password.
+7. Confirm the admin dashboard loads pending requests and approved accounts.
+8. Confirm the warning copy remains visible:
+   invite codes shown once
+   anti-spam, not proof-of-personhood
+   test ZOID has no real monetary value
+   do not approve unknown users
+
+Pass criteria:
+
+- unauthenticated visitors do not see the admin dashboard
+- valid admin login succeeds
+- invalid login does not silently fail
+
+## 10. Admin Request Processing Test
+
+1. Submit a new public access request from a separate browser tab or session.
+2. Refresh `/admin`.
+3. Confirm the pending request appears with:
+   `request_id`
+   name
+   email
+   handle
+   reason
+   notes
+   status
+   created_at
+4. Approve the request.
+5. Confirm the one-time invite code is displayed once and can be copied.
+6. Confirm the request disappears from the pending list after approval.
+7. Submit another request.
+8. Reject it with operator notes.
+9. Confirm the rejected request no longer appears in the pending list.
+
+Pass criteria:
+
+- approve path returns a one-time invite code
+- reject path records operator notes
+- no invite code hashes or admin secrets appear in the UI
+
+## 11. Admin Account Management Test
+
+1. In `/admin`, open the approved accounts section.
+2. Confirm each account shows:
+   `access_account_id`
+   name
+   email
+   status
+   `max_wallets`
+   bound wallets
+   wallet count
+   invite redeemed state
+   approval time
+   last login time
+3. Open account detail for an account with a bound wallet.
+4. Revoke the wallet binding.
+5. Confirm the UI refreshes and the binding status changes.
+6. Suspend the access account.
+7. Confirm the status updates to suspended.
+8. Reactivate the account.
+9. Confirm the status returns to active.
+10. Revoke the account if you are explicitly testing revocation behavior.
+
+Pass criteria:
+
+- account actions require admin login
+- bound wallets are visible for operator review
+- wallet revoke, suspend, reactivate, and revoke-account actions all return clear results
 
 Pass criteria:
 

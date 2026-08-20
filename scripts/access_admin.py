@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import sys
 from pathlib import Path
@@ -11,6 +12,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from blockchain import Blockchain
+from admin_auth import hash_admin_password
 import config
 from wallet import Wallet
 
@@ -141,6 +143,13 @@ def build_parser() -> argparse.ArgumentParser:
     revoke_wallet = subparsers.add_parser("revoke-wallet", help="Revoke a wallet binding.")
     revoke_wallet.add_argument("wallet_address")
 
+    generate_admin_hash = subparsers.add_parser(
+        "generate-admin-password-hash",
+        help="Generate a server-side ADMIN_PASSWORD_HASH value.",
+    )
+    generate_admin_hash.add_argument("--password", default="")
+    generate_admin_hash.add_argument("--iterations", type=int, default=390000)
+
     subparsers.add_parser("doctor", help="Show safe access-system diagnostics.")
 
     return parser
@@ -221,6 +230,25 @@ def run_cli(argv: list[str] | None = None) -> int:
             binding = blockchain.revoke_wallet_binding(args.wallet_address)
             blockchain.save_blockchain()
             _print_json({"message": "Wallet binding revoked.", "wallet_binding": _safe_binding_view(binding)})
+            return 0
+
+        if args.command == "generate-admin-password-hash":
+            password = args.password or getpass.getpass("Admin password: ")
+            password_confirm = args.password or getpass.getpass("Confirm admin password: ")
+            if password != password_confirm:
+                raise ValueError("Admin password confirmation did not match.")
+            password_hash = hash_admin_password(password, iterations=args.iterations)
+            _print_json({
+                "message": "Generated ADMIN_PASSWORD_HASH. Add it to server-side env only.",
+                "admin_password_hash": password_hash,
+                "instructions": [
+                    "Set ADMIN_UI_ENABLED=true",
+                    "Set ADMIN_AUTH_ENABLED=true",
+                    f"Set ADMIN_SESSION_TTL_SECONDS={config.ADMIN_SESSION_TTL_SECONDS}",
+                    f"Set ADMIN_PASSWORD_HASH={password_hash}",
+                    "Restart the backend after updating env values.",
+                ],
+            })
             return 0
 
         if args.command == "doctor":

@@ -16,16 +16,23 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import ControlledAccessGate from './components/ControlledAccessGate.vue';
 import { useWallet } from './services/wallet';
 import { useAccess } from './services/access';
+import { shouldDisplayAccessGate } from './utils/accessGate.js';
 
 const wallet = useWallet();
 const access = useAccess();
+const route = useRoute();
 const isAccessReady = ref(false);
 
 const shouldShowAccessGate = computed(
-  () => access.requiresAppAccess() && !access.isAppUnlocked(),
+  () => shouldDisplayAccessGate({
+    requiresAppAccess: access.requiresAppAccess(),
+    isAppUnlocked: access.isAppUnlocked(),
+    skipAccessGate: Boolean(route.meta?.skipAccessGate),
+  }),
 );
 
 onMounted(async () => {

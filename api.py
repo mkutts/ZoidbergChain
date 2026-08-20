@@ -5,7 +5,7 @@ import hmac
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header, Query
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Depends, Request, Header, Query, Response
 from fastapi.responses import JSONResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,6 +64,11 @@ from config import (
     API_BASE_URL,
     ACCESS_CONTROL_MODE,
     ACCESS_PUBLIC_LABEL,
+    ADMIN_AUTH_ENABLED,
+    ADMIN_BOOTSTRAP_TOKEN,
+    ADMIN_PASSWORD_HASH,
+    ADMIN_SESSION_TTL_SECONDS,
+    ADMIN_UI_ENABLED,
     COIN_NAME,
     TICKER,
     MAX_WALLETS_PER_ACCESS_ACCOUNT,
@@ -134,6 +139,11 @@ from access_control import (
     normalize_handle,
     normalize_text_field,
     public_access_status_payload,
+)
+from admin_auth import (
+    AdminSessionManager,
+    admin_auth_is_configured,
+    verify_admin_credential,
 )
 from review_policy import (
     build_public_policy_summary,
@@ -455,6 +465,31 @@ class AccessLoginRequest(_StrictBodyModel):
 
 class AccessBindWalletRequest(_StrictBodyModel):
     wallet_address: Annotated[str | None, Field(default=None, max_length=128)] = None
+
+
+class AdminLoginRequest(_StrictBodyModel):
+    password: Annotated[str, Field(min_length=1, max_length=512)]
+
+
+class AdminApproveAccessRequest(_StrictBodyModel):
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+    operator_notes: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    max_wallets: Annotated[int, Field(ge=1, le=50)] = 1
+
+
+class AdminRejectAccessRequest(_StrictBodyModel):
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+    operator_notes: Annotated[str | None, Field(default=None, max_length=2000)] = None
+
+
+class AdminCreateInviteRequest(_StrictBodyModel):
+    name: Annotated[str, Field(min_length=1, max_length=128)]
+    email: Annotated[str, Field(min_length=3, max_length=320)]
+    handle: Annotated[str | None, Field(default=None, max_length=128)] = None
+    notes: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+    operator_notes: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    max_wallets: Annotated[int, Field(ge=1, le=50)] = 1
 
 
 def _short_key(public_key):
@@ -1244,6 +1279,7 @@ wallet_auth_manager = WalletAuthManager(
     environment=ENVIRONMENT,
 )
 access_session_manager = AccessSessionManager()
+admin_session_manager = AdminSessionManager(session_ttl_seconds=ADMIN_SESSION_TTL_SECONDS)
 
 
 def sync_approved_submissions_to_mint_queue():
@@ -1265,6 +1301,89 @@ def _verified_wallet_dependency(authorization: str | None = Header(default=None)
 
 def _access_session_dependency(x_zoid_access_session: str | None = Header(default=None, alias="X-ZOID-Access-Session")):
     return x_zoid_access_session or ""
+
+
+ADMIN_SESSION_COOKIE_NAME = "zoidberg_admin_session"
+
+
+def _admin_auth_disabled_for_local_dev() -> bool:
+    return is_development() and not ADMIN_AUTH_ENABLED
+
+
+def _admin_auth_configured() -> bool:
+    return admin_auth_is_configured(ADMIN_PASSWORD_HASH, ADMIN_BOOTSTRAP_TOKEN)
+
+
+def _require_admin_ui_enabled():
+    if not ADMIN_UI_ENABLED:
+        raise HTTPException(status_code=404, detail="Admin UI is disabled on this node.")
+
+
+def _admin_cookie_should_be_secure(request: Request) -> bool:
+    forwarded_proto = str(request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+    if forwarded_proto == "https":
+        return True
+    if str(API_BASE_URL).startswith("https://") or str(PUBLIC_NODE_URL).startswith("https://"):
+        return True
+    return not is_development()
+
+
+def _set_admin_session_cookie(response: Response, *, request: Request, token: str, expires_at: str) -> None:
+    response.set_cookie(
+        key=ADMIN_SESSION_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=_admin_cookie_should_be_secure(request),
+        samesite="lax",
+        max_age=ADMIN_SESSION_TTL_SECONDS,
+        expires=expires_at,
+        path="/",
+    )
+
+
+def _clear_admin_session_cookie(response: Response, *, request: Request) -> None:
+    response.delete_cookie(
+        key=ADMIN_SESSION_COOKIE_NAME,
+        httponly=True,
+        secure=_admin_cookie_should_be_secure(request),
+        samesite="lax",
+        path="/",
+    )
+
+
+def _get_admin_session_token(request: Request, x_zoid_admin_session: str | None = None) -> str:
+    cookie_token = str(request.cookies.get(ADMIN_SESSION_COOKIE_NAME) or "").strip()
+    if cookie_token:
+        return cookie_token
+    return str(x_zoid_admin_session or "").strip()
+
+
+def _admin_session_status_payload(*, authenticated: bool, session=None, reason: str | None = None) -> dict:
+    return {
+        "admin_ui_enabled": ADMIN_UI_ENABLED,
+        "admin_auth_enabled": ADMIN_AUTH_ENABLED,
+        "admin_auth_configured": _admin_auth_configured(),
+        "authenticated": bool(authenticated),
+        "reason": reason,
+        "issued_at": session.issued_at.isoformat() if session else None,
+        "expires_at": session.expires_at.isoformat() if session else None,
+        "session_backend": admin_session_manager.backend_description(),
+    }
+
+
+def _require_admin_session(
+    request: Request,
+    x_zoid_admin_session: str | None = Header(default=None, alias="X-ZOID-Admin-Session"),
+):
+    _require_admin_ui_enabled()
+    if _admin_auth_disabled_for_local_dev():
+        return None
+
+    token = _get_admin_session_token(request, x_zoid_admin_session)
+    try:
+        return admin_session_manager.get_session(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 def _public_access_account(account: dict | None) -> dict | None:
@@ -1317,6 +1436,26 @@ def _public_wallet_binding(binding: dict | None) -> dict | None:
         "status": binding.get("status"),
         "source": binding.get("source"),
     }
+
+
+def _admin_access_account(account: dict | None) -> dict | None:
+    body = _public_access_account(account)
+    if not body or not account:
+        return body
+    body.update({
+        "reviewed_by": account.get("reviewed_by"),
+        "operator_notes": account.get("operator_notes"),
+        "invite_redeemed": bool(account.get("invite_code_redeemed_at")),
+    })
+    return body
+
+
+def _admin_access_request(request_record: dict | None) -> dict | None:
+    return _public_access_request(request_record)
+
+
+def _admin_wallet_binding(binding: dict | None) -> dict | None:
+    return _public_wallet_binding(binding)
 
 
 def _access_status_payload(
@@ -1704,6 +1843,292 @@ async def get_access_me(
         invite_authenticated=invite_authenticated,
         wallet_session_authenticated=wallet_session_authenticated,
     )
+
+
+@app.post("/admin/login")
+@api_limit("admin_login")
+async def admin_login(request: Request, response: Response, payload: AdminLoginRequest):
+    _require_admin_ui_enabled()
+    if _admin_auth_disabled_for_local_dev():
+        return {
+            "message": "Admin auth is disabled for local development.",
+            **_admin_session_status_payload(authenticated=True, reason="development_admin_auth_disabled"),
+        }
+    if not _admin_auth_configured():
+        raise HTTPException(status_code=503, detail="Admin auth is not configured on this node.")
+    if not verify_admin_credential(
+        payload.password,
+        password_hash=ADMIN_PASSWORD_HASH,
+        bootstrap_token=ADMIN_BOOTSTRAP_TOKEN,
+    ):
+        client_host = request.client.host if request.client else "unknown"
+        logger.warning("Failed admin login attempt from %s", client_host)
+        raise HTTPException(status_code=401, detail="Invalid admin credential.")
+
+    session_payload = admin_session_manager.issue_session()
+    _set_admin_session_cookie(
+        response,
+        request=request,
+        token=session_payload["admin_session_token"],
+        expires_at=session_payload["expires_at"],
+    )
+    session = admin_session_manager.get_session(session_payload["admin_session_token"])
+    return {
+        "message": "Admin session started.",
+        **_admin_session_status_payload(authenticated=True, session=session),
+    }
+
+
+@app.post("/admin/logout")
+@api_limit("public_read")
+async def admin_logout(
+    request: Request,
+    response: Response,
+    x_zoid_admin_session: str | None = Header(default=None, alias="X-ZOID-Admin-Session"),
+):
+    _require_admin_ui_enabled()
+    token = _get_admin_session_token(request, x_zoid_admin_session)
+    if token:
+        admin_session_manager.revoke_session(token)
+    _clear_admin_session_cookie(response, request=request)
+    return {
+        "message": "Admin session ended.",
+        **_admin_session_status_payload(authenticated=False, reason="logged_out"),
+    }
+
+
+@app.get("/admin/session")
+@api_limit("public_read")
+async def admin_session_status(
+    request: Request,
+    x_zoid_admin_session: str | None = Header(default=None, alias="X-ZOID-Admin-Session"),
+):
+    _require_admin_ui_enabled()
+    if _admin_auth_disabled_for_local_dev():
+        return _admin_session_status_payload(
+            authenticated=True,
+            reason="development_admin_auth_disabled",
+        )
+    if not _admin_auth_configured():
+        return _admin_session_status_payload(
+            authenticated=False,
+            reason="admin_auth_not_configured",
+        )
+
+    token = _get_admin_session_token(request, x_zoid_admin_session)
+    if not token:
+        return _admin_session_status_payload(
+            authenticated=False,
+            reason="not_authenticated",
+        )
+
+    try:
+        session = admin_session_manager.get_session(token)
+    except ValueError:
+        return _admin_session_status_payload(
+            authenticated=False,
+            reason="invalid_or_expired_session",
+        )
+    return _admin_session_status_payload(authenticated=True, session=session)
+
+
+@app.get("/admin/access/requests")
+@api_limit("public_read")
+async def admin_list_access_requests(
+    request: Request,
+    status: str | None = Query(default=None),
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    return {
+        "requests": [
+            _admin_access_request(item)
+            for item in blockchain.list_access_requests(status=status.strip() if isinstance(status, str) and status.strip() else None)
+        ],
+    }
+
+
+@app.post("/admin/access/requests/{request_id}/approve")
+@api_limit("wallet_create")
+async def admin_approve_access_request(
+    request: Request,
+    request_id: str,
+    payload: AdminApproveAccessRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        access_account, invite_code = blockchain.approve_access_request(
+            request_id,
+            reviewed_by=payload.reviewed_by,
+            operator_notes=payload.operator_notes,
+            max_wallets=payload.max_wallets,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "message": "Access request approved.",
+        "warning": "Invite codes are shown once. Copy before leaving this screen.",
+        "invite_code": invite_code,
+        "access_account": _admin_access_account(access_account),
+        "request": _admin_access_request(blockchain.get_access_request(request_id)),
+    }
+
+
+@app.post("/admin/access/requests/{request_id}/reject")
+@api_limit("wallet_create")
+async def admin_reject_access_request(
+    request: Request,
+    request_id: str,
+    payload: AdminRejectAccessRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        request_record = blockchain.reject_access_request(
+            request_id,
+            reviewed_by=payload.reviewed_by,
+            operator_notes=payload.operator_notes,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "message": "Access request rejected.",
+        "request": _admin_access_request(request_record),
+    }
+
+
+@app.post("/admin/access/invites")
+@api_limit("wallet_create")
+async def admin_create_access_invite(
+    request: Request,
+    payload: AdminCreateInviteRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        access_account, invite_code = blockchain.create_access_invite(
+            name=payload.name,
+            email=payload.email,
+            handle=payload.handle,
+            notes=payload.notes,
+            reviewed_by=payload.reviewed_by,
+            operator_notes=payload.operator_notes,
+            max_wallets=payload.max_wallets,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "message": "Access invite created.",
+        "warning": "Invite codes are shown once. Copy before leaving this screen.",
+        "invite_code": invite_code,
+        "access_account": _admin_access_account(access_account),
+    }
+
+
+@app.get("/admin/access/accounts")
+@api_limit("public_read")
+async def admin_list_access_accounts(
+    request: Request,
+    status: str | None = Query(default=None),
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    return {
+        "accounts": [
+            _admin_access_account(item)
+            for item in blockchain.list_access_accounts(status=status.strip() if isinstance(status, str) and status.strip() else None)
+        ],
+    }
+
+
+@app.get("/admin/access/accounts/{access_account_id}")
+@api_limit("public_read")
+async def admin_get_access_account(
+    request: Request,
+    access_account_id: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    access_account = blockchain.get_access_account(access_account_id)
+    if access_account is None:
+        raise HTTPException(status_code=404, detail=f"Access account not found: {access_account_id}")
+    return {
+        "access_account": _admin_access_account(access_account),
+        "wallet_bindings": [
+            _admin_wallet_binding(binding)
+            for binding in blockchain.list_wallet_bindings(access_account_id=access_account_id)
+        ],
+    }
+
+
+async def _admin_update_access_account_status(
+    *,
+    access_account_id: str,
+    status: str,
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        access_account = blockchain.update_access_account_status(access_account_id, status)
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "message": f"Access account {status}.",
+        "access_account": _admin_access_account(access_account),
+    }
+
+
+@app.post("/admin/access/accounts/{access_account_id}/suspend")
+@api_limit("wallet_create")
+async def admin_suspend_access_account(
+    request: Request,
+    access_account_id: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    return await _admin_update_access_account_status(access_account_id=access_account_id, status="suspended")
+
+
+@app.post("/admin/access/accounts/{access_account_id}/reactivate")
+@api_limit("wallet_create")
+async def admin_reactivate_access_account(
+    request: Request,
+    access_account_id: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    return await _admin_update_access_account_status(access_account_id=access_account_id, status="active")
+
+
+@app.post("/admin/access/accounts/{access_account_id}/revoke")
+@api_limit("wallet_create")
+async def admin_revoke_access_account(
+    request: Request,
+    access_account_id: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    return await _admin_update_access_account_status(access_account_id=access_account_id, status="revoked")
+
+
+@app.post("/admin/access/wallet-bindings/{wallet_address}/revoke")
+@api_limit("wallet_create")
+async def admin_revoke_wallet_binding(
+    request: Request,
+    wallet_address: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        binding = blockchain.revoke_wallet_binding(wallet_address)
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "message": "Wallet binding revoked.",
+        "wallet_binding": _admin_wallet_binding(binding),
+    }
 
 
 @app.post("/auth/wallet/challenge")

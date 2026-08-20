@@ -49,6 +49,11 @@ export const publicApiClient = axios.create({
   baseURL: API_BASE_URL,
 });
 
+export const adminApiClient = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
+
 let authHeadersProvider = null;
 let sessionUnauthorizedHandler = null;
 

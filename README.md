@@ -218,6 +218,7 @@ Operator CLI examples:
 - `python scripts/access_admin.py show-account ACCESS_ACCOUNT_ID`
 - `python scripts/access_admin.py suspend ACCESS_ACCOUNT_ID`
 - `python scripts/access_admin.py revoke-wallet 0xabc...`
+- `python scripts/access_admin.py generate-admin-password-hash`
 - `python scripts/access_admin.py doctor`
 
 Safe CLI notes:
@@ -249,6 +250,71 @@ Manual QA runbook:
 - S. Confirm access is restored.
 - T. Restart the backend.
 - U. Confirm wallet binding persists.
+
+## Task 10.4c Admin UI
+
+Task 10.4c adds a deployed operator-only admin dashboard at `/admin`.
+
+Admin auth architecture:
+
+- the admin UI uses a separate backend admin session and does not reuse the normal invite-access session or the MetaMask wallet session
+- `POST /admin/login` validates the submitted password or bootstrap token against server-side env configuration only
+- successful login creates a short-lived admin session and sets an `HttpOnly`, `SameSite=Lax` cookie
+- logout invalidates the session and clears the cookie
+- session lifetime is controlled by `ADMIN_SESSION_TTL_SECONDS`
+- outside `development`, admin auth cannot be disabled through config
+
+Protected admin endpoints:
+
+- `POST /admin/login`
+- `POST /admin/logout`
+- `GET /admin/session`
+- `GET /admin/access/requests`
+- `POST /admin/access/requests/{request_id}/approve`
+- `POST /admin/access/requests/{request_id}/reject`
+- `POST /admin/access/invites`
+- `GET /admin/access/accounts`
+- `GET /admin/access/accounts/{access_account_id}`
+- `POST /admin/access/accounts/{access_account_id}/suspend`
+- `POST /admin/access/accounts/{access_account_id}/reactivate`
+- `POST /admin/access/accounts/{access_account_id}/revoke`
+- `POST /admin/access/wallet-bindings/{wallet_address}/revoke`
+
+Admin security notes:
+
+- admin credentials must stay in server-side env only
+- plaintext invite codes are returned once immediately after approval or direct invite creation
+- invite code hashes, peer shared secrets, private keys, and admin secrets are never exposed through admin or public endpoints
+- the access gate reduces spam and slows easy multi-wallet abuse, but it is not proof-of-personhood
+
+Recommended admin env values:
+
+- `ADMIN_UI_ENABLED=true`
+- `ADMIN_AUTH_ENABLED=true`
+- `ADMIN_SESSION_TTL_SECONDS=3600`
+- `ADMIN_PASSWORD_HASH=pbkdf2_sha256$...`
+
+Optional early-testing fallback:
+
+- `ADMIN_BOOTSTRAP_TOKEN=<strong-random-secret>`
+- rotate or remove the bootstrap token once a password hash is configured
+
+Admin setup and login flow:
+
+1. Generate a password hash locally with `python -m scripts.access_admin generate-admin-password-hash`
+2. Add `ADMIN_UI_ENABLED`, `ADMIN_AUTH_ENABLED`, `ADMIN_SESSION_TTL_SECONDS`, and `ADMIN_PASSWORD_HASH` to `/etc/zoidbergchain/zoidbergchain.env`
+3. Restart the backend
+4. Rebuild and redeploy the frontend
+5. Visit `https://zoidbergcoin.com/admin`
+6. Sign in with the server-side admin credential
+7. Review requests, approve or reject them, copy one-time invite codes, and manage bound wallets
+
+Admin UX warnings that should remain visible:
+
+- `Invite codes are shown once. Copy before leaving this screen.`
+- `This gate reduces spam but is not proof-of-personhood.`
+- `Test ZOID has no real monetary value.`
+- `Do not approve users you do not recognize.`
 
 See the detailed runbooks in:
 

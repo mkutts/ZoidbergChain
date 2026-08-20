@@ -156,6 +156,29 @@ def test_list_accounts_show_account_and_doctor_are_safe(monkeypatch, isolated_da
     assert doctor_output["doctor"]["access_sessions_backend"] == "memory_only_process_local"
 
 
+def test_generate_admin_password_hash_cli_outputs_env_instructions(monkeypatch, isolated_data_dir, capsys):
+    _, access_admin = _load_modules(
+        monkeypatch,
+        isolated_data_dir,
+        ENVIRONMENT="development",
+        PUBLIC_API_MODE="false",
+    )
+
+    exit_code = access_admin.run_cli(
+        [
+            "generate-admin-password-hash",
+            "--password",
+            "super-secret-admin",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = _parse_last_json(captured.out)
+    assert payload["admin_password_hash"].startswith("pbkdf2_sha256$")
+    assert any("ADMIN_PASSWORD_HASH=" in line for line in payload["instructions"])
+
+
 def test_script_and_module_invocation_work(monkeypatch, isolated_data_dir):
     _load_modules(
         monkeypatch,

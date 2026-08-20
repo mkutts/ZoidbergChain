@@ -152,6 +152,19 @@ RATE_LIMITING_ENABLED=true
 MAX_CONTENT_FILE_SIZE_BYTES=5242880
 MAX_TEXT_CONTENT_BYTES=100000
 LOG_LEVEL=INFO
+ADMIN_UI_ENABLED=true
+ADMIN_AUTH_ENABLED=true
+ADMIN_SESSION_TTL_SECONDS=3600
+ADMIN_PASSWORD_HASH=pbkdf2_sha256$...
+# Optional only for early testing. Prefer ADMIN_PASSWORD_HASH.
+# ADMIN_BOOTSTRAP_TOKEN=<strong-random-secret>
+```
+
+Generate the admin password hash before editing the live env file:
+
+```bash
+cd /srv/zoidbergchain/current
+/srv/zoidbergchain/venv/bin/python -m scripts.access_admin generate-admin-password-hash
 ```
 
 Apply secure file permissions:
@@ -247,6 +260,10 @@ Verify:
 
 - homepage loads
 - public demo/testnet banner is visible
+- `/admin` loads
+- admin login succeeds with the configured server-side credential
+- pending access requests list only after admin login
+- one-time invite codes are shown only immediately after approval or direct invite creation
 - wallet connect is visible
 - dev tools are hidden
 - `/api/health` works

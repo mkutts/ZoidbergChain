@@ -106,6 +106,7 @@ import {
   summarizeFeedbackContext,
   validateFeedbackForm,
 } from '../utils/feedback.js';
+import { FEEDBACK_PANEL_OPEN_EVENT } from '../utils/feedbackPanel.js';
 
 const props = defineProps({
   headline: {
@@ -207,6 +208,21 @@ function maybeOpenFromHash() {
   }
 }
 
+function handleOpenEvent(event) {
+  const detail = event?.detail || {};
+  const requestedPanelId = String(detail.panelId || 'feedback-panel').trim();
+  if (requestedPanelId && requestedPanelId !== props.panelId) {
+    return;
+  }
+  isOpen.value = true;
+  if (detail.scrollIntoView && typeof window !== 'undefined') {
+    window.requestAnimationFrame(() => {
+      const element = document.getElementById(props.panelId);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+}
+
 function clearErrors() {
   Object.keys(errors).forEach((key) => {
     delete errors[key];
@@ -248,12 +264,14 @@ onMounted(() => {
   maybeOpenFromHash();
   if (typeof window !== 'undefined') {
     window.addEventListener('hashchange', maybeOpenFromHash);
+    window.addEventListener(FEEDBACK_PANEL_OPEN_EVENT, handleOpenEvent);
   }
 });
 
 onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('hashchange', maybeOpenFromHash);
+    window.removeEventListener(FEEDBACK_PANEL_OPEN_EVENT, handleOpenEvent);
   }
 });
 </script>

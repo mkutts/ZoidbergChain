@@ -24,7 +24,8 @@ test('blocked access gate exposes the in-app feedback entry point', () => {
   assert.match(source, /<FeedbackPanel/i);
   assert.match(source, /Blocked or stuck\? Send feedback\./i);
   assert.match(source, /entry-point="access_gate"/i);
-  assert.match(source, /href="#feedback-panel"/i);
+  assert.match(source, /requestFeedbackPanelOpen/i);
+  assert.match(source, /scrollIntoView:\s*true/i);
 });
 
 test('admin page includes feedback review controls for status, priority, and notes', () => {
@@ -32,16 +33,24 @@ test('admin page includes feedback review controls for status, priority, and not
 
   assert.match(source, /Review beta user feedback/i);
   assert.match(source, /Update Status \+ Priority/i);
+  assert.match(source, /Mark Resolved/i);
+  assert.match(source, /Dismiss/i);
+  assert.match(source, /Active \/ Needs Review/i);
   assert.match(source, /Add Note/i);
   assert.match(source, /feedback-admin-grid/i);
 });
 
-test('dashboard and wallet surfaces expose a visible send feedback shortcut', () => {
+test('unlocked app shell and wallet surface expose visible feedback entry points', () => {
+  const appSource = read('../App.vue');
   const dashboardSource = read('../pages/Dashboard.vue');
   const walletSource = read('./WalletPanel.vue');
 
+  assert.match(appSource, /<FeedbackPanel/i);
+  assert.match(appSource, /showGlobalFeedback/i);
+  assert.match(dashboardSource, /requestFeedbackPanelOpen/i);
+  assert.match(dashboardSource, /@click="openFeedbackPanel"/i);
   assert.match(dashboardSource, /Send Feedback/i);
-  assert.match(dashboardSource, /href="#feedback-panel"/i);
+  assert.match(walletSource, /requestFeedbackPanelOpen/i);
+  assert.match(walletSource, /@click="openFeedbackPanel"/i);
   assert.match(walletSource, /Send Feedback/i);
-  assert.match(walletSource, /href="#feedback-panel"/i);
 });

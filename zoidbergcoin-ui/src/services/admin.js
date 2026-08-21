@@ -33,6 +33,7 @@ function createInitialState() {
 export function createAdminService(options = {}) {
   const adminApi = options.adminApi || adminApiClient;
   const state = reactive(createInitialState());
+  let lastFeedbackQuery = {};
 
   function clearMessages() {
     state.errorMessage = '';
@@ -306,6 +307,7 @@ export function createAdminService(options = {}) {
     state.isLoadingFeedback = true;
     clearMessages();
     try {
+      lastFeedbackQuery = { ...params };
       const search = new URLSearchParams();
       if (params.status) {
         search.set('status', String(params.status));
@@ -352,7 +354,7 @@ export function createAdminService(options = {}) {
     try {
       const response = await adminApi.patch(`/admin/feedback/${feedbackId}`, payload);
       state.successMessage = response.data?.message || 'Feedback updated.';
-      await loadFeedback();
+      await loadFeedback(lastFeedbackQuery);
       return response.data;
     } catch (error) {
       state.errorMessage = getApiErrorMessage(error, 'Failed to update feedback.');
@@ -368,7 +370,7 @@ export function createAdminService(options = {}) {
     try {
       const response = await adminApi.post(`/admin/feedback/${feedbackId}/status`, payload);
       state.successMessage = response.data?.message || 'Feedback status updated.';
-      await loadFeedback();
+      await loadFeedback(lastFeedbackQuery);
       return response.data;
     } catch (error) {
       state.errorMessage = getApiErrorMessage(error, 'Failed to update feedback status.');
@@ -384,7 +386,7 @@ export function createAdminService(options = {}) {
     try {
       const response = await adminApi.post(`/admin/feedback/${feedbackId}/note`, payload);
       state.successMessage = response.data?.message || 'Feedback note added.';
-      await loadFeedback();
+      await loadFeedback(lastFeedbackQuery);
       return response.data;
     } catch (error) {
       state.errorMessage = getApiErrorMessage(error, 'Failed to add feedback note.');

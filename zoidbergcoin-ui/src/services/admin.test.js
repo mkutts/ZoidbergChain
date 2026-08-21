@@ -390,7 +390,7 @@ test('admin can update feedback and add notes', async () => {
       },
     },
   }));
-  adminApi.getHandlers.set('/admin/feedback', async () => ({
+  adminApi.getHandlers.set('/admin/feedback?status=active&limit=100', async () => ({
     data: {
       summary: { new_feedback_count: 0, open_feedback_count: 1, high_priority_feedback_count: 1 },
       feedback_items: [{ feedback_id: 'fb-2', status: 'in_progress', priority: 'urgent' }],
@@ -398,6 +398,7 @@ test('admin can update feedback and add notes', async () => {
   }));
 
   const admin = createAdminService({ adminApi });
+  await admin.loadFeedback({ status: 'active', limit: 100 });
   const updated = await admin.updateFeedback('fb-2', {
     status: 'in_progress',
     priority: 'urgent',

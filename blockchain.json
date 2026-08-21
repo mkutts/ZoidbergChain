@@ -1303,7 +1303,7 @@
                 "original_filename": "images.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787329844.306603,
+            "verified_at": 1787331181.1028583,
             "verification_error": null
         },
         {
@@ -1325,7 +1325,7 @@
                 "original_filename": "image-1-8-6a26c8c34355c__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787329556.1173706,
+            "verified_at": 1787331181.1031277,
             "verification_error": null
         },
         {
@@ -1370,7 +1370,7 @@
                 "original_filename": "image-1-2-6a2f98fe763a8__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787329556.117724,
+            "verified_at": 1787331181.1035194,
             "verification_error": null
         },
         {
@@ -1392,7 +1392,7 @@
                 "original_filename": "870740530199752705-png__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787329556.1178937,
+            "verified_at": 1787331181.103691,
             "verification_error": null
         },
         {
@@ -1414,7 +1414,7 @@
                 "original_filename": "6a2f984602a33_random-memes-tiedyehomie__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787329556.118085,
+            "verified_at": 1787331181.1038918,
             "verification_error": null
         }
     ],
@@ -2375,7 +2375,59 @@
     ],
     "allowlist_entries": [],
     "override_requests": [],
-    "feedback_records": [],
+    "feedback_records": [
+        {
+            "feedback_id": "42ee0ac0ddc4bb47fa9e58d8db6185da",
+            "type": "other",
+            "title": "test",
+            "description": "testing",
+            "status": "dismissed",
+            "priority": "normal",
+            "name": "ui test",
+            "email": "fuckyou@gmail.com",
+            "handle": "",
+            "wallet_address": "0x4deb65a84605bea9113c9c36983a29f0b0c0b2f7",
+            "access_account_id": "c97a55c9ed4cde6ff0c535c972763b59",
+            "current_page": "/",
+            "current_flow": "unlocked_app",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "remote_ip": "127.0.0.1",
+            "browser_metadata": {
+                "browser_label": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.",
+                "platform": "Win32",
+                "language": "en-US",
+                "timezone": "America/New_York",
+                "screen_width": 2560,
+                "screen_height": 1440,
+                "prefers_reduced_motion": false
+            },
+            "eligibility_snapshot": {
+                "access_granted": true,
+                "can_access_app": true,
+                "wallet_bound": true,
+                "can_submit": true,
+                "can_vote": true,
+                "can_receive_rewards": true,
+                "submission": {
+                    "can_submit": true,
+                    "eligibility_source": "normal_access_verified_wallet",
+                    "blocked_reason": null
+                }
+            },
+            "viewport_width": 2552,
+            "viewport_height": 1308,
+            "is_mobile": false,
+            "admin_notes": [],
+            "created_at": "2026-08-21T17:04:10.026993+00:00",
+            "updated_at": "2026-08-21T17:04:25.582506+00:00",
+            "reviewed_at": "2026-08-21T17:04:25.582506+00:00",
+            "reviewed_by": "operator",
+            "status_updated_at": "2026-08-21T17:04:25.582506+00:00",
+            "status_updated_by": "operator",
+            "resolved_at": null,
+            "dismissed_at": "2026-08-21T17:04:25.582506+00:00"
+        }
+    ],
     "audit_logs": [
         {
             "action": "admin_login_success",
@@ -2470,6 +2522,91 @@
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
             "audit_id": "e26a6038b928268ca4d49b79f51e70c0",
             "timestamp": "2026-08-21T16:34:32.106734+00:00"
+        },
+        {
+            "action": "admin_login_success",
+            "result": "ok",
+            "actor_session_id": "1bb54b3f6858",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "9c258ee0229c2328598fc7d53c334745",
+            "timestamp": "2026-08-21T16:55:31.228650+00:00"
+        },
+        {
+            "action": "admin_ops_viewed",
+            "result": "ok",
+            "actor_session_id": "1bb54b3f6858",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "a313b18c2b9a385a762ac73fa24b3c3f",
+            "timestamp": "2026-08-21T16:55:31.394378+00:00"
+        },
+        {
+            "action": "admin_ops_viewed",
+            "result": "ok",
+            "actor_session_id": "1bb54b3f6858",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "9b5841b55122571232bbaab6201555bc",
+            "timestamp": "2026-08-21T17:04:14.266632+00:00"
+        },
+        {
+            "action": "feedback_viewed",
+            "result": "ok",
+            "actor_session_id": "1bb54b3f6858",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "42ee0ac0ddc4bb47fa9e58d8db6185da",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "86d6f25be864ed49077bf965fb49dd65",
+            "timestamp": "2026-08-21T17:04:19.320192+00:00"
+        },
+        {
+            "action": "feedback_status_changed",
+            "result": "ok",
+            "actor_session_id": "1bb54b3f6858",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "42ee0ac0ddc4bb47fa9e58d8db6185da",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "dismissed",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "ee9180f449c6671bcc3aa5d0167cdbb4",
+            "timestamp": "2026-08-21T17:04:25.637037+00:00"
         }
     ],
     "wallets": {
@@ -2696,6 +2833,18 @@
         "02df7aaec8e82638d7ca2cf6a378a9e3c7fe97ba4eff26ca487210939d7a56f4ca": {
             "public_key": "02df7aaec8e82638d7ca2cf6a378a9e3c7fe97ba4eff26ca487210939d7a56f4ca",
             "private_key": "9ad73eb620a26879e7986150d73f5fa447a7ec787fa85672591d79778820be3a"
+        },
+        "032b3ab99c1e6fb4371d3b8dc33c3b124a29ea325c256ec17f593cf62f811988d8": {
+            "public_key": "032b3ab99c1e6fb4371d3b8dc33c3b124a29ea325c256ec17f593cf62f811988d8",
+            "private_key": "3fa015bbd1cd1e662f1fd5828a28b832750de6e0eca3846eebf39ca57965fbac"
+        },
+        "022b2dced65336cd450d6f1135f2d3e1231c50cd40aa3c998c2d86aeab61117ee8": {
+            "public_key": "022b2dced65336cd450d6f1135f2d3e1231c50cd40aa3c998c2d86aeab61117ee8",
+            "private_key": "85eac24a34e391283533611510bb0a2e3b7d259ca86f7803e638d3f1709f468a"
+        },
+        "032e18416e1a74e79d30fcbf3985949caa2ace3b850dcb1df83c40500b84285a04": {
+            "public_key": "032e18416e1a74e79d30fcbf3985949caa2ace3b850dcb1df83c40500b84285a04",
+            "private_key": "397cc9d90e7a0e882fa1c3d0c7fe27449959063fb133533c1479458239e2b32e"
         }
     },
     "peers": []

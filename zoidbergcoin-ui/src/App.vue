@@ -10,7 +10,18 @@
       </div>
     </div>
     <ControlledAccessGate v-else-if="shouldShowAccessGate" />
-    <router-view v-else />
+    <template v-else>
+      <router-view />
+      <div v-if="showGlobalFeedback" class="app-feedback-shell">
+        <FeedbackPanel
+          headline="Found a bug or something confusing? Send feedback."
+          intro-copy="Send a quick note from anywhere in the beta without losing your current wallet or access session."
+          toggle-label="Open Feedback Form"
+          :entry-point="globalFeedbackEntryPoint"
+          panel-id="feedback-panel"
+        />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -18,6 +29,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import ControlledAccessGate from './components/ControlledAccessGate.vue';
+import FeedbackPanel from './components/FeedbackPanel.vue';
 import { useWallet } from './services/wallet';
 import { useAccess } from './services/access';
 import { shouldDisplayAccessGate } from './utils/accessGate.js';
@@ -34,6 +46,23 @@ const shouldShowAccessGate = computed(
     skipAccessGate: Boolean(route.meta?.skipAccessGate),
   }),
 );
+
+const showGlobalFeedback = computed(
+  () => isAccessReady.value && !shouldShowAccessGate.value && !route.meta?.skipAccessGate,
+);
+
+const globalFeedbackEntryPoint = computed(() => {
+  if (route.path === '/dashboard') {
+    return 'dashboard';
+  }
+  if (route.path === '/blockchain') {
+    return 'blockchain';
+  }
+  if (route.path === '/why-zoidbergcoin') {
+    return 'why_zoidbergcoin';
+  }
+  return 'unlocked_app';
+});
 
 onMounted(async () => {
   await wallet.detectMetaMask();
@@ -61,6 +90,14 @@ html, body {
 #app {
   height: 100%;
   width: 100%;
+}
+
+.app-feedback-shell {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: min(420px, calc(100vw - 24px));
+  z-index: 30;
 }
 
 .app-loading-shell {
@@ -101,5 +138,13 @@ html, body {
   margin: 0;
   color: #dfd7c6;
   line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .app-feedback-shell {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 24px);
+  }
 }
 </style>

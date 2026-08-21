@@ -216,9 +216,14 @@ def test_admin_feedback_endpoints_require_auth(blockchain, monkeypatch):
 
     list_response = client.get("/admin/feedback")
     detail_response = client.get(f"/admin/feedback/{record['feedback_id']}")
+    patch_response = client.patch(
+        f"/admin/feedback/{record['feedback_id']}",
+        json={"status": "resolved", "reviewed_by": "operator"},
+    )
 
     assert list_response.status_code == 401
     assert detail_response.status_code == 401
+    assert patch_response.status_code == 401
 
 
 def test_admin_can_update_feedback_status_priority_and_notes(blockchain, monkeypatch):
@@ -291,6 +296,75 @@ def test_admin_feedback_actions_are_audited_and_ops_summary_updates(blockchain, 
     actions = [entry["action"] for entry in audit_response.json()["audit_log"]]
     assert "feedback_status_changed" in actions
     assert "feedback_viewed" not in actions  # detail endpoint was not called here
+
+
+def test_cleared_feedback_is_excluded_from_active_list_and_remains_retrievable(blockchain, monkeypatch):
+    _configure_admin(monkeypatch)
+    client = _client(blockchain)
+    _login_admin(client)
+
+    active_record = blockchain.create_feedback(
+        feedback_type="bug",
+        title="Still active",
+        description="Needs review",
+    )
+    resolved_record = blockchain.create_feedback(
+        feedback_type="other",
+        title="Already resolved",
+        description="Should stay in history",
+        priority="low",
+    )
+    blockchain.update_feedback(resolved_record["feedback_id"], status="resolved", reviewed_by="operator")
+    blockchain.save_blockchain()
+
+    active_list = client.get("/admin/feedback", params={"status": "active"})
+    resolved_list = client.get("/admin/feedback", params={"status": "resolved"})
+    all_feedback = client.get("/admin/feedback")
+
+    assert active_list.status_code == 200
+    assert [item["feedback_id"] for item in active_list.json()["feedback_items"]] == [active_record["feedback_id"]]
+    assert resolved_list.status_code == 200
+    assert [item["feedback_id"] for item in resolved_list.json()["feedback_items"]] == [resolved_record["feedback_id"]]
+    assert all_feedback.status_code == 200
+    assert {item["feedback_id"] for item in all_feedback.json()["feedback_items"]} == {
+        active_record["feedback_id"],
+        resolved_record["feedback_id"],
+    }
+
+
+def test_admin_can_resolve_feedback_and_audit_log_keeps_history(blockchain, monkeypatch):
+    _configure_admin(monkeypatch)
+    client = _client(blockchain)
+    _login_admin(client)
+
+    record = blockchain.create_feedback(
+        feedback_type="submission_upload_issue",
+        title="Submission wizard blocked",
+        description="Resolve this without deleting it.",
+    )
+    blockchain.save_blockchain()
+
+    resolve_response = client.patch(
+        f"/admin/feedback/{record['feedback_id']}",
+        json={
+            "status": "resolved",
+            "reviewed_by": "operator",
+        },
+    )
+    active_list = client.get("/admin/feedback", params={"status": "active"})
+    detail_response = client.get(f"/admin/feedback/{record['feedback_id']}")
+    audit_response = client.get("/admin/audit-log", params={"limit": 20})
+
+    assert resolve_response.status_code == 200
+    assert resolve_response.json()["feedback"]["status"] == "resolved"
+    assert detail_response.status_code == 200
+    assert detail_response.json()["feedback"]["status"] == "resolved"
+    assert [item["feedback_id"] for item in active_list.json()["feedback_items"]] == []
+    matching_entries = [
+        entry for entry in audit_response.json()["audit_log"]
+        if entry.get("feedback_id") == record["feedback_id"] and entry.get("action") == "feedback_status_changed"
+    ]
+    assert matching_entries
 
 
 def test_feedback_apis_do_not_expose_secrets(blockchain, monkeypatch):

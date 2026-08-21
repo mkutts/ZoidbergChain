@@ -106,6 +106,8 @@ FEEDBACK_TYPES = {
     "other",
 }
 FEEDBACK_STATUSES = {"new", "reviewed", "in_progress", "resolved", "dismissed"}
+ACTIVE_FEEDBACK_STATUSES = {"new", "reviewed", "in_progress"}
+CLOSED_FEEDBACK_STATUSES = {"resolved", "dismissed"}
 FEEDBACK_PRIORITIES = {"low", "normal", "high", "urgent"}
 
 
@@ -773,11 +775,23 @@ class Blockchain:
     def list_feedback(self, *, status=None, feedback_type=None, priority=None, limit=None):
         records = list(self.feedback_records)
         if status is not None:
-            normalized_status = self._normalize_feedback_status(status)
-            records = [
-                record for record in records
-                if str(record.get("status") or "").strip().lower() == normalized_status
-            ]
+            requested_status = str(status or "").strip().lower()
+            if requested_status == "active":
+                records = [
+                    record for record in records
+                    if str(record.get("status") or "").strip().lower() in ACTIVE_FEEDBACK_STATUSES
+                ]
+            elif requested_status == "closed":
+                records = [
+                    record for record in records
+                    if str(record.get("status") or "").strip().lower() in CLOSED_FEEDBACK_STATUSES
+                ]
+            elif requested_status:
+                normalized_status = self._normalize_feedback_status(requested_status)
+                records = [
+                    record for record in records
+                    if str(record.get("status") or "").strip().lower() == normalized_status
+                ]
         if feedback_type is not None:
             normalized_type = self._normalize_feedback_type(feedback_type)
             records = [
@@ -802,17 +816,16 @@ class Blockchain:
 
     def feedback_summary(self) -> dict:
         records = self.list_feedback()
-        open_statuses = {"new", "reviewed", "in_progress"}
         high_priorities = {"high", "urgent"}
         return {
             "new_feedback_count": sum(1 for record in records if str(record.get("status") or "").strip().lower() == "new"),
             "open_feedback_count": sum(
                 1 for record in records
-                if str(record.get("status") or "").strip().lower() in open_statuses
+                if str(record.get("status") or "").strip().lower() in ACTIVE_FEEDBACK_STATUSES
             ),
             "high_priority_feedback_count": sum(
                 1 for record in records
-                if str(record.get("status") or "").strip().lower() in open_statuses
+                if str(record.get("status") or "").strip().lower() in ACTIVE_FEEDBACK_STATUSES
                 and str(record.get("priority") or "").strip().lower() in high_priorities
             ),
             "latest_feedback_timestamp": next(

@@ -260,6 +260,7 @@
               <div class="field-group">
                 <label for="feedback-status-filter">Status</label>
                 <select id="feedback-status-filter" v-model="feedbackStatusFilter" class="input-field">
+                  <option value="active">Active / Needs Review</option>
                   <option value="">All statuses</option>
                   <option value="new">New</option>
                   <option value="reviewed">Reviewed</option>
@@ -298,6 +299,9 @@
 
             <div class="feedback-admin-grid">
               <div class="feedback-list">
+                <p class="muted-copy">
+                  Active view keeps new, reviewed, and in-progress feedback in front of you. Resolved and dismissed items stay in history.
+                </p>
                 <div v-if="feedbackEntries.length === 0" class="empty-state">
                   No matching feedback has been submitted yet.
                 </div>
@@ -388,6 +392,12 @@
                   <div class="inline-actions wrap-actions">
                     <button class="primary-button" :disabled="admin.state.isSubmitting" @click="applyFeedbackUpdate">
                       Update Status + Priority
+                    </button>
+                    <button class="secondary-button" :disabled="admin.state.isSubmitting" @click="clearSelectedFeedback('resolved')">
+                      Mark Resolved
+                    </button>
+                    <button class="ghost-button" :disabled="admin.state.isSubmitting" @click="clearSelectedFeedback('dismissed')">
+                      Dismiss
                     </button>
                     <button class="secondary-button" :disabled="admin.state.isSubmitting || !feedbackAdminNote.trim()" @click="addSelectedFeedbackNote">
                       Add Note
@@ -891,7 +901,7 @@ const copyFeedback = ref('');
 const allowlistScopeFilter = ref('');
 const allowlistStatusFilter = ref('');
 const overrideStatusFilter = ref('pending');
-const feedbackStatusFilter = ref('new');
+const feedbackStatusFilter = ref('active');
 const feedbackTypeFilter = ref('');
 const feedbackPriorityFilter = ref('');
 
@@ -1016,6 +1026,41 @@ function formatFeedbackDevice(entry) {
   return parts.length > 0 ? parts.join(' Â· ') : 'Not provided';
 }
 
+function currentFeedbackFilterParams() {
+  return {
+    status: feedbackStatusFilter.value,
+    type: feedbackTypeFilter.value,
+    priority: feedbackPriorityFilter.value,
+    limit: 100,
+  };
+}
+
+function feedbackMatchesCurrentFilters(item) {
+  if (!item) {
+    return false;
+  }
+  const itemStatus = String(item.status || '').trim().toLowerCase();
+  const itemType = String(item.type || '').trim().toLowerCase();
+  const itemPriority = String(item.priority || '').trim().toLowerCase();
+  const requestedStatus = String(feedbackStatusFilter.value || '').trim().toLowerCase();
+  const requestedType = String(feedbackTypeFilter.value || '').trim().toLowerCase();
+  const requestedPriority = String(feedbackPriorityFilter.value || '').trim().toLowerCase();
+
+  if (requestedStatus === 'active' && !['new', 'reviewed', 'in_progress'].includes(itemStatus)) {
+    return false;
+  }
+  if (requestedStatus && requestedStatus !== 'active' && itemStatus !== requestedStatus) {
+    return false;
+  }
+  if (requestedType && itemType !== requestedType) {
+    return false;
+  }
+  if (requestedPriority && itemPriority !== requestedPriority) {
+    return false;
+  }
+  return true;
+}
+
 async function refreshDashboard() {
   isRefreshing.value = true;
   try {
@@ -1024,12 +1069,7 @@ async function refreshDashboard() {
       admin.loadAccounts(),
       admin.loadAllowlist({ scope: allowlistScopeFilter.value, status: allowlistStatusFilter.value }),
       admin.loadOverrideRequests({ status: overrideStatusFilter.value }),
-      admin.loadFeedback({
-        status: feedbackStatusFilter.value,
-        type: feedbackTypeFilter.value,
-        priority: feedbackPriorityFilter.value,
-        limit: 100,
-      }),
+      admin.loadFeedback(currentFeedbackFilterParams()),
       admin.loadOpsStatus(),
       admin.loadAuditLog({ limit: 20 }),
     ]);
@@ -1157,17 +1197,16 @@ async function refreshOverrideRequests() {
 }
 
 async function refreshFeedback() {
-  await admin.loadFeedback({
-    status: feedbackStatusFilter.value,
-    type: feedbackTypeFilter.value,
-    priority: feedbackPriorityFilter.value,
-    limit: 100,
-  });
+  await admin.loadFeedback(currentFeedbackFilterParams());
   if (selectedFeedback.value?.feedback_id) {
-    const detail = await admin.loadFeedbackDetail(selectedFeedback.value.feedback_id);
-    if (detail) {
-      selectedFeedback.value = detail;
+    const matchingRecord = feedbackEntries.value.find((item) => item.feedback_id === selectedFeedback.value.feedback_id);
+    if (!matchingRecord || !feedbackMatchesCurrentFilters(matchingRecord)) {
+      selectedFeedback.value = null;
+      feedbackAdminNote.value = '';
+      return;
     }
+    const detail = await admin.loadFeedbackDetail(selectedFeedback.value.feedback_id);
+    selectedFeedback.value = detail || matchingRecord;
   }
 }
 
@@ -1225,6 +1264,22 @@ async function applyFeedbackUpdate() {
   });
   if (result?.feedback) {
     selectedFeedback.value = result.feedback;
+    await refreshFeedback();
+  }
+}
+
+async function clearSelectedFeedback(status) {
+  if (!selectedFeedback.value) {
+    return;
+  }
+  const result = await admin.updateFeedback(selectedFeedback.value.feedback_id, {
+    status,
+    priority: feedbackNewPriority.value,
+    reviewed_by: feedbackReviewedBy.value,
+  });
+  if (result?.feedback) {
+    selectedFeedback.value = result.feedback;
+    feedbackNewStatus.value = result.feedback.status || status;
     await refreshFeedback();
   }
 }

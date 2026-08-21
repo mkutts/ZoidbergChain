@@ -9,7 +9,7 @@
         Access is invite-only while we test voting, rewards, and network safety. Test ZOID has no real monetary value, and this does not represent mainnet.
       </p>
       <div class="top-feedback-cta">
-        <a href="#feedback-panel" class="ghost-btn feedback-shortcut">Send Feedback</a>
+        <button type="button" class="ghost-btn feedback-shortcut" @click="openFeedbackPanel">Send Feedback</button>
         <p class="wallet-note">If something is broken or confusing, you can report it directly from this screen.</p>
       </div>
 
@@ -332,6 +332,7 @@ import {
   buildReturningWalletGuidance,
   describeWalletSupport,
 } from '../utils/mobileWallet.js';
+import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 
 const emit = defineEmits(['unlocked']);
 
@@ -367,6 +368,13 @@ const mobileWalletSupport = ref({
   openInMetaMaskUrl: '',
   shouldShowOpenInMetaMask: false,
 });
+
+function openFeedbackPanel() {
+  requestFeedbackPanelOpen({
+    panelId: 'feedback-panel',
+    scrollIntoView: true,
+  });
+}
 
 function getStorage() {
   if (typeof window === 'undefined') {

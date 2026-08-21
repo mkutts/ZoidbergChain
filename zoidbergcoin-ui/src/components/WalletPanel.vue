@@ -10,7 +10,7 @@
         Controlled testnet. Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
       </p>
       <div class="wallet-actions wallet-feedback-actions">
-        <a href="#feedback-panel" class="wallet-btn secondary compact feedback-link">Send Feedback</a>
+        <button type="button" class="wallet-btn secondary compact feedback-link" @click="openFeedbackPanel">Send Feedback</button>
       </div>
     </div>
 
@@ -417,6 +417,7 @@ import {
 } from '../utils/eligibilityChecklist.js';
 import { describeWalletSupport } from '../utils/mobileWallet.js';
 import { isPublicDemoMode } from '../utils/runtimeConfig';
+import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 
 const wallet = useWallet();
 const access = useAccess();
@@ -460,6 +461,10 @@ const overrideForm = ref({
   requested_scope: 'review',
   reason: '',
 });
+
+function openFeedbackPanel() {
+  requestFeedbackPanelOpen({ panelId: 'feedback-panel' });
+}
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);

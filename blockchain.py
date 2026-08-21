@@ -93,6 +93,20 @@ ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
 ALLOWLIST_STATUSES = {"active", "inactive", "revoked"}
 OVERRIDE_REQUEST_STATUSES = {"pending", "approved", "rejected", "duplicate", "spam"}
+FEEDBACK_TYPES = {
+    "bug",
+    "confusing_ui",
+    "wallet_connection_issue",
+    "mobile_issue",
+    "access_allowlist_issue",
+    "submission_upload_issue",
+    "voting_review_issue",
+    "rewards_balance_issue",
+    "general_suggestion",
+    "other",
+}
+FEEDBACK_STATUSES = {"new", "reviewed", "in_progress", "resolved", "dismissed"}
+FEEDBACK_PRIORITIES = {"low", "normal", "high", "urgent"}
 
 
 def _hash_number(value):
@@ -175,6 +189,7 @@ class Blockchain:
         self.wallet_bindings = []  # Wallet-to-access-account bindings
         self.allowlist_entries = []  # Operator-managed beta overrides
         self.override_requests = []  # User-submitted beta override requests
+        self.feedback_records = []  # In-app beta feedback records
         self.audit_logs = []  # Persistent admin audit trail
         self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
@@ -234,6 +249,7 @@ class Blockchain:
             "wallet_bindings": self.wallet_bindings,
             "allowlist_entries": self.allowlist_entries,
             "override_requests": self.override_requests,
+            "feedback_records": self.feedback_records,
             "audit_logs": self.audit_logs,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
         }
@@ -404,6 +420,7 @@ class Blockchain:
         self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
         self.allowlist_entries = list(loaded_data.get("allowlist_entries", []) or [])
         self.override_requests = list(loaded_data.get("override_requests", []) or [])
+        self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
         return True
 
@@ -433,6 +450,53 @@ class Blockchain:
         if normalized_status not in OVERRIDE_REQUEST_STATUSES:
             raise ValueError("Override request status must be pending, approved, rejected, duplicate, or spam.")
         return normalized_status
+
+    @staticmethod
+    def _normalize_feedback_type(feedback_type):
+        normalized_type = str(feedback_type or "").strip().lower()
+        if normalized_type not in FEEDBACK_TYPES:
+            raise ValueError(
+                "Feedback type must be bug, confusing_ui, wallet_connection_issue, mobile_issue, "
+                "access_allowlist_issue, submission_upload_issue, voting_review_issue, "
+                "rewards_balance_issue, general_suggestion, or other."
+            )
+        return normalized_type
+
+    @staticmethod
+    def _normalize_feedback_status(status):
+        normalized_status = str(status or "").strip().lower()
+        if normalized_status not in FEEDBACK_STATUSES:
+            raise ValueError("Feedback status must be new, reviewed, in_progress, resolved, or dismissed.")
+        return normalized_status
+
+    @staticmethod
+    def _normalize_feedback_priority(priority):
+        normalized_priority = str(priority or "").strip().lower() or "normal"
+        if normalized_priority not in FEEDBACK_PRIORITIES:
+            raise ValueError("Feedback priority must be low, normal, high, or urgent.")
+        return normalized_priority
+
+    @staticmethod
+    def _normalize_feedback_dimension(value):
+        if value in (None, ""):
+            return None
+        if isinstance(value, bool):
+            raise ValueError("Viewport dimensions must be numeric when provided.")
+        try:
+            number = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Viewport dimensions must be numeric when provided.") from exc
+        if number < 0 or number > 20000:
+            raise ValueError("Viewport dimensions must be between 0 and 20000.")
+        return number
+
+    @staticmethod
+    def _normalize_feedback_snapshot(value):
+        if value is None:
+            return None
+        if not isinstance(value, dict):
+            raise ValueError("Feedback context snapshots must be objects when provided.")
+        return json.loads(json.dumps(value))
 
     @staticmethod
     def _normalize_allowlist_subject(subject_type, subject_value):
@@ -696,6 +760,186 @@ class Blockchain:
             ]
         records.sort(key=lambda record: str(record.get("updated_at") or record.get("created_at") or ""), reverse=True)
         return records
+
+    def get_feedback(self, feedback_id):
+        candidate = str(feedback_id or "").strip()
+        if not candidate:
+            return None
+        for record in self.feedback_records:
+            if str(record.get("feedback_id") or "").strip() == candidate:
+                return record
+        return None
+
+    def list_feedback(self, *, status=None, feedback_type=None, priority=None, limit=None):
+        records = list(self.feedback_records)
+        if status is not None:
+            normalized_status = self._normalize_feedback_status(status)
+            records = [
+                record for record in records
+                if str(record.get("status") or "").strip().lower() == normalized_status
+            ]
+        if feedback_type is not None:
+            normalized_type = self._normalize_feedback_type(feedback_type)
+            records = [
+                record for record in records
+                if str(record.get("type") or "").strip().lower() == normalized_type
+            ]
+        if priority is not None:
+            normalized_priority = self._normalize_feedback_priority(priority)
+            records = [
+                record for record in records
+                if str(record.get("priority") or "").strip().lower() == normalized_priority
+            ]
+        records.sort(key=lambda record: str(record.get("updated_at") or record.get("created_at") or ""), reverse=True)
+        if limit is not None:
+            try:
+                limit_value = max(0, int(limit))
+            except (TypeError, ValueError):
+                limit_value = 0
+            if limit_value:
+                records = records[:limit_value]
+        return records
+
+    def feedback_summary(self) -> dict:
+        records = self.list_feedback()
+        open_statuses = {"new", "reviewed", "in_progress"}
+        high_priorities = {"high", "urgent"}
+        return {
+            "new_feedback_count": sum(1 for record in records if str(record.get("status") or "").strip().lower() == "new"),
+            "open_feedback_count": sum(
+                1 for record in records
+                if str(record.get("status") or "").strip().lower() in open_statuses
+            ),
+            "high_priority_feedback_count": sum(
+                1 for record in records
+                if str(record.get("status") or "").strip().lower() in open_statuses
+                and str(record.get("priority") or "").strip().lower() in high_priorities
+            ),
+            "latest_feedback_timestamp": next(
+                (
+                    str(record.get("created_at") or "").strip()
+                    for record in records
+                    if str(record.get("created_at") or "").strip()
+                ),
+                None,
+            ),
+        }
+
+    def create_feedback(
+        self,
+        *,
+        feedback_type,
+        title,
+        description,
+        name=None,
+        email=None,
+        handle=None,
+        wallet_address=None,
+        access_account_id=None,
+        current_page=None,
+        current_flow=None,
+        user_agent=None,
+        remote_ip=None,
+        browser_metadata=None,
+        eligibility_snapshot=None,
+        viewport_width=None,
+        viewport_height=None,
+        is_mobile=None,
+        priority="normal",
+    ):
+        timestamp = utc_now_iso()
+        normalized_wallet = self._normalize_access_wallet(wallet_address) if wallet_address else None
+        record = {
+            "feedback_id": secrets.token_hex(16),
+            "type": self._normalize_feedback_type(feedback_type),
+            "title": normalize_text_field(title),
+            "description": normalize_text_field(description),
+            "status": "new",
+            "priority": self._normalize_feedback_priority(priority),
+            "name": normalize_text_field(name),
+            "email": normalize_email(email),
+            "handle": normalize_handle(handle),
+            "wallet_address": normalized_wallet,
+            "access_account_id": normalize_text_field(access_account_id),
+            "current_page": normalize_text_field(current_page)[:240],
+            "current_flow": normalize_text_field(current_flow)[:128],
+            "user_agent": normalize_text_field(user_agent)[:240],
+            "remote_ip": normalize_text_field(remote_ip)[:120],
+            "browser_metadata": self._normalize_feedback_snapshot(browser_metadata),
+            "eligibility_snapshot": self._normalize_feedback_snapshot(eligibility_snapshot),
+            "viewport_width": self._normalize_feedback_dimension(viewport_width),
+            "viewport_height": self._normalize_feedback_dimension(viewport_height),
+            "is_mobile": bool(is_mobile) if is_mobile is not None else None,
+            "admin_notes": [],
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "status_updated_at": timestamp,
+            "status_updated_by": None,
+            "resolved_at": None,
+            "dismissed_at": None,
+        }
+        if not record["title"]:
+            raise ValueError("Feedback title is required.")
+        if not record["description"]:
+            raise ValueError("Feedback description is required.")
+        self.feedback_records.append(record)
+        return record
+
+    def update_feedback(
+        self,
+        feedback_id,
+        *,
+        status=None,
+        priority=None,
+        reviewed_by="operator",
+    ):
+        record = self.get_feedback(feedback_id)
+        if record is None:
+            raise ValueError(f"Feedback not found: {feedback_id}")
+
+        timestamp = utc_now_iso()
+        if status is not None:
+            normalized_status = self._normalize_feedback_status(status)
+            record["status"] = normalized_status
+            record["status_updated_at"] = timestamp
+            record["status_updated_by"] = normalize_text_field(reviewed_by)
+            if normalized_status != "new" and not record.get("reviewed_at"):
+                record["reviewed_at"] = timestamp
+                record["reviewed_by"] = normalize_text_field(reviewed_by)
+            if normalized_status == "resolved":
+                record["resolved_at"] = timestamp
+                record["dismissed_at"] = None
+            elif normalized_status == "dismissed":
+                record["dismissed_at"] = timestamp
+                record["resolved_at"] = None
+            else:
+                record["resolved_at"] = None
+                record["dismissed_at"] = None
+        if priority is not None:
+            record["priority"] = self._normalize_feedback_priority(priority)
+        record["updated_at"] = timestamp
+        return record
+
+    def add_feedback_admin_note(self, feedback_id, *, note, created_by="operator"):
+        record = self.get_feedback(feedback_id)
+        if record is None:
+            raise ValueError(f"Feedback not found: {feedback_id}")
+        note_text = normalize_text_field(note)
+        if not note_text:
+            raise ValueError("Admin note is required.")
+        note_record = {
+            "note_id": secrets.token_hex(12),
+            "note": note_text,
+            "created_at": utc_now_iso(),
+            "created_by": normalize_text_field(created_by) or "operator",
+        }
+        notes = list(record.get("admin_notes") or [])
+        notes.append(note_record)
+        record["admin_notes"] = notes
+        record["updated_at"] = note_record["created_at"]
+        return note_record
 
     def create_override_request(
         self,
@@ -1202,6 +1446,7 @@ class Blockchain:
                 self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
                 self.allowlist_entries = list(loaded_data.get("allowlist_entries", []) or [])
                 self.override_requests = list(loaded_data.get("override_requests", []) or [])
+                self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
                 self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
@@ -1235,6 +1480,7 @@ class Blockchain:
                 self.wallet_bindings = []
                 self.allowlist_entries = []
                 self.override_requests = []
+                self.feedback_records = []
                 self.audit_logs = []
 
         except FileNotFoundError:
@@ -1253,6 +1499,7 @@ class Blockchain:
             self.wallet_bindings = []
             self.allowlist_entries = []
             self.override_requests = []
+            self.feedback_records = []
             self.audit_logs = []
         except json.JSONDecodeError:
             print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
@@ -1270,6 +1517,7 @@ class Blockchain:
             self.wallet_bindings = []
             self.allowlist_entries = []
             self.override_requests = []
+            self.feedback_records = []
             self.audit_logs = []
         except Exception as e:
             print(f"Debug: Unexpected error loading blockchain - {e}")
@@ -1287,6 +1535,7 @@ class Blockchain:
             self.wallet_bindings = []
             self.allowlist_entries = []
             self.override_requests = []
+            self.feedback_records = []
             self.audit_logs = []
 
         return False

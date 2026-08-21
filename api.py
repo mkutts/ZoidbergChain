@@ -546,6 +546,41 @@ class AdminOverrideRequestDecision(_StrictBodyModel):
     resolved_scope: Annotated[str | None, Field(default=None, min_length=3, max_length=32)] = None
 
 
+class FeedbackCreateRequest(_StrictBodyModel):
+    type: Annotated[str, Field(min_length=3, max_length=64)]
+    title: Annotated[str, Field(min_length=1, max_length=160)]
+    description: Annotated[str, Field(min_length=1, max_length=5000)]
+    name: Annotated[str | None, Field(default=None, max_length=128)] = None
+    email: Annotated[str | None, Field(default=None, max_length=320)] = None
+    handle: Annotated[str | None, Field(default=None, max_length=128)] = None
+    current_page: Annotated[str | None, Field(default=None, max_length=240)] = None
+    current_flow: Annotated[str | None, Field(default=None, max_length=128)] = None
+    wallet_address: Annotated[str | None, Field(default=None, max_length=128)] = None
+    access_account_id: Annotated[str | None, Field(default=None, max_length=128)] = None
+    browser_metadata: dict[str, Any] | None = None
+    eligibility_snapshot: dict[str, Any] | None = None
+    viewport_width: Annotated[int | None, Field(default=None, ge=0, le=20000)] = None
+    viewport_height: Annotated[int | None, Field(default=None, ge=0, le=20000)] = None
+    is_mobile: bool | None = None
+
+
+class AdminFeedbackUpdateRequest(_StrictBodyModel):
+    status: Annotated[str | None, Field(default=None, min_length=2, max_length=32)] = None
+    priority: Annotated[str | None, Field(default=None, min_length=2, max_length=16)] = None
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+    admin_note: Annotated[str | None, Field(default=None, max_length=2000)] = None
+
+
+class AdminFeedbackStatusRequest(_StrictBodyModel):
+    status: Annotated[str, Field(min_length=2, max_length=32)]
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+
+
+class AdminFeedbackNoteRequest(_StrictBodyModel):
+    note: Annotated[str, Field(min_length=1, max_length=2000)]
+    created_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+
+
 def _short_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -1269,6 +1304,7 @@ def _admin_audit_entry(entry: dict | None) -> dict:
         "user_agent": payload.get("user_agent"),
         "request_id": payload.get("request_id"),
         "override_request_id": payload.get("override_request_id"),
+        "feedback_id": payload.get("feedback_id"),
         "access_account_id": payload.get("access_account_id"),
         "allowlist_entry_id": payload.get("allowlist_entry_id"),
         "wallet_address": payload.get("wallet_address"),
@@ -1285,6 +1321,7 @@ def _record_admin_audit_event(
     session=None,
     request_id: str | None = None,
     override_request_id: str | None = None,
+    feedback_id: str | None = None,
     access_account_id: str | None = None,
     allowlist_entry_id: str | None = None,
     wallet_address: str | None = None,
@@ -1297,6 +1334,7 @@ def _record_admin_audit_event(
         "actor_session_id": _safe_session_identifier(session),
         "request_id": request_id,
         "override_request_id": override_request_id,
+        "feedback_id": normalize_text_field(feedback_id),
         "access_account_id": access_account_id,
         "allowlist_entry_id": allowlist_entry_id,
         "wallet_address": wallet_address,
@@ -1338,6 +1376,7 @@ def _admin_ops_status_payload() -> dict:
     integrity_status = safe_integrity_status(blockchain.storage)
     latest_block = safe_latest_block_summary(blockchain)
     lifecycle = _recent_access_lifecycle_events(limit=5)
+    feedback_summary = blockchain.feedback_summary()
     recent_audit = [
         _admin_audit_entry(entry)
         for entry in blockchain.list_audit_log_entries(limit=20)
@@ -1362,8 +1401,12 @@ def _admin_ops_status_payload() -> dict:
             "active_admin_sessions": admin_session_manager.count_active_sessions(),
             "active_access_sessions": access_session_manager.count_active_sessions(),
             "active_wallet_bindings": blockchain.count_active_wallet_bindings(),
+            "new_feedback_count": feedback_summary["new_feedback_count"],
+            "open_feedback_count": feedback_summary["open_feedback_count"],
+            "high_priority_feedback_count": feedback_summary["high_priority_feedback_count"],
         },
         "latest_block": latest_block,
+        "feedback_summary": feedback_summary,
         "recent_admin_actions": recent_audit,
         **lifecycle,
     }
@@ -1832,6 +1875,140 @@ def _admin_override_request(record: dict | None) -> dict | None:
         "approved_allowlist_entry_id": record.get("approved_allowlist_entry_id"),
         "user_agent": record.get("user_agent"),
         "remote_ip": record.get("remote_ip"),
+    })
+    related_account = None
+    related_binding = None
+    wallet_address = normalize_wallet_address(record.get("wallet_address") or "")
+    access_account_id = normalize_text_field(record.get("access_account_id"))
+    if wallet_address:
+        related_binding = blockchain.get_wallet_binding(wallet_address)
+        if related_binding:
+            related_account = blockchain.get_access_account(related_binding.get("access_account_id"))
+    if related_account is None and access_account_id:
+        related_account = blockchain.get_access_account(access_account_id)
+    body["related_access_account"] = _public_access_account(related_account)
+    body["related_wallet_binding"] = _public_wallet_binding(related_binding)
+    return body
+
+
+def _sanitize_feedback_browser_metadata(metadata: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(metadata, dict):
+        return None
+
+    text_limits = {
+        "browser_label": 120,
+        "platform": 120,
+        "language": 64,
+        "timezone": 64,
+    }
+    number_limits = {
+        "screen_width": 20000,
+        "screen_height": 20000,
+    }
+    bool_fields = {"prefers_reduced_motion"}
+    payload: dict[str, Any] = {}
+
+    for field_name, max_length in text_limits.items():
+        value = normalize_text_field(metadata.get(field_name))
+        if value:
+            payload[field_name] = value[:max_length]
+
+    for field_name, max_value in number_limits.items():
+        value = metadata.get(field_name)
+        if value in (None, ""):
+            continue
+        try:
+            numeric_value = int(value)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= numeric_value <= max_value:
+            payload[field_name] = numeric_value
+
+    for field_name in bool_fields:
+        if field_name in metadata and metadata.get(field_name) is not None:
+            payload[field_name] = bool(metadata.get(field_name))
+
+    return payload or None
+
+
+def _sanitize_feedback_eligibility_snapshot(snapshot: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(snapshot, dict):
+        return None
+
+    blocked_reasons: list[dict[str, str | None]] = []
+    for item in list(snapshot.get("blocked_reasons") or [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        blocked_reasons.append({
+            "scope": normalize_text_field(item.get("scope"))[:32] or None,
+            "reason": normalize_text_field(item.get("reason"))[:120] or None,
+            "rule_id": normalize_text_field(item.get("rule_id"))[:120] or None,
+        })
+
+    payload: dict[str, Any] = {
+        "access_granted": bool(snapshot.get("access_granted")),
+        "can_access_app": bool(snapshot.get("can_access_app")),
+        "wallet_bound": bool(snapshot.get("wallet_bound")),
+        "can_submit": bool(snapshot.get("can_submit")),
+        "can_vote": bool(snapshot.get("can_vote")),
+        "can_receive_rewards": bool(snapshot.get("can_receive_rewards")),
+    }
+
+    submission = snapshot.get("submission")
+    if isinstance(submission, dict):
+        payload["submission"] = {
+            "can_submit": bool(submission.get("can_submit")),
+            "eligibility_source": normalize_text_field(submission.get("eligibility_source"))[:120] or None,
+            "blocked_reason": normalize_text_field(submission.get("blocked_reason"))[:120] or None,
+        }
+
+    if blocked_reasons:
+        payload["blocked_reasons"] = blocked_reasons
+
+    return payload
+
+
+def _public_feedback(record: dict | None) -> dict | None:
+    if not record:
+        return None
+    return {
+        "feedback_id": record.get("feedback_id"),
+        "type": record.get("type"),
+        "title": record.get("title"),
+        "status": record.get("status"),
+        "priority": record.get("priority"),
+        "created_at": record.get("created_at"),
+        "updated_at": record.get("updated_at"),
+        "current_page": record.get("current_page"),
+        "current_flow": record.get("current_flow"),
+    }
+
+
+def _admin_feedback(record: dict | None) -> dict | None:
+    body = _public_feedback(record)
+    if not body or not record:
+        return body
+    body.update({
+        "description": record.get("description"),
+        "name": record.get("name"),
+        "email": record.get("email"),
+        "handle": record.get("handle"),
+        "wallet_address": record.get("wallet_address"),
+        "access_account_id": record.get("access_account_id"),
+        "user_agent": record.get("user_agent"),
+        "remote_ip": record.get("remote_ip"),
+        "browser_metadata": record.get("browser_metadata"),
+        "eligibility_snapshot": record.get("eligibility_snapshot"),
+        "viewport_width": record.get("viewport_width"),
+        "viewport_height": record.get("viewport_height"),
+        "is_mobile": record.get("is_mobile"),
+        "admin_notes": list(record.get("admin_notes") or []),
+        "reviewed_at": record.get("reviewed_at"),
+        "reviewed_by": record.get("reviewed_by"),
+        "status_updated_at": record.get("status_updated_at"),
+        "status_updated_by": record.get("status_updated_by"),
+        "resolved_at": record.get("resolved_at"),
+        "dismissed_at": record.get("dismissed_at"),
     })
     related_account = None
     related_binding = None
@@ -2926,6 +3103,65 @@ async def node_info(request: Request):
     return payload
 
 
+@app.post("/feedback")
+@api_limit("submission_create")
+async def create_feedback(
+    request: Request,
+    payload: FeedbackCreateRequest,
+    authorization: str | None = Header(default=None),
+    x_zoid_access_session: str | None = Header(default=None, alias="X-ZOID-Access-Session"),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    verified_wallet_address = None
+    access_account = None
+
+    if authorization:
+        try:
+            verified_wallet_address = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+            access_account = blockchain.get_access_account_for_wallet(verified_wallet_address)
+        except HTTPException:
+            verified_wallet_address = None
+
+    if access_account is None and x_zoid_access_session:
+        try:
+            access_account = _resolve_access_account_from_session(x_zoid_access_session)
+        except ValueError:
+            access_account = None
+
+    request_metadata = _safe_request_metadata(request)
+    try:
+        feedback = blockchain.create_feedback(
+            feedback_type=payload.type,
+            title=payload.title,
+            description=payload.description,
+            name=payload.name or (access_account.get("name") if access_account else None),
+            email=payload.email or (access_account.get("email") if access_account else None),
+            handle=payload.handle or (access_account.get("handle") if access_account else None),
+            wallet_address=verified_wallet_address or payload.wallet_address,
+            access_account_id=payload.access_account_id or (access_account.get("access_account_id") if access_account else None),
+            current_page=payload.current_page,
+            current_flow=payload.current_flow,
+            user_agent=request_metadata["user_agent"],
+            remote_ip=request_metadata["remote_ip"],
+            browser_metadata=_sanitize_feedback_browser_metadata(payload.browser_metadata),
+            eligibility_snapshot=_sanitize_feedback_eligibility_snapshot(payload.eligibility_snapshot),
+            viewport_width=payload.viewport_width,
+            viewport_height=payload.viewport_height,
+            is_mobile=payload.is_mobile,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "message": "Feedback submitted. Thanks for helping test the controlled beta.",
+        "feedback": _public_feedback(feedback),
+    }
+
+
 @app.get("/access/status")
 @api_limit("public_read")
 async def get_access_status(request: Request):
@@ -3781,6 +4017,193 @@ async def admin_reject_override_request(
     return {
         "message": "Override request rejected.",
         "override_request": _admin_override_request(override_request),
+    }
+
+
+@app.get("/admin/feedback")
+@api_limit("public_read")
+async def admin_list_feedback(
+    request: Request,
+    status: str | None = Query(default=None),
+    feedback_type: str | None = Query(default=None, alias="type"),
+    priority: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        records = blockchain.list_feedback(
+            status=status,
+            feedback_type=feedback_type,
+            priority=priority,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {
+        "summary": blockchain.feedback_summary(),
+        "feedback_items": [_admin_feedback(record) for record in records],
+    }
+
+
+@app.get("/admin/feedback/{feedback_id}")
+@api_limit("public_read")
+async def admin_get_feedback(
+    request: Request,
+    feedback_id: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    record = blockchain.get_feedback(feedback_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Feedback not found: {feedback_id}")
+    _record_admin_audit_event(
+        request=request,
+        action="feedback_viewed",
+        session=_admin_session,
+        feedback_id=feedback_id,
+    )
+    return {
+        "feedback": _admin_feedback(record),
+    }
+
+
+@app.patch("/admin/feedback/{feedback_id}")
+@api_limit("wallet_create")
+async def admin_update_feedback(
+    request: Request,
+    feedback_id: str,
+    payload: AdminFeedbackUpdateRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    record = blockchain.get_feedback(feedback_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Feedback not found: {feedback_id}")
+    if payload.status is None and payload.priority is None and not payload.admin_note:
+        raise HTTPException(status_code=400, detail="At least one feedback update field is required.")
+
+    previous_status = str(record.get("status") or "").strip().lower()
+    previous_priority = str(record.get("priority") or "").strip().lower()
+    try:
+        if payload.status is not None or payload.priority is not None:
+            record = blockchain.update_feedback(
+                feedback_id,
+                status=payload.status,
+                priority=payload.priority,
+                reviewed_by=payload.reviewed_by,
+            )
+        if payload.admin_note:
+            blockchain.add_feedback_admin_note(
+                feedback_id,
+                note=payload.admin_note,
+                created_by=payload.reviewed_by,
+            )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    current_status = str(record.get("status") or "").strip().lower()
+    current_priority = str(record.get("priority") or "").strip().lower()
+    if payload.status is not None and current_status != previous_status:
+        _record_admin_audit_event(
+            request=request,
+            action="feedback_status_changed",
+            session=_admin_session,
+            feedback_id=feedback_id,
+            reason=current_status,
+        )
+    if payload.priority is not None and current_priority != previous_priority:
+        _record_admin_audit_event(
+            request=request,
+            action="feedback_priority_changed",
+            session=_admin_session,
+            feedback_id=feedback_id,
+            reason=current_priority,
+        )
+    if payload.admin_note:
+        _record_admin_audit_event(
+            request=request,
+            action="feedback_note_added",
+            session=_admin_session,
+            feedback_id=feedback_id,
+            operator_note=payload.admin_note,
+        )
+    return {
+        "message": "Feedback updated.",
+        "feedback": _admin_feedback(record),
+    }
+
+
+@app.post("/admin/feedback/{feedback_id}/status")
+@api_limit("wallet_create")
+async def admin_update_feedback_status(
+    request: Request,
+    feedback_id: str,
+    payload: AdminFeedbackStatusRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    record = blockchain.get_feedback(feedback_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Feedback not found: {feedback_id}")
+    previous_status = str(record.get("status") or "").strip().lower()
+    try:
+        record = blockchain.update_feedback(
+            feedback_id,
+            status=payload.status,
+            reviewed_by=payload.reviewed_by,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    current_status = str(record.get("status") or "").strip().lower()
+    if current_status != previous_status:
+        _record_admin_audit_event(
+            request=request,
+            action="feedback_status_changed",
+            session=_admin_session,
+            feedback_id=feedback_id,
+            reason=current_status,
+        )
+    return {
+        "message": "Feedback status updated.",
+        "feedback": _admin_feedback(record),
+    }
+
+
+@app.post("/admin/feedback/{feedback_id}/note")
+@api_limit("wallet_create")
+async def admin_add_feedback_note(
+    request: Request,
+    feedback_id: str,
+    payload: AdminFeedbackNoteRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    record = blockchain.get_feedback(feedback_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"Feedback not found: {feedback_id}")
+    try:
+        note = blockchain.add_feedback_admin_note(
+            feedback_id,
+            note=payload.note,
+            created_by=payload.created_by,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="feedback_note_added",
+        session=_admin_session,
+        feedback_id=feedback_id,
+        operator_note=note.get("note"),
+    )
+    return {
+        "message": "Feedback note added.",
+        "feedback": _admin_feedback(record),
+        "note": note,
     }
 
 

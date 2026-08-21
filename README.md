@@ -386,3 +386,27 @@ Important Task 11.1 notes:
 Task 11.1 docs:
 
 - [docs/task-11-1-admin-allowlist-override-requests.md](/C:/Users/mattk/ZoidbergChain/docs/task-11-1-admin-allowlist-override-requests.md)
+
+## Task 11.2 In-App User Feedback System
+
+As of Friday, August 21, 2026, Task 11.2 adds lightweight in-app beta feedback intake plus admin review tooling.
+
+New capabilities:
+
+- `POST /feedback` for user-reported bugs, confusing UI, wallet trouble, mobile issues, access issues, submission issues, voting issues, rewards issues, and suggestions
+- optional safe wallet, page, device, and eligibility context on feedback submissions
+- persistent feedback storage in the existing backend document model
+- `/admin` feedback queue, detail view, status updates, priority updates, and admin notes
+- admin ops feedback summary counts and audit coverage for feedback actions
+
+Important Task 11.2 notes:
+
+- feedback submission does not grant access or change eligibility
+- admin feedback tools remain admin-auth protected
+- private keys, seed phrases, invite codes, and secrets must never be submitted
+- this is a controlled-beta feedback queue, not a full helpdesk or CRM
+- no email notification is included yet
+
+Task 11.2 docs:
+
+- [docs/task-11-2-in-app-user-feedback-system.md](/C:/Users/mattk/ZoidbergChain/docs/task-11-2-in-app-user-feedback-system.md)

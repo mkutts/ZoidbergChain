@@ -1303,7 +1303,7 @@
                 "original_filename": "images.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787324171.1187463,
+            "verified_at": 1787329844.306603,
             "verification_error": null
         },
         {
@@ -1325,7 +1325,7 @@
                 "original_filename": "image-1-8-6a26c8c34355c__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787324171.1189835,
+            "verified_at": 1787329556.1173706,
             "verification_error": null
         },
         {
@@ -1370,7 +1370,7 @@
                 "original_filename": "image-1-2-6a2f98fe763a8__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787324171.1193166,
+            "verified_at": 1787329556.117724,
             "verification_error": null
         },
         {
@@ -1392,7 +1392,7 @@
                 "original_filename": "870740530199752705-png__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787324171.1194756,
+            "verified_at": 1787329556.1178937,
             "verification_error": null
         },
         {
@@ -1414,7 +1414,7 @@
                 "original_filename": "6a2f984602a33_random-memes-tiedyehomie__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787324171.1196442,
+            "verified_at": 1787329556.118085,
             "verification_error": null
         }
     ],
@@ -2375,6 +2375,7 @@
     ],
     "allowlist_entries": [],
     "override_requests": [],
+    "feedback_records": [],
     "audit_logs": [
         {
             "action": "admin_login_success",
@@ -2435,6 +2436,40 @@
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
             "audit_id": "09c9a5ad8651bb3c807504edf84b766c",
             "timestamp": "2026-08-21T15:02:43.834641+00:00"
+        },
+        {
+            "action": "admin_login_success",
+            "result": "ok",
+            "actor_session_id": "d2c93e143d71",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "275d850a0a69d577a6c0e273052646d3",
+            "timestamp": "2026-08-21T16:34:31.777607+00:00"
+        },
+        {
+            "action": "admin_ops_viewed",
+            "result": "ok",
+            "actor_session_id": "d2c93e143d71",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "e26a6038b928268ca4d49b79f51e70c0",
+            "timestamp": "2026-08-21T16:34:32.106734+00:00"
         }
     ],
     "wallets": {
@@ -2649,6 +2684,18 @@
         "032515da0e6b82183396c951f296170c806eb5ca0b77aa3ccf15b4a36e9486ddb4": {
             "public_key": "032515da0e6b82183396c951f296170c806eb5ca0b77aa3ccf15b4a36e9486ddb4",
             "private_key": "414122823a6629fe2a411bc3d2d7d19d3366c01df68c63845962cfe30f2a5c70"
+        },
+        "03ce2010de175bffb6715d0f393f4c70723fab73409267da58090b7bea92a190ce": {
+            "public_key": "03ce2010de175bffb6715d0f393f4c70723fab73409267da58090b7bea92a190ce",
+            "private_key": "f4549d3e53315bef91367cf611bc64a8ed72f924a8844e11e5b3bf05a60e58a7"
+        },
+        "036891752a4264d337fd0468246a1e769962ead97537372b804512391b161d09b9": {
+            "public_key": "036891752a4264d337fd0468246a1e769962ead97537372b804512391b161d09b9",
+            "private_key": "6c6263d69ab0facc5848122c44dbaa000b97d00ca0fd7490210ee874f784051a"
+        },
+        "02df7aaec8e82638d7ca2cf6a378a9e3c7fe97ba4eff26ca487210939d7a56f4ca": {
+            "public_key": "02df7aaec8e82638d7ca2cf6a378a9e3c7fe97ba4eff26ca487210939d7a56f4ca",
+            "private_key": "9ad73eb620a26879e7986150d73f5fa447a7ec787fa85672591d79778820be3a"
         }
     },
     "peers": []

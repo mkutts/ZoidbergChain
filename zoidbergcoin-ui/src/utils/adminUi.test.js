@@ -57,6 +57,8 @@ test('ops metric cards summarize the most useful admin dashboard counts', () => 
       chain_height: 42,
       pending_access_requests: 3,
       pending_review_submissions: 2,
+      new_feedback_count: 5,
+      open_feedback_count: 4,
       mempool_size: 4,
       peer_count: 1,
     },
@@ -70,7 +72,9 @@ test('ops metric cards summarize the most useful admin dashboard counts', () => 
   assert.equal(cards[0].value, 'testnet');
   assert.equal(cards[2].value, 42);
   assert.equal(cards[3].value, 3);
-  assert.match(cards[7].value, /^#42 abc123456789/i);
+  assert.equal(cards[5].value, 5);
+  assert.equal(cards[6].value, 4);
+  assert.match(cards[9].value, /^#42 abc123456789/i);
 });
 
 test('ops health tone reports warning and error states clearly', () => {

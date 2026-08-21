@@ -9,6 +9,9 @@
       <p v-if="showPublicDemoNotice" class="wallet-demo-note">
         Controlled testnet. Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
       </p>
+      <div class="wallet-actions wallet-feedback-actions">
+        <a href="#feedback-panel" class="wallet-btn secondary compact feedback-link">Send Feedback</a>
+      </div>
     </div>
 
     <div class="wallet-card" :class="{ connected: wallet.state.isConnected }">
@@ -1090,6 +1093,10 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.wallet-feedback-actions {
+  margin-top: 16px;
 }
 
 .eligibility-checklist {

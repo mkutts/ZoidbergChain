@@ -226,6 +226,190 @@
             </div>
           </section>
 
+          <section class="panel full-span-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">Feedback</p>
+                <h2>Review beta user feedback</h2>
+              </div>
+              <button class="secondary-button" :disabled="admin.state.isLoadingFeedback" @click="refreshFeedback">
+                {{ admin.state.isLoadingFeedback ? 'Refreshing...' : 'Refresh Feedback' }}
+              </button>
+            </div>
+
+            <div class="metric-card-grid">
+              <div class="metric-card">
+                <span>New</span>
+                <strong>{{ feedbackSummary?.new_feedback_count ?? 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Open</span>
+                <strong>{{ feedbackSummary?.open_feedback_count ?? 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>High / Urgent</span>
+                <strong>{{ feedbackSummary?.high_priority_feedback_count ?? 0 }}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Latest</span>
+                <strong>{{ formatDate(feedbackSummary?.latest_feedback_timestamp) }}</strong>
+              </div>
+            </div>
+
+            <div class="form-stack feedback-filter-grid">
+              <div class="field-group">
+                <label for="feedback-status-filter">Status</label>
+                <select id="feedback-status-filter" v-model="feedbackStatusFilter" class="input-field">
+                  <option value="">All statuses</option>
+                  <option value="new">New</option>
+                  <option value="reviewed">Reviewed</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                  <option value="dismissed">Dismissed</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="feedback-type-filter">Type</label>
+                <select id="feedback-type-filter" v-model="feedbackTypeFilter" class="input-field">
+                  <option value="">All types</option>
+                  <option value="bug">Bug</option>
+                  <option value="confusing_ui">Confusing UI</option>
+                  <option value="wallet_connection_issue">Wallet Connection Issue</option>
+                  <option value="mobile_issue">Mobile Issue</option>
+                  <option value="access_allowlist_issue">Access / Allowlist Issue</option>
+                  <option value="submission_upload_issue">Submission / Upload Issue</option>
+                  <option value="voting_review_issue">Voting / Review Issue</option>
+                  <option value="rewards_balance_issue">Rewards / Balance Issue</option>
+                  <option value="general_suggestion">General Suggestion</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="feedback-priority-filter">Priority</label>
+                <select id="feedback-priority-filter" v-model="feedbackPriorityFilter" class="input-field">
+                  <option value="">All priorities</option>
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="feedback-admin-grid">
+              <div class="feedback-list">
+                <div v-if="feedbackEntries.length === 0" class="empty-state">
+                  No matching feedback has been submitted yet.
+                </div>
+
+                <div
+                  v-for="item in feedbackEntries"
+                  :key="item.feedback_id"
+                  class="feedback-card"
+                  :class="{ active: selectedFeedback?.feedback_id === item.feedback_id }"
+                >
+                  <div class="card-topline">
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.status }}</span>
+                  </div>
+                  <p class="meta-row">{{ item.type }} Â· {{ item.priority }} Â· {{ formatDate(item.created_at) }}</p>
+                  <p v-if="item.wallet_address" class="muted-copy">Wallet {{ item.wallet_address }}</p>
+                  <p v-if="item.current_page" class="muted-copy">{{ item.current_page }}</p>
+                  <button class="ghost-button small-button" @click="selectFeedback(item)">
+                    {{ selectedFeedback?.feedback_id === item.feedback_id ? 'Selected' : 'View Detail' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="feedback-detail">
+                <div v-if="!selectedFeedback" class="empty-state">
+                  Select a feedback item to review details, add notes, or change status.
+                </div>
+
+                <template v-else>
+                  <div class="detail-block">
+                    <p class="detail-line">
+                      <strong>Feedback ID:</strong>
+                      <span class="detail-value">{{ selectedFeedback.feedback_id }}</span>
+                      <button class="ghost-button small-button" type="button" @click="copyText(selectedFeedback.feedback_id)">Copy</button>
+                    </p>
+                    <p><strong>Type:</strong> {{ selectedFeedback.type }}</p>
+                    <p><strong>Status:</strong> {{ selectedFeedback.status }}</p>
+                    <p><strong>Priority:</strong> {{ selectedFeedback.priority }}</p>
+                    <p><strong>Submitted:</strong> {{ formatDate(selectedFeedback.created_at) }}</p>
+                    <p><strong>Updated:</strong> {{ formatDate(selectedFeedback.updated_at) }}</p>
+                    <p><strong>Title:</strong> {{ selectedFeedback.title }}</p>
+                    <p><strong>Description:</strong> {{ selectedFeedback.description }}</p>
+                    <p><strong>Name:</strong> {{ selectedFeedback.name || 'Not provided' }}</p>
+                    <p><strong>Email:</strong> {{ selectedFeedback.email || 'Not provided' }}</p>
+                    <p><strong>Handle:</strong> {{ selectedFeedback.handle || 'Not provided' }}</p>
+                    <p><strong>Wallet:</strong> {{ selectedFeedback.wallet_address || 'Not provided' }}</p>
+                    <p><strong>Access account:</strong> {{ selectedFeedback.access_account_id || 'Not provided' }}</p>
+                    <p><strong>Page:</strong> {{ selectedFeedback.current_page || 'Not provided' }}</p>
+                    <p><strong>Flow:</strong> {{ selectedFeedback.current_flow || 'Not provided' }}</p>
+                    <p><strong>Device:</strong> {{ formatFeedbackDevice(selectedFeedback) }}</p>
+                  </div>
+
+                  <div class="form-stack feedback-action-grid">
+                    <div class="field-group">
+                      <label for="feedback-reviewed-by">Reviewed by</label>
+                      <input id="feedback-reviewed-by" v-model="feedbackReviewedBy" class="input-field" type="text">
+                    </div>
+                    <div class="field-group">
+                      <label for="feedback-new-status">Status</label>
+                      <select id="feedback-new-status" v-model="feedbackNewStatus" class="input-field">
+                        <option value="new">New</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="dismissed">Dismissed</option>
+                      </select>
+                    </div>
+                    <div class="field-group">
+                      <label for="feedback-new-priority">Priority</label>
+                      <select id="feedback-new-priority" v-model="feedbackNewPriority" class="input-field">
+                        <option value="low">Low</option>
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div class="field-group full-width-field">
+                      <label for="feedback-admin-note">Admin note</label>
+                      <textarea
+                        id="feedback-admin-note"
+                        v-model="feedbackAdminNote"
+                        class="input-field text-area"
+                        placeholder="Leave an operator note or a next step for this item."
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  <div class="inline-actions wrap-actions">
+                    <button class="primary-button" :disabled="admin.state.isSubmitting" @click="applyFeedbackUpdate">
+                      Update Status + Priority
+                    </button>
+                    <button class="secondary-button" :disabled="admin.state.isSubmitting || !feedbackAdminNote.trim()" @click="addSelectedFeedbackNote">
+                      Add Note
+                    </button>
+                  </div>
+
+                  <div class="detail-card">
+                    <p class="section-label">Admin Notes</p>
+                    <div v-if="(selectedFeedback.admin_notes || []).length === 0" class="empty-state">
+                      No admin notes recorded yet.
+                    </div>
+                    <div v-for="note in selectedFeedback.admin_notes || []" :key="note.note_id" class="timeline-item">
+                      <strong>{{ note.created_by || 'operator' }}</strong>
+                      <p class="meta-row">{{ formatDate(note.created_at) }}</p>
+                      <p class="muted-copy">{{ note.note }}</p>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </section>
+
           <section class="panel">
             <div class="panel-heading">
               <div>
@@ -690,18 +874,26 @@ const safetyLines = adminSafetyLines();
 const loginPassword = ref('');
 const selectedRequest = ref(null);
 const selectedOverrideRequest = ref(null);
+const selectedFeedback = ref(null);
 const reviewedBy = ref('operator');
 const requestNotes = ref('');
 const requestMaxWallets = ref(1);
 const overrideReviewedBy = ref('operator');
 const overrideAdminNote = ref('');
 const overrideResolvedScope = ref('review');
+const feedbackReviewedBy = ref('operator');
+const feedbackAdminNote = ref('');
+const feedbackNewStatus = ref('reviewed');
+const feedbackNewPriority = ref('normal');
 const isRefreshing = ref(false);
 const viewportWidth = ref(typeof window === 'undefined' ? 0 : window.innerWidth);
 const copyFeedback = ref('');
 const allowlistScopeFilter = ref('');
 const allowlistStatusFilter = ref('');
 const overrideStatusFilter = ref('pending');
+const feedbackStatusFilter = ref('new');
+const feedbackTypeFilter = ref('');
+const feedbackPriorityFilter = ref('');
 
 const inviteForm = reactive({
   name: '',
@@ -726,8 +918,10 @@ const opsPanelVisible = computed(() => shouldShowAdminOpsPanel(admin.state.sessi
 const pendingRequests = computed(() => admin.state.requests.filter((request) => request.status === 'pending'));
 const allowlistEntries = computed(() => admin.state.allowlistEntries || []);
 const overrideRequests = computed(() => admin.state.overrideRequests || []);
+const feedbackEntries = computed(() => admin.state.feedbackItems || []);
 const usesMobileCards = computed(() => shouldUseStackedAdminCards(viewportWidth.value));
 const opsStatus = computed(() => admin.state.opsStatus);
+const feedbackSummary = computed(() => admin.state.feedbackSummary || opsStatus.value?.feedback_summary || null);
 const auditEntries = computed(() => admin.state.auditLog || []);
 const opsMetricCards = computed(() => buildAdminOpsMetricCards(opsStatus.value));
 const opsWarnings = computed(() => buildAdminOpsWarnings(opsStatus.value));
@@ -799,6 +993,29 @@ function formatAuditActor(entry) {
   return parts.join(' · ');
 }
 
+function formatFeedbackDevice(entry) {
+  if (!entry) {
+    return 'Not provided';
+  }
+  const parts = [];
+  if (entry.browser_metadata?.platform) {
+    parts.push(entry.browser_metadata.platform);
+  }
+  if (entry.browser_metadata?.language) {
+    parts.push(entry.browser_metadata.language);
+  }
+  if (entry.viewport_width && entry.viewport_height) {
+    parts.push(`${entry.viewport_width}x${entry.viewport_height}`);
+  }
+  if (entry.is_mobile) {
+    parts.push('mobile');
+  }
+  if (entry.user_agent) {
+    parts.push(entry.user_agent);
+  }
+  return parts.length > 0 ? parts.join(' Â· ') : 'Not provided';
+}
+
 async function refreshDashboard() {
   isRefreshing.value = true;
   try {
@@ -807,6 +1024,12 @@ async function refreshDashboard() {
       admin.loadAccounts(),
       admin.loadAllowlist({ scope: allowlistScopeFilter.value, status: allowlistStatusFilter.value }),
       admin.loadOverrideRequests({ status: overrideStatusFilter.value }),
+      admin.loadFeedback({
+        status: feedbackStatusFilter.value,
+        type: feedbackTypeFilter.value,
+        priority: feedbackPriorityFilter.value,
+        limit: 100,
+      }),
       admin.loadOpsStatus(),
       admin.loadAuditLog({ limit: 20 }),
     ]);
@@ -829,6 +1052,8 @@ async function handleLogin() {
 async function handleLogout() {
   await admin.logout();
   selectedRequest.value = null;
+  selectedOverrideRequest.value = null;
+  selectedFeedback.value = null;
   copyFeedback.value = '';
 }
 
@@ -931,6 +1156,21 @@ async function refreshOverrideRequests() {
   await admin.loadOverrideRequests({ status: overrideStatusFilter.value });
 }
 
+async function refreshFeedback() {
+  await admin.loadFeedback({
+    status: feedbackStatusFilter.value,
+    type: feedbackTypeFilter.value,
+    priority: feedbackPriorityFilter.value,
+    limit: 100,
+  });
+  if (selectedFeedback.value?.feedback_id) {
+    const detail = await admin.loadFeedbackDetail(selectedFeedback.value.feedback_id);
+    if (detail) {
+      selectedFeedback.value = detail;
+    }
+  }
+}
+
 async function approveOverrideRequest() {
   if (!selectedOverrideRequest.value) {
     return;
@@ -962,6 +1202,45 @@ async function rejectOverrideRequest() {
     overrideAdminNote.value = '';
     overrideResolvedScope.value = 'review';
     await refreshOverrideRequests();
+  }
+}
+
+async function selectFeedback(item) {
+  const detail = await admin.loadFeedbackDetail(item.feedback_id);
+  selectedFeedback.value = detail || item;
+  feedbackReviewedBy.value = 'operator';
+  feedbackNewStatus.value = selectedFeedback.value?.status || 'reviewed';
+  feedbackNewPriority.value = selectedFeedback.value?.priority || 'normal';
+  feedbackAdminNote.value = '';
+}
+
+async function applyFeedbackUpdate() {
+  if (!selectedFeedback.value) {
+    return;
+  }
+  const result = await admin.updateFeedback(selectedFeedback.value.feedback_id, {
+    status: feedbackNewStatus.value,
+    priority: feedbackNewPriority.value,
+    reviewed_by: feedbackReviewedBy.value,
+  });
+  if (result?.feedback) {
+    selectedFeedback.value = result.feedback;
+    await refreshFeedback();
+  }
+}
+
+async function addSelectedFeedbackNote() {
+  if (!selectedFeedback.value || !feedbackAdminNote.value.trim()) {
+    return;
+  }
+  const result = await admin.addFeedbackNote(selectedFeedback.value.feedback_id, {
+    note: feedbackAdminNote.value,
+    created_by: feedbackReviewedBy.value,
+  });
+  if (result?.feedback) {
+    selectedFeedback.value = result.feedback;
+    feedbackAdminNote.value = '';
+    await refreshFeedback();
   }
 }
 
@@ -1227,7 +1506,10 @@ onBeforeUnmount(() => {
 .metric-card-grid,
 .ops-detail-grid,
 .timeline-grid,
-.audit-log-grid {
+.audit-log-grid,
+.feedback-admin-grid,
+.feedback-filter-grid,
+.feedback-action-grid {
   display: grid;
   gap: 14px;
 }
@@ -1257,6 +1539,44 @@ onBeforeUnmount(() => {
 .ops-detail-grid,
 .timeline-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.feedback-filter-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.feedback-admin-grid {
+  grid-template-columns: minmax(300px, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+}
+
+.feedback-list,
+.feedback-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.feedback-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 115, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 10px;
+}
+
+.feedback-card.active {
+  border-color: rgba(255, 205, 115, 0.38);
+  box-shadow: 0 0 0 1px rgba(255, 205, 115, 0.18);
+}
+
+.feedback-action-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.full-width-field {
+  grid-column: span 3;
 }
 
 .warning-list {
@@ -1399,8 +1719,15 @@ onBeforeUnmount(() => {
 
   .metric-card-grid,
   .ops-detail-grid,
-  .timeline-grid {
+  .timeline-grid,
+  .feedback-filter-grid,
+  .feedback-admin-grid,
+  .feedback-action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .full-width-field {
+    grid-column: span 1;
   }
 }
 

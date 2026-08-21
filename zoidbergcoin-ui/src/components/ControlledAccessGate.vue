@@ -8,6 +8,10 @@
       <p class="lead">
         Access is invite-only while we test voting, rewards, and network safety. Test ZOID has no real monetary value, and this does not represent mainnet.
       </p>
+      <div class="top-feedback-cta">
+        <a href="#feedback-panel" class="ghost-btn feedback-shortcut">Send Feedback</a>
+        <p class="wallet-note">If something is broken or confusing, you can report it directly from this screen.</p>
+      </div>
 
       <div class="rules-panel">
         <p class="section-label">Allowlist / Beta Eligibility Rules</p>
@@ -293,6 +297,15 @@
         </form>
       </section>
 
+      <FeedbackPanel
+        headline="Blocked or stuck? Send feedback."
+        intro-copy="If wallet setup, allowlist access, mobile behavior, or beta rules are getting in your way, send a note directly from this screen."
+        toggle-label="Open Feedback Form"
+        entry-point="access_gate"
+        :default-open="false"
+        panel-id="feedback-panel"
+      />
+
       <p v-if="access.state.successMessage" class="status success">{{ access.state.successMessage }}</p>
       <p v-if="wallet.state.errorMessage" class="status error">{{ wallet.state.errorMessage }}</p>
       <p v-if="access.state.errorMessage" class="status error">{{ access.state.errorMessage }}</p>
@@ -303,6 +316,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import PublicDemoBanner from './PublicDemoBanner.vue';
+import FeedbackPanel from './FeedbackPanel.vue';
 import { useWallet } from '../services/wallet';
 import { useAccess } from '../services/access';
 import {
@@ -754,6 +768,21 @@ h2 {
 
 .lead {
   margin: 0 0 22px;
+}
+
+.top-feedback-cta {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 115, 0.16);
+  background: rgba(255, 205, 115, 0.06);
+}
+
+.feedback-shortcut {
+  text-decoration: none;
+  text-align: center;
 }
 
 .eligibility-checklist {

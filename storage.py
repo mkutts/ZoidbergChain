@@ -34,6 +34,7 @@ _STORAGE_SECTIONS = (
     "wallet_bindings",
     "allowlist_entries",
     "override_requests",
+    "feedback_records",
     "audit_logs",
     "peers",
 )
@@ -75,6 +76,8 @@ def _default_section_value(section_name):
     if section_name == "allowlist_entries":
         return []
     if section_name == "override_requests":
+        return []
+    if section_name == "feedback_records":
         return []
     if section_name == "audit_logs":
         return []
@@ -969,6 +972,7 @@ class SQLiteStorageBackend(StorageBackend):
             "wallet_bindings": sections["wallet_bindings"],
             "allowlist_entries": sections["allowlist_entries"],
             "override_requests": sections["override_requests"],
+            "feedback_records": sections["feedback_records"],
             "audit_logs": sections["audit_logs"],
             "peers": sections["peers"],
         }

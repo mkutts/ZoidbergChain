@@ -8,6 +8,8 @@ function createInitialState() {
     accounts: [],
     allowlistEntries: [],
     overrideRequests: [],
+    feedbackItems: [],
+    feedbackSummary: null,
     selectedAccount: null,
     opsStatus: null,
     auditLog: [],
@@ -21,6 +23,7 @@ function createInitialState() {
     isLoadingAccounts: false,
     isLoadingAllowlist: false,
     isLoadingOverrideRequests: false,
+    isLoadingFeedback: false,
     isLoadingOpsStatus: false,
     isLoadingAuditLog: false,
     isSubmitting: false,
@@ -83,6 +86,8 @@ export function createAdminService(options = {}) {
       state.accounts = [];
       state.allowlistEntries = [];
       state.overrideRequests = [];
+      state.feedbackItems = [];
+      state.feedbackSummary = null;
       state.selectedAccount = null;
       state.opsStatus = null;
       state.auditLog = [];
@@ -297,6 +302,98 @@ export function createAdminService(options = {}) {
     }
   }
 
+  async function loadFeedback(params = {}) {
+    state.isLoadingFeedback = true;
+    clearMessages();
+    try {
+      const search = new URLSearchParams();
+      if (params.status) {
+        search.set('status', String(params.status));
+      }
+      if (params.type) {
+        search.set('type', String(params.type));
+      }
+      if (params.priority) {
+        search.set('priority', String(params.priority));
+      }
+      if (params.limit) {
+        search.set('limit', String(params.limit));
+      }
+      const query = search.size ? `?${search.toString()}` : '';
+      const response = await adminApi.get(`/admin/feedback${query}`);
+      state.feedbackItems = Array.isArray(response.data?.feedback_items) ? response.data.feedback_items : [];
+      state.feedbackSummary = response.data?.summary || null;
+      return state.feedbackItems;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load feedback.');
+      return [];
+    } finally {
+      state.isLoadingFeedback = false;
+    }
+  }
+
+  async function loadFeedbackDetail(feedbackId) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.get(`/admin/feedback/${feedbackId}`);
+      return response.data?.feedback || null;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load feedback detail.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function updateFeedback(feedbackId, payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.patch(`/admin/feedback/${feedbackId}`, payload);
+      state.successMessage = response.data?.message || 'Feedback updated.';
+      await loadFeedback();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to update feedback.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function updateFeedbackStatus(feedbackId, payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post(`/admin/feedback/${feedbackId}/status`, payload);
+      state.successMessage = response.data?.message || 'Feedback status updated.';
+      await loadFeedback();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to update feedback status.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function addFeedbackNote(feedbackId, payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post(`/admin/feedback/${feedbackId}/note`, payload);
+      state.successMessage = response.data?.message || 'Feedback note added.';
+      await loadFeedback();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to add feedback note.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
   async function approveOverrideRequest(overrideRequestId, payload) {
     state.isSubmitting = true;
     clearMessages();
@@ -444,6 +541,11 @@ export function createAdminService(options = {}) {
     loadOverrideRequests,
     approveOverrideRequest,
     rejectOverrideRequest,
+    loadFeedback,
+    loadFeedbackDetail,
+    updateFeedback,
+    updateFeedbackStatus,
+    addFeedbackNote,
     loadOpsStatus,
     loadAuditLog,
     loadAccountDetail,

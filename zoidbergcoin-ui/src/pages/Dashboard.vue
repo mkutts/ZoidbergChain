@@ -11,11 +11,19 @@
         <button @click="refreshWorkflow" class="btn secondary" :disabled="isRefreshing">
           {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
         </button>
+        <a href="#feedback-panel" class="btn primary feedback-link">Send Feedback</a>
         <router-link to="/blockchain" class="btn ghost">Explorer</router-link>
       </div>
     </header>
 
     <WalletPanel />
+    <FeedbackPanel
+      headline="Found a bug or something confusing? Send feedback."
+      intro-copy="This is a controlled beta, so rough edges are expected. Send a quick note if submission, wallet, mobile, voting, or rewards flows feel off."
+      toggle-label="Open Feedback Form"
+      entry-point="dashboard"
+      panel-id="feedback-panel"
+    />
 
     <main class="dashboard-shell">
       <section class="section-panel summary-panel">
@@ -878,6 +886,7 @@
 import { apiClient, buildApiUrl, getApiErrorMessage, publicApiClient } from '../config/api';
 import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import WalletPanel from '../components/WalletPanel.vue';
+import FeedbackPanel from '../components/FeedbackPanel.vue';
 import { useWallet } from '../services/wallet';
 import { useAccess } from '../services/access';
 import {

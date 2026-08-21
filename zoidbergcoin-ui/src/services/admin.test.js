@@ -337,3 +337,78 @@ test('admin can reject override requests', async () => {
 
   assert.equal(rejected.override_request.status, 'rejected');
 });
+
+test('admin can load feedback and summary counts', async () => {
+  const adminApi = createMockClient();
+  adminApi.getHandlers.set('/admin/feedback?status=new&type=bug&priority=high&limit=50', async () => ({
+    data: {
+      summary: {
+        new_feedback_count: 3,
+        open_feedback_count: 4,
+        high_priority_feedback_count: 2,
+      },
+      feedback_items: [
+        {
+          feedback_id: 'fb-1',
+          type: 'bug',
+          title: 'Mobile overlap',
+          status: 'new',
+          priority: 'high',
+        },
+      ],
+    },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const feedback = await admin.loadFeedback({ status: 'new', type: 'bug', priority: 'high', limit: 50 });
+
+  assert.equal(feedback.length, 1);
+  assert.equal(admin.state.feedbackItems[0].feedback_id, 'fb-1');
+  assert.equal(admin.state.feedbackSummary.high_priority_feedback_count, 2);
+});
+
+test('admin can update feedback and add notes', async () => {
+  const adminApi = createMockClient();
+  adminApi.patchHandlers.set('/admin/feedback/fb-2', async () => ({
+    data: {
+      message: 'Feedback updated.',
+      feedback: {
+        feedback_id: 'fb-2',
+        status: 'in_progress',
+        priority: 'urgent',
+      },
+    },
+  }));
+  adminApi.postHandlers.set('/admin/feedback/fb-2/note', async () => ({
+    data: {
+      message: 'Feedback note added.',
+      feedback: {
+        feedback_id: 'fb-2',
+        admin_notes: [
+          { note_id: 'note-1', note: 'Reproduced locally.' },
+        ],
+      },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/feedback', async () => ({
+    data: {
+      summary: { new_feedback_count: 0, open_feedback_count: 1, high_priority_feedback_count: 1 },
+      feedback_items: [{ feedback_id: 'fb-2', status: 'in_progress', priority: 'urgent' }],
+    },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const updated = await admin.updateFeedback('fb-2', {
+    status: 'in_progress',
+    priority: 'urgent',
+    reviewed_by: 'operator',
+  });
+  const noted = await admin.addFeedbackNote('fb-2', {
+    note: 'Reproduced locally.',
+    created_by: 'operator',
+  });
+
+  assert.equal(updated.feedback.status, 'in_progress');
+  assert.equal(updated.feedback.priority, 'urgent');
+  assert.equal(noted.feedback.admin_notes[0].note, 'Reproduced locally.');
+});

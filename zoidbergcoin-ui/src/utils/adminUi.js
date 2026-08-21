@@ -75,6 +75,8 @@ export function buildAdminOpsMetricCards(opsStatus) {
     { label: 'Chain height', value: metrics.chain_height ?? health.chain_height ?? 'n/a' },
     { label: 'Pending access', value: metrics.pending_access_requests ?? health.pending_access_requests_count ?? 0 },
     { label: 'Pending review', value: metrics.pending_review_submissions ?? 0 },
+    { label: 'New feedback', value: metrics.new_feedback_count ?? opsStatus.feedback_summary?.new_feedback_count ?? 0 },
+    { label: 'Open feedback', value: metrics.open_feedback_count ?? opsStatus.feedback_summary?.open_feedback_count ?? 0 },
     { label: 'Mempool', value: metrics.mempool_size ?? health.mempool_transaction_count ?? 0 },
     { label: 'Peers', value: metrics.peer_count ?? health.peer_count ?? 0 },
     { label: 'Latest block', value: latestBlock.hash ? `#${latestBlock.index ?? '?'} ${latestBlock.hash.slice(0, 12)}...` : 'Not available' },

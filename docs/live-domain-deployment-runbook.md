@@ -4,6 +4,26 @@ This runbook guides the manual server-side deployment of the controlled public d
 
 It does not perform the live deployment by itself. DNS, server access, Certbot, and final smoke checks remain operator-driven steps.
 
+## Local Preflight Before Push
+
+Run locally before touching the server:
+
+```bash
+git diff --stat
+python -m pytest
+cd zoidbergcoin-ui
+npm test
+npm run build
+```
+
+Confirm:
+
+- there are no accidental secret changes in the diff
+- backend tests pass
+- frontend tests pass
+- frontend production build passes
+- GitHub Actions for `main` are green before the live update continues
+
 ## Preflight Questions
 
 Fill these values in before running commands:
@@ -88,8 +108,9 @@ Or update:
 
 ```bash
 cd /srv/zoidbergchain/current
-sudo -u <DEPLOY_USER> git fetch --all --tags
-sudo -u <DEPLOY_USER> git pull --ff-only
+sudo -u <DEPLOY_USER> git fetch origin
+sudo -u <DEPLOY_USER> git checkout main
+sudo -u <DEPLOY_USER> git reset --hard origin/main
 ```
 
 Python virtual environment:
@@ -267,8 +288,12 @@ Verify:
 - wallet connect is visible
 - dev tools are hidden
 - `/api/health` works
+- `/api/status` works
+- `/api/ops/status` works
 - `/api/node-info` works
 - `/api/chain/summary` works
+- `/api/access/status` still reports `invite_only`
+- `/api/admin/session` does not authenticate a public visitor
 - explorer loads
 - no private keys in public responses
 - no session tokens in public responses
@@ -330,7 +355,7 @@ Do not archive the live secret contents into the repository.
 4. restore previous `.env`
 5. restore latest state backup if needed
 6. restart service
-7. verify health endpoint and explorer
+7. verify `/api/health`, `/api/status`, `/api/access/status`, and explorer
 
 ## Report Template
 

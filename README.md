@@ -324,3 +324,36 @@ See the detailed runbooks in:
 - [docs/live-domain-deployment-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/live-domain-deployment-checklist.md)
 - [docs/testnet-reset-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-reset-runbook.md)
 - [docs/live-domain-deployment-runbook.md](/C:/Users/mattk/ZoidbergChain/docs/live-domain-deployment-runbook.md)
+
+## Task 10.6 Testnet Ops Hardening
+
+As of Friday, August 21, 2026, Task 10.6 adds safer public status visibility, admin-only ops visibility, persistent admin audit logs, and clearer testnet operator runbooks.
+
+New safe status and ops endpoints:
+
+- `GET /health`
+- `GET /status`
+- `GET /ops/status`
+- `GET /admin/ops/status`
+- `GET /admin/audit-log`
+
+New safe CLI diagnostics:
+
+- `python -m scripts.ops backup-status`
+- `python -m scripts.ops verify-backup`
+- `python -m scripts.ops sqlite-integrity-check`
+- `python -m scripts.ops env-validate`
+- `python -m scripts.ops storage-integrity`
+
+Important scope notes:
+
+- this is still a controlled testnet, not audited mainnet
+- deployment is still manual
+- audit logging is persistent but intentionally lightweight
+- this is safer operator visibility, not full production observability
+
+Task 10.6 docs:
+
+- [docs/task-10-6-testnet-ops-hardening.md](/C:/Users/mattk/ZoidbergChain/docs/task-10-6-testnet-ops-hardening.md)
+- [docs/testnet-restart-recovery-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-restart-recovery-checklist.md)
+- [docs/testnet-ops-troubleshooting.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-ops-troubleshooting.md)

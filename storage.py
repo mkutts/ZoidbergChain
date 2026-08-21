@@ -32,6 +32,7 @@ _STORAGE_SECTIONS = (
     "access_requests",
     "access_accounts",
     "wallet_bindings",
+    "audit_logs",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
@@ -68,6 +69,8 @@ def _default_section_value(section_name):
     if section_name == "access_accounts":
         return []
     if section_name == "wallet_bindings":
+        return []
+    if section_name == "audit_logs":
         return []
     if section_name == "peers":
         return []
@@ -958,6 +961,7 @@ class SQLiteStorageBackend(StorageBackend):
             "access_requests": sections["access_requests"],
             "access_accounts": sections["access_accounts"],
             "wallet_bindings": sections["wallet_bindings"],
+            "audit_logs": sections["audit_logs"],
             "peers": sections["peers"],
         }
 

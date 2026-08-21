@@ -26,8 +26,12 @@ def _set_security_mode(
     allow_reset=None,
 ):
     import api
+    import config
 
     reset_enabled = environment == "development" if allow_reset is None else allow_reset
+    monkeypatch.setattr(config, "ENVIRONMENT", environment)
+    monkeypatch.setattr(config, "PUBLIC_DEMO_MODE", environment in {"testnet", "production"})
+    monkeypatch.setattr(config, "public_demo_mode_enabled", lambda: environment in {"testnet", "production"})
     monkeypatch.setattr(api, "ENVIRONMENT", environment)
     monkeypatch.setattr(api, "is_development", lambda: environment == "development")
     monkeypatch.setattr(api, "is_production", lambda: environment == "production")

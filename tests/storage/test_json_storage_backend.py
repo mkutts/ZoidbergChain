@@ -67,6 +67,7 @@ def test_json_storage_backend_loads_existing_chain_data(isolated_data_dir):
         "access_requests": [],
         "access_accounts": [],
         "wallet_bindings": [],
+        "audit_logs": [],
     }
     assert backend.load_chain() == chain
 

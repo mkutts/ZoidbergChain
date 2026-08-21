@@ -98,6 +98,134 @@
         </section>
 
         <section class="dashboard-grid">
+          <section v-if="opsPanelVisible" class="panel full-span-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">Ops</p>
+                <h2>Testnet health and recovery signals</h2>
+              </div>
+              <span class="health-pill" :class="`health-pill-${healthTone}`">{{ healthToneLabel }}</span>
+            </div>
+
+            <div v-if="admin.state.isLoadingOpsStatus && !opsStatus" class="empty-state">
+              Loading backend health and environment checks.
+            </div>
+
+            <template v-else-if="opsStatus">
+              <div class="metric-card-grid">
+                <div v-for="metric in opsMetricCards" :key="metric.label" class="metric-card">
+                  <span>{{ metric.label }}</span>
+                  <strong>{{ metric.value }}</strong>
+                </div>
+              </div>
+
+              <div v-if="opsWarnings.length > 0" class="warning-list">
+                <p v-for="warning in opsWarnings" :key="warning" class="warning-item">
+                  {{ warning }}
+                </p>
+              </div>
+
+              <div class="ops-detail-grid">
+                <div class="detail-card">
+                  <p class="section-label">Latest Block</p>
+                  <p class="meta-row">Height: {{ opsStatus.latest_block?.index ?? 'Not available' }}</p>
+                  <p class="meta-row">Hash: {{ opsStatus.latest_block?.hash || 'Not available' }}</p>
+                  <p class="meta-row">Certificate: {{ opsStatus.latest_block?.certificate_id || 'None' }}</p>
+                  <p class="meta-row">Submission: {{ opsStatus.latest_block?.submission_id || 'None' }}</p>
+                </div>
+
+                <div class="detail-card">
+                  <p class="section-label">Storage</p>
+                  <p class="meta-row">Database reachable: {{ yesNo(opsStatus.runtime_storage?.database?.reachable) }}</p>
+                  <p class="meta-row">Content storage reachable: {{ yesNo(opsStatus.runtime_storage?.content_storage?.reachable) }}</p>
+                  <p class="meta-row">Integrity healthy: {{ yesNo(opsStatus.integrity_status?.healthy) }}</p>
+                  <p class="meta-row">SQLite check: {{ opsStatus.sqlite_integrity?.message || 'Not available' }}</p>
+                </div>
+
+                <div class="detail-card">
+                  <p class="section-label">Backups</p>
+                  <p class="meta-row">Backup count: {{ opsStatus.backup_status?.backup_count ?? 0 }}</p>
+                  <p class="meta-row">Latest backup: {{ opsStatus.backup_status?.latest_backup?.name || 'None detected' }}</p>
+                  <p class="meta-row">Latest backup time: {{ formatDate(opsStatus.backup_status?.latest_backup?.modified_at) }}</p>
+                  <p class="meta-row">Public demo mode: {{ yesNo(opsStatus.public_demo_mode) }}</p>
+                </div>
+              </div>
+
+              <div class="timeline-grid">
+                <div class="timeline-card">
+                  <p class="section-label">Recent Access Requests</p>
+                  <div v-if="(opsStatus.recent_access_requests || []).length === 0" class="empty-state">
+                    No recent access request activity.
+                  </div>
+                  <div v-for="request in opsStatus.recent_access_requests || []" :key="request.request_id" class="timeline-item">
+                    <strong>{{ request.name }}</strong>
+                    <p class="meta-row">{{ request.status }} · {{ formatDate(request.reviewed_at || request.created_at) }}</p>
+                    <p class="muted-copy">{{ request.email }}</p>
+                  </div>
+                </div>
+
+                <div class="timeline-card">
+                  <p class="section-label">Recent Account Decisions</p>
+                  <div v-if="(opsStatus.recent_access_accounts || []).length === 0" class="empty-state">
+                    No recent account activity.
+                  </div>
+                  <div v-for="account in opsStatus.recent_access_accounts || []" :key="account.access_account_id" class="timeline-item">
+                    <strong>{{ account.name }}</strong>
+                    <p class="meta-row">{{ account.status }} · {{ formatDate(account.status_updated_at || account.approved_at || account.created_at) }}</p>
+                    <p class="muted-copy">{{ account.email }}</p>
+                  </div>
+                </div>
+
+                <div class="timeline-card">
+                  <p class="section-label">Recent Wallet Bindings</p>
+                  <div v-if="(opsStatus.recent_wallet_bindings || []).length === 0" class="empty-state">
+                    No recent wallet binding activity.
+                  </div>
+                  <div v-for="binding in opsStatus.recent_wallet_bindings || []" :key="binding.wallet_address" class="timeline-item">
+                    <strong>{{ binding.wallet_address }}</strong>
+                    <p class="meta-row">{{ binding.status }} · {{ formatDate(binding.revoked_at || binding.bound_at) }}</p>
+                    <p class="muted-copy">Account {{ binding.access_account_id || 'unknown' }}</p>
+                  </div>
+                </div>
+              </div>
+            </template>
+
+            <div v-else class="empty-state">
+              Ops status is not available yet.
+            </div>
+          </section>
+
+          <section v-if="opsPanelVisible" class="panel full-span-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">Audit Log</p>
+                <h2>Recent sensitive admin actions</h2>
+              </div>
+            </div>
+
+            <div v-if="admin.state.isLoadingAuditLog && auditEntries.length === 0" class="empty-state">
+              Loading recent admin audit events.
+            </div>
+
+            <div v-else-if="auditEntries.length === 0" class="empty-state">
+              No admin audit entries recorded yet.
+            </div>
+
+            <div v-else class="audit-log-grid">
+              <div v-for="entry in auditEntries" :key="`${entry.timestamp}-${entry.action}-${entry.actor_session_id || 'anon'}`" class="audit-card">
+                <div class="card-topline">
+                  <strong>{{ entry.action }}</strong>
+                  <span>{{ entry.result }}</span>
+                </div>
+                <p class="meta-row">{{ formatDate(entry.timestamp) }}</p>
+                <p v-if="formatAuditTargets(entry)" class="muted-copy">{{ formatAuditTargets(entry) }}</p>
+                <p v-if="formatAuditActor(entry)" class="muted-copy">{{ formatAuditActor(entry) }}</p>
+                <p v-if="entry.reason" class="muted-copy">Reason: {{ entry.reason }}</p>
+                <p v-if="entry.operator_note" class="muted-copy">Operator note: {{ entry.operator_note }}</p>
+              </div>
+            </div>
+          </section>
+
           <section class="panel">
             <div class="panel-heading">
               <div>
@@ -237,10 +365,22 @@
                 {{ account.wallet_count }} / {{ account.max_wallets }} wallets bound
               </p>
               <p class="meta-row">
+                Approved: {{ formatDate(account.approved_at) }}
+              </p>
+              <p class="meta-row">
+                Invite generated: {{ formatDate(account.invite_code_generated_at) }}
+              </p>
+              <p class="meta-row">
                 Invite redeemed: {{ account.invite_redeemed ? 'Yes' : 'No' }}
               </p>
               <p class="meta-row">
                 Last login: {{ formatDate(account.last_login_at) }}
+              </p>
+              <p class="meta-row">
+                Status updated: {{ formatDate(account.status_updated_at) }}
+              </p>
+              <p v-if="account.status_reason" class="muted-copy">
+                Status reason: {{ account.status_reason }}
               </p>
               <div class="wallet-pill-row">
                 <div v-for="walletRow in walletRows(account.bound_wallets)" :key="walletRow.walletAddress" class="wallet-row">
@@ -275,6 +415,10 @@
                 <p><strong>Access account:</strong> {{ admin.state.selectedAccount.access_account.name }}</p>
                 <p><strong>Status:</strong> {{ admin.state.selectedAccount.access_account.status }}</p>
                 <p><strong>Approved:</strong> {{ formatDate(admin.state.selectedAccount.access_account.approved_at) }}</p>
+                <p><strong>Invite generated:</strong> {{ formatDate(admin.state.selectedAccount.access_account.invite_code_generated_at) }}</p>
+                <p><strong>Invite redeemed:</strong> {{ formatDate(admin.state.selectedAccount.access_account.invite_code_redeemed_at) }}</p>
+                <p><strong>Status updated:</strong> {{ formatDate(admin.state.selectedAccount.access_account.status_updated_at) }}</p>
+                <p><strong>Status reason:</strong> {{ admin.state.selectedAccount.access_account.status_reason || 'None' }}</p>
               </div>
 
               <div v-if="admin.state.selectedAccount.wallet_bindings.length === 0" class="empty-state">
@@ -288,6 +432,9 @@
                 </p>
                 <p class="meta-row">Status: {{ binding.status }}</p>
                 <p class="meta-row">Bound: {{ formatDate(binding.bound_at) }}</p>
+                <p class="meta-row">Revoked: {{ formatDate(binding.revoked_at) }}</p>
+                <p class="meta-row">Revoked by: {{ binding.revoked_by || 'Not revoked' }}</p>
+                <p v-if="binding.revoke_reason" class="muted-copy">Reason: {{ binding.revoke_reason }}</p>
                 <button class="danger-button small-button" :disabled="admin.state.isSubmitting" @click="revokeWallet(binding.wallet_address)">
                   Revoke Wallet Binding
                 </button>
@@ -309,8 +456,12 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useAdmin } from '../services/admin.js';
 import {
   adminSafetyLines,
+  buildAdminOpsMetricCards,
+  buildAdminOpsWarnings,
   buildBoundWalletRows,
+  opsHealthTone,
   shouldShowAdminDashboard,
+  shouldShowAdminOpsPanel,
   shouldUseStackedAdminCards,
 } from '../utils/adminUi.js';
 
@@ -337,8 +488,20 @@ const inviteForm = reactive({
 
 const sessionState = computed(() => admin.state.session);
 const dashboardVisible = computed(() => shouldShowAdminDashboard(admin.state.session));
+const opsPanelVisible = computed(() => shouldShowAdminOpsPanel(admin.state.session));
 const pendingRequests = computed(() => admin.state.requests.filter((request) => request.status === 'pending'));
 const usesMobileCards = computed(() => shouldUseStackedAdminCards(viewportWidth.value));
+const opsStatus = computed(() => admin.state.opsStatus);
+const auditEntries = computed(() => admin.state.auditLog || []);
+const opsMetricCards = computed(() => buildAdminOpsMetricCards(opsStatus.value));
+const opsWarnings = computed(() => buildAdminOpsWarnings(opsStatus.value));
+const healthTone = computed(() => opsHealthTone(opsStatus.value));
+const healthToneLabel = computed(() => ({
+  neutral: 'Waiting for data',
+  healthy: 'Healthy',
+  warning: 'Needs attention',
+  error: 'Action required',
+}[healthTone.value] || 'Waiting for data'));
 
 function formatDate(value) {
   if (!value) {
@@ -362,12 +525,52 @@ function walletRows(boundWallets) {
   return buildBoundWalletRows(boundWallets);
 }
 
+function yesNo(value) {
+  return value ? 'Yes' : 'No';
+}
+
+function formatAuditTargets(entry) {
+  if (!entry) {
+    return '';
+  }
+  const parts = [];
+  if (entry.request_id) {
+    parts.push(`Request ${entry.request_id}`);
+  }
+  if (entry.access_account_id) {
+    parts.push(`Account ${entry.access_account_id}`);
+  }
+  if (entry.wallet_address) {
+    parts.push(`Wallet ${entry.wallet_address}`);
+  }
+  return parts.join(' · ');
+}
+
+function formatAuditActor(entry) {
+  if (!entry) {
+    return '';
+  }
+  const parts = [];
+  if (entry.actor_session_id) {
+    parts.push(`Session ${entry.actor_session_id}`);
+  }
+  if (entry.remote_ip) {
+    parts.push(`IP ${entry.remote_ip}`);
+  }
+  if (entry.user_agent) {
+    parts.push(entry.user_agent);
+  }
+  return parts.join(' · ');
+}
+
 async function refreshDashboard() {
   isRefreshing.value = true;
   try {
     await Promise.all([
       admin.loadRequests('pending'),
       admin.loadAccounts(),
+      admin.loadOpsStatus(),
+      admin.loadAuditLog({ limit: 20 }),
     ]);
     if (admin.state.selectedAccount?.access_account?.access_account_id) {
       await admin.loadAccountDetail(admin.state.selectedAccount.access_account.access_account_id);
@@ -388,6 +591,7 @@ async function handleLogin() {
 async function handleLogout() {
   await admin.logout();
   selectedRequest.value = null;
+  copyFeedback.value = '';
 }
 
 async function approveSelectedRequest() {
@@ -403,6 +607,7 @@ async function approveSelectedRequest() {
     selectedRequest.value = null;
     requestNotes.value = '';
     requestMaxWallets.value = 1;
+    await refreshDashboard();
   }
 }
 
@@ -417,6 +622,7 @@ async function rejectSelectedRequest() {
   if (result) {
     selectedRequest.value = null;
     requestNotes.value = '';
+    await refreshDashboard();
   }
 }
 
@@ -432,6 +638,7 @@ async function createDirectInvite() {
     inviteForm.notes = '';
     inviteForm.operator_notes = '';
     inviteForm.max_wallets = 1;
+    await refreshDashboard();
   }
 }
 
@@ -440,11 +647,17 @@ async function openAccount(accessAccountId) {
 }
 
 async function changeAccountStatus(accessAccountId, action) {
-  await admin.updateAccountStatus(accessAccountId, action);
+  const result = await admin.updateAccountStatus(accessAccountId, action);
+  if (result) {
+    await refreshDashboard();
+  }
 }
 
 async function revokeWallet(walletAddress) {
-  await admin.revokeWalletBinding(walletAddress);
+  const result = await admin.revokeWalletBinding(walletAddress);
+  if (result) {
+    await refreshDashboard();
+  }
 }
 
 async function copyInviteCode() {
@@ -590,6 +803,10 @@ onBeforeUnmount(() => {
   grid-column: span 2;
 }
 
+.full-span-panel {
+  grid-column: span 2;
+}
+
 .form-stack,
 .detail-block,
 .request-card,
@@ -678,6 +895,85 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.metric-card-grid,
+.ops-detail-grid,
+.timeline-grid,
+.audit-log-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.metric-card-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.metric-card,
+.detail-card,
+.timeline-card,
+.timeline-item,
+.audit-card {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 115, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.metric-card span {
+  display: block;
+  color: #a79f90;
+  margin-bottom: 8px;
+}
+
+.ops-detail-grid,
+.timeline-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.warning-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.warning-item {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 166, 77, 0.1);
+  border: 1px solid rgba(255, 166, 77, 0.24);
+  color: #ffd39d;
+}
+
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.health-pill-healthy {
+  background: rgba(92, 214, 141, 0.14);
+  color: #9df7b4;
+}
+
+.health-pill-warning {
+  background: rgba(255, 194, 102, 0.16);
+  color: #ffd784;
+}
+
+.health-pill-error {
+  background: rgba(255, 102, 102, 0.16);
+  color: #ffb0b0;
+}
+
+.health-pill-neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7f0de;
 }
 
 .wallet-row {
@@ -769,8 +1065,15 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .accounts-panel {
+  .accounts-panel,
+  .full-span-panel {
     grid-column: span 1;
+  }
+
+  .metric-card-grid,
+  .ops-detail-grid,
+  .timeline-grid {
+    grid-template-columns: 1fr;
   }
 }
 

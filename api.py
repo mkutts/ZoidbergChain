@@ -145,6 +145,16 @@ from admin_auth import (
     admin_auth_is_configured,
     verify_admin_credential,
 )
+from ops_support import (
+    safe_backup_status,
+    safe_build_metadata,
+    safe_environment_validation,
+    safe_integrity_status,
+    safe_latest_block_summary,
+    safe_public_status_payload,
+    safe_runtime_storage_status,
+    sqlite_integrity_status,
+)
 from review_policy import (
     build_public_policy_summary,
     current_day_window,
@@ -196,6 +206,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+APP_STARTED_AT = time.time()
 
 # code? 
 
@@ -1126,17 +1137,145 @@ def _safe_server_error():
 
 
 def _health_payload():
-    latest_block = blockchain.get_latest_block()
+    return safe_public_status_payload(
+        blockchain=blockchain,
+        peer_store=peer_store,
+        started_at=APP_STARTED_AT,
+    )
+
+
+def _status_payload():
+    payload = _health_payload()
+    payload.update({
+        "latest_block": safe_latest_block_summary(blockchain),
+        "environment_validation": {
+            "healthy": safe_environment_validation()["healthy"],
+            "error_count": safe_environment_validation()["error_count"],
+            "warning_count": safe_environment_validation()["warning_count"],
+        },
+    })
+    return payload
+
+
+def _safe_request_metadata(request: Request) -> dict[str, str]:
+    client_host = request.client.host if request.client else "unknown"
+    user_agent = str(request.headers.get("user-agent") or "").strip()
     return {
-        "status": "ok",
-        "network_name": NETWORK_NAME,
-        "node_id": NODE_ID,
+        "remote_ip": client_host,
+        "user_agent": user_agent[:240],
+    }
+
+
+def _safe_session_identifier(session) -> str | None:
+    session_id = str(getattr(session, "session_id", "") or "").strip()
+    if not session_id:
+        return None
+    return session_id[:12]
+
+
+def _admin_audit_entry(entry: dict | None) -> dict:
+    payload = dict(entry or {})
+    return {
+        "audit_id": payload.get("audit_id"),
+        "timestamp": payload.get("timestamp"),
+        "action": payload.get("action"),
+        "result": payload.get("result"),
+        "actor_session_id": payload.get("actor_session_id"),
+        "remote_ip": payload.get("remote_ip"),
+        "user_agent": payload.get("user_agent"),
+        "request_id": payload.get("request_id"),
+        "access_account_id": payload.get("access_account_id"),
+        "wallet_address": payload.get("wallet_address"),
+        "reason": payload.get("reason"),
+        "operator_note": payload.get("operator_note"),
+    }
+
+
+def _record_admin_audit_event(
+    *,
+    request: Request,
+    action: str,
+    result: str = "ok",
+    session=None,
+    request_id: str | None = None,
+    access_account_id: str | None = None,
+    wallet_address: str | None = None,
+    reason: str | None = None,
+    operator_note: str | None = None,
+) -> dict:
+    entry = blockchain.append_audit_log_entry({
+        "action": action,
+        "result": result,
+        "actor_session_id": _safe_session_identifier(session),
+        "request_id": request_id,
+        "access_account_id": access_account_id,
+        "wallet_address": wallet_address,
+        "reason": normalize_text_field(reason),
+        "operator_note": normalize_text_field(operator_note),
+        **_safe_request_metadata(request),
+    })
+    blockchain.save_blockchain()
+    return entry
+
+
+def _recent_access_lifecycle_events(limit: int = 5) -> dict[str, list[dict]]:
+    recent_requests = sorted(
+        blockchain.list_access_requests(),
+        key=lambda item: str(item.get("reviewed_at") or item.get("created_at") or ""),
+        reverse=True,
+    )[:limit]
+    recent_accounts = sorted(
+        blockchain.list_access_accounts(),
+        key=lambda item: str(item.get("status_updated_at") or item.get("approved_at") or item.get("created_at") or ""),
+        reverse=True,
+    )[:limit]
+    recent_bindings = sorted(
+        blockchain.list_wallet_bindings(),
+        key=lambda item: str(item.get("revoked_at") or item.get("bound_at") or ""),
+        reverse=True,
+    )[:limit]
+    return {
+        "recent_access_requests": [_admin_access_request(item) for item in recent_requests],
+        "recent_access_accounts": [_admin_access_account(item) for item in recent_accounts],
+        "recent_wallet_bindings": [_admin_wallet_binding(item) for item in recent_bindings],
+    }
+
+
+def _admin_ops_status_payload() -> dict:
+    runtime_storage = safe_runtime_storage_status(blockchain.storage)
+    validation = safe_environment_validation()
+    backup_status = safe_backup_status(blockchain.storage)
+    integrity_status = safe_integrity_status(blockchain.storage)
+    latest_block = safe_latest_block_summary(blockchain)
+    lifecycle = _recent_access_lifecycle_events(limit=5)
+    recent_audit = [
+        _admin_audit_entry(entry)
+        for entry in blockchain.list_audit_log_entries(limit=20)
+    ]
+    return {
+        "health": _status_payload(),
         "environment": ENVIRONMENT,
+        "network_name": NETWORK_NAME,
         "public_demo_mode": public_demo_mode_enabled(),
-        "chain_height": latest_block.index,
-        "latest_block_hash": latest_block.hash,
         "storage_backend": STORAGE_BACKEND,
-        "peer_count": len(peer_store.list_active_peers(network_name=NETWORK_NAME)),
+        "runtime_storage": runtime_storage,
+        "environment_validation": validation,
+        "backup_status": backup_status,
+        "integrity_status": integrity_status,
+        "sqlite_integrity": sqlite_integrity_status(blockchain.storage),
+        "metrics": {
+            "chain_height": latest_block.get("index"),
+            "pending_access_requests": len(blockchain.list_access_requests(status="pending")),
+            "pending_review_submissions": len(blockchain.storage.list_submissions(blockchain.submissions, status=PENDING)),
+            "mempool_size": len(blockchain.list_mempool_transactions()),
+            "peer_count": len(peer_store.list_active_peers(network_name=NETWORK_NAME)),
+            "active_admin_sessions": admin_session_manager.count_active_sessions(),
+            "active_access_sessions": access_session_manager.count_active_sessions(),
+            "active_wallet_bindings": blockchain.count_active_wallet_bindings(),
+        },
+        "latest_block": latest_block,
+        "recent_admin_actions": recent_audit,
+        **lifecycle,
     }
 
 
@@ -1238,6 +1377,19 @@ def log_startup_security_config():
 @asynccontextmanager
 async def lifespan(app):
     log_startup_security_config()
+    validation = safe_environment_validation()
+    if validation["healthy"] and validation["warning_count"] == 0:
+        logger.info("Startup ops validation passed with no warnings.")
+    else:
+        for check in validation["checks"]:
+            if check["ok"]:
+                continue
+            logger.warning(
+                "Startup ops validation %s [%s]: %s",
+                check["level"],
+                check["code"],
+                check["message"],
+            )
     wallet_auth_manager.clear()
     yield
 
@@ -1398,12 +1550,16 @@ def _public_access_account(account: dict | None) -> dict | None:
         "status": account.get("status"),
         "created_at": account.get("created_at"),
         "approved_at": account.get("approved_at"),
+        "invite_code_generated_at": account.get("invite_code_generated_at"),
         "invite_code_redeemed_at": account.get("invite_code_redeemed_at"),
         "bound_wallets": bound_wallets,
         "wallet_count": len(bound_wallets),
         "max_wallets": account.get("max_wallets"),
         "notes": account.get("notes"),
         "last_login_at": account.get("last_login_at"),
+        "status_updated_at": account.get("status_updated_at"),
+        "status_updated_by": account.get("status_updated_by"),
+        "status_reason": account.get("status_reason"),
     }
 
 
@@ -1435,6 +1591,9 @@ def _public_wallet_binding(binding: dict | None) -> dict | None:
         "bound_at": binding.get("bound_at"),
         "status": binding.get("status"),
         "source": binding.get("source"),
+        "revoked_at": binding.get("revoked_at"),
+        "revoked_by": binding.get("revoked_by"),
+        "revoke_reason": binding.get("revoke_reason"),
     }
 
 
@@ -1658,6 +1817,18 @@ async def health(request: Request):
     return _health_payload()
 
 
+@app.get("/status")
+@api_limit("public_read")
+async def status(request: Request):
+    return _status_payload()
+
+
+@app.get("/ops/status")
+@api_limit("public_read")
+async def public_ops_status(request: Request):
+    return _status_payload()
+
+
 @app.get("/node-info")
 @api_limit("public_read")
 async def node_info(request: Request):
@@ -1863,6 +2034,12 @@ async def admin_login(request: Request, response: Response, payload: AdminLoginR
     ):
         client_host = request.client.host if request.client else "unknown"
         logger.warning("Failed admin login attempt from %s", client_host)
+        _record_admin_audit_event(
+            request=request,
+            action="admin_login_failure",
+            result="failure",
+            reason="invalid_admin_credential",
+        )
         raise HTTPException(status_code=401, detail="Invalid admin credential.")
 
     session_payload = admin_session_manager.issue_session()
@@ -1873,6 +2050,11 @@ async def admin_login(request: Request, response: Response, payload: AdminLoginR
         expires_at=session_payload["expires_at"],
     )
     session = admin_session_manager.get_session(session_payload["admin_session_token"])
+    _record_admin_audit_event(
+        request=request,
+        action="admin_login_success",
+        session=session,
+    )
     return {
         "message": "Admin session started.",
         **_admin_session_status_payload(authenticated=True, session=session),
@@ -1888,8 +2070,20 @@ async def admin_logout(
 ):
     _require_admin_ui_enabled()
     token = _get_admin_session_token(request, x_zoid_admin_session)
+    session = None
+    if token:
+        try:
+            session = admin_session_manager.get_session(token)
+        except ValueError:
+            session = None
     if token:
         admin_session_manager.revoke_session(token)
+    if session is not None:
+        _record_admin_audit_event(
+            request=request,
+            action="admin_logout",
+            session=session,
+        )
     _clear_admin_session_cookie(response, request=request)
     return {
         "message": "Admin session ended.",
@@ -1967,6 +2161,14 @@ async def admin_approve_access_request(
         blockchain.save_blockchain()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="access_request_approved",
+        session=_admin_session,
+        request_id=request_id,
+        access_account_id=access_account.get("access_account_id"),
+        operator_note=payload.operator_notes,
+    )
     return {
         "message": "Access request approved.",
         "warning": "Invite codes are shown once. Copy before leaving this screen.",
@@ -1994,6 +2196,13 @@ async def admin_reject_access_request(
         blockchain.save_blockchain()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="access_request_rejected",
+        session=_admin_session,
+        request_id=request_id,
+        operator_note=payload.operator_notes,
+    )
     return {
         "message": "Access request rejected.",
         "request": _admin_access_request(request_record),
@@ -2021,6 +2230,13 @@ async def admin_create_access_invite(
         blockchain.save_blockchain()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="direct_invite_created",
+        session=_admin_session,
+        access_account_id=access_account.get("access_account_id"),
+        operator_note=payload.operator_notes,
+    )
     return {
         "message": "Access invite created.",
         "warning": "Invite codes are shown once. Copy before leaving this screen.",
@@ -2065,17 +2281,68 @@ async def admin_get_access_account(
     }
 
 
+@app.get("/admin/ops/status")
+@api_limit("public_read")
+async def admin_ops_status(
+    request: Request,
+    _admin_session=Depends(_require_admin_session),
+):
+    payload = _admin_ops_status_payload()
+    _record_admin_audit_event(
+        request=request,
+        action="admin_ops_viewed",
+        session=_admin_session,
+    )
+    return payload
+
+
+@app.get("/admin/audit-log")
+@api_limit("public_read")
+async def admin_audit_log(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=200),
+    action: str | None = Query(default=None),
+    since: str | None = Query(default=None),
+    before: str | None = Query(default=None),
+    _admin_session=Depends(_require_admin_session),
+):
+    return {
+        "audit_log": [
+            _admin_audit_entry(entry)
+            for entry in blockchain.list_audit_log_entries(
+                limit=limit,
+                action=action,
+                since=since,
+                before=before,
+            )
+        ],
+    }
+
+
 async def _admin_update_access_account_status(
     *,
+    request: Request,
     access_account_id: str,
     status: str,
+    action_name: str,
+    session=None,
 ):
     blockchain.refresh_access_control_state_from_storage()
     try:
-        access_account = blockchain.update_access_account_status(access_account_id, status)
+        access_account = blockchain.update_access_account_status(
+            access_account_id,
+            status,
+            updated_by="admin",
+        )
         blockchain.save_blockchain()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action=action_name,
+        session=session,
+        access_account_id=access_account_id,
+    )
     return {
         "message": f"Access account {status}.",
         "access_account": _admin_access_account(access_account),
@@ -2089,7 +2356,13 @@ async def admin_suspend_access_account(
     access_account_id: str,
     _admin_session=Depends(_require_admin_session),
 ):
-    return await _admin_update_access_account_status(access_account_id=access_account_id, status="suspended")
+    return await _admin_update_access_account_status(
+        request=request,
+        access_account_id=access_account_id,
+        status="suspended",
+        action_name="access_account_suspended",
+        session=_admin_session,
+    )
 
 
 @app.post("/admin/access/accounts/{access_account_id}/reactivate")
@@ -2099,7 +2372,13 @@ async def admin_reactivate_access_account(
     access_account_id: str,
     _admin_session=Depends(_require_admin_session),
 ):
-    return await _admin_update_access_account_status(access_account_id=access_account_id, status="active")
+    return await _admin_update_access_account_status(
+        request=request,
+        access_account_id=access_account_id,
+        status="active",
+        action_name="access_account_reactivated",
+        session=_admin_session,
+    )
 
 
 @app.post("/admin/access/accounts/{access_account_id}/revoke")
@@ -2109,7 +2388,13 @@ async def admin_revoke_access_account(
     access_account_id: str,
     _admin_session=Depends(_require_admin_session),
 ):
-    return await _admin_update_access_account_status(access_account_id=access_account_id, status="revoked")
+    return await _admin_update_access_account_status(
+        request=request,
+        access_account_id=access_account_id,
+        status="revoked",
+        action_name="access_account_revoked",
+        session=_admin_session,
+    )
 
 
 @app.post("/admin/access/wallet-bindings/{wallet_address}/revoke")
@@ -2121,10 +2406,20 @@ async def admin_revoke_wallet_binding(
 ):
     blockchain.refresh_access_control_state_from_storage()
     try:
-        binding = blockchain.revoke_wallet_binding(wallet_address)
+        binding = blockchain.revoke_wallet_binding(
+            wallet_address,
+            revoked_by="admin",
+        )
         blockchain.save_blockchain()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="wallet_binding_revoked",
+        session=_admin_session,
+        wallet_address=wallet_address,
+        access_account_id=binding.get("access_account_id"),
+    )
     return {
         "message": "Wallet binding revoked.",
         "wallet_binding": _admin_wallet_binding(binding),

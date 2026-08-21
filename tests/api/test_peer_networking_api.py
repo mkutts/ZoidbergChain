@@ -8,10 +8,14 @@ from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 
 def _client(blockchain):
     import api
+    import config
 
     api.NODE_ID = "local-node"
     api.PUBLIC_NODE_URL = "http://localhost:8000"
     api.NETWORK_NAME = "zoidberg-testnet"
+    config.NODE_ID = "local-node"
+    config.PUBLIC_NODE_URL = "http://localhost:8000"
+    config.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
     return TestClient(api.app)
 
@@ -23,19 +27,19 @@ def test_node_info_response(blockchain):
     response = client.get("/node-info")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "node_id": "local-node",
-        "public_node_url": "http://localhost:8000",
-        "network_name": "zoidberg-testnet",
-        "environment": "development",
-        "public_demo_mode": False,
-        "chain_height": latest_block.index,
-        "latest_block_hash": latest_block.hash,
-        "storage_backend": "json",
-        "peer_count": 0,
-        "cumulative_originality_score": 0,
-    }
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["node_id"] == "local-node"
+    assert payload["public_node_url"] == "http://localhost:8000"
+    assert payload["network_name"] == "zoidberg-testnet"
+    assert payload["environment"] == "development"
+    assert payload["public_demo_mode"] is False
+    assert payload["chain_height"] == latest_block.index
+    assert payload["latest_block_hash"] == latest_block.hash
+    assert payload["storage_backend"] == "json"
+    assert payload["peer_count"] == 0
+    assert payload["cumulative_originality_score"] == 0
+    assert "build" in payload
 
 
 def test_node_info_includes_cumulative_originality_score_for_scored_chain(

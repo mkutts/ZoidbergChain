@@ -23,10 +23,16 @@ Use this checklist before exposing the Stage 1 public demo.
 - `STORAGE_BACKEND` and `SQLITE_DB_PATH` are configured intentionally if SQLite is used.
 - backups for chain state and content storage are configured.
 - `GET /health` passes with safe fields only.
+- `GET /status` passes with safe fields only.
+- `GET /ops/status` passes with safe fields only.
 - `GET /node-info` and `GET /chain/summary` pass with safe fields only.
 - frontend build passes.
 - backend tests pass.
 - two-node native transfer test passes.
 - the public demo disclaimer is visible in the UI.
+- approved wallet reconnect has been tested without reusing an invite code.
+- unapproved wallet access remains blocked.
+- admin ops dashboard is reachable and healthy after login.
+- admin audit log records recent sensitive actions.
 - the old `/wallets/...` compatibility reads were checked and return safe read-only data.
 - `https://zoidbergcoin.com/api/health` responds successfully.

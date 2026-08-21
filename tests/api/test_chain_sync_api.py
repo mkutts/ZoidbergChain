@@ -20,10 +20,14 @@ class FakeResponse:
 
 def _client(blockchain):
     import api
+    import config
 
     api.NODE_ID = "local-node"
     api.PUBLIC_NODE_URL = "http://localhost:8000"
     api.NETWORK_NAME = "zoidberg-testnet"
+    config.NODE_ID = "local-node"
+    config.PUBLIC_NODE_URL = "http://localhost:8000"
+    config.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
     api.peer_store = PeerStore()
     return TestClient(api.app)
@@ -297,20 +301,20 @@ def test_chain_summary_endpoint(blockchain):
     response = client.get("/chain/summary")
 
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "network_name": "zoidberg-testnet",
-        "node_id": "local-node",
-        "environment": "development",
-        "public_demo_mode": False,
-        "chain_height": latest_block.index,
-        "latest_block_hash": latest_block.hash,
-        "storage_backend": "json",
-        "peer_count": 0,
-        "genesis_hash": blockchain.chain[0].hash,
-        "cumulative_originality_score": 0,
-        "cumulative_work": None,
-    }
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["network_name"] == "zoidberg-testnet"
+    assert payload["node_id"] == "local-node"
+    assert payload["environment"] == "development"
+    assert payload["public_demo_mode"] is False
+    assert payload["chain_height"] == latest_block.index
+    assert payload["latest_block_hash"] == latest_block.hash
+    assert payload["storage_backend"] == "json"
+    assert payload["peer_count"] == 0
+    assert payload["genesis_hash"] == blockchain.chain[0].hash
+    assert payload["cumulative_originality_score"] == 0
+    assert payload["cumulative_work"] is None
+    assert "build" in payload
 
 
 def test_chain_summary_reports_cumulative_originality_score(

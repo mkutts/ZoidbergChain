@@ -168,6 +168,7 @@ class Blockchain:
         self.access_requests = []  # Controlled-testnet access requests
         self.access_accounts = []  # Approved access accounts
         self.wallet_bindings = []  # Wallet-to-access-account bindings
+        self.audit_logs = []  # Persistent admin audit trail
         self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -224,6 +225,7 @@ class Blockchain:
             "access_requests": self.access_requests,
             "access_accounts": self.access_accounts,
             "wallet_bindings": self.wallet_bindings,
+            "audit_logs": self.audit_logs,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
         }
 
@@ -391,6 +393,7 @@ class Blockchain:
         self.access_requests = list(loaded_data.get("access_requests", []) or [])
         self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
         self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
+        self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
         return True
 
     @staticmethod
@@ -475,6 +478,46 @@ class Blockchain:
             ]
         return records
 
+    def append_audit_log_entry(self, entry):
+        normalized_entry = dict(entry or {})
+        normalized_entry.setdefault("audit_id", secrets.token_hex(16))
+        normalized_entry.setdefault("timestamp", utc_now_iso())
+        normalized_entry["action"] = normalize_text_field(normalized_entry.get("action"))
+        normalized_entry["result"] = normalize_text_field(normalized_entry.get("result")) or "ok"
+        self.audit_logs.append(normalized_entry)
+        return normalized_entry
+
+    def list_audit_log_entries(self, *, action=None, since=None, before=None, limit=None):
+        entries = list(self.audit_logs)
+        if action:
+            normalized_action = str(action or "").strip().lower()
+            entries = [
+                entry
+                for entry in entries
+                if str(entry.get("action") or "").strip().lower() == normalized_action
+            ]
+        if since:
+            entries = [
+                entry
+                for entry in entries
+                if str(entry.get("timestamp") or "").strip() >= str(since).strip()
+            ]
+        if before:
+            entries = [
+                entry
+                for entry in entries
+                if str(entry.get("timestamp") or "").strip() <= str(before).strip()
+            ]
+        entries.sort(key=lambda entry: str(entry.get("timestamp") or ""), reverse=True)
+        if limit is not None:
+            try:
+                limit_value = max(0, int(limit))
+            except (TypeError, ValueError):
+                limit_value = 0
+            if limit_value:
+                entries = entries[:limit_value]
+        return entries
+
     def create_access_request(self, *, name, email, handle=None, reason=None, notes=None):
         normalized_email = normalize_email(email)
         if not normalized_email:
@@ -508,6 +551,9 @@ class Blockchain:
         max_wallets=1,
     ):
         access_code = generate_access_code()
+        approved_at = utc_now_iso()
+        reviewed_by_value = normalize_text_field(reviewed_by)
+        operator_notes_value = normalize_text_field(operator_notes)
         account = {
             "access_account_id": secrets.token_hex(16),
             "name": normalize_text_field(name),
@@ -515,16 +561,20 @@ class Blockchain:
             "handle": normalize_handle(handle),
             "status": "active",
             "created_at": utc_now_iso(),
-            "approved_at": utc_now_iso(),
+            "approved_at": approved_at,
+            "invite_code_generated_at": approved_at,
             "invite_code_hash": hash_access_code(access_code),
             "redeemed_invite_code_hash": None,
             "invite_code_redeemed_at": None,
             "bound_wallets": [],
             "max_wallets": int(max_wallets),
             "notes": normalize_text_field(notes),
-            "operator_notes": normalize_text_field(operator_notes),
-            "reviewed_by": normalize_text_field(reviewed_by),
+            "operator_notes": operator_notes_value,
+            "reviewed_by": reviewed_by_value,
             "last_login_at": None,
+            "status_updated_at": approved_at,
+            "status_updated_by": reviewed_by_value,
+            "status_reason": operator_notes_value,
         }
         self.access_accounts.append(account)
         return account, access_code
@@ -624,6 +674,9 @@ class Blockchain:
             if str(existing_binding.get("status") or "").strip().lower() != "active":
                 existing_binding["status"] = "active"
                 existing_binding["bound_at"] = existing_binding.get("bound_at") or utc_now_iso()
+                existing_binding["revoked_at"] = None
+                existing_binding["revoked_by"] = ""
+                existing_binding["revoke_reason"] = ""
             if normalized_wallet not in account["bound_wallets"]:
                 account["bound_wallets"].append(normalized_wallet)
             if account.get("invite_code_hash"):
@@ -649,6 +702,9 @@ class Blockchain:
             "bound_at": utc_now_iso(),
             "status": "active",
             "source": normalize_text_field(source) or "invite_code",
+            "revoked_at": None,
+            "revoked_by": "",
+            "revoke_reason": "",
         }
         self.wallet_bindings.append(binding)
         account["bound_wallets"].append(normalized_wallet)
@@ -658,7 +714,7 @@ class Blockchain:
             account["invite_code_redeemed_at"] = utc_now_iso()
         return binding
 
-    def update_access_account_status(self, access_account_id, status):
+    def update_access_account_status(self, access_account_id, status, *, updated_by="operator", reason=None):
         account = self.get_access_account(access_account_id)
         if account is None:
             raise ValueError(f"Access account not found: {access_account_id}")
@@ -666,13 +722,19 @@ class Blockchain:
         if normalized_status not in {"active", "suspended", "revoked"}:
             raise ValueError("Access account status must be active, suspended, or revoked.")
         account["status"] = normalized_status
+        account["status_updated_at"] = utc_now_iso()
+        account["status_updated_by"] = normalize_text_field(updated_by)
+        account["status_reason"] = normalize_text_field(reason)
         return account
 
-    def revoke_wallet_binding(self, wallet_address):
+    def revoke_wallet_binding(self, wallet_address, *, revoked_by="operator", reason=None):
         binding = self.get_wallet_binding(wallet_address)
         if binding is None:
             raise ValueError(f"Wallet binding not found: {wallet_address}")
         binding["status"] = "revoked"
+        binding["revoked_at"] = utc_now_iso()
+        binding["revoked_by"] = normalize_text_field(revoked_by)
+        binding["revoke_reason"] = normalize_text_field(reason)
         account = self.get_access_account(binding.get("access_account_id"))
         normalized_wallet = self._normalize_access_wallet(binding.get("wallet_address"))
         if account is not None and normalized_wallet in account.get("bound_wallets", []):
@@ -771,6 +833,7 @@ class Blockchain:
                 self.access_requests = list(loaded_data.get("access_requests", []) or [])
                 self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
                 self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
+                self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
@@ -801,6 +864,7 @@ class Blockchain:
                 self.access_requests = []
                 self.access_accounts = []
                 self.wallet_bindings = []
+                self.audit_logs = []
 
         except FileNotFoundError:
             print("Debug: No saved blockchain found. Creating new blockchain.")
@@ -816,6 +880,7 @@ class Blockchain:
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
+            self.audit_logs = []
         except json.JSONDecodeError:
             print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
             self.chain = []
@@ -830,6 +895,7 @@ class Blockchain:
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
+            self.audit_logs = []
         except Exception as e:
             print(f"Debug: Unexpected error loading blockchain - {e}")
             self.chain = []
@@ -844,6 +910,7 @@ class Blockchain:
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
+            self.audit_logs = []
 
         return False
 

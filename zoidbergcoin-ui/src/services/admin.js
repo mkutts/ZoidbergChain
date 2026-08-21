@@ -7,6 +7,8 @@ function createInitialState() {
     requests: [],
     accounts: [],
     selectedAccount: null,
+    opsStatus: null,
+    auditLog: [],
     lastInviteCode: '',
     inviteWarning: '',
     errorMessage: '',
@@ -15,6 +17,8 @@ function createInitialState() {
     isLoggingIn: false,
     isLoadingRequests: false,
     isLoadingAccounts: false,
+    isLoadingOpsStatus: false,
+    isLoadingAuditLog: false,
     isSubmitting: false,
   };
 }
@@ -74,6 +78,8 @@ export function createAdminService(options = {}) {
       state.requests = [];
       state.accounts = [];
       state.selectedAccount = null;
+      state.opsStatus = null;
+      state.auditLog = [];
       state.lastInviteCode = '';
       state.inviteWarning = '';
       state.successMessage = response.data?.message || 'Admin session ended.';
@@ -169,6 +175,50 @@ export function createAdminService(options = {}) {
     }
   }
 
+  async function loadOpsStatus() {
+    state.isLoadingOpsStatus = true;
+    clearMessages();
+    try {
+      const response = await adminApi.get('/admin/ops/status');
+      state.opsStatus = response.data || null;
+      return state.opsStatus;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load admin ops status.');
+      return null;
+    } finally {
+      state.isLoadingOpsStatus = false;
+    }
+  }
+
+  async function loadAuditLog(params = {}) {
+    state.isLoadingAuditLog = true;
+    clearMessages();
+    try {
+      const search = new URLSearchParams();
+      if (params.limit) {
+        search.set('limit', String(params.limit));
+      }
+      if (params.action) {
+        search.set('action', String(params.action));
+      }
+      if (params.since) {
+        search.set('since', String(params.since));
+      }
+      if (params.before) {
+        search.set('before', String(params.before));
+      }
+      const query = search.size ? `?${search.toString()}` : '';
+      const response = await adminApi.get(`/admin/audit-log${query}`);
+      state.auditLog = Array.isArray(response.data?.audit_log) ? response.data.audit_log : [];
+      return state.auditLog;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load admin audit log.');
+      return [];
+    } finally {
+      state.isLoadingAuditLog = false;
+    }
+  }
+
   async function loadAccountDetail(accessAccountId) {
     state.isSubmitting = true;
     clearMessages();
@@ -232,6 +282,8 @@ export function createAdminService(options = {}) {
     rejectRequest,
     createInvite,
     loadAccounts,
+    loadOpsStatus,
+    loadAuditLog,
     loadAccountDetail,
     updateAccountStatus,
     revokeWalletBinding,

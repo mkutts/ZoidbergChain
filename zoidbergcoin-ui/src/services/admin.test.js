@@ -136,8 +136,50 @@ test('account list includes bound wallets for admin review', async () => {
   assert.equal(accounts[0].bound_wallets[0], '0x1111111111111111111111111111111111111111');
 });
 
+test('authenticated admin can load ops status and audit log', async () => {
+  const adminApi = createMockClient();
+  adminApi.getHandlers.set('/admin/ops/status', async () => ({
+    data: {
+      environment: 'testnet',
+      health: { status: 'ok' },
+      metrics: { chain_height: 12 },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/audit-log?limit=20&action=admin_login_success', async () => ({
+    data: {
+      audit_log: [
+        {
+          timestamp: '2026-08-21T09:00:00+00:00',
+          action: 'admin_login_success',
+          result: 'ok',
+        },
+      ],
+    },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const opsStatus = await admin.loadOpsStatus();
+  const auditLog = await admin.loadAuditLog({ limit: 20, action: 'admin_login_success' });
+
+  assert.equal(opsStatus.environment, 'testnet');
+  assert.equal(admin.state.opsStatus.metrics.chain_height, 12);
+  assert.equal(auditLog.length, 1);
+  assert.equal(admin.state.auditLog[0].action, 'admin_login_success');
+});
+
 test('admin logout returns the UI to login state', async () => {
   const adminApi = createMockClient();
+  adminApi.getHandlers.set('/admin/ops/status', async () => ({
+    data: {
+      environment: 'testnet',
+      health: { status: 'ok' },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/audit-log?limit=5', async () => ({
+    data: {
+      audit_log: [{ action: 'admin_login_success' }],
+    },
+  }));
   adminApi.postHandlers.set('/admin/logout', async () => ({
     data: {
       message: 'Admin session ended.',
@@ -146,10 +188,14 @@ test('admin logout returns the UI to login state', async () => {
   }));
 
   const admin = createAdminService({ adminApi });
+  await admin.loadOpsStatus();
+  await admin.loadAuditLog({ limit: 5 });
   const result = await admin.logout();
 
   assert.equal(result.authenticated, false);
   assert.equal(admin.state.session.authenticated, false);
   assert.equal(admin.state.requests.length, 0);
   assert.equal(admin.state.accounts.length, 0);
+  assert.equal(admin.state.opsStatus, null);
+  assert.equal(admin.state.auditLog.length, 0);
 });

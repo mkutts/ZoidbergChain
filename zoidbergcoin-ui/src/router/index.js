@@ -9,7 +9,7 @@ const routes = [
   { path: '/', component: HomePage },
   { path: '/dashboard', component: Dashboard },
   { path: '/blockchain', component: Blockchain },
-  { path: '/why-zoidbergcoin', component: WhyZoidbergCoin },
+  { path: '/why-zoidbergcoin', component: WhyZoidbergCoin, meta: { skipAccessGate: true } },
   { path: '/admin', component: AdminPage, meta: { skipAccessGate: true } },
 ];
 

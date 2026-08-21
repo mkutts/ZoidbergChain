@@ -65,6 +65,7 @@ test('unlocked app shell and wallet surface expose visible feedback entry points
 test('beta guide page keeps onboarding, safety, and mobile guidance visible', () => {
   const guideSource = read('../pages/WhyZoidbergCoin.vue');
   const homeSource = read('../pages/HomePage.vue');
+  const routerSource = read('../router/index.js');
 
   assert.match(guideSource, /Beta Tester Guide/i);
   assert.match(guideSource, /How to use the ZoidbergChain beta/i);
@@ -74,6 +75,7 @@ test('beta guide page keeps onboarding, safety, and mobile guidance visible', ()
   assert.match(guideSource, /MetaMask Mobile/i);
   assert.match(guideSource, /Test ZOID has no real monetary value/i);
   assert.match(homeSource, /Open Beta Guide/i);
+  assert.match(routerSource, /path:\s*'\/why-zoidbergcoin'[\s\S]*meta:\s*\{\s*skipAccessGate:\s*true\s*\}/i);
 });
 
 test('dashboard keeps user-facing workflow copy and hides dev-only review controls by default', () => {

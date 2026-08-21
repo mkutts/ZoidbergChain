@@ -9,6 +9,20 @@
         Access is invite-only while we test voting, rewards, and network safety. Test ZOID has no real monetary value, and this does not represent mainnet.
       </p>
 
+      <div class="rules-panel">
+        <p class="section-label">Allowlist / Beta Eligibility Rules</p>
+        <p class="wallet-note">
+          ZoidbergChain is in a controlled beta. App access, submissions, voting, and rewards can require admin approval, an allowlist entry, a verified wallet, and good standing while we limit spam during testing.
+        </p>
+        <ul class="rules-list">
+          <li>The beta is controlled and invite-only.</li>
+          <li>Submissions currently require controlled beta access plus a verified wallet.</li>
+          <li>Voting and rewards can still have separate review eligibility rules.</li>
+          <li>Admins can grant temporary overrides for early testers.</li>
+          <li>Test ZOID is only for testing and has no real monetary value.</li>
+        </ul>
+      </div>
+
       <div class="entry-switch">
         <button
           type="button"
@@ -210,6 +224,60 @@
         </div>
       </template>
 
+      <section v-if="shouldShowEligibilityStatus" class="rules-panel">
+        <p class="section-label">Why Am I Blocked?</p>
+        <p v-if="eligibilityHeadline" class="status" :class="eligibilityTone">{{ eligibilityHeadline }}</p>
+        <p v-if="primaryBlockedReason" class="wallet-note">{{ primaryBlockedReason }}</p>
+        <p v-for="step in nextSteps" :key="step" class="wallet-note">{{ step }}</p>
+        <p v-if="activeOverrideMessage" class="status success">{{ activeOverrideMessage }}</p>
+      </section>
+
+      <section v-if="canRequestOverride" class="rules-panel">
+        <div class="card-heading-inline">
+          <div>
+            <p class="section-label">Request an Override</p>
+            <p class="wallet-note">
+              If you were invited or approved but still cannot access something, send a focused override request for this controlled beta.
+            </p>
+          </div>
+          <button type="button" class="ghost-btn" @click="showOverrideForm = !showOverrideForm">
+            {{ showOverrideForm ? 'Hide Override Form' : 'Request an Override' }}
+          </button>
+        </div>
+
+        <form v-if="showOverrideForm" class="panel-stack" @submit.prevent="submitOverride">
+          <label class="field">
+            <span>Requested Scope</span>
+            <select v-model="overrideForm.requested_scope" class="field-select">
+              <option value="access">Access Allowlist</option>
+              <option value="review">Review Eligibility Allowlist</option>
+              <option value="voting">Voting Override</option>
+              <option value="rewards">Rewards Override</option>
+              <option value="all_beta">All Beta Permissions</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Name (Optional)</span>
+            <input v-model.trim="overrideForm.name" type="text" />
+          </label>
+          <label class="field">
+            <span>Email (Optional)</span>
+            <input v-model.trim="overrideForm.email" type="email" />
+          </label>
+          <label class="field">
+            <span>Handle (Optional)</span>
+            <input v-model.trim="overrideForm.handle" type="text" />
+          </label>
+          <label class="field">
+            <span>Why do you need an override?</span>
+            <textarea v-model.trim="overrideForm.reason" rows="3" required />
+          </label>
+          <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingOverrideRequest || !overrideForm.reason">
+            {{ access.state.isSubmittingOverrideRequest ? 'Submitting Override Request...' : 'Submit Override Request' }}
+          </button>
+        </form>
+      </section>
+
       <p v-if="access.state.successMessage" class="status success">{{ access.state.successMessage }}</p>
       <p v-if="wallet.state.errorMessage" class="status error">{{ wallet.state.errorMessage }}</p>
       <p v-if="access.state.errorMessage" class="status error">{{ access.state.errorMessage }}</p>
@@ -249,6 +317,14 @@ const requestForm = ref({
   reason: '',
   notes: '',
 });
+const overrideForm = ref({
+  requested_scope: 'access',
+  name: '',
+  email: '',
+  handle: '',
+  reason: '',
+});
+const showOverrideForm = ref(false);
 const mobileWalletSupport = ref({
   isMobileDevice: false,
   hasInjectedProvider: false,
@@ -418,9 +494,49 @@ const returningStatusClass = computed(() => {
 const showRetryButton = computed(
   () => Boolean(pendingWalletAction.value) && !access.state.me?.access_granted,
 );
+const shouldShowEligibilityStatus = computed(
+  () => Boolean(access.state.eligibility || access.state.me?.blocked_reason || access.state.me?.allowlist_override_applied),
+);
+const primaryBlockedReason = computed(
+  () => access.state.eligibility?.blocked_reasons?.[0]?.message || '',
+);
+const nextSteps = computed(
+  () => Array.isArray(access.state.eligibility?.possible_next_steps) ? access.state.eligibility.possible_next_steps : [],
+);
+const activeOverrideMessage = computed(() => {
+  const overrides = access.state.eligibility?.allowlist_overrides_applied || [];
+  if (!overrides.length) {
+    return '';
+  }
+  const firstOverride = overrides[0];
+  return `An admin override is active for ${String(firstOverride.allowlist_scope || firstOverride.scope || 'this account').replace(/_/g, ' ')}.`;
+});
+const eligibilityHeadline = computed(() => {
+  if (access.state.me?.access_granted) {
+    return 'You are approved for app access.';
+  }
+  if (activeOverrideMessage.value) {
+    return 'An admin override is active for this session.';
+  }
+  if (walletAccountStatus.value === 'suspended') {
+    return 'You are blocked because this account is suspended.';
+  }
+  if (walletBindingStatus.value === 'revoked') {
+    return 'You are blocked because this wallet binding was revoked.';
+  }
+  if (wallet.state.isVerifiedSession) {
+    return 'Your wallet is connected but not approved yet.';
+  }
+  return 'Approval or an override may still be required.';
+});
+const eligibilityTone = computed(() => (access.state.me?.access_granted || activeOverrideMessage.value ? 'success' : 'warning'));
+const canRequestOverride = computed(
+  () => !access.state.me?.access_granted && Boolean(requestsEnabled.value || wallet.state.isVerifiedSession || inviteAuthenticated.value),
+);
 
 async function refreshAccessAndUnlock() {
   await access.refreshMe(wallet.getAuthorizationHeader());
+  await access.refreshEligibility(wallet.getAuthorizationHeader());
   if (access.isAppUnlocked()) {
     clearPendingWalletAction();
     emit('unlocked');
@@ -509,6 +625,29 @@ async function submitRequest() {
       reason: '',
       notes: '',
     };
+  }
+}
+
+async function submitOverride() {
+  const result = await access.submitOverrideRequest(
+    {
+      ...overrideForm.value,
+      wallet_address: wallet.state.verifiedWalletAddress || null,
+      access_account_id: access.state.me?.access_account_id || access.state.me?.access_account?.access_account_id || null,
+      current_page: '/access',
+      detected_blocked_reason: access.state.eligibility?.blocked_reasons?.[0]?.reason || access.state.me?.blocked_reason || null,
+    },
+    wallet.getAuthorizationHeader(),
+  );
+  if (result) {
+    overrideForm.value = {
+      requested_scope: 'access',
+      name: '',
+      email: '',
+      handle: '',
+      reason: '',
+    };
+    showOverrideForm.value = false;
   }
 }
 
@@ -682,15 +821,41 @@ h2 {
 
 .wallet-box,
 .returning-panel,
-.mobile-open-card {
+.mobile-open-card,
+.rules-panel {
   padding: 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
 }
 
 .returning-panel,
-.mobile-open-card {
+.mobile-open-card,
+.rules-panel {
   border: 1px solid rgba(255, 205, 115, 0.14);
+}
+
+.rules-list {
+  margin: 12px 0 0 18px;
+  color: #dfd7c6;
+  line-height: 1.6;
+}
+
+.card-heading-inline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.field-select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(255, 205, 115, 0.18);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7f0de;
+  font: inherit;
 }
 
 .mobile-open-card {

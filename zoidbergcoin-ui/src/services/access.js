@@ -18,11 +18,13 @@ function createInitialState() {
   return {
     publicStatus: null,
     me: null,
+    eligibility: null,
     accessSessionToken: '',
     errorMessage: '',
     successMessage: '',
     isLoadingStatus: false,
     isSubmittingRequest: false,
+    isSubmittingOverrideRequest: false,
     isLoggingIn: false,
     isBindingWallet: false,
   };
@@ -55,6 +57,9 @@ export function createAccessService(options = {}) {
   }
 
   function getAccessHeaders() {
+    if (!state.accessSessionToken) {
+      restoreSessionToken();
+    }
     if (!state.accessSessionToken) {
       return {};
     }
@@ -98,10 +103,35 @@ export function createAccessService(options = {}) {
     }
   }
 
+  async function refreshEligibility(authHeaders = {}) {
+    state.errorMessage = '';
+    try {
+      const response = await publicApi.get('/eligibility/status', {
+        headers: {
+          ...getAccessHeaders(),
+          ...(authHeaders || {}),
+        },
+      });
+      state.eligibility = response.data;
+      return response.data;
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        persistSessionToken('');
+      }
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load eligibility status.');
+      state.eligibility = null;
+      return null;
+    }
+  }
+
   async function initialize(authHeaders = {}) {
     restoreSessionToken();
     await loadPublicStatus();
-    return refreshMe(authHeaders);
+    const me = await refreshMe(authHeaders);
+    if (me === null && state.errorMessage) {
+      return null;
+    }
+    return refreshEligibility(authHeaders);
   }
 
   async function submitAccessRequest(payload) {
@@ -129,6 +159,7 @@ export function createAccessService(options = {}) {
       persistSessionToken(response.data?.access_session_token || '');
       state.successMessage = response.data?.message || 'Invite accepted.';
       await refreshMe();
+      await refreshEligibility();
       return response.data;
     } catch (error) {
       state.errorMessage = getApiErrorMessage(error, 'Invite login failed.');
@@ -155,6 +186,7 @@ export function createAccessService(options = {}) {
         persistSessionToken('');
       }
       await refreshMe(authHeaders);
+      await refreshEligibility(authHeaders);
       return response.data;
     } catch (error) {
       state.errorMessage = getApiErrorMessage(error, 'Wallet binding failed.');
@@ -164,9 +196,32 @@ export function createAccessService(options = {}) {
     }
   }
 
+  async function submitOverrideRequest(payload, authHeaders = {}) {
+    state.isSubmittingOverrideRequest = true;
+    state.errorMessage = '';
+    state.successMessage = '';
+    try {
+      const response = await publicApi.post('/eligibility/override-requests', payload, {
+        headers: {
+          ...getAccessHeaders(),
+          ...(authHeaders || {}),
+        },
+      });
+      state.successMessage = response.data?.message || 'Override request submitted.';
+      await refreshEligibility(authHeaders);
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Override request failed.');
+      return null;
+    } finally {
+      state.isSubmittingOverrideRequest = false;
+    }
+  }
+
   function clearAccessSession() {
     persistSessionToken('');
     state.me = null;
+    state.eligibility = null;
     state.successMessage = '';
   }
 
@@ -182,8 +237,10 @@ export function createAccessService(options = {}) {
     state: readonly(state),
     loadPublicStatus,
     refreshMe,
+    refreshEligibility,
     initialize,
     submitAccessRequest,
+    submitOverrideRequest,
     loginWithCode,
     bindWallet,
     clearAccessSession,

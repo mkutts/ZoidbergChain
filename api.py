@@ -503,6 +503,49 @@ class AdminCreateInviteRequest(_StrictBodyModel):
     max_wallets: Annotated[int, Field(ge=1, le=50)] = 1
 
 
+class AdminAllowlistCreateRequest(_StrictBodyModel):
+    scope: Annotated[str, Field(min_length=3, max_length=32)]
+    subject_type: Annotated[str, Field(min_length=4, max_length=32)]
+    subject_value: Annotated[str, Field(min_length=1, max_length=320)]
+    reason: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    expires_at: Annotated[str | None, Field(default=None, max_length=64)] = None
+
+
+class AdminAllowlistUpdateRequest(_StrictBodyModel):
+    scope: Annotated[str | None, Field(default=None, min_length=3, max_length=32)] = None
+    subject_type: Annotated[str | None, Field(default=None, min_length=4, max_length=32)] = None
+    subject_value: Annotated[str | None, Field(default=None, min_length=1, max_length=320)] = None
+    status: Annotated[str | None, Field(default=None, min_length=6, max_length=16)] = None
+    reason: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    expires_at: Annotated[str | None, Field(default=None, max_length=64)] = None
+
+
+class AdminAllowlistRevokeRequest(_StrictBodyModel):
+    revoked_reason: Annotated[str | None, Field(default=None, max_length=2000)] = None
+
+
+class AdminAllowlistReactivateRequest(_StrictBodyModel):
+    reason: Annotated[str | None, Field(default=None, max_length=2000)] = None
+
+
+class OverrideRequestCreate(_StrictBodyModel):
+    requested_scope: Annotated[str, Field(min_length=3, max_length=32)]
+    name: Annotated[str | None, Field(default=None, max_length=128)] = None
+    email: Annotated[str | None, Field(default=None, max_length=320)] = None
+    handle: Annotated[str | None, Field(default=None, max_length=128)] = None
+    wallet_address: Annotated[str | None, Field(default=None, max_length=128)] = None
+    access_account_id: Annotated[str | None, Field(default=None, max_length=128)] = None
+    reason: Annotated[str, Field(min_length=1, max_length=2000)]
+    current_page: Annotated[str | None, Field(default=None, max_length=240)] = None
+    detected_blocked_reason: Annotated[str | None, Field(default=None, max_length=240)] = None
+
+
+class AdminOverrideRequestDecision(_StrictBodyModel):
+    reviewed_by: Annotated[str, Field(min_length=1, max_length=128)] = "operator"
+    admin_note: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    resolved_scope: Annotated[str | None, Field(default=None, min_length=3, max_length=32)] = None
+
+
 def _short_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -962,7 +1005,7 @@ def _current_review_policy_config():
     return load_review_policy_config(ENVIRONMENT)
 
 
-def _review_eligibility_for_wallet(wallet_address: str, *, now: float | None = None):
+def _review_eligibility_for_wallet(wallet_address: str, *, scope: str = "review", now: float | None = None):
     config = _current_review_policy_config()
     activity_summary = blockchain.get_account_activity_summary(wallet_address, now=now)
     recent_vote_count = blockchain.count_votes_by_wallet_since(
@@ -975,7 +1018,48 @@ def _review_eligibility_for_wallet(wallet_address: str, *, now: float | None = N
         activity_summary=activity_summary,
         recent_vote_count=recent_vote_count,
     )
-    return config, decision
+    access_account, _binding, hard_block_reason = _review_hard_block_for_wallet(wallet_address)
+    if hard_block_reason:
+        detail_message = {
+            "wallet_binding_revoked": "This wallet binding was revoked. Ask the operator to rebind or reapprove it.",
+            "access_account_suspended": "This access account is suspended. Ask the operator to reactivate it before trying again.",
+            "access_account_revoked": "This access account is revoked. Ask the operator to restore access before trying again.",
+        }.get(
+            hard_block_reason,
+            "This wallet is blocked for controlled beta review actions.",
+        )
+        return config, _review_decision_with_status(
+            decision,
+            eligible=False,
+            reason=hard_block_reason,
+            recommended_action=detail_message,
+            eligibility_status="blocked",
+            blocked_reason=hard_block_reason,
+        )
+
+    override_entry = blockchain.find_matching_allowlist_entry(
+        scope,
+        wallet_address=wallet_address,
+        access_account=access_account,
+    )
+    if override_entry:
+        return config, _review_decision_with_status(
+            decision,
+            eligible=True,
+            reason="allowlist_override",
+            recommended_action="An admin override is active for this wallet.",
+            matched_threshold=None,
+            allowlist_override_applied=True,
+            allowlist_scope=str(override_entry.get("scope") or "").strip().lower() or None,
+            eligibility_status="allowlist_override",
+            blocked_reason=None,
+        )
+
+    return config, _review_decision_with_status(
+        decision,
+        eligibility_status="eligible" if decision.eligible else "blocked",
+        blocked_reason=None if decision.eligible else decision.reason,
+    )
 
 
 def _review_policy_http_exception(reason: str, recommended_action: str):
@@ -989,8 +1073,8 @@ def _review_policy_http_exception(reason: str, recommended_action: str):
     )
 
 
-def _enforce_review_policy(wallet_address: str):
-    _, decision = _review_eligibility_for_wallet(wallet_address)
+def _enforce_review_policy(wallet_address: str, *, scope: str = "review"):
+    _, decision = _review_eligibility_for_wallet(wallet_address, scope=scope)
     if not decision.eligible:
         _review_policy_http_exception(decision.reason, decision.recommended_action)
 
@@ -1184,7 +1268,9 @@ def _admin_audit_entry(entry: dict | None) -> dict:
         "remote_ip": payload.get("remote_ip"),
         "user_agent": payload.get("user_agent"),
         "request_id": payload.get("request_id"),
+        "override_request_id": payload.get("override_request_id"),
         "access_account_id": payload.get("access_account_id"),
+        "allowlist_entry_id": payload.get("allowlist_entry_id"),
         "wallet_address": payload.get("wallet_address"),
         "reason": payload.get("reason"),
         "operator_note": payload.get("operator_note"),
@@ -1198,7 +1284,9 @@ def _record_admin_audit_event(
     result: str = "ok",
     session=None,
     request_id: str | None = None,
+    override_request_id: str | None = None,
     access_account_id: str | None = None,
+    allowlist_entry_id: str | None = None,
     wallet_address: str | None = None,
     reason: str | None = None,
     operator_note: str | None = None,
@@ -1208,7 +1296,9 @@ def _record_admin_audit_event(
         "result": result,
         "actor_session_id": _safe_session_identifier(session),
         "request_id": request_id,
+        "override_request_id": override_request_id,
         "access_account_id": access_account_id,
+        "allowlist_entry_id": allowlist_entry_id,
         "wallet_address": wallet_address,
         "reason": normalize_text_field(reason),
         "operator_note": normalize_text_field(operator_note),
@@ -1617,6 +1707,413 @@ def _admin_wallet_binding(binding: dict | None) -> dict | None:
     return _public_wallet_binding(binding)
 
 
+def _public_allowlist_entry(entry: dict | None) -> dict | None:
+    if not entry:
+        return None
+    return {
+        "allowlist_entry_id": entry.get("allowlist_entry_id"),
+        "scope": entry.get("scope"),
+        "subject_type": entry.get("subject_type"),
+        "subject_value": entry.get("subject_value"),
+        "status": entry.get("status"),
+        "reason": entry.get("reason"),
+        "created_at": entry.get("created_at"),
+        "updated_at": entry.get("updated_at"),
+        "expires_at": entry.get("expires_at"),
+        "created_by": entry.get("created_by"),
+        "revoked_at": entry.get("revoked_at"),
+        "revoked_reason": entry.get("revoked_reason"),
+    }
+
+
+def _admin_allowlist_entry(entry: dict | None) -> dict | None:
+    body = _public_allowlist_entry(entry)
+    if not body or not entry:
+        return body
+    subject_type = str(entry.get("subject_type") or "").strip().lower()
+    subject_value = str(entry.get("subject_value") or "").strip()
+    related_account = None
+    related_binding = None
+    related_request = None
+    if subject_type == "wallet":
+        related_binding = blockchain.get_wallet_binding(subject_value)
+        if related_binding:
+            related_account = blockchain.get_access_account(related_binding.get("access_account_id"))
+    elif subject_type == "access_account":
+        related_account = blockchain.get_access_account(subject_value)
+    elif subject_type == "email":
+        related_account = next(
+            (
+                account for account in blockchain.list_access_accounts()
+                if normalize_email(account.get("email")) == normalize_email(subject_value)
+            ),
+            None,
+        )
+        related_request = next(
+            (
+                request_record for request_record in blockchain.list_access_requests()
+                if normalize_email(request_record.get("email")) == normalize_email(subject_value)
+            ),
+            None,
+        )
+    elif subject_type == "handle":
+        related_account = next(
+            (
+                account for account in blockchain.list_access_accounts()
+                if normalize_handle(account.get("handle")) == normalize_handle(subject_value)
+            ),
+            None,
+        )
+        related_request = next(
+            (
+                request_record for request_record in blockchain.list_access_requests()
+                if normalize_handle(request_record.get("handle")) == normalize_handle(subject_value)
+            ),
+            None,
+        )
+    body["related_access_account"] = _public_access_account(related_account)
+    body["related_wallet_binding"] = _public_wallet_binding(related_binding)
+    body["related_access_request"] = _public_access_request(related_request)
+    return body
+
+
+def _public_override_request(record: dict | None) -> dict | None:
+    if not record:
+        return None
+    return {
+        "override_request_id": record.get("override_request_id"),
+        "requested_scope": record.get("requested_scope"),
+        "name": record.get("name"),
+        "email": record.get("email"),
+        "handle": record.get("handle"),
+        "wallet_address": record.get("wallet_address"),
+        "access_account_id": record.get("access_account_id"),
+        "reason": record.get("reason"),
+        "current_page": record.get("current_page"),
+        "detected_blocked_reason": record.get("detected_blocked_reason"),
+        "status": record.get("status"),
+        "created_at": record.get("created_at"),
+        "updated_at": record.get("updated_at"),
+    }
+
+
+def _admin_override_request(record: dict | None) -> dict | None:
+    body = _public_override_request(record)
+    if not body or not record:
+        return body
+    body.update({
+        "reviewed_at": record.get("reviewed_at"),
+        "reviewed_by": record.get("reviewed_by"),
+        "admin_note": record.get("admin_note"),
+        "resolved_scope": record.get("resolved_scope"),
+        "approved_allowlist_entry_id": record.get("approved_allowlist_entry_id"),
+        "user_agent": record.get("user_agent"),
+        "remote_ip": record.get("remote_ip"),
+    })
+    related_account = None
+    related_binding = None
+    wallet_address = normalize_wallet_address(record.get("wallet_address") or "")
+    access_account_id = normalize_text_field(record.get("access_account_id"))
+    if wallet_address:
+        related_binding = blockchain.get_wallet_binding(wallet_address)
+        if related_binding:
+            related_account = blockchain.get_access_account(related_binding.get("access_account_id"))
+    if related_account is None and access_account_id:
+        related_account = blockchain.get_access_account(access_account_id)
+    body["related_access_account"] = _public_access_account(related_account)
+    body["related_wallet_binding"] = _public_wallet_binding(related_binding)
+    return body
+
+
+def _review_hard_block_for_wallet(wallet_address: str):
+    binding = blockchain.get_wallet_binding(wallet_address)
+    access_account = blockchain.get_access_account_for_wallet(wallet_address)
+    if binding and str(binding.get("status") or "").strip().lower() == "revoked":
+        return access_account, binding, "wallet_binding_revoked"
+    if access_account:
+        account_status = str(access_account.get("status") or "").strip().lower()
+        if account_status in {"suspended", "revoked"}:
+            return access_account, binding, f"access_account_{account_status}"
+    return access_account, binding, None
+
+
+def _review_decision_with_status(
+    decision,
+    *,
+    eligible: bool | None = None,
+    reason: str | None = None,
+    recommended_action: str | None = None,
+    matched_threshold=None,
+    allowlist_override_applied: bool | None = None,
+    allowlist_scope: str | None = None,
+    eligibility_status: str | None = None,
+    blocked_reason: str | None = None,
+):
+    return type(decision)(
+        eligible=decision.eligible if eligible is None else eligible,
+        reason=decision.reason if reason is None else reason,
+        recommended_action=decision.recommended_action if recommended_action is None else recommended_action,
+        matched_threshold=decision.matched_threshold if matched_threshold is None else matched_threshold,
+        allowlist_override_applied=(
+            decision.allowlist_override_applied
+            if allowlist_override_applied is None
+            else allowlist_override_applied
+        ),
+        allowlist_scope=decision.allowlist_scope if allowlist_scope is None else allowlist_scope,
+        eligibility_status=decision.eligibility_status if eligibility_status is None else eligibility_status,
+        blocked_reason=decision.blocked_reason if blocked_reason is None else blocked_reason,
+    )
+
+
+def _session_access_allowlist_entry(session_access_account: dict | None):
+    if not session_access_account:
+        return None
+    if str(session_access_account.get("status") or "").strip().lower() != "active":
+        return None
+    return blockchain.find_matching_allowlist_entry(
+        "access",
+        access_account=session_access_account,
+    )
+
+
+def _eligibility_reason_message(scope: str, reason: str) -> str:
+    labels = {
+        "wallet_not_verified": "Verify a wallet to continue.",
+        "wallet_not_bound": "This wallet is connected but not approved for the controlled beta yet.",
+        "wallet_binding_revoked": "This wallet binding was revoked and must be reapproved.",
+        "access_account_suspended": "This access account is suspended.",
+        "access_account_revoked": "This access account is revoked.",
+        "wallet_not_allowlisted": "This wallet is not on the current review eligibility allowlist.",
+        "insufficient_reviewer_activity": "This wallet does not meet the current reviewer activity rules yet.",
+        "daily_vote_limit_reached": "This wallet reached the current daily review limit.",
+        "wallet_denylisted": "This wallet is blocked from review actions on this node.",
+    }
+    default_label = f"{scope.title()} is currently blocked."
+    return labels.get(str(reason or "").strip().lower(), default_label)
+
+
+def _submission_policy_rule() -> str:
+    return (
+        "Submissions currently require controlled beta access for submissions plus a verified wallet session. "
+        "This node does not apply a separate submission-only override gate."
+    )
+
+
+def _submission_status_message(reason: str | None) -> tuple[str, str | None]:
+    normalized_reason = str(reason or "").strip().lower()
+    message_map = {
+        "wallet_not_verified": (
+            "Submission is blocked until this wallet is verified.",
+            "Connect and verify the wallet you want to use for submissions.",
+        ),
+        "wallet_not_bound": (
+            "Submission is blocked because this wallet is not approved for the controlled beta yet.",
+            "Ask an admin to approve this wallet for controlled beta access before submitting.",
+        ),
+        "wallet_binding_revoked": (
+            "Submission is blocked because this wallet binding was revoked.",
+            "Ask an admin to reapprove or rebind this wallet before submitting again.",
+        ),
+        "access_account_suspended": (
+            "Submission is blocked because this access account is suspended.",
+            "Ask an admin to reactivate this access account before submitting again.",
+        ),
+        "access_account_revoked": (
+            "Submission is blocked because this access account is revoked.",
+            "Ask an admin to reactivate this access account before submitting again.",
+        ),
+        "access_account_missing": (
+            "Submission is blocked because this wallet is not attached to an active access account.",
+            "Reconnect an approved wallet or ask an admin to restore access before submitting again.",
+        ),
+    }
+    return message_map.get(normalized_reason, ("Submission is currently blocked.", None))
+
+
+def _submission_eligibility_for_wallet(
+    wallet_address: str | None,
+    *,
+    wallet_session_authenticated: bool,
+    access_decision=None,
+) -> dict[str, Any]:
+    policy_rule = _submission_policy_rule()
+    if not wallet_session_authenticated or not wallet_address:
+        message, recommended_action = _submission_status_message("wallet_not_verified")
+        return {
+            "can_submit": False,
+            "eligibility_status": "blocked",
+            "eligibility_source": "blocked",
+            "blocked_reason": "wallet_not_verified",
+            "message": message,
+            "recommended_action": recommended_action,
+            "policy_rule": policy_rule,
+            "allowlist_override_applied": False,
+            "allowlist_scope": None,
+        }
+
+    decision = access_decision or access_decision_for_wallet(blockchain, wallet_address, feature="submissions")
+    if not decision.allowed:
+        message, recommended_action = _submission_status_message(decision.reason)
+        return {
+            "can_submit": False,
+            "eligibility_status": "blocked",
+            "eligibility_source": "blocked",
+            "blocked_reason": decision.reason,
+            "message": message,
+            "recommended_action": recommended_action,
+            "policy_rule": policy_rule,
+            "allowlist_override_applied": False,
+            "allowlist_scope": None,
+        }
+
+    return {
+        "can_submit": True,
+        "eligibility_status": "eligible",
+        "eligibility_source": "normal_access_verified_wallet",
+        "blocked_reason": None,
+        "message": "Submission is allowed because this wallet has controlled beta access and the wallet session is verified.",
+        "recommended_action": None,
+        "policy_rule": policy_rule,
+        "allowlist_override_applied": False,
+        "allowlist_scope": None,
+    }
+
+
+def _enforce_submission_eligibility(wallet_address: str):
+    decision = access_decision_for_wallet(blockchain, wallet_address, feature="submissions")
+    submission_status = _submission_eligibility_for_wallet(
+        wallet_address,
+        wallet_session_authenticated=True,
+        access_decision=decision,
+    )
+    if submission_status["can_submit"]:
+        return decision, submission_status
+    raise HTTPException(
+        status_code=403,
+        detail={
+            "error": "submission_not_eligible",
+            "reason": submission_status["blocked_reason"],
+            "message": submission_status["message"],
+            "recommended_action": submission_status["recommended_action"],
+            "submission_policy": submission_status["policy_rule"],
+            "allowlist_override_applied": submission_status["allowlist_override_applied"],
+            "allowlist_scope": submission_status["allowlist_scope"],
+            "access_control_mode": ACCESS_CONTROL_MODE,
+        },
+    )
+
+
+def _build_eligibility_status_payload(
+    *,
+    wallet_address: str | None,
+    access_account: dict | None,
+    binding: dict | None,
+    session_access_account: dict | None,
+    invite_authenticated: bool,
+    wallet_session_authenticated: bool,
+    access_decision,
+):
+    access_payload = _access_status_payload(
+        wallet_address=wallet_address,
+        access_account=access_account,
+        binding=binding,
+        session_access_account=session_access_account,
+        invite_authenticated=invite_authenticated,
+        wallet_session_authenticated=wallet_session_authenticated,
+        access_decision=access_decision,
+    )
+    blocked_reasons: list[dict[str, str]] = []
+    possible_next_steps: list[str] = []
+    allowlist_overrides_applied: list[dict[str, str]] = []
+
+    if access_payload.get("allowlist_override_applied"):
+        allowlist_overrides_applied.append({
+            "scope": "access",
+            "allowlist_scope": str(access_payload.get("allowlist_scope") or "access"),
+        })
+
+    submission_status = _submission_eligibility_for_wallet(
+        wallet_address,
+        wallet_session_authenticated=wallet_session_authenticated,
+    )
+    can_submit = bool(submission_status.get("can_submit"))
+    can_vote = False
+    can_receive_rewards = False
+
+    voting_decision = None
+    rewards_decision = None
+    if wallet_address:
+        _config, voting_decision = _review_eligibility_for_wallet(wallet_address, scope="voting")
+        _config, rewards_decision = _review_eligibility_for_wallet(wallet_address, scope="rewards")
+        can_vote = bool(access_payload.get("can_vote") and voting_decision.eligible and wallet_session_authenticated)
+        can_receive_rewards = bool(
+            access_payload.get("can_receive_rewards")
+            and rewards_decision.eligible
+            and wallet_session_authenticated
+        )
+        for scope_name, decision in (("voting", voting_decision), ("rewards", rewards_decision)):
+            if decision.allowlist_override_applied:
+                allowlist_overrides_applied.append({
+                    "scope": scope_name,
+                    "allowlist_scope": str(decision.allowlist_scope or scope_name),
+                })
+            if not decision.eligible:
+                blocked_reasons.append({
+                    "scope": scope_name,
+                    "reason": str(decision.blocked_reason or decision.reason or ""),
+                    "message": _eligibility_reason_message(scope_name, decision.blocked_reason or decision.reason or ""),
+                })
+                possible_next_steps.append(decision.recommended_action)
+    elif wallet_session_authenticated is False:
+        possible_next_steps.append("Connect and verify a wallet so the app can show your current beta eligibility.")
+
+    if not access_payload.get("access_granted"):
+        blocked_reason = str(access_payload.get("blocked_reason") or "")
+        if blocked_reason:
+            blocked_reasons.insert(0, {
+                "scope": "access",
+                "reason": blocked_reason,
+                "message": _eligibility_reason_message("access", blocked_reason),
+            })
+        if blocked_reason in {"wallet_not_bound", "wallet_not_allowlisted"}:
+            possible_next_steps.append("Request an override or ask an admin to approve this wallet for controlled beta access.")
+        elif blocked_reason == "wallet_not_verified":
+            possible_next_steps.append("Connect and verify your wallet, then refresh your eligibility status.")
+        elif blocked_reason.startswith("access_account_") or blocked_reason == "wallet_binding_revoked":
+            possible_next_steps.append("Ask an admin to reactivate or reapprove this account before trying again.")
+
+    if wallet_session_authenticated and access_payload.get("access_granted") and not can_vote:
+        possible_next_steps.append("You can access the app, but review actions may still need reviewer eligibility or an override.")
+
+    if submission_status.get("recommended_action"):
+        possible_next_steps.append(str(submission_status["recommended_action"]))
+
+    deduped_steps = list(dict.fromkeys([step for step in possible_next_steps if step]))
+    deduped_blocked_reasons = []
+    seen_block_keys = set()
+    for item in blocked_reasons:
+        key = (item.get("scope"), item.get("reason"))
+        if key in seen_block_keys:
+            continue
+        seen_block_keys.add(key)
+        deduped_blocked_reasons.append(item)
+
+    return {
+        "access_granted": bool(access_payload.get("access_granted")),
+        "connected_wallet": wallet_address,
+        "wallet_bound": bool(access_payload.get("wallet_bound")),
+        "can_submit": can_submit,
+        "can_vote": can_vote,
+        "can_receive_rewards": can_receive_rewards,
+        "blocked_reasons": deduped_blocked_reasons,
+        "allowlist_overrides_applied": allowlist_overrides_applied,
+        "possible_next_steps": deduped_steps,
+        "override_requests_enabled": True,
+        "submission": submission_status,
+        "access": access_payload,
+    }
+
+
 def _access_status_payload(
     *,
     wallet_address: str | None = None,
@@ -1625,6 +2122,7 @@ def _access_status_payload(
     session_access_account: dict | None = None,
     invite_authenticated: bool = False,
     wallet_session_authenticated: bool = False,
+    access_decision=None,
 ):
     effective_account = access_account or session_access_account
     account_status = str(effective_account.get("status") or "").strip().lower() if effective_account else ""
@@ -1634,9 +2132,39 @@ def _access_status_payload(
         and access_account
         and str(access_account.get("status") or "").strip().lower() == "active"
     )
-    access_granted = wallet_bound
+    allowlist_entry = _session_access_allowlist_entry(session_access_account)
+    allowlist_override_applied = bool(
+        (access_decision and access_decision.allowlist_override_applied)
+        or allowlist_entry
+    )
+    allowlist_scope = None
+    if access_decision and access_decision.allowlist_scope:
+        allowlist_scope = access_decision.allowlist_scope
+    elif allowlist_entry:
+        allowlist_scope = str(allowlist_entry.get("scope") or "").strip().lower() or None
+    access_granted = bool(
+        wallet_bound
+        or (access_decision and access_decision.allowed)
+        or allowlist_entry
+    )
     wallet_count = len(list(effective_account.get("bound_wallets", []))) if effective_account else 0
     payload = public_access_status_payload()
+    blocked_reason = None
+    eligibility_status = "blocked"
+    if access_granted:
+        eligibility_status = "approved"
+        if allowlist_override_applied:
+            eligibility_status = "allowlist_override"
+    elif access_decision and access_decision.reason:
+        blocked_reason = access_decision.reason
+    elif binding and str(binding.get("status") or "").strip().lower() == "revoked":
+        blocked_reason = "wallet_binding_revoked"
+    elif account_status:
+        blocked_reason = f"access_account_{account_status}"
+    elif wallet_session_authenticated:
+        blocked_reason = "wallet_not_allowlisted"
+    elif invite_authenticated:
+        blocked_reason = "wallet_not_bound"
     payload.update({
         "authenticated": bool(invite_authenticated or wallet_session_authenticated),
         "invite_authenticated": bool(invite_authenticated),
@@ -1648,9 +2176,13 @@ def _access_status_payload(
         "access_account": _public_access_account(effective_account),
         "wallet_binding": _public_wallet_binding(binding),
         "access_granted": access_granted,
+        "eligibility_status": eligibility_status,
+        "blocked_reason": blocked_reason,
+        "allowlist_override_applied": allowlist_override_applied,
+        "allowlist_scope": allowlist_scope,
         "max_wallets": effective_account.get("max_wallets") if effective_account else None,
         "wallet_count": wallet_count,
-        "can_submit": bool(access_granted or not REQUIRE_ACCESS_FOR_SUBMISSIONS),
+        "can_submit": bool((access_granted or not REQUIRE_ACCESS_FOR_SUBMISSIONS) and wallet_session_authenticated),
         "can_vote": bool(access_granted or not REQUIRE_ACCESS_FOR_VOTES),
         "can_receive_rewards": bool(access_granted or not REQUIRE_ACCESS_FOR_REWARDS),
         "can_transfer": bool(access_granted or not REQUIRE_ACCESS_FOR_TRANSFERS),
@@ -1663,13 +2195,25 @@ def _enforce_access_for_feature(wallet_address: str | None, *, feature: str):
     decision = access_decision_for_wallet(blockchain, wallet_address, feature=feature)
     if decision.allowed:
         return decision
+    reason_messages = {
+        "wallet_not_verified": "Verify a wallet before trying this action.",
+        "wallet_not_bound": "This wallet is not approved for the controlled beta yet.",
+        "wallet_binding_revoked": "This wallet binding was revoked and must be reapproved before it can be used again.",
+        "access_account_suspended": "This access account is suspended and must be reactivated by an admin.",
+        "access_account_revoked": "This access account is revoked and must be reactivated by an admin.",
+    }
     detail = {
         "error": "access_required",
         "reason": decision.reason,
         "feature": feature,
-        "message": "A bound active controlled-testnet access account is required for this action.",
+        "message": reason_messages.get(
+            decision.reason,
+            "A bound active controlled-testnet access account or approved access override is required for this action.",
+        ),
         "access_control_mode": ACCESS_CONTROL_MODE,
         "recommended_action": "Enter an invite code or request access, then bind the verified MetaMask wallet.",
+        "allowlist_override_applied": decision.allowlist_override_applied,
+        "allowlist_scope": decision.allowlist_scope,
     }
     raise HTTPException(status_code=403, detail=detail)
 
@@ -1985,6 +2529,7 @@ async def get_access_me(
     session_access_account = None
     wallet_session_authenticated = False
     invite_authenticated = False
+    access_decision = None
 
     if authorization:
         try:
@@ -1995,6 +2540,7 @@ async def get_access_me(
             wallet_session_authenticated = True
             binding = blockchain.get_wallet_binding(wallet_address)
             access_account = blockchain.get_access_account_for_wallet(wallet_address)
+            access_decision = access_decision_for_wallet(blockchain, wallet_address, feature="app")
         except HTTPException as exc:
             raise HTTPException(status_code=401, detail=exc.detail) from exc
 
@@ -2013,7 +2559,114 @@ async def get_access_me(
         session_access_account=session_access_account,
         invite_authenticated=invite_authenticated,
         wallet_session_authenticated=wallet_session_authenticated,
+        access_decision=access_decision,
     )
+
+
+@app.get("/eligibility/status")
+@api_limit("public_read")
+async def get_eligibility_status(
+    request: Request,
+    authorization: str | None = Header(default=None),
+    x_zoid_access_session: str | None = Header(default=None, alias="X-ZOID-Access-Session"),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    wallet_address = None
+    access_account = None
+    binding = None
+    session_access_account = None
+    wallet_session_authenticated = False
+    invite_authenticated = False
+    access_decision = None
+
+    if authorization:
+        try:
+            wallet_address = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+            wallet_session_authenticated = True
+            binding = blockchain.get_wallet_binding(wallet_address)
+            access_account = blockchain.get_access_account_for_wallet(wallet_address)
+            access_decision = access_decision_for_wallet(blockchain, wallet_address, feature="app")
+        except HTTPException as exc:
+            raise HTTPException(status_code=401, detail=exc.detail) from exc
+
+    if x_zoid_access_session:
+        try:
+            session_access_account = _resolve_access_account_from_session(x_zoid_access_session)
+            invite_authenticated = True
+        except ValueError as exc:
+            if not wallet_session_authenticated or access_account is None:
+                raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    return _build_eligibility_status_payload(
+        wallet_address=wallet_address,
+        access_account=access_account,
+        binding=binding,
+        session_access_account=session_access_account,
+        invite_authenticated=invite_authenticated,
+        wallet_session_authenticated=wallet_session_authenticated,
+        access_decision=access_decision,
+    )
+
+
+@app.post("/eligibility/override-requests")
+@api_limit("submission_create")
+async def create_override_request(
+    request: Request,
+    payload: OverrideRequestCreate,
+    authorization: str | None = Header(default=None),
+    x_zoid_access_session: str | None = Header(default=None, alias="X-ZOID-Access-Session"),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    wallet_address = None
+    access_account = None
+    if authorization:
+        try:
+            wallet_address = resolve_verified_wallet_from_authorization(
+                authorization,
+                manager=wallet_auth_manager,
+            )
+            access_account = blockchain.get_access_account_for_wallet(wallet_address)
+        except HTTPException:
+            wallet_address = None
+    if not access_account and x_zoid_access_session:
+        try:
+            access_account = _resolve_access_account_from_session(x_zoid_access_session)
+        except ValueError:
+            access_account = None
+
+    try:
+        override_request = blockchain.create_override_request(
+            requested_scope=payload.requested_scope,
+            name=payload.name,
+            email=payload.email or (access_account.get("email") if access_account else None),
+            handle=payload.handle or (access_account.get("handle") if access_account else None),
+            wallet_address=payload.wallet_address or wallet_address,
+            access_account_id=payload.access_account_id or (access_account.get("access_account_id") if access_account else None),
+            reason=payload.reason,
+            current_page=payload.current_page,
+            detected_blocked_reason=payload.detected_blocked_reason,
+            user_agent=(request.headers.get("user-agent") or ""),
+            remote_ip=(request.client.host if request.client else ""),
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    _record_admin_audit_event(
+        request=request,
+        action="override_request_submitted",
+        override_request_id=override_request.get("override_request_id"),
+        access_account_id=override_request.get("access_account_id"),
+        wallet_address=override_request.get("wallet_address"),
+        reason=override_request.get("detected_blocked_reason"),
+    )
+    return {
+        "message": "Override request submitted.",
+        "override_request": _public_override_request(override_request),
+    }
 
 
 @app.post("/admin/login")
@@ -2281,6 +2934,315 @@ async def admin_get_access_account(
     }
 
 
+@app.get("/admin/allowlist")
+@api_limit("public_read")
+async def admin_list_allowlist(
+    request: Request,
+    scope: str | None = Query(default=None),
+    subject_type: str | None = Query(default=None),
+    subject_value: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    return {
+        "allowlist_entries": [
+            _admin_allowlist_entry(entry)
+            for entry in blockchain.list_allowlist_entries(
+                scope=scope,
+                subject_type=subject_type,
+                subject_value=subject_value,
+                status=status,
+            )
+        ],
+    }
+
+
+@app.post("/admin/allowlist")
+@api_limit("wallet_create")
+async def admin_create_allowlist_entry(
+    request: Request,
+    payload: AdminAllowlistCreateRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        entry = blockchain.create_allowlist_entry(
+            scope=payload.scope,
+            subject_type=payload.subject_type,
+            subject_value=payload.subject_value,
+            reason=payload.reason,
+            expires_at=payload.expires_at,
+            created_by=_safe_session_identifier(_admin_session),
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="allowlist_entry_created",
+        session=_admin_session,
+        allowlist_entry_id=entry.get("allowlist_entry_id"),
+        access_account_id=entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+        wallet_address=entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+        reason=entry.get("scope"),
+        operator_note=entry.get("reason"),
+    )
+    return {
+        "message": "Allowlist entry created.",
+        "allowlist_entry": _admin_allowlist_entry(entry),
+    }
+
+
+@app.get("/admin/allowlist/{allowlist_entry_id}")
+@api_limit("public_read")
+async def admin_get_allowlist_entry(
+    request: Request,
+    allowlist_entry_id: str,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    entry = blockchain.get_allowlist_entry(allowlist_entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Allowlist entry not found: {allowlist_entry_id}")
+    return {
+        "allowlist_entry": _admin_allowlist_entry(entry),
+    }
+
+
+@app.patch("/admin/allowlist/{allowlist_entry_id}")
+@api_limit("wallet_create")
+async def admin_update_allowlist_entry(
+    request: Request,
+    allowlist_entry_id: str,
+    payload: AdminAllowlistUpdateRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        entry = blockchain.update_allowlist_entry(
+            allowlist_entry_id,
+            scope=payload.scope,
+            subject_type=payload.subject_type,
+            subject_value=payload.subject_value,
+            reason=payload.reason,
+            expires_at=payload.expires_at,
+            status=payload.status,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="allowlist_entry_updated",
+        session=_admin_session,
+        allowlist_entry_id=entry.get("allowlist_entry_id"),
+        access_account_id=entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+        wallet_address=entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+        reason=entry.get("scope"),
+        operator_note=entry.get("reason"),
+    )
+    return {
+        "message": "Allowlist entry updated.",
+        "allowlist_entry": _admin_allowlist_entry(entry),
+    }
+
+
+@app.post("/admin/allowlist/{allowlist_entry_id}/revoke")
+@api_limit("wallet_create")
+async def admin_revoke_allowlist_entry(
+    request: Request,
+    allowlist_entry_id: str,
+    payload: AdminAllowlistRevokeRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        entry = blockchain.revoke_allowlist_entry(
+            allowlist_entry_id,
+            revoked_reason=payload.revoked_reason,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="allowlist_entry_revoked",
+        session=_admin_session,
+        allowlist_entry_id=entry.get("allowlist_entry_id"),
+        access_account_id=entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+        wallet_address=entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+        reason=entry.get("scope"),
+        operator_note=payload.revoked_reason,
+    )
+    return {
+        "message": "Allowlist entry revoked.",
+        "allowlist_entry": _admin_allowlist_entry(entry),
+    }
+
+
+@app.post("/admin/allowlist/{allowlist_entry_id}/reactivate")
+@api_limit("wallet_create")
+async def admin_reactivate_allowlist_entry(
+    request: Request,
+    allowlist_entry_id: str,
+    payload: AdminAllowlistReactivateRequest,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        entry = blockchain.reactivate_allowlist_entry(
+            allowlist_entry_id,
+            reason=payload.reason,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="allowlist_entry_reactivated",
+        session=_admin_session,
+        allowlist_entry_id=entry.get("allowlist_entry_id"),
+        access_account_id=entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+        wallet_address=entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+        reason=entry.get("scope"),
+        operator_note=payload.reason,
+    )
+    return {
+        "message": "Allowlist entry reactivated.",
+        "allowlist_entry": _admin_allowlist_entry(entry),
+    }
+
+
+@app.get("/admin/override-requests")
+@api_limit("public_read")
+async def admin_list_override_requests(
+    request: Request,
+    status: str | None = Query(default=None),
+    requested_scope: str | None = Query(default=None),
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    return {
+        "override_requests": [
+            _admin_override_request(record)
+            for record in blockchain.list_override_requests(
+                status=status,
+                requested_scope=requested_scope,
+            )
+        ],
+    }
+
+
+@app.post("/admin/override-requests/{override_request_id}/approve")
+@api_limit("wallet_create")
+async def admin_approve_override_request(
+    request: Request,
+    override_request_id: str,
+    payload: AdminOverrideRequestDecision,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    override_request = blockchain.get_override_request(override_request_id)
+    if override_request is None:
+        raise HTTPException(status_code=404, detail=f"Override request not found: {override_request_id}")
+    resolved_scope = payload.resolved_scope or override_request.get("requested_scope")
+    subject_type = "wallet" if override_request.get("wallet_address") else "access_account"
+    subject_value = override_request.get("wallet_address") or override_request.get("access_account_id")
+    if not subject_value:
+        normalized_email = normalize_email(override_request.get("email"))
+        normalized_handle = normalize_handle(override_request.get("handle"))
+        if normalized_email:
+            subject_type = "email"
+            subject_value = normalized_email
+        elif normalized_handle:
+            subject_type = "handle"
+            subject_value = normalized_handle
+    if not subject_value:
+        raise HTTPException(status_code=400, detail="Override request cannot be approved without a wallet, access account, email, or handle.")
+    try:
+        entry = blockchain.create_allowlist_entry(
+            scope=resolved_scope,
+            subject_type=subject_type,
+            subject_value=subject_value,
+            reason=payload.admin_note or override_request.get("reason"),
+            created_by=_safe_session_identifier(_admin_session),
+        )
+        override_request = blockchain.update_override_request_status(
+            override_request_id,
+            status="approved",
+            reviewed_by=payload.reviewed_by,
+            admin_note=payload.admin_note,
+            resolved_scope=resolved_scope,
+            approved_allowlist_entry_id=entry.get("allowlist_entry_id"),
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="allowlist_entry_created",
+        session=_admin_session,
+        allowlist_entry_id=entry.get("allowlist_entry_id"),
+        access_account_id=override_request.get("access_account_id"),
+        wallet_address=override_request.get("wallet_address"),
+        reason=resolved_scope,
+        operator_note=payload.admin_note or override_request.get("reason"),
+    )
+    _record_admin_audit_event(
+        request=request,
+        action="override_request_approved",
+        session=_admin_session,
+        override_request_id=override_request_id,
+        allowlist_entry_id=entry.get("allowlist_entry_id"),
+        access_account_id=override_request.get("access_account_id"),
+        wallet_address=override_request.get("wallet_address"),
+        reason=resolved_scope,
+        operator_note=payload.admin_note,
+    )
+    return {
+        "message": "Override request approved and allowlist entry created.",
+        "override_request": _admin_override_request(override_request),
+        "allowlist_entry": _admin_allowlist_entry(entry),
+    }
+
+
+@app.post("/admin/override-requests/{override_request_id}/reject")
+@api_limit("wallet_create")
+async def admin_reject_override_request(
+    request: Request,
+    override_request_id: str,
+    payload: AdminOverrideRequestDecision,
+    _admin_session=Depends(_require_admin_session),
+):
+    blockchain.refresh_access_control_state_from_storage()
+    try:
+        override_request = blockchain.update_override_request_status(
+            override_request_id,
+            status="rejected",
+            reviewed_by=payload.reviewed_by,
+            admin_note=payload.admin_note,
+            resolved_scope=payload.resolved_scope,
+        )
+        blockchain.save_blockchain()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _record_admin_audit_event(
+        request=request,
+        action="override_request_rejected",
+        session=_admin_session,
+        override_request_id=override_request_id,
+        access_account_id=override_request.get("access_account_id"),
+        wallet_address=override_request.get("wallet_address"),
+        reason=payload.resolved_scope or override_request.get("requested_scope"),
+        operator_note=payload.admin_note,
+    )
+    return {
+        "message": "Override request rejected.",
+        "override_request": _admin_override_request(override_request),
+    }
+
+
 @app.get("/admin/ops/status")
 @api_limit("public_read")
 async def admin_ops_status(
@@ -2474,7 +3436,7 @@ async def create_wallet_submission_challenge(
     normalized_wallet = normalize_wallet_address(payload.wallet_address)
     if normalized_wallet is None or normalized_wallet != wallet_address:
         raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
-    _enforce_access_for_feature(wallet_address, feature="submissions")
+    _enforce_submission_eligibility(wallet_address)
 
     content_object = _require_content_reference(payload.content_hash, payload.content_id)
     safe_caption = validate_caption(payload.caption)
@@ -2513,7 +3475,7 @@ async def create_wallet_vote_challenge(
         raise HTTPException(status_code=400, detail="Submission creator cannot vote on their own submission.")
     if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes):
         raise HTTPException(status_code=400, detail="Wallet has already voted on this submission.")
-    _enforce_review_policy(wallet_address)
+    _enforce_review_policy(wallet_address, scope="voting")
 
     try:
         challenge = wallet_auth_manager.issue_vote_challenge(
@@ -3398,7 +4360,7 @@ async def submit_content(
         normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
         if normalized_wallet is None or normalized_wallet != verified_wallet:
             raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
-        _enforce_access_for_feature(verified_wallet, feature="submissions")
+        _enforce_submission_eligibility(verified_wallet)
 
         try:
             verification = wallet_auth_manager.verify_submission_signature(
@@ -3711,7 +4673,7 @@ async def vote_on_submission(
         if normalized_wallet is None or normalized_wallet != verified_wallet:
             raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
         _enforce_access_for_feature(verified_wallet, feature="votes")
-        _enforce_review_policy(verified_wallet)
+        _enforce_review_policy(verified_wallet, scope="voting")
 
         try:
             verification = wallet_auth_manager.verify_vote_signature(

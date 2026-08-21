@@ -69,6 +69,8 @@ def test_unauthenticated_admin_endpoints_return_401_and_invalid_login_fails(bloc
     client = _client(blockchain)
 
     list_response = client.get("/admin/access/requests")
+    allowlist_response = client.get("/admin/allowlist")
+    override_response = client.get("/admin/override-requests")
     approve_response = client.post(
         "/admin/access/requests/example-request/approve",
         json={"reviewed_by": "operator", "operator_notes": "", "max_wallets": 1},
@@ -76,6 +78,8 @@ def test_unauthenticated_admin_endpoints_return_401_and_invalid_login_fails(bloc
     invalid_login = client.post("/admin/login", json={"password": "wrong-password"})
 
     assert list_response.status_code == 401
+    assert allowlist_response.status_code == 401
+    assert override_response.status_code == 401
     assert approve_response.status_code == 401
     assert invalid_login.status_code == 401
 
@@ -218,6 +222,94 @@ def test_admin_can_suspend_reactivate_revoke_accounts_and_revoke_wallet_binding(
     assert revoke_account.json()["access_account"]["status"] == "revoked"
     assert revoke_wallet.status_code == 200
     assert revoke_wallet.json()["wallet_binding"]["status"] == "revoked"
+
+
+def test_admin_can_create_revoke_and_reactivate_allowlist_entries(blockchain, monkeypatch):
+    _configure_admin(monkeypatch)
+    client = _client(blockchain)
+    _login_admin(client)
+
+    create_response = client.post(
+        "/admin/allowlist",
+        json={
+            "scope": "access",
+            "subject_type": "wallet",
+            "subject_value": "0x1111111111111111111111111111111111111111",
+            "reason": "Known beta wallet",
+        },
+    )
+    assert create_response.status_code == 200
+    entry = create_response.json()["allowlist_entry"]
+    assert entry["status"] == "active"
+
+    revoke_response = client.post(
+        f"/admin/allowlist/{entry['allowlist_entry_id']}/revoke",
+        json={"revoked_reason": "Temporary hold"},
+    )
+    reactivate_response = client.post(
+        f"/admin/allowlist/{entry['allowlist_entry_id']}/reactivate",
+        json={"reason": "Reapproved"},
+    )
+    list_response = client.get("/admin/allowlist", params={"scope": "access", "status": "active"})
+
+    assert revoke_response.status_code == 200
+    assert revoke_response.json()["allowlist_entry"]["status"] == "revoked"
+    assert reactivate_response.status_code == 200
+    assert reactivate_response.json()["allowlist_entry"]["status"] == "active"
+    assert list_response.status_code == 200
+    assert list_response.json()["allowlist_entries"]
+
+
+def test_admin_can_approve_and_reject_override_requests(blockchain, monkeypatch):
+    _configure_admin(monkeypatch)
+    client = _client(blockchain)
+    _login_admin(client)
+
+    first_request = blockchain.create_override_request(
+        requested_scope="review",
+        email="override-approve@example.test",
+        wallet_address="0x1111111111111111111111111111111111111111",
+        reason="Need voting override",
+    )
+    second_request = blockchain.create_override_request(
+        requested_scope="access",
+        email="override-reject@example.test",
+        reason="Need access override",
+    )
+    blockchain.save_blockchain()
+
+    approve = client.post(
+        f"/admin/override-requests/{first_request['override_request_id']}/approve",
+        json={
+            "reviewed_by": "operator",
+            "admin_note": "Approved for early beta review testing",
+            "resolved_scope": "voting",
+        },
+    )
+    reject = client.post(
+        f"/admin/override-requests/{second_request['override_request_id']}/reject",
+        json={
+            "reviewed_by": "operator",
+            "admin_note": "Rejected pending identity confirmation",
+            "resolved_scope": "access",
+        },
+    )
+
+    assert approve.status_code == 200
+    approve_payload = approve.json()
+    assert approve_payload["override_request"]["status"] == "approved"
+    assert approve_payload["allowlist_entry"]["scope"] == "voting"
+
+    assert reject.status_code == 200
+    reject_payload = reject.json()
+    assert reject_payload["override_request"]["status"] == "rejected"
+
+    audit_log = client.get("/admin/audit-log", params={"limit": 20})
+    assert audit_log.status_code == 200
+    actions = [entry["action"] for entry in audit_log.json()["audit_log"]]
+    assert "override_request_approved" in actions
+    assert "override_request_rejected" in actions
+    assert "allowlist_entry_created" in actions
 
 
 def test_public_access_endpoints_still_do_not_expose_admin_or_invite_secrets(blockchain, monkeypatch):

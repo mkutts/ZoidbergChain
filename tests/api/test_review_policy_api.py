@@ -243,6 +243,31 @@ def test_hybrid_mode_accepts_allowlisted_wallet_even_if_activity_is_low(blockcha
     assert response.status_code == 200
 
 
+def test_admin_review_allowlist_override_applies_to_review_policy(blockchain, monkeypatch):
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "allowlist")
+    client = _client(blockchain)
+    voter = _create_metamask_account()
+    voter_headers = _verify_wallet_session(client, voter)
+
+    blockchain.create_allowlist_entry(
+        scope="review",
+        subject_type="wallet",
+        subject_value=voter.address,
+        reason="Admin override for early tester",
+    )
+    blockchain.save_blockchain()
+
+    response = client.get("/review/policy", headers=voter_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["eligibility"]["eligible"] is True
+    assert body["eligibility"]["allowlist_override_applied"] is True
+    assert body["eligibility"]["allowlist_scope"] == "review"
+    assert body["eligibility"]["eligibility_status"] == "allowlist_override"
+
+
 def test_creator_still_cannot_vote_on_own_submission(blockchain, monkeypatch):
     _clear_review_policy_env(monkeypatch)
     client = _client(blockchain)

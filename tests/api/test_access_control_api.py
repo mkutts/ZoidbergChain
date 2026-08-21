@@ -296,6 +296,30 @@ def test_unbound_wallet_with_valid_wallet_session_returns_access_granted_false(b
     assert payload["access_granted"] is False
 
 
+def test_access_allowlisted_wallet_can_unlock_without_invite(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+
+    blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="beta tester",
+    )
+    blockchain.save_blockchain()
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["wallet_bound"] is False
+    assert payload["access_granted"] is True
+    assert payload["allowlist_override_applied"] is True
+    assert payload["allowlist_scope"] == "access"
+
+
 def test_redeemed_invite_code_cannot_be_reused(blockchain, monkeypatch):
     _configure_access(monkeypatch, MAX_WALLETS_PER_ACCESS_ACCOUNT=1)
     client = _client(blockchain)
@@ -462,6 +486,32 @@ def test_suspended_account_with_valid_bound_wallet_session_returns_access_grante
     assert payload["access_account"]["status"] == "suspended"
 
 
+def test_suspended_account_is_not_unlocked_by_stale_allowlist(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    account, access_code = _create_access_invite(blockchain, email="stale-allowlist@example.test")
+    login = _login_access_code(client, access_code)
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="stale override should not bypass suspension",
+    )
+    blockchain.update_access_account_status(account["access_account_id"], "suspended")
+    blockchain.save_blockchain()
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["access_granted"] is False
+    assert payload["blocked_reason"] == "access_account_suspended"
+
+
 def test_revoked_wallet_binding_with_valid_wallet_session_returns_access_granted_false(blockchain, monkeypatch):
     _configure_access(monkeypatch)
     client = _client(blockchain)
@@ -582,6 +632,266 @@ def test_access_required_submission_and_vote_paths_allow_bound_wallets_only(bloc
     assert vote_response.status_code == 200
 
 
+def test_submission_status_matches_submission_endpoint_for_verified_approved_wallet(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    _, access_code = _create_access_invite(blockchain, email="submit-approved@example.test")
+    login = _login_access_code(client, access_code)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    uploaded = _upload_text_content_via_api(client, wallet.address, text="submission approved path")
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["can_submit"] is True
+    assert payload["submission"]["can_submit"] is True
+    assert payload["submission"]["eligibility_source"] == "normal_access_verified_wallet"
+    assert payload["submission"]["allowlist_override_applied"] is False
+    assert "invite_code_hash" not in str(payload)
+
+    challenge = _request_submission_challenge(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "submission approved path",
+    )
+    assert challenge.status_code == 200
+
+    submit_response = _submit_signed_content_via_api(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "submission approved path",
+    )
+    assert submit_response.status_code == 200
+
+
+def test_submission_requires_verified_wallet_and_approved_access(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    uploaded = _upload_text_content_via_api(client, wallet.address, text="submission blocked path")
+
+    unauthenticated = client.post(
+        "/auth/wallet/submission-challenge",
+        json={
+            "wallet_address": wallet.address,
+            "content_hash": uploaded["content_hash"],
+            "content_id": uploaded["content_id"],
+            "caption": "submission blocked path",
+        },
+    )
+    assert unauthenticated.status_code == 401
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["can_submit"] is False
+    assert payload["submission"]["can_submit"] is False
+    assert payload["submission"]["blocked_reason"] == "wallet_not_bound"
+
+    challenge = _request_submission_challenge(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "submission blocked path",
+    )
+    assert challenge.status_code == 403
+    assert challenge.json()["detail"]["error"] == "submission_not_eligible"
+
+
+def test_submission_and_review_allowlist_scopes_do_not_unlock_submission_without_access(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    for scope in ("submission", "review"):
+        wallet = _create_account()
+        wallet_headers = _verify_wallet_session(client, wallet)
+        uploaded = _upload_text_content_via_api(client, wallet.address, text=f"{scope} scope submission test")
+        blockchain.create_allowlist_entry(
+            scope=scope,
+            subject_type="wallet",
+            subject_value=wallet.address,
+            reason=f"{scope} scoped early-tester note",
+        )
+        blockchain.save_blockchain()
+
+        eligibility = client.get("/eligibility/status", headers=wallet_headers)
+        assert eligibility.status_code == 200
+        payload = eligibility.json()
+        assert payload["access_granted"] is False
+        assert payload["can_submit"] is False
+        assert payload["submission"]["can_submit"] is False
+        assert payload["submission"]["eligibility_source"] == "blocked"
+        assert payload["submission"]["allowlist_override_applied"] is False
+        assert "separate submission-only override gate" in payload["submission"]["policy_rule"].lower()
+
+        challenge = _request_submission_challenge(
+            client,
+            wallet,
+            wallet_headers,
+            uploaded["content_hash"],
+            uploaded["content_id"],
+            f"{scope} scope submission test",
+        )
+        assert challenge.status_code == 403
+
+
+def test_all_beta_allowlist_can_unlock_submission_by_granting_access(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    uploaded = _upload_text_content_via_api(client, wallet.address, text="all beta submission unlock")
+    blockchain.create_allowlist_entry(
+        scope="all_beta",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="early tester full beta access",
+    )
+    blockchain.save_blockchain()
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["access_granted"] is True
+    assert payload["can_submit"] is True
+    assert payload["submission"]["can_submit"] is True
+    assert payload["submission"]["eligibility_source"] == "normal_access_verified_wallet"
+    assert any(item["scope"] == "access" for item in payload["allowlist_overrides_applied"])
+
+    challenge = _request_submission_challenge(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "all beta submission unlock",
+    )
+    assert challenge.status_code == 200
+
+
+def test_revoked_all_beta_allowlist_no_longer_allows_submission(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    uploaded = _upload_text_content_via_api(client, wallet.address, text="revoked all beta submission")
+    entry = blockchain.create_allowlist_entry(
+        scope="all_beta",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="temporary full beta access",
+    )
+    blockchain.revoke_allowlist_entry(entry["allowlist_entry_id"], revoked_reason="expired")
+    blockchain.save_blockchain()
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["access_granted"] is False
+    assert payload["can_submit"] is False
+    assert payload["submission"]["blocked_reason"] == "wallet_not_bound"
+
+    challenge = _request_submission_challenge(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "revoked all beta submission",
+    )
+    assert challenge.status_code == 403
+
+
+def test_suspended_account_cannot_submit_even_with_stale_all_beta_allowlist(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    account, access_code = _create_access_invite(blockchain, email="suspended-submitter@example.test")
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    login = _login_access_code(client, access_code)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    uploaded = _upload_text_content_via_api(client, wallet.address, text="suspended account submission")
+    blockchain.create_allowlist_entry(
+        scope="all_beta",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="stale full beta override",
+    )
+    blockchain.update_access_account_status(account["access_account_id"], "suspended")
+    blockchain.save_blockchain()
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["can_submit"] is False
+    assert payload["submission"]["blocked_reason"] == "access_account_suspended"
+
+    challenge = _request_submission_challenge(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "suspended account submission",
+    )
+    assert challenge.status_code == 403
+
+
+def test_revoked_wallet_binding_cannot_submit_even_with_stale_all_beta_allowlist(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    account, access_code = _create_access_invite(blockchain, email="revoked-submitter@example.test")
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    login = _login_access_code(client, access_code)
+    assert _bind_wallet(client, login["access_session_token"], wallet_headers).status_code == 200
+
+    uploaded = _upload_text_content_via_api(client, wallet.address, text="revoked binding submission")
+    blockchain.create_allowlist_entry(
+        scope="all_beta",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="stale full beta override",
+    )
+    blockchain.revoke_wallet_binding(wallet.address)
+    blockchain.save_blockchain()
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["can_submit"] is False
+    assert payload["submission"]["blocked_reason"] == "wallet_binding_revoked"
+
+    challenge = _request_submission_challenge(
+        client,
+        wallet,
+        wallet_headers,
+        uploaded["content_hash"],
+        uploaded["content_id"],
+        "revoked binding submission",
+    )
+    assert challenge.status_code == 403
+
+
 def test_access_required_rewards_only_pay_bound_active_wallets(blockchain, monkeypatch):
     _configure_access(monkeypatch)
     monkeypatch.setattr(blockchain_module, "VOTER_REWARDS_ENABLED", True)
@@ -699,3 +1009,27 @@ def test_access_me_does_not_expose_invite_hashes(blockchain, monkeypatch):
     assert payload["access_account"]["status"] == "active"
     assert "invite_code_hash" not in str(payload)
     assert "access_session_token" not in str(payload)
+
+
+def test_override_request_submission_does_not_grant_access_by_itself(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    response = client.post(
+        "/eligibility/override-requests",
+        json={
+            "requested_scope": "access",
+            "email": "override@example.test",
+            "reason": "Invited tester still blocked",
+            "current_page": "/access",
+            "detected_blocked_reason": "wallet_not_allowlisted",
+        },
+    )
+    assert response.status_code == 200
+    assert blockchain.list_override_requests(status="pending")
+
+    eligibility = client.get("/eligibility/status")
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["access_granted"] is False
+    assert "invite_code_hash" not in str(payload)

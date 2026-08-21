@@ -357,3 +357,32 @@ Task 10.6 docs:
 - [docs/task-10-6-testnet-ops-hardening.md](/C:/Users/mattk/ZoidbergChain/docs/task-10-6-testnet-ops-hardening.md)
 - [docs/testnet-restart-recovery-checklist.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-restart-recovery-checklist.md)
 - [docs/testnet-ops-troubleshooting.md](/C:/Users/mattk/ZoidbergChain/docs/testnet-ops-troubleshooting.md)
+
+## Task 11.1 Admin Allowlist Management and User Override Requests
+
+As of Friday, August 21, 2026, Task 11.1 adds persistent operator-managed allowlists plus user-facing override request flows for the controlled ZoidbergChain beta.
+
+New operator capabilities:
+
+- admin allowlist APIs for access, review, submission, voting, rewards, and all-beta overrides
+- persistent override request intake and admin approval/rejection
+- audit log coverage for allowlist and override actions
+- `/admin` dashboard sections for allowlist management and override request review
+
+New user-facing capabilities:
+
+- `GET /eligibility/status` for safe current-session eligibility visibility
+- `POST /eligibility/override-requests` for blocked users to request access or review-related overrides
+- controlled-access, wallet-status, and review-area explanations for why the user is blocked
+
+Important Task 11.1 notes:
+
+- access allowlist and review eligibility allowlist remain separate concepts
+- admin authentication is still separate and is never bypassed
+- suspended or revoked accounts remain blocked until explicitly reactivated
+- revoked wallet bindings remain blocked until explicitly rebound or reapproved
+- this remains a controlled beta operator tool, not proof-of-personhood
+
+Task 11.1 docs:
+
+- [docs/task-11-1-admin-allowlist-override-requests.md](/C:/Users/mattk/ZoidbergChain/docs/task-11-1-admin-allowlist-override-requests.md)

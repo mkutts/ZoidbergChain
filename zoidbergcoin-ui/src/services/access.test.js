@@ -42,6 +42,36 @@ function createMockClient() {
   };
 }
 
+function setEligibilityHandler(publicApi, payload = {}) {
+  publicApi.getHandlers.set('/eligibility/status', async () => ({
+    data: {
+      access_granted: Boolean(payload.access_granted),
+      connected_wallet: payload.connected_wallet || null,
+      wallet_bound: Boolean(payload.wallet_bound),
+      can_submit: Boolean(payload.can_submit),
+      can_vote: Boolean(payload.can_vote),
+      can_receive_rewards: Boolean(payload.can_receive_rewards),
+      blocked_reasons: payload.blocked_reasons || [],
+      allowlist_overrides_applied: payload.allowlist_overrides_applied || [],
+      possible_next_steps: payload.possible_next_steps || [],
+      override_requests_enabled: payload.override_requests_enabled !== false,
+      submission: payload.submission || {
+        can_submit: Boolean(payload.can_submit),
+        eligibility_status: payload.can_submit ? 'eligible' : 'blocked',
+        eligibility_source: payload.can_submit ? 'normal_access_verified_wallet' : 'blocked',
+        blocked_reason: payload.can_submit ? null : (payload.blocked_reasons?.[0]?.reason || null),
+        message: payload.can_submit
+          ? 'Submission is allowed because this wallet has controlled beta access and the wallet session is verified.'
+          : 'Submission is currently blocked.',
+        recommended_action: null,
+        policy_rule: 'Submissions currently require controlled beta access for submissions plus a verified wallet session.',
+        allowlist_override_applied: false,
+        allowlist_scope: null,
+      },
+    },
+  }));
+}
+
 test('development-style public status does not gate the app', async () => {
   const publicApi = createMockClient();
   const api = createMockClient();
@@ -60,6 +90,7 @@ test('development-style public status does not gate the app', async () => {
       wallet_binding: null,
     },
   }));
+  setEligibilityHandler(publicApi);
 
   const access = createAccessService({
     api,
@@ -108,6 +139,9 @@ test('invite login stores the access session token for later app unlocks', async
       wallet_binding: null,
     },
   }));
+  setEligibilityHandler(publicApi, {
+    blocked_reasons: [{ scope: 'access', reason: 'wallet_not_bound' }],
+  });
 
   const access = createAccessService({
     api,
@@ -134,6 +168,12 @@ test('binding a wallet sends access-session and wallet auth headers together', a
   const api = createMockClient();
   const storage = createMemoryStorage();
   storage.setItem('zoidberg:access-session', 'access-session-2');
+  publicApi.getHandlers.set('/access/status', async () => ({
+    data: {
+      require_access_for_app: true,
+      access_control_mode: 'invite_only',
+    },
+  }));
 
   publicApi.getHandlers.set('/access/me', async (options) => ({
     data: {
@@ -151,6 +191,13 @@ test('binding a wallet sends access-session and wallet auth headers together', a
       echoed_headers: options.headers,
     },
   }));
+  setEligibilityHandler(publicApi, {
+    access_granted: true,
+    wallet_bound: true,
+    can_submit: true,
+    can_vote: true,
+    can_receive_rewards: true,
+  });
 
   api.postHandlers.set('/access/bind-wallet', async (_payload, options) => ({
     data: {
@@ -229,6 +276,9 @@ test('invite acceptance alone does not unlock a gated app', async () => {
       wallet_binding: null,
     },
   }));
+  setEligibilityHandler(publicApi, {
+    blocked_reasons: [{ scope: 'access', reason: 'wallet_not_bound' }],
+  });
 
   const access = createAccessService({
     api,
@@ -273,6 +323,13 @@ test('previously bound wallet can reconnect and unlock without invite code', asy
       echoed_headers: options.headers,
     },
   }));
+  setEligibilityHandler(publicApi, {
+    access_granted: true,
+    wallet_bound: true,
+    can_submit: true,
+    can_vote: true,
+    can_receive_rewards: true,
+  });
 
   const access = createAccessService({
     api,
@@ -311,6 +368,9 @@ test('unapproved wallet stays locked even after wallet verification refresh', as
       wallet_binding: null,
     },
   }));
+  setEligibilityHandler(publicApi, {
+    blocked_reasons: [{ scope: 'access', reason: 'wallet_not_bound' }],
+  });
 
   const access = createAccessService({
     api,
@@ -349,6 +409,16 @@ test('401 access session responses clear the cached invite session token', async
     };
     throw error;
   });
+  publicApi.getHandlers.set('/eligibility/status', async () => ({
+    data: {
+      access_granted: false,
+      wallet_bound: false,
+      blocked_reasons: [],
+      allowlist_overrides_applied: [],
+      possible_next_steps: [],
+      override_requests_enabled: true,
+    },
+  }));
 
   const access = createAccessService({
     api,
@@ -361,4 +431,102 @@ test('401 access session responses clear the cached invite session token', async
   assert.equal(access.state.accessSessionToken, '');
   assert.equal(storage.getItem('zoidberg:access-session'), null);
   assert.match(access.state.errorMessage, /no active access session/i);
+});
+
+test('override request submits through the shared access service and refreshes eligibility', async () => {
+  const publicApi = createMockClient();
+  const api = createMockClient();
+  const storage = createMemoryStorage();
+  storage.setItem('zoidberg:access-session', 'override-session');
+
+  publicApi.postHandlers.set('/eligibility/override-requests', async (payload, options) => ({
+    data: {
+      message: 'Override request submitted.',
+      echoedPayload: payload,
+      echoedHeaders: options.headers,
+    },
+  }));
+  setEligibilityHandler(publicApi, {
+    blocked_reasons: [{ scope: 'voting', reason: 'wallet_not_allowlisted' }],
+    possible_next_steps: ['Ask an admin for a review override.'],
+  });
+
+  const access = createAccessService({
+    api,
+    publicApi,
+    storage,
+  });
+
+  const result = await access.submitOverrideRequest(
+    {
+      requested_scope: 'voting',
+      reason: 'Need early beta voting access',
+    },
+    { Authorization: 'Bearer wallet-session' },
+  );
+
+  assert.equal(result.message, 'Override request submitted.');
+  assert.deepEqual(result.echoedHeaders, {
+    'X-ZOID-Access-Session': 'override-session',
+    Authorization: 'Bearer wallet-session',
+  });
+  assert.equal(access.state.eligibility.blocked_reasons[0].scope, 'voting');
+});
+
+test('submission eligibility details are preserved from the backend payload', async () => {
+  const publicApi = createMockClient();
+  const api = createMockClient();
+
+  publicApi.getHandlers.set('/access/status', async () => ({
+    data: {
+      require_access_for_app: true,
+      access_control_mode: 'invite_only',
+    },
+  }));
+  publicApi.getHandlers.set('/access/me', async () => ({
+    data: {
+      invite_authenticated: false,
+      wallet_session_authenticated: true,
+      wallet_bound: true,
+      access_granted: true,
+      access_account: {
+        access_account_id: 'acct-submit',
+        status: 'active',
+      },
+      wallet_binding: {
+        wallet_address: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+        status: 'active',
+      },
+    },
+  }));
+  setEligibilityHandler(publicApi, {
+    access_granted: true,
+    wallet_bound: true,
+    can_submit: true,
+    submission: {
+      can_submit: true,
+      eligibility_status: 'eligible',
+      eligibility_source: 'normal_access_verified_wallet',
+      blocked_reason: null,
+      message: 'Submission is allowed because this wallet has controlled beta access and the wallet session is verified.',
+      recommended_action: null,
+      policy_rule: 'Submissions currently require controlled beta access for submissions plus a verified wallet session. This node does not apply a separate submission-only override gate.',
+      allowlist_override_applied: false,
+      allowlist_scope: null,
+    },
+  });
+
+  const access = createAccessService({
+    api,
+    publicApi,
+    storage: createMemoryStorage(),
+  });
+
+  await access.initialize({
+    Authorization: 'Bearer submission-wallet-session',
+  });
+
+  assert.equal(access.state.eligibility.submission.can_submit, true);
+  assert.equal(access.state.eligibility.submission.eligibility_source, 'normal_access_verified_wallet');
+  assert.match(access.state.eligibility.submission.policy_rule, /does not apply a separate submission-only override gate/i);
 });

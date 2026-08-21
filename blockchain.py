@@ -89,6 +89,11 @@ from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
 
+ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
+ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
+ALLOWLIST_STATUSES = {"active", "inactive", "revoked"}
+OVERRIDE_REQUEST_STATUSES = {"pending", "approved", "rejected", "duplicate", "spam"}
+
 
 def _hash_number(value):
     if isinstance(value, bool):
@@ -168,6 +173,8 @@ class Blockchain:
         self.access_requests = []  # Controlled-testnet access requests
         self.access_accounts = []  # Approved access accounts
         self.wallet_bindings = []  # Wallet-to-access-account bindings
+        self.allowlist_entries = []  # Operator-managed beta overrides
+        self.override_requests = []  # User-submitted beta override requests
         self.audit_logs = []  # Persistent admin audit trail
         self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
@@ -225,6 +232,8 @@ class Blockchain:
             "access_requests": self.access_requests,
             "access_accounts": self.access_accounts,
             "wallet_bindings": self.wallet_bindings,
+            "allowlist_entries": self.allowlist_entries,
+            "override_requests": self.override_requests,
             "audit_logs": self.audit_logs,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
         }
@@ -393,12 +402,359 @@ class Blockchain:
         self.access_requests = list(loaded_data.get("access_requests", []) or [])
         self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
         self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
+        self.allowlist_entries = list(loaded_data.get("allowlist_entries", []) or [])
+        self.override_requests = list(loaded_data.get("override_requests", []) or [])
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
         return True
 
     @staticmethod
     def _normalize_access_wallet(wallet_address):
         return normalize_wallet_address(wallet_address or "")
+
+    @staticmethod
+    def _normalize_allowlist_scope(scope):
+        normalized_scope = str(scope or "").strip().lower()
+        if normalized_scope not in ALLOWLIST_SCOPES:
+            raise ValueError(
+                "Allowlist scope must be access, review, submission, voting, rewards, or all_beta."
+            )
+        return normalized_scope
+
+    @staticmethod
+    def _normalize_allowlist_status(status):
+        normalized_status = str(status or "").strip().lower()
+        if normalized_status not in ALLOWLIST_STATUSES:
+            raise ValueError("Allowlist status must be active, inactive, or revoked.")
+        return normalized_status
+
+    @staticmethod
+    def _normalize_override_request_status(status):
+        normalized_status = str(status or "").strip().lower()
+        if normalized_status not in OVERRIDE_REQUEST_STATUSES:
+            raise ValueError("Override request status must be pending, approved, rejected, duplicate, or spam.")
+        return normalized_status
+
+    @staticmethod
+    def _normalize_allowlist_subject(subject_type, subject_value):
+        normalized_subject_type = str(subject_type or "").strip().lower()
+        if normalized_subject_type not in ALLOWLIST_SUBJECT_TYPES:
+            raise ValueError("Allowlist subject_type must be wallet, access_account, email, or handle.")
+
+        if normalized_subject_type == "wallet":
+            normalized_subject_value = normalize_wallet_address(subject_value or "")
+            if normalized_subject_value is None:
+                raise ValueError("Allowlist wallet subject_value must be a valid Ethereum-style 0x address.")
+            return normalized_subject_type, normalized_subject_value
+
+        if normalized_subject_type == "access_account":
+            normalized_subject_value = normalize_text_field(subject_value)
+        elif normalized_subject_type == "email":
+            normalized_subject_value = normalize_email(subject_value)
+        else:
+            normalized_subject_value = normalize_handle(subject_value)
+
+        if not normalized_subject_value:
+            raise ValueError("Allowlist subject_value is required.")
+        return normalized_subject_type, normalized_subject_value
+
+    @staticmethod
+    def _allowlist_scope_matches(entry_scope, requested_scope):
+        normalized_entry_scope = str(entry_scope or "").strip().lower()
+        normalized_requested_scope = str(requested_scope or "").strip().lower()
+        scope_map = {
+            "access": {"access", "all_beta"},
+            "review": {"review", "all_beta"},
+            "submission": {"submission", "review", "all_beta"},
+            "voting": {"voting", "review", "all_beta"},
+            "rewards": {"rewards", "review", "all_beta"},
+        }
+        return normalized_entry_scope in scope_map.get(normalized_requested_scope, set())
+
+    @staticmethod
+    def _allowlist_entry_active(entry, *, now_iso=None):
+        if str(entry.get("status") or "").strip().lower() != "active":
+            return False
+        expires_at = str(entry.get("expires_at") or "").strip()
+        if expires_at and expires_at <= str(now_iso or utc_now_iso()):
+            return False
+        return True
+
+    def _allowlist_subject_candidates(self, *, wallet_address=None, access_account=None):
+        candidates = []
+        normalized_wallet = self._normalize_access_wallet(wallet_address)
+        if normalized_wallet:
+            candidates.append(("wallet", normalized_wallet))
+        if access_account:
+            access_account_id = normalize_text_field(access_account.get("access_account_id"))
+            email = normalize_email(access_account.get("email"))
+            handle = normalize_handle(access_account.get("handle"))
+            if access_account_id:
+                candidates.append(("access_account", access_account_id))
+            if email:
+                candidates.append(("email", email))
+            if handle:
+                candidates.append(("handle", handle))
+        return candidates
+
+    def get_allowlist_entry(self, allowlist_entry_id):
+        candidate = str(allowlist_entry_id or "").strip()
+        if not candidate:
+            return None
+        for entry in self.allowlist_entries:
+            if str(entry.get("allowlist_entry_id") or "").strip() == candidate:
+                return entry
+        return None
+
+    def list_allowlist_entries(self, *, scope=None, subject_type=None, subject_value=None, status=None):
+        entries = list(self.allowlist_entries)
+        if scope is not None:
+            normalized_scope = str(scope or "").strip().lower()
+            entries = [
+                entry for entry in entries
+                if str(entry.get("scope") or "").strip().lower() == normalized_scope
+            ]
+        if subject_type is not None:
+            normalized_subject_type = str(subject_type or "").strip().lower()
+            entries = [
+                entry for entry in entries
+                if str(entry.get("subject_type") or "").strip().lower() == normalized_subject_type
+            ]
+        if subject_value is not None:
+            normalized_subject_value = normalize_text_field(subject_value)
+            entries = [
+                entry for entry in entries
+                if str(entry.get("subject_value") or "").strip() == normalized_subject_value
+            ]
+        if status is not None:
+            normalized_status = str(status or "").strip().lower()
+            entries = [
+                entry for entry in entries
+                if str(entry.get("status") or "").strip().lower() == normalized_status
+            ]
+        entries.sort(key=lambda entry: str(entry.get("updated_at") or entry.get("created_at") or ""), reverse=True)
+        return entries
+
+    def find_matching_allowlist_entry(self, scope, *, wallet_address=None, access_account=None):
+        normalized_scope = self._normalize_allowlist_scope(scope)
+        candidates = self._allowlist_subject_candidates(
+            wallet_address=wallet_address,
+            access_account=access_account,
+        )
+        if not candidates:
+            return None
+
+        now_iso = utc_now_iso()
+        subject_priority = {subject_type: index for index, (subject_type, _value) in enumerate(candidates)}
+        for entry in sorted(
+            self.allowlist_entries,
+            key=lambda item: (
+                subject_priority.get(str(item.get("subject_type") or "").strip().lower(), 999),
+                str(item.get("updated_at") or item.get("created_at") or ""),
+            ),
+            reverse=False,
+        ):
+            if not self._allowlist_entry_active(entry, now_iso=now_iso):
+                continue
+            if not self._allowlist_scope_matches(entry.get("scope"), normalized_scope):
+                continue
+            entry_subject_type = str(entry.get("subject_type") or "").strip().lower()
+            entry_subject_value = str(entry.get("subject_value") or "").strip()
+            for subject_type, subject_value in candidates:
+                if entry_subject_type == subject_type and entry_subject_value == subject_value:
+                    return entry
+        return None
+
+    def create_allowlist_entry(
+        self,
+        *,
+        scope,
+        subject_type,
+        subject_value,
+        reason=None,
+        expires_at=None,
+        created_by=None,
+        status="active",
+    ):
+        normalized_scope = self._normalize_allowlist_scope(scope)
+        normalized_subject_type, normalized_subject_value = self._normalize_allowlist_subject(
+            subject_type,
+            subject_value,
+        )
+        normalized_status = self._normalize_allowlist_status(status)
+        timestamp = utc_now_iso()
+        entry = {
+            "allowlist_entry_id": secrets.token_hex(16),
+            "scope": normalized_scope,
+            "subject_type": normalized_subject_type,
+            "subject_value": normalized_subject_value,
+            "status": normalized_status,
+            "reason": normalize_text_field(reason),
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "expires_at": normalize_text_field(expires_at) or None,
+            "created_by": normalize_text_field(created_by),
+            "revoked_at": None,
+            "revoked_reason": "",
+        }
+        self.allowlist_entries.append(entry)
+        return entry
+
+    def update_allowlist_entry(
+        self,
+        allowlist_entry_id,
+        *,
+        scope=None,
+        subject_type=None,
+        subject_value=None,
+        reason=None,
+        expires_at=None,
+        status=None,
+    ):
+        entry = self.get_allowlist_entry(allowlist_entry_id)
+        if entry is None:
+            raise ValueError(f"Allowlist entry not found: {allowlist_entry_id}")
+
+        if scope is not None:
+            entry["scope"] = self._normalize_allowlist_scope(scope)
+        if subject_type is not None or subject_value is not None:
+            next_subject_type = subject_type if subject_type is not None else entry.get("subject_type")
+            next_subject_value = subject_value if subject_value is not None else entry.get("subject_value")
+            normalized_subject_type, normalized_subject_value = self._normalize_allowlist_subject(
+                next_subject_type,
+                next_subject_value,
+            )
+            entry["subject_type"] = normalized_subject_type
+            entry["subject_value"] = normalized_subject_value
+        if reason is not None:
+            entry["reason"] = normalize_text_field(reason)
+        if expires_at is not None:
+            entry["expires_at"] = normalize_text_field(expires_at) or None
+        if status is not None:
+            normalized_status = self._normalize_allowlist_status(status)
+            if normalized_status == "revoked":
+                raise ValueError("Use revoke_allowlist_entry to revoke an allowlist entry.")
+            entry["status"] = normalized_status
+        entry["updated_at"] = utc_now_iso()
+        return entry
+
+    def revoke_allowlist_entry(self, allowlist_entry_id, *, revoked_reason=None):
+        entry = self.get_allowlist_entry(allowlist_entry_id)
+        if entry is None:
+            raise ValueError(f"Allowlist entry not found: {allowlist_entry_id}")
+        timestamp = utc_now_iso()
+        entry["status"] = "revoked"
+        entry["updated_at"] = timestamp
+        entry["revoked_at"] = timestamp
+        entry["revoked_reason"] = normalize_text_field(revoked_reason)
+        return entry
+
+    def reactivate_allowlist_entry(self, allowlist_entry_id, *, reason=None):
+        entry = self.get_allowlist_entry(allowlist_entry_id)
+        if entry is None:
+            raise ValueError(f"Allowlist entry not found: {allowlist_entry_id}")
+        entry["status"] = "active"
+        if reason is not None:
+            entry["reason"] = normalize_text_field(reason)
+        entry["updated_at"] = utc_now_iso()
+        entry["revoked_at"] = None
+        entry["revoked_reason"] = ""
+        return entry
+
+    def get_override_request(self, override_request_id):
+        candidate = str(override_request_id or "").strip()
+        if not candidate:
+            return None
+        for request_record in self.override_requests:
+            if str(request_record.get("override_request_id") or "").strip() == candidate:
+                return request_record
+        return None
+
+    def list_override_requests(self, *, status=None, requested_scope=None):
+        records = list(self.override_requests)
+        if status is not None:
+            normalized_status = str(status or "").strip().lower()
+            records = [
+                record for record in records
+                if str(record.get("status") or "").strip().lower() == normalized_status
+            ]
+        if requested_scope is not None:
+            normalized_scope = str(requested_scope or "").strip().lower()
+            records = [
+                record for record in records
+                if str(record.get("requested_scope") or "").strip().lower() == normalized_scope
+            ]
+        records.sort(key=lambda record: str(record.get("updated_at") or record.get("created_at") or ""), reverse=True)
+        return records
+
+    def create_override_request(
+        self,
+        *,
+        requested_scope,
+        name=None,
+        email=None,
+        handle=None,
+        wallet_address=None,
+        access_account_id=None,
+        reason=None,
+        current_page=None,
+        detected_blocked_reason=None,
+        user_agent=None,
+        remote_ip=None,
+    ):
+        normalized_scope = self._normalize_allowlist_scope(requested_scope)
+        normalized_wallet = self._normalize_access_wallet(wallet_address) if wallet_address else None
+        timestamp = utc_now_iso()
+        record = {
+            "override_request_id": secrets.token_hex(16),
+            "requested_scope": normalized_scope,
+            "name": normalize_text_field(name),
+            "email": normalize_email(email),
+            "handle": normalize_handle(handle),
+            "wallet_address": normalized_wallet,
+            "access_account_id": normalize_text_field(access_account_id),
+            "reason": normalize_text_field(reason),
+            "current_page": normalize_text_field(current_page),
+            "detected_blocked_reason": normalize_text_field(detected_blocked_reason),
+            "user_agent": normalize_text_field(user_agent)[:240],
+            "remote_ip": normalize_text_field(remote_ip)[:120],
+            "status": "pending",
+            "created_at": timestamp,
+            "updated_at": timestamp,
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "admin_note": "",
+            "resolved_scope": None,
+            "approved_allowlist_entry_id": None,
+        }
+        self.override_requests.append(record)
+        return record
+
+    def update_override_request_status(
+        self,
+        override_request_id,
+        *,
+        status,
+        reviewed_by="operator",
+        admin_note=None,
+        resolved_scope=None,
+        approved_allowlist_entry_id=None,
+    ):
+        record = self.get_override_request(override_request_id)
+        if record is None:
+            raise ValueError(f"Override request not found: {override_request_id}")
+        normalized_status = self._normalize_override_request_status(status)
+        record["status"] = normalized_status
+        record["updated_at"] = utc_now_iso()
+        record["reviewed_at"] = record["updated_at"]
+        record["reviewed_by"] = normalize_text_field(reviewed_by)
+        record["admin_note"] = normalize_text_field(admin_note)
+        record["resolved_scope"] = (
+            self._normalize_allowlist_scope(resolved_scope)
+            if resolved_scope is not None
+            else record.get("resolved_scope")
+        )
+        record["approved_allowlist_entry_id"] = normalize_text_field(approved_allowlist_entry_id)
+        return record
 
     def get_access_request(self, request_id):
         candidate = str(request_id or "").strip()
@@ -833,6 +1189,8 @@ class Blockchain:
                 self.access_requests = list(loaded_data.get("access_requests", []) or [])
                 self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
                 self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
+                self.allowlist_entries = list(loaded_data.get("allowlist_entries", []) or [])
+                self.override_requests = list(loaded_data.get("override_requests", []) or [])
                 self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
@@ -864,6 +1222,8 @@ class Blockchain:
                 self.access_requests = []
                 self.access_accounts = []
                 self.wallet_bindings = []
+                self.allowlist_entries = []
+                self.override_requests = []
                 self.audit_logs = []
 
         except FileNotFoundError:
@@ -880,6 +1240,8 @@ class Blockchain:
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
+            self.allowlist_entries = []
+            self.override_requests = []
             self.audit_logs = []
         except json.JSONDecodeError:
             print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
@@ -895,6 +1257,8 @@ class Blockchain:
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
+            self.allowlist_entries = []
+            self.override_requests = []
             self.audit_logs = []
         except Exception as e:
             print(f"Debug: Unexpected error loading blockchain - {e}")
@@ -910,6 +1274,8 @@ class Blockchain:
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
+            self.allowlist_entries = []
+            self.override_requests = []
             self.audit_logs = []
 
         return False
@@ -2026,6 +2392,30 @@ class Blockchain:
                     })
                     continue
             if VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE:
+                binding = self.get_wallet_binding(wallet_address)
+                access_account = self.get_access_account_for_wallet(wallet_address)
+                if binding and str(binding.get("status") or "").strip().lower() == "revoked":
+                    excluded_voters.append({
+                        "wallet_address": wallet_address,
+                        "reason": "wallet_binding_revoked",
+                    })
+                    continue
+                if access_account:
+                    account_status = str(access_account.get("status") or "").strip().lower()
+                    if account_status in {"suspended", "revoked"}:
+                        excluded_voters.append({
+                            "wallet_address": wallet_address,
+                            "reason": f"access_account_{account_status}",
+                        })
+                        continue
+                override_entry = self.find_matching_allowlist_entry(
+                    "rewards",
+                    wallet_address=wallet_address,
+                    access_account=access_account,
+                )
+                if override_entry:
+                    eligible_votes.append(vote)
+                    continue
                 activity_summary = self.get_account_activity_summary(wallet_address)
                 recent_vote_count = self.count_votes_by_wallet_since(wallet_address, current_day_window())
                 eligibility = evaluate_review_eligibility(

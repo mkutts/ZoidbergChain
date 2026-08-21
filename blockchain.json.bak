@@ -1303,7 +1303,7 @@
                 "original_filename": "images.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787280938.667147,
+            "verified_at": 1787324171.1187463,
             "verification_error": null
         },
         {
@@ -1325,7 +1325,7 @@
                 "original_filename": "image-1-8-6a26c8c34355c__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787280938.6673493,
+            "verified_at": 1787324171.1189835,
             "verification_error": null
         },
         {
@@ -1370,7 +1370,7 @@
                 "original_filename": "image-1-2-6a2f98fe763a8__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787280938.667982,
+            "verified_at": 1787324171.1193166,
             "verification_error": null
         },
         {
@@ -1392,7 +1392,7 @@
                 "original_filename": "870740530199752705-png__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787280938.6681828,
+            "verified_at": 1787324171.1194756,
             "verification_error": null
         },
         {
@@ -1414,7 +1414,7 @@
                 "original_filename": "6a2f984602a33_random-memes-tiedyehomie__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787280938.668358,
+            "verified_at": 1787324171.1196442,
             "verification_error": null
         }
     ],
@@ -2373,6 +2373,8 @@
             "source": "invite_code"
         }
     ],
+    "allowlist_entries": [],
+    "override_requests": [],
     "audit_logs": [
         {
             "action": "admin_login_success",
@@ -2387,6 +2389,36 @@
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
             "audit_id": "1089abc280994e864c9988772903e594",
             "timestamp": "2026-08-21T02:58:52.707873+00:00"
+        },
+        {
+            "action": "admin_ops_viewed",
+            "result": "ok",
+            "actor_session_id": "2c93a89737b3",
+            "request_id": null,
+            "access_account_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "6225910a9d68a604cee65a76b98f117f",
+            "timestamp": "2026-08-21T02:58:52.883963+00:00"
+        },
+        {
+            "action": "admin_login_success",
+            "result": "ok",
+            "actor_session_id": "16ae1c562e6e",
+            "request_id": null,
+            "override_request_id": null,
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "b7fd20a24cdf828193c9716ce3498ce5",
+            "timestamp": "2026-08-21T15:02:43.638696+00:00"
         }
     ],
     "wallets": {
@@ -2589,6 +2621,18 @@
         "03c542cdd859f1d2c6823ed3eb09c6724eb8c964e501ac0784ad55ac3825b8a312": {
             "public_key": "03c542cdd859f1d2c6823ed3eb09c6724eb8c964e501ac0784ad55ac3825b8a312",
             "private_key": "2a4b601811ce699078a98a5a9a90fd06a5c4abdcbb41456e1310ff49c48cae7a"
+        },
+        "02825a95535c577eebb6ea624d8f0400f4abf68fc579bfa1d303c161fa8be82a0b": {
+            "public_key": "02825a95535c577eebb6ea624d8f0400f4abf68fc579bfa1d303c161fa8be82a0b",
+            "private_key": "301a8093ce7420e785dbf1b4f75bb0d3f1ce17c7328c7e3423880d90c6a2f4e1"
+        },
+        "0398f8f838d3f537741bae755a3082e035e926e2c3450ce58646016d9fdd2c6480": {
+            "public_key": "0398f8f838d3f537741bae755a3082e035e926e2c3450ce58646016d9fdd2c6480",
+            "private_key": "294e29dd860136f480c42b53431af7b6f34aa3e51c2cabbb298a3e0716ec42eb"
+        },
+        "032515da0e6b82183396c951f296170c806eb5ca0b77aa3ccf15b4a36e9486ddb4": {
+            "public_key": "032515da0e6b82183396c951f296170c806eb5ca0b77aa3ccf15b4a36e9486ddb4",
+            "private_key": "414122823a6629fe2a411bc3d2d7d19d3366c01df68c63845962cfe30f2a5c70"
         }
     },
     "peers": []

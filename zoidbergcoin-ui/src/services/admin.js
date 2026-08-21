@@ -6,6 +6,8 @@ function createInitialState() {
     session: null,
     requests: [],
     accounts: [],
+    allowlistEntries: [],
+    overrideRequests: [],
     selectedAccount: null,
     opsStatus: null,
     auditLog: [],
@@ -17,6 +19,8 @@ function createInitialState() {
     isLoggingIn: false,
     isLoadingRequests: false,
     isLoadingAccounts: false,
+    isLoadingAllowlist: false,
+    isLoadingOverrideRequests: false,
     isLoadingOpsStatus: false,
     isLoadingAuditLog: false,
     isSubmitting: false,
@@ -77,6 +81,8 @@ export function createAdminService(options = {}) {
       state.session = response.data;
       state.requests = [];
       state.accounts = [];
+      state.allowlistEntries = [];
+      state.overrideRequests = [];
       state.selectedAccount = null;
       state.opsStatus = null;
       state.auditLog = [];
@@ -172,6 +178,154 @@ export function createAdminService(options = {}) {
       return [];
     } finally {
       state.isLoadingAccounts = false;
+    }
+  }
+
+  async function loadAllowlist(params = {}) {
+    state.isLoadingAllowlist = true;
+    clearMessages();
+    try {
+      const search = new URLSearchParams();
+      if (params.scope) {
+        search.set('scope', String(params.scope));
+      }
+      if (params.subjectType) {
+        search.set('subject_type', String(params.subjectType));
+      }
+      if (params.subjectValue) {
+        search.set('subject_value', String(params.subjectValue));
+      }
+      if (params.status) {
+        search.set('status', String(params.status));
+      }
+      const query = search.size ? `?${search.toString()}` : '';
+      const response = await adminApi.get(`/admin/allowlist${query}`);
+      state.allowlistEntries = Array.isArray(response.data?.allowlist_entries) ? response.data.allowlist_entries : [];
+      return state.allowlistEntries;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load allowlist entries.');
+      return [];
+    } finally {
+      state.isLoadingAllowlist = false;
+    }
+  }
+
+  async function createAllowlistEntry(payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post('/admin/allowlist', payload);
+      state.successMessage = response.data?.message || 'Allowlist entry created.';
+      await loadAllowlist();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to create allowlist entry.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function updateAllowlistEntry(allowlistEntryId, payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.patch(`/admin/allowlist/${allowlistEntryId}`, payload);
+      state.successMessage = response.data?.message || 'Allowlist entry updated.';
+      await loadAllowlist();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to update allowlist entry.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function revokeAllowlistEntry(allowlistEntryId, payload = {}) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post(`/admin/allowlist/${allowlistEntryId}/revoke`, payload);
+      state.successMessage = response.data?.message || 'Allowlist entry revoked.';
+      await loadAllowlist();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to revoke allowlist entry.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function reactivateAllowlistEntry(allowlistEntryId, payload = {}) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post(`/admin/allowlist/${allowlistEntryId}/reactivate`, payload);
+      state.successMessage = response.data?.message || 'Allowlist entry reactivated.';
+      await loadAllowlist();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to reactivate allowlist entry.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function loadOverrideRequests(params = {}) {
+    state.isLoadingOverrideRequests = true;
+    clearMessages();
+    try {
+      const search = new URLSearchParams();
+      if (params.status) {
+        search.set('status', String(params.status));
+      }
+      if (params.requestedScope) {
+        search.set('requested_scope', String(params.requestedScope));
+      }
+      const query = search.size ? `?${search.toString()}` : '';
+      const response = await adminApi.get(`/admin/override-requests${query}`);
+      state.overrideRequests = Array.isArray(response.data?.override_requests) ? response.data.override_requests : [];
+      return state.overrideRequests;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to load override requests.');
+      return [];
+    } finally {
+      state.isLoadingOverrideRequests = false;
+    }
+  }
+
+  async function approveOverrideRequest(overrideRequestId, payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post(`/admin/override-requests/${overrideRequestId}/approve`, payload);
+      state.successMessage = response.data?.message || 'Override request approved.';
+      await Promise.all([loadOverrideRequests(), loadAllowlist()]);
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to approve override request.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
+    }
+  }
+
+  async function rejectOverrideRequest(overrideRequestId, payload) {
+    state.isSubmitting = true;
+    clearMessages();
+    try {
+      const response = await adminApi.post(`/admin/override-requests/${overrideRequestId}/reject`, payload);
+      state.successMessage = response.data?.message || 'Override request rejected.';
+      await loadOverrideRequests();
+      return response.data;
+    } catch (error) {
+      state.errorMessage = getApiErrorMessage(error, 'Failed to reject override request.');
+      return null;
+    } finally {
+      state.isSubmitting = false;
     }
   }
 
@@ -282,6 +436,14 @@ export function createAdminService(options = {}) {
     rejectRequest,
     createInvite,
     loadAccounts,
+    loadAllowlist,
+    createAllowlistEntry,
+    updateAllowlistEntry,
+    revokeAllowlistEntry,
+    reactivateAllowlistEntry,
+    loadOverrideRequests,
+    approveOverrideRequest,
+    rejectOverrideRequest,
     loadOpsStatus,
     loadAuditLog,
     loadAccountDetail,

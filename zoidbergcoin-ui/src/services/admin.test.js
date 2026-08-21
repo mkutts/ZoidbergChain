@@ -7,8 +7,10 @@ function createMockClient() {
   return {
     getCalls: [],
     postCalls: [],
+    patchCalls: [],
     getHandlers: new Map(),
     postHandlers: new Map(),
+    patchHandlers: new Map(),
     async get(path, options = {}) {
       this.getCalls.push({ path, options });
       const handler = this.getHandlers.get(path);
@@ -22,6 +24,14 @@ function createMockClient() {
       const handler = this.postHandlers.get(path);
       if (!handler) {
         throw new Error(`Unexpected POST ${path}`);
+      }
+      return handler(payload, options);
+    },
+    async patch(path, payload = null, options = {}) {
+      this.patchCalls.push({ path, payload, options });
+      const handler = this.patchHandlers.get(path);
+      if (!handler) {
+        throw new Error(`Unexpected PATCH ${path}`);
       }
       return handler(payload, options);
     },
@@ -198,4 +208,127 @@ test('admin logout returns the UI to login state', async () => {
   assert.equal(admin.state.accounts.length, 0);
   assert.equal(admin.state.opsStatus, null);
   assert.equal(admin.state.auditLog.length, 0);
+});
+
+test('admin can load and create allowlist entries', async () => {
+  const adminApi = createMockClient();
+  adminApi.getHandlers.set('/admin/allowlist?scope=access&status=active', async () => ({
+    data: {
+      allowlist_entries: [
+        {
+          allowlist_entry_id: 'allow-1',
+          scope: 'access',
+          subject_type: 'wallet',
+          subject_value: '0x1111111111111111111111111111111111111111',
+          status: 'active',
+        },
+      ],
+    },
+  }));
+  adminApi.postHandlers.set('/admin/allowlist', async () => ({
+    data: {
+      message: 'Allowlist entry created.',
+      allowlist_entry: { allowlist_entry_id: 'allow-1', status: 'active' },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/allowlist', async () => ({
+    data: { allowlist_entries: [{ allowlist_entry_id: 'allow-1', status: 'active' }] },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const entries = await admin.loadAllowlist({ scope: 'access', status: 'active' });
+  const created = await admin.createAllowlistEntry({
+    scope: 'access',
+    subject_type: 'wallet',
+    subject_value: '0x1111111111111111111111111111111111111111',
+  });
+
+  assert.equal(entries.length, 1);
+  assert.equal(created.allowlist_entry.allowlist_entry_id, 'allow-1');
+  assert.equal(admin.state.allowlistEntries[0].allowlist_entry_id, 'allow-1');
+});
+
+test('admin can revoke and reactivate allowlist entries', async () => {
+  const adminApi = createMockClient();
+  adminApi.postHandlers.set('/admin/allowlist/allow-2/revoke', async () => ({
+    data: {
+      message: 'Allowlist entry revoked.',
+      allowlist_entry: { allowlist_entry_id: 'allow-2', status: 'revoked' },
+    },
+  }));
+  adminApi.postHandlers.set('/admin/allowlist/allow-2/reactivate', async () => ({
+    data: {
+      message: 'Allowlist entry reactivated.',
+      allowlist_entry: { allowlist_entry_id: 'allow-2', status: 'active' },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/allowlist', async () => ({
+    data: { allowlist_entries: [{ allowlist_entry_id: 'allow-2', status: 'active' }] },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const revoked = await admin.revokeAllowlistEntry('allow-2', { revoked_reason: 'pause' });
+  const reactivated = await admin.reactivateAllowlistEntry('allow-2', { reason: 'resume' });
+
+  assert.equal(revoked.allowlist_entry.status, 'revoked');
+  assert.equal(reactivated.allowlist_entry.status, 'active');
+});
+
+test('admin can load and approve override requests', async () => {
+  const adminApi = createMockClient();
+  adminApi.getHandlers.set('/admin/override-requests?status=pending', async () => ({
+    data: {
+      override_requests: [
+        {
+          override_request_id: 'override-1',
+          requested_scope: 'review',
+          status: 'pending',
+        },
+      ],
+    },
+  }));
+  adminApi.postHandlers.set('/admin/override-requests/override-1/approve', async () => ({
+    data: {
+      message: 'Override request approved.',
+      override_request: { override_request_id: 'override-1', status: 'approved' },
+      allowlist_entry: { allowlist_entry_id: 'allow-override-1', status: 'active' },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/allowlist', async () => ({
+    data: { allowlist_entries: [{ allowlist_entry_id: 'allow-override-1', status: 'active' }] },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const requests = await admin.loadOverrideRequests({ status: 'pending' });
+  const approved = await admin.approveOverrideRequest('override-1', {
+    reviewed_by: 'operator',
+    admin_note: 'approved',
+    resolved_scope: 'review',
+  });
+
+  assert.equal(requests.length, 1);
+  assert.equal(approved.override_request.status, 'approved');
+  assert.equal(admin.state.allowlistEntries[0].allowlist_entry_id, 'allow-override-1');
+});
+
+test('admin can reject override requests', async () => {
+  const adminApi = createMockClient();
+  adminApi.postHandlers.set('/admin/override-requests/override-2/reject', async () => ({
+    data: {
+      message: 'Override request rejected.',
+      override_request: { override_request_id: 'override-2', status: 'rejected' },
+    },
+  }));
+  adminApi.getHandlers.set('/admin/override-requests', async () => ({
+    data: { override_requests: [] },
+  }));
+
+  const admin = createAdminService({ adminApi });
+  const rejected = await admin.rejectOverrideRequest('override-2', {
+    reviewed_by: 'operator',
+    admin_note: 'not approved',
+    resolved_scope: 'access',
+  });
+
+  assert.equal(rejected.override_request.status, 'rejected');
 });

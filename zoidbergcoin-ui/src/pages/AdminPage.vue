@@ -401,6 +401,218 @@
           <section class="panel">
             <div class="panel-heading">
               <div>
+                <p class="section-label">Allowlist</p>
+                <h2>Manage beta access and review overrides</h2>
+              </div>
+              <button class="secondary-button" :disabled="admin.state.isLoadingAllowlist" @click="refreshAllowlist">
+                {{ admin.state.isLoadingAllowlist ? 'Refreshing...' : 'Refresh Allowlist' }}
+              </button>
+            </div>
+
+            <div class="warning-list">
+              <p class="warning-item">Allowlist entries override normal beta eligibility rules.</p>
+              <p class="warning-item">Do not allowlist users you do not recognize.</p>
+              <p class="warning-item">Suspended or revoked users remain blocked unless reactivated.</p>
+            </div>
+
+            <div class="form-stack">
+              <div class="field-group">
+                <label for="allowlist-scope">Scope</label>
+                <select id="allowlist-scope" v-model="allowlistForm.scope" class="input-field">
+                  <option value="access">Access Allowlist</option>
+                  <option value="review">Review Eligibility Allowlist</option>
+                  <option value="submission">Submission (No Separate Gate Today)</option>
+                  <option value="voting">Voting Override</option>
+                  <option value="rewards">Rewards Override</option>
+                  <option value="all_beta">All Beta Permissions</option>
+                </select>
+                <p v-if="allowlistForm.scope === 'submission'" class="muted-copy">
+                  Submission on this node currently follows controlled beta access plus a verified wallet. This scope is stored for compatibility, but it is not a separate submission gate today.
+                </p>
+              </div>
+              <div class="field-group">
+                <label for="allowlist-subject-type">Subject Type</label>
+                <select id="allowlist-subject-type" v-model="allowlistForm.subject_type" class="input-field">
+                  <option value="wallet">Wallet</option>
+                  <option value="access_account">Access Account</option>
+                  <option value="email">Email</option>
+                  <option value="handle">Handle</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="allowlist-subject-value">Subject Value</label>
+                <input id="allowlist-subject-value" v-model.trim="allowlistForm.subject_value" class="input-field" type="text">
+              </div>
+              <div class="field-group">
+                <label for="allowlist-reason">Reason / Admin Note</label>
+                <textarea id="allowlist-reason" v-model="allowlistForm.reason" class="input-field text-area"></textarea>
+              </div>
+              <div class="field-group">
+                <label for="allowlist-expires-at">Expiration (Optional)</label>
+                <input id="allowlist-expires-at" v-model.trim="allowlistForm.expires_at" class="input-field" type="datetime-local">
+              </div>
+            </div>
+
+            <div class="inline-actions wrap-actions">
+              <button class="primary-button" :disabled="admin.state.isSubmitting || !allowlistForm.subject_value.trim()" @click="createAllowlistEntry">
+                Create Allowlist Entry
+              </button>
+            </div>
+
+            <div class="inline-actions wrap-actions">
+              <label class="field-group compact-field">
+                <span>Filter Scope</span>
+                <select v-model="allowlistScopeFilter" class="input-field">
+                  <option value="">All scopes</option>
+                  <option value="access">Access</option>
+                  <option value="review">Review</option>
+                  <option value="submission">Submission (No Separate Gate)</option>
+                  <option value="voting">Voting</option>
+                  <option value="rewards">Rewards</option>
+                  <option value="all_beta">All Beta</option>
+                </select>
+              </label>
+              <label class="field-group compact-field">
+                <span>Filter Status</span>
+                <select v-model="allowlistStatusFilter" class="input-field">
+                  <option value="">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="revoked">Revoked</option>
+                </select>
+              </label>
+              <button class="secondary-button small-button" @click="refreshAllowlist">Apply Filters</button>
+            </div>
+
+            <div v-if="allowlistEntries.length === 0" class="empty-state">
+              No allowlist entries found for the current filters.
+            </div>
+
+            <div v-for="entry in allowlistEntries" :key="entry.allowlist_entry_id" class="account-card">
+              <div class="card-topline">
+                <strong>{{ entry.scope }}</strong>
+                <span>{{ entry.status }}</span>
+              </div>
+              <p>{{ entry.subject_type }}: {{ entry.subject_value }}</p>
+              <p v-if="entry.reason" class="muted-copy">{{ entry.reason }}</p>
+              <p class="meta-row">Created: {{ formatDate(entry.created_at) }}</p>
+              <p class="meta-row">Updated: {{ formatDate(entry.updated_at) }}</p>
+              <p class="meta-row">Expires: {{ formatDate(entry.expires_at) }}</p>
+              <p v-if="entry.related_access_account" class="muted-copy">
+                Related account: {{ entry.related_access_account.email || entry.related_access_account.name || entry.related_access_account.access_account_id }}
+              </p>
+              <p v-if="entry.related_access_request" class="muted-copy">
+                Related request: {{ entry.related_access_request.email || entry.related_access_request.request_id }}
+              </p>
+              <div class="inline-actions wrap-actions">
+                <button class="secondary-button small-button" :disabled="admin.state.isSubmitting || entry.status === 'revoked'" @click="revokeAllowlistEntry(entry)">
+                  Revoke
+                </button>
+                <button class="secondary-button small-button" :disabled="admin.state.isSubmitting || entry.status === 'active'" @click="reactivateAllowlistEntry(entry)">
+                  Reactivate
+                </button>
+                <button class="ghost-button small-button" type="button" @click="copyText(entry.subject_value)">Copy Subject</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="section-label">Override Requests</p>
+                <h2>Review user override requests</h2>
+              </div>
+              <button class="secondary-button" :disabled="admin.state.isLoadingOverrideRequests" @click="refreshOverrideRequests">
+                {{ admin.state.isLoadingOverrideRequests ? 'Refreshing...' : 'Refresh Queue' }}
+              </button>
+            </div>
+
+            <div class="inline-actions wrap-actions">
+              <label class="field-group compact-field">
+                <span>Status</span>
+                <select v-model="overrideStatusFilter" class="input-field">
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+              <button class="secondary-button small-button" @click="refreshOverrideRequests">Apply Filter</button>
+            </div>
+
+            <div v-if="overrideRequests.length === 0" class="empty-state">
+              No override requests found for this filter.
+            </div>
+
+            <div v-for="request in overrideRequests" :key="request.override_request_id" class="request-card">
+              <div class="card-topline">
+                <strong>{{ request.requested_scope }}</strong>
+                <span>{{ request.status }}</span>
+              </div>
+              <p>{{ request.email || request.wallet_address || request.access_account_id || request.name || 'Unknown requester' }}</p>
+              <p class="request-reason">{{ request.reason }}</p>
+              <p v-if="request.detected_blocked_reason" class="muted-copy">Detected reason: {{ request.detected_blocked_reason }}</p>
+              <p class="meta-row">Requested {{ formatDate(request.created_at) }}</p>
+              <button class="ghost-button small-button" @click="selectOverrideRequest(request)">
+                {{ selectedOverrideRequest?.override_request_id === request.override_request_id ? 'Selected' : 'Review Override' }}
+              </button>
+            </div>
+
+            <div class="detail-block" v-if="selectedOverrideRequest">
+              <p class="detail-line">
+                <strong>Override ID:</strong>
+                <span class="detail-value">{{ selectedOverrideRequest.override_request_id }}</span>
+                <button class="ghost-button small-button" type="button" @click="copyText(selectedOverrideRequest.override_request_id)">Copy</button>
+              </p>
+              <p><strong>Requested scope:</strong> {{ selectedOverrideRequest.requested_scope }}</p>
+              <p><strong>Name:</strong> {{ selectedOverrideRequest.name || 'None' }}</p>
+              <p><strong>Email:</strong> {{ selectedOverrideRequest.email || 'None' }}</p>
+              <p><strong>Handle:</strong> {{ selectedOverrideRequest.handle || 'None' }}</p>
+              <p><strong>Wallet:</strong> {{ selectedOverrideRequest.wallet_address || 'None' }}</p>
+              <p><strong>Access account:</strong> {{ selectedOverrideRequest.access_account_id || 'None' }}</p>
+              <p><strong>Reason:</strong> {{ selectedOverrideRequest.reason }}</p>
+            </div>
+
+            <div v-else class="empty-state">
+              Select an override request to approve or reject it.
+            </div>
+
+            <div v-if="selectedOverrideRequest" class="form-stack">
+              <div class="field-group">
+                <label for="override-reviewed-by">Reviewed by</label>
+                <input id="override-reviewed-by" v-model="overrideReviewedBy" class="input-field" type="text">
+              </div>
+              <div class="field-group">
+                <label for="override-resolved-scope">Resolved scope</label>
+                <select id="override-resolved-scope" v-model="overrideResolvedScope" class="input-field">
+                  <option value="access">Access Allowlist</option>
+                  <option value="review">Review Eligibility Allowlist</option>
+                  <option value="submission">Submission (No Separate Gate Today)</option>
+                  <option value="voting">Voting Override</option>
+                  <option value="rewards">Rewards Override</option>
+                  <option value="all_beta">All Beta Permissions</option>
+                </select>
+                <p v-if="overrideResolvedScope === 'submission'" class="muted-copy">
+                  Submission requests currently resolve through controlled beta access plus a verified wallet, not a separate submission-only gate.
+                </p>
+              </div>
+              <div class="field-group">
+                <label for="override-admin-note">Admin note</label>
+                <textarea id="override-admin-note" v-model="overrideAdminNote" class="input-field text-area"></textarea>
+              </div>
+              <div class="inline-actions wrap-actions">
+                <button class="primary-button" :disabled="admin.state.isSubmitting" @click="approveOverrideRequest">
+                  Approve Override
+                </button>
+                <button class="danger-button" :disabled="admin.state.isSubmitting" @click="rejectOverrideRequest">
+                  Reject Override
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
                 <p class="section-label">Bound Wallet Detail</p>
                 <h2>Review and revoke bindings</h2>
               </div>
@@ -469,12 +681,19 @@ const admin = useAdmin();
 const safetyLines = adminSafetyLines();
 const loginPassword = ref('');
 const selectedRequest = ref(null);
+const selectedOverrideRequest = ref(null);
 const reviewedBy = ref('operator');
 const requestNotes = ref('');
 const requestMaxWallets = ref(1);
+const overrideReviewedBy = ref('operator');
+const overrideAdminNote = ref('');
+const overrideResolvedScope = ref('review');
 const isRefreshing = ref(false);
 const viewportWidth = ref(typeof window === 'undefined' ? 0 : window.innerWidth);
 const copyFeedback = ref('');
+const allowlistScopeFilter = ref('');
+const allowlistStatusFilter = ref('');
+const overrideStatusFilter = ref('pending');
 
 const inviteForm = reactive({
   name: '',
@@ -485,11 +704,20 @@ const inviteForm = reactive({
   operator_notes: '',
   max_wallets: 1,
 });
+const allowlistForm = reactive({
+  scope: 'access',
+  subject_type: 'wallet',
+  subject_value: '',
+  reason: '',
+  expires_at: '',
+});
 
 const sessionState = computed(() => admin.state.session);
 const dashboardVisible = computed(() => shouldShowAdminDashboard(admin.state.session));
 const opsPanelVisible = computed(() => shouldShowAdminOpsPanel(admin.state.session));
 const pendingRequests = computed(() => admin.state.requests.filter((request) => request.status === 'pending'));
+const allowlistEntries = computed(() => admin.state.allowlistEntries || []);
+const overrideRequests = computed(() => admin.state.overrideRequests || []);
 const usesMobileCards = computed(() => shouldUseStackedAdminCards(viewportWidth.value));
 const opsStatus = computed(() => admin.state.opsStatus);
 const auditEntries = computed(() => admin.state.auditLog || []);
@@ -569,6 +797,8 @@ async function refreshDashboard() {
     await Promise.all([
       admin.loadRequests('pending'),
       admin.loadAccounts(),
+      admin.loadAllowlist({ scope: allowlistScopeFilter.value, status: allowlistStatusFilter.value }),
+      admin.loadOverrideRequests({ status: overrideStatusFilter.value }),
       admin.loadOpsStatus(),
       admin.loadAuditLog({ limit: 20 }),
     ]);
@@ -639,6 +869,91 @@ async function createDirectInvite() {
     inviteForm.operator_notes = '';
     inviteForm.max_wallets = 1;
     await refreshDashboard();
+  }
+}
+
+async function refreshAllowlist() {
+  await admin.loadAllowlist({
+    scope: allowlistScopeFilter.value,
+    status: allowlistStatusFilter.value,
+  });
+}
+
+async function createAllowlistEntry() {
+  const result = await admin.createAllowlistEntry({
+    ...allowlistForm,
+    expires_at: allowlistForm.expires_at || null,
+  });
+  if (result) {
+    allowlistForm.scope = 'access';
+    allowlistForm.subject_type = 'wallet';
+    allowlistForm.subject_value = '';
+    allowlistForm.reason = '';
+    allowlistForm.expires_at = '';
+    await refreshAllowlist();
+  }
+}
+
+async function revokeAllowlistEntry(entry) {
+  const result = await admin.revokeAllowlistEntry(entry.allowlist_entry_id, {
+    revoked_reason: entry.reason || 'Revoked by operator',
+  });
+  if (result) {
+    await refreshAllowlist();
+  }
+}
+
+async function reactivateAllowlistEntry(entry) {
+  const result = await admin.reactivateAllowlistEntry(entry.allowlist_entry_id, {
+    reason: entry.reason || 'Reactivated by operator',
+  });
+  if (result) {
+    await refreshAllowlist();
+  }
+}
+
+function selectOverrideRequest(request) {
+  selectedOverrideRequest.value = request;
+  overrideAdminNote.value = request.admin_note || '';
+  overrideResolvedScope.value = request.requested_scope || 'review';
+  overrideReviewedBy.value = 'operator';
+}
+
+async function refreshOverrideRequests() {
+  await admin.loadOverrideRequests({ status: overrideStatusFilter.value });
+}
+
+async function approveOverrideRequest() {
+  if (!selectedOverrideRequest.value) {
+    return;
+  }
+  const result = await admin.approveOverrideRequest(selectedOverrideRequest.value.override_request_id, {
+    reviewed_by: overrideReviewedBy.value,
+    admin_note: overrideAdminNote.value,
+    resolved_scope: overrideResolvedScope.value,
+  });
+  if (result) {
+    selectedOverrideRequest.value = null;
+    overrideAdminNote.value = '';
+    overrideResolvedScope.value = 'review';
+    await refreshOverrideRequests();
+  }
+}
+
+async function rejectOverrideRequest() {
+  if (!selectedOverrideRequest.value) {
+    return;
+  }
+  const result = await admin.rejectOverrideRequest(selectedOverrideRequest.value.override_request_id, {
+    reviewed_by: overrideReviewedBy.value,
+    admin_note: overrideAdminNote.value,
+    resolved_scope: overrideResolvedScope.value,
+  });
+  if (result) {
+    selectedOverrideRequest.value = null;
+    overrideAdminNote.value = '';
+    overrideResolvedScope.value = 'review';
+    await refreshOverrideRequests();
   }
 }
 
@@ -819,6 +1134,10 @@ onBeforeUnmount(() => {
 .field-group {
   display: grid;
   gap: 8px;
+}
+
+.compact-field {
+  min-width: 180px;
 }
 
 .field-group label {

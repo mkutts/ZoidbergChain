@@ -33,6 +33,32 @@
           <p class="wallet-meta">{{ accessStatusDetail }}</p>
           <p v-if="accessAccountLine" class="wallet-meta">{{ accessAccountLine }}</p>
           <p v-if="walletBindingLine" class="wallet-meta">{{ walletBindingLine }}</p>
+          <p v-if="eligibilityBlockedReason" class="wallet-meta wallet-warning">{{ eligibilityBlockedReason }}</p>
+          <p v-if="eligibilityOverrideMessage" class="wallet-meta transfer-success">{{ eligibilityOverrideMessage }}</p>
+          <p v-for="step in eligibilityNextSteps" :key="step" class="wallet-meta">{{ step }}</p>
+          <div v-if="showWalletOverrideTools" class="wallet-actions">
+            <button type="button" class="wallet-btn secondary compact" @click="showOverrideForm = !showOverrideForm">
+              {{ showOverrideForm ? 'Hide Override Form' : 'Request an Override' }}
+            </button>
+          </div>
+          <form v-if="showOverrideForm" class="override-form" @submit.prevent="submitEligibilityOverride">
+            <label class="transfer-field">
+              <span>Requested Scope</span>
+              <select v-model="overrideForm.requested_scope">
+                <option value="review">Review Eligibility Allowlist</option>
+                <option value="voting">Voting Override</option>
+                <option value="rewards">Rewards Override</option>
+                <option value="all_beta">All Beta Permissions</option>
+              </select>
+            </label>
+            <label class="transfer-field">
+              <span>Reason</span>
+              <textarea v-model="overrideForm.reason" rows="3" placeholder="Explain what is blocked and what you need." />
+            </label>
+            <button type="submit" class="wallet-btn primary compact" :disabled="access.state.isSubmittingOverrideRequest || !overrideForm.reason">
+              {{ access.state.isSubmittingOverrideRequest ? 'Submitting Override...' : 'Submit Override Request' }}
+            </button>
+          </form>
           <p v-if="access.state.errorMessage" class="wallet-error">{{ access.state.errorMessage }}</p>
         </div>
 
@@ -407,6 +433,11 @@ const mobileWalletSupport = ref({
   openInMetaMaskUrl: '',
   shouldShowOpenInMetaMask: false,
 });
+const showOverrideForm = ref(false);
+const overrideForm = ref({
+  requested_scope: 'review',
+  reason: '',
+});
 
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);
@@ -499,7 +530,7 @@ const accessStatusClass = computed(() => {
 const accessStatusDetail = computed(() => {
   const status = access.state.publicStatus || {};
   if (access.state.me?.access_granted) {
-    return 'This wallet can submit, vote, receive gated voter rewards, and sign native transfers while the access account stays active.';
+    return 'This wallet can submit while controlled beta access stays active and the verified wallet session remains current. Voting and rewards can still depend on separate review eligibility rules.';
   }
   if (access.state.me?.access_account && !access.state.me?.wallet_binding) {
     return 'The invite was accepted, but the first verified MetaMask wallet still needs to be bound to this access account.';
@@ -529,6 +560,22 @@ const walletBindingLine = computed(() => {
   }
   return `Bound wallet: ${wallet.shortenAddress(binding.wallet_address)} (${binding.status || 'unknown'}).`;
 });
+const eligibilityBlockedReason = computed(
+  () => access.state.eligibility?.blocked_reasons?.[0]?.message || '',
+);
+const eligibilityNextSteps = computed(
+  () => Array.isArray(access.state.eligibility?.possible_next_steps) ? access.state.eligibility.possible_next_steps : [],
+);
+const eligibilityOverrideMessage = computed(() => {
+  const overrides = access.state.eligibility?.allowlist_overrides_applied || [];
+  if (!overrides.length) {
+    return '';
+  }
+  return `An admin override is active for ${String(overrides[0].allowlist_scope || overrides[0].scope || 'this wallet').replace(/_/g, ' ')}.`;
+});
+const showWalletOverrideTools = computed(
+  () => (wallet.state.isVerifiedSession && !access.state.me?.access_granted) || Boolean(eligibilityBlockedReason.value),
+);
 
 const statusText = computed(() => {
   if (wallet.state.isVerifiedSession) {
@@ -774,7 +821,31 @@ async function refreshAccountData() {
 }
 
 async function refreshAccessStatus() {
-  await access.refreshMe(wallet.getAuthorizationHeader());
+  await Promise.all([
+    access.refreshMe(wallet.getAuthorizationHeader()),
+    access.refreshEligibility(wallet.getAuthorizationHeader()),
+  ]);
+}
+
+async function submitEligibilityOverride() {
+  const result = await access.submitOverrideRequest(
+    {
+      requested_scope: overrideForm.value.requested_scope,
+      reason: overrideForm.value.reason,
+      wallet_address: wallet.state.verifiedWalletAddress || null,
+      access_account_id: access.state.me?.access_account_id || access.state.me?.access_account?.access_account_id || null,
+      current_page: '/wallet',
+      detected_blocked_reason: access.state.eligibility?.blocked_reasons?.[0]?.reason || access.state.me?.blocked_reason || null,
+    },
+    wallet.getAuthorizationHeader(),
+  );
+  if (result) {
+    overrideForm.value = {
+      requested_scope: 'review',
+      reason: '',
+    };
+    showOverrideForm.value = false;
+  }
 }
 
 function rewardSummary(reward) {
@@ -1149,6 +1220,23 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(255, 205, 115, 0.22);
   border-radius: 8px;
   background: rgba(255, 205, 115, 0.08);
+}
+
+.override-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.override-form select,
+.override-form textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(6, 6, 6, 0.86);
+  color: #f4f4f4;
+  padding: 10px 12px;
+  font: inherit;
 }
 
 .access-success {

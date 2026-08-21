@@ -49,6 +49,8 @@ def test_sqlite_storage_backend_initializes_database(isolated_data_dir):
         "access_requests",
         "access_accounts",
         "wallet_bindings",
+        "allowlist_entries",
+        "override_requests",
         "audit_logs",
     }
 
@@ -343,6 +345,8 @@ def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):
         "access_requests": [],
         "access_accounts": [],
         "wallet_bindings": [],
+        "allowlist_entries": [],
+        "override_requests": [],
         "audit_logs": [],
     }
 

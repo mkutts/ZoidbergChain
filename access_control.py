@@ -94,6 +94,8 @@ class AccessDecision:
     access_account: dict | None = None
     binding: dict | None = None
     bypassed: bool = False
+    allowlist_override_applied: bool = False
+    allowlist_scope: str | None = None
 
 
 class AccessSessionManager:
@@ -191,19 +193,42 @@ def access_decision_for_wallet(blockchain, wallet_address: str | None, *, featur
     if normalized_wallet is None:
         return AccessDecision(allowed=False, reason="wallet_not_verified")
     binding = blockchain.get_wallet_binding(normalized_wallet)
-    if not binding or str(binding.get("status") or "").strip().lower() != "active":
-        return AccessDecision(allowed=False, reason="wallet_not_bound")
-    account = blockchain.get_access_account(binding.get("access_account_id"))
-    if not account:
-        return AccessDecision(allowed=False, reason="access_account_missing", binding=binding)
-    account_status = str(account.get("status") or "").strip().lower()
-    if account_status != "active":
+    account = blockchain.get_access_account_for_wallet(normalized_wallet)
+    if binding and str(binding.get("status") or "").strip().lower() == "revoked":
         return AccessDecision(
             allowed=False,
-            reason=f"access_account_{account_status or 'inactive'}",
+            reason="wallet_binding_revoked",
             access_account=account,
             binding=binding,
         )
+    if account is not None:
+        account_status = str(account.get("status") or "").strip().lower()
+        if account_status != "active":
+            return AccessDecision(
+                allowed=False,
+                reason=f"access_account_{account_status or 'inactive'}",
+                access_account=account,
+                binding=binding,
+            )
+    if not binding or str(binding.get("status") or "").strip().lower() != "active":
+        override_entry = blockchain.find_matching_allowlist_entry(
+            "access",
+            wallet_address=normalized_wallet,
+            access_account=account,
+        )
+        if override_entry:
+            return AccessDecision(
+                allowed=True,
+                reason="allowlist_override",
+                access_account=account,
+                binding=binding,
+                allowlist_override_applied=True,
+                allowlist_scope=str(override_entry.get("scope") or "").strip().lower() or None,
+            )
+        return AccessDecision(allowed=False, reason="wallet_not_bound", access_account=account, binding=binding)
+    account = blockchain.get_access_account(binding.get("access_account_id"))
+    if not account:
+        return AccessDecision(allowed=False, reason="access_account_missing", binding=binding)
     return AccessDecision(
         allowed=True,
         reason="access_granted",

@@ -56,6 +56,10 @@ class ReviewEligibilityDecision:
     reason: str
     recommended_action: str
     matched_threshold: str | None = None
+    allowlist_override_applied: bool = False
+    allowlist_scope: str | None = None
+    eligibility_status: str | None = None
+    blocked_reason: str | None = None
 
 
 def _safe_int_env(name: str, default: int, warnings: list[str], *, minimum: int = 0) -> int:
@@ -370,5 +374,9 @@ def build_public_policy_summary(
             "reason": eligibility.reason,
             "recommended_action": eligibility.recommended_action,
             "matched_threshold": eligibility.matched_threshold,
+            "allowlist_override_applied": eligibility.allowlist_override_applied,
+            "allowlist_scope": eligibility.allowlist_scope,
+            "eligibility_status": eligibility.eligibility_status,
+            "blocked_reason": eligibility.blocked_reason,
         }
     return payload

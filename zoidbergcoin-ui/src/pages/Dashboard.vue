@@ -215,6 +215,13 @@
           {{ submissionIdentityHint }}
         </p>
 
+        <div v-if="submissionEligibilityView.headline || submissionEligibilityView.detail || submissionEligibilityView.policyNote" class="review-policy-panel submission-status-panel">
+          <p class="section-label">Submission Eligibility</p>
+          <p v-if="submissionEligibilityView.headline" class="status-message" :class="submissionEligibilityToneClass">{{ submissionEligibilityView.headline }}</p>
+          <p v-if="submissionEligibilityView.detail" class="hint">{{ submissionEligibilityView.detail }}</p>
+          <p v-if="submissionEligibilityView.policyNote" class="hint">{{ submissionEligibilityView.policyNote }}</p>
+        </div>
+
         <div v-if="submitMessage || errorMessage" class="message-stack">
           <p v-if="submitMessage" class="status-message success">{{ submitMessage }}</p>
           <p v-if="errorMessage" class="status-message error">{{ errorMessage }}</p>
@@ -286,6 +293,32 @@
           <strong>{{ reviewPolicySummary }}</strong>
           <p class="hint">{{ reviewPolicyWarning }}</p>
           <p v-if="reviewerEligibilityMessage" class="status-message error">{{ reviewerEligibilityMessage }}</p>
+          <p v-if="reviewEligibilityBlockedReason" class="status-message error">{{ reviewEligibilityBlockedReason }}</p>
+          <p v-if="reviewEligibilityOverrideMessage" class="status-message success">{{ reviewEligibilityOverrideMessage }}</p>
+          <p v-for="step in reviewEligibilityNextSteps" :key="step" class="hint">{{ step }}</p>
+          <div v-if="canRequestReviewOverride" class="card-actions">
+            <button @click="showReviewOverrideForm = !showReviewOverrideForm" class="btn ghost">
+              {{ showReviewOverrideForm ? 'Hide Override Form' : 'Request an Override' }}
+            </button>
+          </div>
+          <div v-if="showReviewOverrideForm" class="inline-override-panel">
+            <label class="field-group">
+              <span>Requested Scope</span>
+              <select v-model="reviewOverrideScope" class="input-field">
+                <option value="review">Review Eligibility Allowlist</option>
+                <option value="voting">Voting Override</option>
+                <option value="rewards">Rewards Override</option>
+                <option value="all_beta">All Beta Permissions</option>
+              </select>
+            </label>
+            <label class="field-group">
+              <span>Reason</span>
+              <textarea v-model.trim="reviewOverrideReason" class="input-field text-area" rows="3" placeholder="Explain what is blocked and what you need."></textarea>
+            </label>
+            <button @click="submitReviewOverride" class="btn primary" :disabled="accessService.state.isSubmittingOverrideRequest || !reviewOverrideReason">
+              {{ accessService.state.isSubmittingOverrideRequest ? 'Submitting Override...' : 'Submit Override Request' }}
+            </button>
+          </div>
           <p v-if="reviewPolicyError" class="status-message error">{{ reviewPolicyError }}</p>
         </div>
 
@@ -816,6 +849,7 @@ import { apiClient, buildApiUrl, getApiErrorMessage, publicApiClient } from '../
 import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import WalletPanel from '../components/WalletPanel.vue';
 import { useWallet } from '../services/wallet';
+import { useAccess } from '../services/access';
 import {
   buildReviewerEligibilityMessage,
   buildReviewPolicySummary,
@@ -828,6 +862,7 @@ import {
   describeSubmissionVoterReward,
 } from '../utils/voterRewards';
 import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
+import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.js';
 
 export default {
   components: {
@@ -836,8 +871,10 @@ export default {
   },
   data() {
     const walletManager = useWallet();
+    const accessService = useAccess();
     return {
       walletManager,
+      accessService,
       memeFile: null,
       textContent: '',
       contentUploadFile: null,
@@ -878,6 +915,9 @@ export default {
       isSummaryLoading: false,
       isRefreshing: false,
       mintingSubmissionId: '',
+      showReviewOverrideForm: false,
+      reviewOverrideScope: 'review',
+      reviewOverrideReason: '',
       showMintQueueTools: showDevelopmentTools(),
       showPublicDemoBanner: isPublicDemoMode(),
     };
@@ -921,7 +961,13 @@ export default {
       return this.walletManager.shortenAddress(this.identityWalletAddress);
     },
     canSubmitSignedContent() {
-      return this.hasVerifiedWalletIdentity;
+      if (!this.hasVerifiedWalletIdentity) {
+        return false;
+      }
+      if (this.submissionEligibility && this.submissionEligibility.can_submit === false) {
+        return false;
+      }
+      return true;
     },
     submitButtonLabel() {
       if (this.isSubmitting) {
@@ -932,6 +978,9 @@ export default {
       }
       if (!this.hasVerifiedWalletIdentity) {
         return 'Verify Wallet Before Submitting';
+      }
+      if (this.submissionEligibility && this.submissionEligibility.can_submit === false) {
+        return 'Submission Blocked';
       }
       return this.uploadedContent ? 'Sign And Submit Content' : 'Upload Then Sign Submission';
     },
@@ -953,6 +1002,15 @@ export default {
       }
       return 'Verify wallet before voting. New normal votes now require a verified session plus a direct MetaMask signature.';
     },
+    submissionEligibility() {
+      return this.accessService.state.eligibility?.submission || null;
+    },
+    submissionEligibilityView() {
+      return buildSubmissionEligibilityView(this.accessService.state.eligibility);
+    },
+    submissionEligibilityToneClass() {
+      return this.submissionEligibilityView.tone === 'error' ? 'error' : 'success';
+    },
     reviewPolicySummary() {
       return this.reviewPolicy ? buildReviewPolicySummary(this.reviewPolicy) : 'Loading reviewer policy...';
     },
@@ -961,6 +1019,25 @@ export default {
     },
     reviewerEligibilityMessage() {
       return buildReviewerEligibilityMessage(this.reviewPolicy);
+    },
+    reviewEligibilityBlockedReason() {
+      return this.accessService.state.eligibility?.blocked_reasons?.find((item) => ['review', 'voting', 'rewards'].includes(item.scope))?.message || '';
+    },
+    reviewEligibilityNextSteps() {
+      return Array.isArray(this.accessService.state.eligibility?.possible_next_steps)
+        ? this.accessService.state.eligibility.possible_next_steps
+        : [];
+    },
+    reviewEligibilityOverrideMessage() {
+      const overrides = this.accessService.state.eligibility?.allowlist_overrides_applied || [];
+      const reviewOverride = overrides.find((item) => ['review', 'voting', 'rewards'].includes(item.scope));
+      if (!reviewOverride) {
+        return '';
+      }
+      return `An admin override is active for ${String(reviewOverride.allowlist_scope || reviewOverride.scope || 'this wallet').replace(/_/g, ' ')}.`;
+    },
+    canRequestReviewOverride() {
+      return Boolean(this.voteWalletAddress && (this.reviewPolicy?.eligibility?.eligible === false || this.reviewEligibilityBlockedReason));
     },
     voterRewardPolicyLines() {
       return buildVoterRewardRulesCopy();
@@ -1053,6 +1130,10 @@ export default {
 
       if (!this.hasVerifiedWalletIdentity || !this.submissionWalletAddress) {
         this.errorMessage = 'Verify wallet before submitting.';
+        return;
+      }
+      if (this.submissionEligibility && this.submissionEligibility.can_submit === false) {
+        this.errorMessage = this.submissionEligibility.message || 'Submission is currently blocked.';
         return;
       }
 
@@ -1270,6 +1351,7 @@ export default {
     async fetchReviewPolicy() {
       this.reviewPolicyError = '';
       try {
+        await this.accessService.refreshEligibility(this.walletManager.getAuthorizationHeader());
         const client = this.hasVerifiedWalletIdentity ? apiClient : publicApiClient;
         const params = this.voteWalletAddress ? { wallet_address: this.voteWalletAddress } : {};
         const response = await client.get('/review/policy', { params });
@@ -1278,6 +1360,24 @@ export default {
         console.error('Error fetching review policy:', error);
         this.reviewPolicy = null;
         this.reviewPolicyError = getApiErrorMessage(error, 'Failed to load reviewer policy.');
+      }
+    },
+    async submitReviewOverride() {
+      const result = await this.accessService.submitOverrideRequest(
+        {
+          requested_scope: this.reviewOverrideScope,
+          reason: this.reviewOverrideReason,
+          wallet_address: this.voteWalletAddress || null,
+          access_account_id: this.accessService.state.me?.access_account_id || this.accessService.state.me?.access_account?.access_account_id || null,
+          current_page: '/dashboard/review',
+          detected_blocked_reason: this.accessService.state.eligibility?.blocked_reasons?.find((item) => ['review', 'voting', 'rewards'].includes(item.scope))?.reason || null,
+        },
+        this.walletManager.getAuthorizationHeader(),
+      );
+      if (result) {
+        this.reviewOverrideReason = '';
+        this.reviewOverrideScope = 'review';
+        this.showReviewOverrideForm = false;
       }
     },
     async fetchSubmissions(loadCertificates = true) {
@@ -1991,6 +2091,11 @@ h3 {
 .review-policy-panel {
   border: 1px solid rgba(255, 184, 77, 0.35);
   background: rgba(255, 184, 77, 0.08);
+}
+
+.inline-override-panel {
+  display: grid;
+  gap: 12px;
 }
 
 .reward-policy-panel,

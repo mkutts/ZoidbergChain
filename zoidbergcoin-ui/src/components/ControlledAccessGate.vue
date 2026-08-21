@@ -10,7 +10,8 @@
       </p>
       <div class="top-feedback-cta">
         <button type="button" class="ghost-btn feedback-shortcut" @click="openFeedbackPanel">Send Feedback</button>
-        <p class="wallet-note">If something is broken or confusing, you can report it directly from this screen.</p>
+        <router-link to="/why-zoidbergcoin" class="ghost-btn feedback-shortcut">Beta Guide</router-link>
+        <p class="wallet-note">Open the Beta Guide for setup help, or send feedback directly from this screen if something is broken or confusing.</p>
       </div>
 
       <div class="journey-grid">
@@ -38,9 +39,12 @@
         </p>
         <ul class="rules-list">
           <li>New testers can request access or use an invite code from the team.</li>
+          <li>Approved testers receive a one-time invite code before binding their wallet.</li>
           <li>Returning testers usually only need their approved wallet and a fresh verification signature.</li>
           <li>Submitting content requires beta access plus a verified wallet.</li>
           <li>Voting and rewards can still have separate approval rules while we reduce spam.</li>
+          <li>Test ZOID stays testnet-only and has no real monetary value.</li>
+          <li>On mobile, use the MetaMask Mobile browser if your wallet is not detected.</li>
           <li>Never enter a seed phrase or private key anywhere in this app.</li>
         </ul>
       </div>

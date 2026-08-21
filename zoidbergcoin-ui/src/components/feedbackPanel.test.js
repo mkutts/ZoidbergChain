@@ -24,6 +24,10 @@ test('blocked access gate exposes the in-app feedback entry point', () => {
   assert.match(source, /<FeedbackPanel/i);
   assert.match(source, /I&apos;m New/i);
   assert.match(source, /Returning With My Approved Wallet/i);
+  assert.match(source, /Beta Guide/i);
+  assert.match(source, /Approved testers receive a one-time invite code before binding their wallet\./i);
+  assert.match(source, /Test ZOID stays testnet-only and has no real monetary value\./i);
+  assert.match(source, /MetaMask Mobile browser/i);
   assert.match(source, /Blocked or stuck\? Send feedback\./i);
   assert.match(source, /entry-point="access_gate"/i);
   assert.match(source, /requestFeedbackPanelOpen/i);
@@ -52,9 +56,24 @@ test('unlocked app shell and wallet surface expose visible feedback entry points
   assert.match(dashboardSource, /requestFeedbackPanelOpen/i);
   assert.match(dashboardSource, /@click="openFeedbackPanel"/i);
   assert.match(dashboardSource, /Send Feedback/i);
+  assert.match(dashboardSource, /Beta Guide/i);
   assert.match(walletSource, /requestFeedbackPanelOpen/i);
   assert.match(walletSource, /@click="openFeedbackPanel"/i);
   assert.match(walletSource, /Send Feedback/i);
+});
+
+test('beta guide page keeps onboarding, safety, and mobile guidance visible', () => {
+  const guideSource = read('../pages/WhyZoidbergCoin.vue');
+  const homeSource = read('../pages/HomePage.vue');
+
+  assert.match(guideSource, /Beta Tester Guide/i);
+  assert.match(guideSource, /How to use the ZoidbergChain beta/i);
+  assert.match(guideSource, /Connect And Reconnect/i);
+  assert.match(guideSource, /If Something Breaks/i);
+  assert.match(guideSource, /Use the in-app Send Feedback button/i);
+  assert.match(guideSource, /MetaMask Mobile/i);
+  assert.match(guideSource, /Test ZOID has no real monetary value/i);
+  assert.match(homeSource, /Open Beta Guide/i);
 });
 
 test('dashboard keeps user-facing workflow copy and hides dev-only review controls by default', () => {
@@ -63,6 +82,7 @@ test('dashboard keeps user-facing workflow copy and hides dev-only review contro
   assert.match(dashboardSource, /Create, vote, and track test ZOID/i);
   assert.match(dashboardSource, /Prepare Your Content/i);
   assert.match(dashboardSource, /Vote On Originality/i);
+  assert.match(dashboardSource, /Need the walkthrough again\? Open the Beta Guide/i);
   assert.match(dashboardSource, /v-if="showMintQueueTools"/i);
   assert.match(dashboardSource, /v-if="showMintQueueTools" @click="evaluateSubmission/i);
 });

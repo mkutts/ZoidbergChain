@@ -17,7 +17,7 @@
         Development-only wallet generation remains available for local testing, but verified MetaMask sessions are the normal identity path.
       </p>
 
-      <button @click="goToWhyPage" class="btn secondary why-btn">How ZoidbergChain Works</button>
+      <button @click="goToWhyPage" class="btn secondary why-btn">Open Beta Guide</button>
 
       <a :href="whitePaperURL" download class="btn primary">Download White Paper</a>
     </div>

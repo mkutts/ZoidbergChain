@@ -12,6 +12,7 @@
           {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
         </button>
         <button type="button" class="btn primary feedback-link" @click="openFeedbackPanel">Send Feedback</button>
+        <router-link to="/why-zoidbergcoin" class="btn ghost">Beta Guide</router-link>
         <router-link to="/blockchain" class="btn ghost">Activity Explorer</router-link>
       </div>
     </header>
@@ -39,6 +40,12 @@
         <strong>Check rewards and recent activity</strong>
         <p class="hint">Track test ZOID, certified memes, and recent block activity as the beta evolves.</p>
       </article>
+    </section>
+
+    <section class="navigation-card helper-strip">
+      <p class="hint">
+        Need the walkthrough again? Open the Beta Guide for access, MetaMask, submission, voting, rewards, mobile tips, and safety reminders.
+      </p>
     </section>
 
     <main class="dashboard-shell">
@@ -2448,6 +2455,10 @@ h3 {
   gap: 12px;
   margin-top: 22px;
   padding: 16px;
+}
+
+.helper-strip {
+  justify-content: flex-start;
 }
 
 @media (max-width: 1060px) {

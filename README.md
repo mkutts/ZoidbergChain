@@ -410,3 +410,20 @@ Important Task 11.2 notes:
 Task 11.2 docs:
 
 - [docs/task-11-2-in-app-user-feedback-system.md](/C:/Users/mattk/ZoidbergChain/docs/task-11-2-in-app-user-feedback-system.md)
+
+## Task 11.4 Beta Tester Guide and Onboarding Instructions
+
+As of Friday, August 21, 2026, Task 11.4 adds first-tester onboarding docs plus lightweight in-app guide links for the controlled ZoidbergChain beta.
+
+New onboarding docs:
+
+- [docs/beta_tester_guide.md](/C:/Users/mattk/ZoidbergChain/docs/beta_tester_guide.md)
+- [docs/beta_invite_message.md](/C:/Users/mattk/ZoidbergChain/docs/beta_invite_message.md)
+- [docs/beta_launch_checklist.md](/C:/Users/mattk/ZoidbergChain/docs/beta_launch_checklist.md)
+- [docs/first_tester_qa_script.md](/C:/Users/mattk/ZoidbergChain/docs/first_tester_qa_script.md)
+
+Frontend onboarding notes:
+
+- the public beta guide remains available at `/why-zoidbergcoin`
+- the access gate, homepage, and main dashboard link testers to the guide
+- the guide and gate keep the controlled-beta, no-real-value, wallet-safety, and MetaMask Mobile reminders visible

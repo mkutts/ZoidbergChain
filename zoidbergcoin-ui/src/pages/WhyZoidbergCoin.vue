@@ -1,50 +1,124 @@
 <template>
   <div class="why-shell">
     <section class="why-card">
-      <p class="eyebrow">Why ZoidbergChain?</p>
-      <h1>Memes, originality, and community review</h1>
+      <p class="eyebrow">Beta Tester Guide</p>
+      <h1>How to use the ZoidbergChain beta</h1>
       <p class="lead">
-        ZoidbergChain is a playful blockchain experiment where memes are submitted, reviewed by the community,
-        and preserved with originality certificates when they pass.
+        ZoidbergChain is a controlled beta where testers submit content, vote on originality, and track test ZOID
+        rewards while we improve the product before wider access.
       </p>
 
       <div class="reason-grid">
         <article class="reason-card">
-          <h2>Why the name?</h2>
+          <h2>What is ZoidbergChain?</h2>
           <p>
-            The project borrows the spirit of the “Why not Zoidberg?” joke: a little chaotic, a little self-aware,
-            and willing to try something unconventional if it makes people smile.
+            ZoidbergChain is an experimental meme-focused blockchain where originality is reviewed by the community.
+            Approved content can become a certified meme block.
           </p>
         </article>
         <article class="reason-card">
-          <h2>What happens here?</h2>
+          <h2>What is this beta for?</h2>
           <p>
-            Testers submit content, other testers vote on originality, and approved items can become certified meme
-            blocks on the chain.
+            This beta is for testing access, wallet setup, content submission, originality voting, rewards, transfers,
+            and feedback before we invite more users.
           </p>
         </article>
         <article class="reason-card">
-          <h2>What is test ZOID?</h2>
+          <h2>Important disclaimers</h2>
           <p>
-            Test ZOID is only for the controlled beta. It has no real monetary value, may reset, and is used to help
-            us test rewards, balances, and transfers safely.
+            Test ZOID has no real monetary value. Content, votes, accounts, and balances may reset during testing.
+            Wallets are used for identity and signatures, and this is experimental software.
           </p>
         </article>
       </div>
 
-      <div class="detail-panel">
-        <p class="section-label">Beta Principles</p>
-        <ul>
-          <li>Wallets are used for identity and signatures.</li>
-          <li>Some actions require approval while we reduce spam during testing.</li>
-          <li>MetaMask never gives this app your seed phrase or private key.</li>
-          <li>The goal is to make the tester journey understandable before the wider launch.</li>
-        </ul>
+      <div class="guide-grid">
+        <section class="detail-panel">
+          <p class="section-label">Before You Start</p>
+          <ul>
+            <li>You need MetaMask on desktop, or MetaMask Mobile on mobile.</li>
+            <li>Use a wallet you can reconnect with later.</li>
+            <li>Do not share seed phrases, private keys, passwords, or invite codes.</li>
+            <li>Do not upload illegal, abusive, private, or copyrighted content you do not have permission to use.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">Access And Invites</p>
+          <ol>
+            <li>Request access from the gate if you are new.</li>
+            <li>Once approved, you receive a one-time invite code.</li>
+            <li>Enter the invite code, connect MetaMask, verify the wallet, and bind it once.</li>
+            <li>Later, return by connecting the same approved wallet and signing again.</li>
+          </ol>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">Connect And Reconnect</p>
+          <ol>
+            <li>Connect MetaMask from the access gate or dashboard.</li>
+            <li>Sign the verification message so the app knows this wallet is really yours.</li>
+            <li>Bind the verified wallet once during your first approved invite flow.</li>
+            <li>When you return later, reconnect the same approved wallet and sign again.</li>
+          </ol>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">Submit And Vote</p>
+          <ol>
+            <li>Upload your image or text content.</li>
+            <li>Submit it with your verified wallet.</li>
+            <li>Vote <strong>ORIGINAL</strong> if it looks original.</li>
+            <li>Vote <strong>NOT ORIGINAL</strong> if it looks copied or clearly derivative.</li>
+            <li>Vote <strong>UNSURE</strong> if you cannot confidently decide.</li>
+          </ol>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">Rewards And Feedback</p>
+          <ul>
+            <li>Test ZOID rewards are only for this beta and have no real monetary value.</li>
+            <li>Rewards can depend on final decisions and eligibility rules.</li>
+            <li>Use the in-app Send Feedback button whenever something feels broken or confusing.</li>
+            <li>If something breaks, reconnect the approved wallet first, then send feedback if the problem continues.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">If Something Breaks</p>
+          <ul>
+            <li>Refresh the page and reconnect the same approved wallet.</li>
+            <li>If a signature popup was missed, try the wallet step again from the access gate.</li>
+            <li>On mobile, switch into the MetaMask Mobile browser before retrying.</li>
+            <li>Use Send Feedback with the page, wallet, and device details so the team can reproduce it.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">Mobile Tips</p>
+          <ul>
+            <li>For best results, open the site in the MetaMask Mobile browser.</li>
+            <li>If Safari or Chrome does not detect your wallet, switch into MetaMask Mobile.</li>
+            <li>App switching and signing behavior can vary by device and browser.</li>
+            <li>If mobile wallet connection fails, use the in-app feedback form from the gate.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">Known Beta Limitations</p>
+          <ul>
+            <li>This is a controlled beta, so some actions stay approval-gated.</li>
+            <li>Explorer and advanced activity views can still feel more technical than the main app.</li>
+            <li>Balances, rewards, and content can reset while we test the network.</li>
+            <li>Some flows can still vary between desktop MetaMask and MetaMask Mobile.</li>
+          </ul>
+        </section>
       </div>
 
       <div class="action-row">
         <button @click="goToDashboard" class="btn primary">Open Beta App</button>
-        <button @click="goBack" class="btn secondary">Back</button>
+        <button @click="goToAccessGate" class="btn secondary">Access Gate</button>
+        <button @click="goToHome" class="btn secondary">Home</button>
       </div>
     </section>
   </div>
@@ -53,11 +127,14 @@
 <script>
 export default {
   methods: {
-    goBack() {
+    goToAccessGate() {
       this.$router.push('/');
     },
     goToDashboard() {
       this.$router.push('/dashboard');
+    },
+    goToHome() {
+      this.$router.push('/');
     },
   },
 };
@@ -122,6 +199,12 @@ h2 {
   gap: 14px;
 }
 
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .reason-card,
 .detail-panel {
   border-radius: 18px;
@@ -137,6 +220,14 @@ h2 {
   padding-left: 18px;
   display: grid;
   gap: 8px;
+}
+
+.detail-panel ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: #ddd6c6;
 }
 
 .action-row {
@@ -166,6 +257,10 @@ h2 {
 
 @media (max-width: 900px) {
   .reason-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-grid {
     grid-template-columns: 1fr;
   }
 }

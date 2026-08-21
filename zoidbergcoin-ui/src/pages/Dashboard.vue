@@ -3,29 +3,52 @@
     <PublicDemoBanner v-if="showPublicDemoBanner" />
     <header class="dashboard-header">
       <div>
-        <p class="eyebrow">Originality Consensus</p>
-        <h1>ZoidbergCoin Dashboard</h1>
-        <p class="subtitle">Community-approved original memes power every certified block.</p>
+        <p class="eyebrow">Controlled Beta Dashboard</p>
+        <h1>Create, vote, and track test ZOID</h1>
+        <p class="subtitle">This is the main beta workspace for submitting content, voting on originality, and following your rewards.</p>
       </div>
       <div class="header-actions">
         <button @click="refreshWorkflow" class="btn secondary" :disabled="isRefreshing">
           {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
         </button>
         <button type="button" class="btn primary feedback-link" @click="openFeedbackPanel">Send Feedback</button>
-        <router-link to="/blockchain" class="btn ghost">Explorer</router-link>
+        <router-link to="/blockchain" class="btn ghost">Activity Explorer</router-link>
       </div>
     </header>
 
     <WalletPanel />
 
+    <section class="navigation-card quickstart-card">
+      <article class="quickstart-item">
+        <p class="section-label">Step 1</p>
+        <strong>Prepare your content</strong>
+        <p class="hint">Upload an image or text post, then reuse it in your submission.</p>
+      </article>
+      <article class="quickstart-item">
+        <p class="section-label">Step 2</p>
+        <strong>Submit with your verified wallet</strong>
+        <p class="hint">Beta access and a verified wallet are both required before submission opens.</p>
+      </article>
+      <article class="quickstart-item">
+        <p class="section-label">Step 3</p>
+        <strong>Vote on originality</strong>
+        <p class="hint">Review what other testers submit and help decide what becomes certified.</p>
+      </article>
+      <article class="quickstart-item">
+        <p class="section-label">Step 4</p>
+        <strong>Check rewards and recent activity</strong>
+        <p class="hint">Track test ZOID, certified memes, and recent block activity as the beta evolves.</p>
+      </article>
+    </section>
+
     <main class="dashboard-shell">
       <section class="section-panel summary-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Chain Summary</p>
-            <h2>Current Consensus</h2>
+            <p class="section-label">Beta Overview</p>
+            <h2>What Is Happening Right Now</h2>
           </div>
-          <span class="workflow-chip">Meme Originality</span>
+          <span class="workflow-chip">Live Beta Status</span>
         </div>
 
         <p v-if="summaryError" class="status-message error">{{ summaryError }}</p>
@@ -48,32 +71,36 @@
             <strong>{{ chainSummary.network_name || 'Unknown' }}</strong>
           </div>
           <div class="metric-card">
-            <span>Node</span>
-            <strong>{{ shortenKey(chainSummary.node_id) }}</strong>
+            <span>Waiting For Votes</span>
+            <strong>{{ pendingSubmissions.length }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Certified Memes</span>
+            <strong>{{ approvedCertificateSubmissions.length }}</strong>
           </div>
         </div>
 
         <div v-else-if="!summaryError" class="empty-state">
-          Loading chain summary...
+          Loading the current beta activity summary...
         </div>
       </section>
 
       <section class="section-panel content-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Content Upload</p>
-            <h2>Upload First, Then Submit</h2>
+            <p class="section-label">Step 1</p>
+            <h2>Prepare Your Content</h2>
           </div>
-          <span class="workflow-chip">Content Object</span>
+          <span class="workflow-chip">Upload First</span>
         </div>
 
         <p class="section-note">
-          Upload an image or text payload first, then reuse the returned `content_id` and `content_hash` in the submission flow.
+          Upload an image or text post first. The app can carry it into the submission step for you.
         </p>
 
         <div class="form-stack">
           <div class="field-group">
-            <label for="content-upload-file">Content File</label>
+            <label for="content-upload-file">Image Or File</label>
             <input
               id="content-upload-file"
               type="file"
@@ -84,22 +111,22 @@
           </div>
 
           <div class="field-group">
-            <label for="content-upload-text">Text Payload</label>
+            <label for="content-upload-text">Text Version</label>
             <textarea
               id="content-upload-text"
               v-model.trim="contentUploadText"
-              placeholder="Optional text payload for /content/text"
+              placeholder="Optional text-only post"
               class="input-field text-area"
             ></textarea>
           </div>
 
           <div class="field-group">
-            <label for="content-caption">Caption</label>
+            <label for="content-caption">Caption Or Alt Text</label>
             <input
               id="content-caption"
               type="text"
               v-model.trim="contentCaption"
-              placeholder="Optional caption or alt text"
+              placeholder="Optional description"
               class="input-field"
             >
           </div>
@@ -110,7 +137,7 @@
             {{ isContentUploading ? 'Uploading...' : 'Upload Content' }}
           </button>
           <button v-if="uploadedContent" @click="useUploadedContentForSubmission" class="btn secondary">
-            Use for Submission
+            Use In Submission
           </button>
           <button v-if="uploadedContent" @click="clearUploadedContent" class="btn ghost">
             Clear
@@ -136,14 +163,6 @@
           </div>
           <div class="detail-grid">
             <div>
-              <span>Content ID</span>
-              <strong>{{ shortenHash(uploadedContent.content_id) }}</strong>
-            </div>
-            <div>
-              <span>Content Hash</span>
-              <strong>{{ shortenHash(uploadedContent.content_hash) }}</strong>
-            </div>
-            <div>
               <span>Content Type</span>
               <strong>{{ uploadedContent.content_type || 'Missing' }}</strong>
             </div>
@@ -161,7 +180,7 @@
             </div>
           </div>
           <p v-if="uploadedContent.download_url" class="content-link-row">
-            <a :href="contentUrl(uploadedContent.download_url)" target="_blank" rel="noreferrer">View or download content</a>
+            <a :href="contentUrl(uploadedContent.download_url)" target="_blank" rel="noreferrer">Open uploaded content</a>
           </p>
         </div>
       </section>
@@ -169,40 +188,44 @@
       <section class="section-panel submit-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Create Submission</p>
-            <h2>Submit Meme/Content</h2>
+            <p class="section-label">Step 2</p>
+            <h2>Submit Your Meme</h2>
           </div>
-          <span class="workflow-chip">Creates Pending</span>
+          <span class="workflow-chip">Needs Verified Wallet</span>
         </div>
 
         <div class="form-stack">
           <div class="field-group">
-            <label>Creator Account</label>
+            <label>Submitting Wallet</label>
             <div class="derived-wallet-panel">
               <strong v-if="submissionWalletAddress">{{ submissionWalletAddress }}</strong>
-              <strong v-else>Connect and verify MetaMask to derive the creator account.</strong>
-              <span class="meta">New submissions derive the creator account from the verified MetaMask signer.</span>
+              <strong v-else>Connect and verify MetaMask before you submit.</strong>
+              <span class="meta">Your verified wallet is used as your submission identity in the beta.</span>
             </div>
           </div>
 
           <div class="field-group">
-            <label for="content-text">Content Text</label>
-            <textarea id="content-text" v-model.trim="textContent" placeholder="Enter the meme text or caption" class="input-field text-area"></textarea>
+            <label for="content-text">Title Or Caption</label>
+            <textarea id="content-text" v-model.trim="textContent" placeholder="Add the meme text or a short caption" class="input-field text-area"></textarea>
           </div>
 
           <div class="field-group">
-            <label for="meme-upload">Meme Image</label>
+            <label for="meme-upload">Optional Image</label>
             <input type="file" id="meme-upload" accept=".jpg,.jpeg,.png,.webp" @change="uploadMeme" class="file-input">
           </div>
 
-          <div class="field-group">
+          <button type="button" class="btn ghost helper-btn" @click="showSubmissionAdvancedFields = !showSubmissionAdvancedFields">
+            {{ showSubmissionAdvancedFields ? 'Hide Advanced Content References' : 'Show Advanced Content References' }}
+          </button>
+
+          <div v-if="showSubmissionAdvancedFields || submissionContentHash || submissionContentId" class="field-group">
             <label for="submission-content-hash">Content Hash</label>
-            <input id="submission-content-hash" type="text" v-model.trim="submissionContentHash" placeholder="Optional content_hash from upload" class="input-field">
+            <input id="submission-content-hash" type="text" v-model.trim="submissionContentHash" placeholder="Optional advanced reference from the upload step" class="input-field">
           </div>
 
-          <div class="field-group">
+          <div v-if="showSubmissionAdvancedFields || submissionContentHash || submissionContentId" class="field-group">
             <label for="submission-content-id">Content ID</label>
-            <input id="submission-content-id" type="text" v-model.trim="submissionContentId" placeholder="Optional content_id from upload" class="input-field">
+            <input id="submission-content-id" type="text" v-model.trim="submissionContentId" placeholder="Optional advanced reference from the upload step" class="input-field">
           </div>
         </div>
 
@@ -248,16 +271,8 @@
             <span class="status-pill">{{ formatStatus(lastSubmission.status) }}</span>
             <span>{{ formatDate(lastSubmission.created_at) }}</span>
           </div>
-          <p><strong>Submission ID:</strong> {{ lastSubmission.submission_id }}</p>
+          <p><strong>Tracking ID:</strong> {{ shortenHash(lastSubmission.submission_id) }}</p>
           <div class="detail-grid">
-            <div>
-              <span>Content ID</span>
-              <strong>{{ shortenHash(lastSubmission.content_id) }}</strong>
-            </div>
-            <div>
-              <span>Content Hash</span>
-              <strong>{{ shortenHash(lastSubmission.content_hash) }}</strong>
-            </div>
             <div>
               <span>Content Type</span>
               <strong>{{ lastSubmission.content_type || 'Missing' }}</strong>
@@ -272,17 +287,17 @@
             <pre v-else-if="isTextContent(lastSubmission)">{{ lastSubmission.text_content }}</pre>
           </div>
           <p v-if="lastSubmission.download_url" class="content-link-row">
-            <a :href="contentUrl(lastSubmission.download_url)" target="_blank" rel="noreferrer">Download submitted content</a>
+            <a :href="contentUrl(lastSubmission.download_url)" target="_blank" rel="noreferrer">Open submitted content</a>
           </p>
-          <p class="hint">Submitted content enters community voting before it can be certified.</p>
+          <p class="hint">Your submission is now waiting for community voting before it can become certified.</p>
         </div>
       </section>
 
       <section class="section-panel voting-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Pending Community Vote</p>
-            <h2>Review Submissions</h2>
+            <p class="section-label">Step 3</p>
+            <h2>Vote On Originality</h2>
           </div>
           <button @click="fetchSubmissions" class="btn ghost" :disabled="isLoading">
             {{ isLoading ? 'Refreshing...' : 'Refresh' }}
@@ -291,11 +306,11 @@
 
         <div class="voter-wallet">
           <div class="field-group">
-            <label>Voter Account</label>
+            <label>Voting Wallet</label>
             <div class="derived-wallet-panel">
               <strong v-if="voteWalletAddress">{{ voteWalletAddress }}</strong>
-              <strong v-else>Connect and verify MetaMask to derive the voter account.</strong>
-              <span class="meta">New votes derive the voter account from the verified MetaMask signer.</span>
+              <strong v-else>Connect and verify MetaMask before you vote.</strong>
+              <span class="meta">Your verified wallet is used as your voting identity in the beta.</span>
             </div>
           </div>
         </div>
@@ -305,7 +320,7 @@
         </p>
 
         <div class="review-policy-panel">
-          <p class="section-label">Reviewer Eligibility</p>
+          <p class="section-label">Can You Vote Yet?</p>
           <strong>{{ reviewPolicySummary }}</strong>
           <p class="hint">{{ reviewPolicyWarning }}</p>
           <p v-if="reviewerEligibilityMessage" class="status-message error">{{ reviewerEligibilityMessage }}</p>
@@ -367,7 +382,7 @@
         </div>
 
         <div v-if="pendingSubmissions.length === 0" class="empty-state">
-          No pending submissions are waiting for votes.
+          Nothing needs your vote right now. Check back soon or submit something new for the community to review.
         </div>
 
         <div v-else class="submission-list">
@@ -386,9 +401,6 @@
             <p class="meta">Submitted by {{ shortenKey(submission.submitter) }}</p>
             <div class="content-state-line">
               <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
-              <span class="meta-chip">ID {{ shortenHash(submission.content_id) }}</span>
-              <span class="meta-chip">Hash {{ shortenHash(submission.content_hash) }}</span>
-              <span class="meta-chip">{{ submission.mime_type || submission.content_type || 'No MIME data' }}</span>
               <button
                 v-if="submission.content_hash && needsContentSync(submission)"
                 @click="syncContent(submission.content_hash)"
@@ -421,7 +433,7 @@
                   Unsure
                 </button>
               </div>
-              <button @click="evaluateSubmission(submission.submission_id)" class="btn evaluate">
+              <button v-if="showMintQueueTools" @click="evaluateSubmission(submission.submission_id)" class="btn evaluate">
                 Evaluate
               </button>
             </div>
@@ -432,16 +444,16 @@
       <section class="section-panel approved-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Approved / Certificate Ready</p>
-            <h2>Originality Certificates</h2>
+            <p class="section-label">Certified Results</p>
+            <h2>Certified Memes</h2>
           </div>
-          <span class="workflow-chip">Vote Snapshot</span>
+          <span class="workflow-chip">Community Approved</span>
         </div>
 
         <p v-if="certificateError" class="status-message error">{{ certificateError }}</p>
 
         <div v-if="approvedCertificateSubmissions.length === 0" class="empty-state">
-          No certified approved submissions are ready yet.
+          No certified memes yet. Once a submission passes voting, it will show up here.
         </div>
 
         <div v-else class="submission-list">
@@ -559,7 +571,7 @@
         </div>
       </section>
 
-      <section v-if="approvedMissingCertificateSubmissions.length > 0" class="section-panel missing-panel">
+      <section v-if="showMintQueueTools && approvedMissingCertificateSubmissions.length > 0" class="section-panel missing-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Approved / Certificate Missing</p>
@@ -622,7 +634,7 @@
         </div>
       </section>
 
-      <section class="section-panel queue-panel">
+      <section v-if="showMintQueueTools" class="section-panel queue-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Mint Queue</p>
@@ -754,7 +766,7 @@
       <section class="section-panel blocks-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Recent Blocks</p>
+            <p class="section-label">Recent Activity</p>
             <h2>Certified Meme Blocks</h2>
           </div>
           <button @click="fetchRecentBlocks" class="btn ghost" :disabled="isBlocksLoading">
@@ -765,7 +777,7 @@
         <p v-if="blocksError" class="status-message error">{{ blocksError }}</p>
 
         <div v-if="recentBlocks.length === 0" class="empty-state">
-          No blocks loaded yet.
+          No certified blocks to show yet. Once submissions clear voting and mint, they will appear here.
         </div>
 
         <div v-else class="block-list">
@@ -949,6 +961,7 @@ export default {
       isRefreshing: false,
       mintingSubmissionId: '',
       showReviewOverrideForm: false,
+      showSubmissionAdvancedFields: false,
       reviewOverrideScope: 'review',
       reviewOverrideReason: '',
       showMintQueueTools: showDevelopmentTools(),
@@ -1015,25 +1028,25 @@ export default {
       if (this.submissionEligibility && this.submissionEligibility.can_submit === false) {
         return 'Submission Blocked';
       }
-      return this.uploadedContent ? 'Sign And Submit Content' : 'Upload Then Sign Submission';
+      return this.uploadedContent ? 'Sign And Submit' : 'Sign And Submit';
     },
     submissionIdentityHint() {
       if (this.hasVerifiedWalletIdentity) {
-        return 'This verified wallet session is now the app identity for submissions. Task 7.4 requires a direct MetaMask signature for each new submission.';
+        return 'Your verified wallet will sign this submission before it enters community voting.';
       }
       if (!this.walletManager.state.isConnected) {
-        return 'Connect MetaMask to submit new content from a native ZoidbergChain 0x wallet identity.';
+        return 'Connect MetaMask first so the app knows which wallet should own this submission.';
       }
-      return 'Verify wallet before submitting. New normal submissions now require a verified session plus a direct MetaMask signature.';
+      return 'Verify your wallet before submitting. Every new submission needs a fresh wallet signature.';
     },
     votingIdentityHint() {
       if (this.hasVerifiedWalletIdentity) {
-        return 'This verified wallet session is now the app identity for votes. Task 7.5 requires a direct MetaMask signature for each originality vote.';
+        return 'Your verified wallet signs each originality vote before it is recorded.';
       }
       if (!this.walletManager.state.isConnected) {
-        return 'Connect MetaMask to cast originality votes from a native ZoidbergChain 0x wallet identity.';
+        return 'Connect MetaMask first so you can review and vote with your wallet.';
       }
-      return 'Verify wallet before voting. New normal votes now require a verified session plus a direct MetaMask signature.';
+      return 'Verify your wallet before voting. Each vote needs a fresh wallet signature.';
     },
     submissionEligibility() {
       return this.accessService.state.eligibility?.submission || null;
@@ -2010,8 +2023,30 @@ h3 {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.quickstart-card {
+  align-items: stretch;
+  justify-content: stretch;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quickstart-item {
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 8, 0.58);
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.quickstart-item strong {
+  color: #f4f4f4;
 }
 
 .metric-card,
@@ -2437,6 +2472,10 @@ h3 {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .quickstart-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
@@ -2464,6 +2503,10 @@ h3 {
 
   .metric-grid,
   .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .quickstart-card {
     grid-template-columns: minmax(0, 1fr);
   }
 

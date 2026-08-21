@@ -13,10 +13,10 @@ function walletBindingStatus(accessState = {}) {
 
 export function getAccessGateWalletStatusText(walletState = {}) {
   if (walletState.isVerifiedSession) {
-    return `Verified wallet ${walletState.verifiedWalletAddress}`;
+    return `Wallet verified: ${walletState.verifiedWalletAddress}`;
   }
   if (walletState.isConnected) {
-    return `Connected wallet ${walletState.normalizedWalletAddress}. Sign the verification challenge to continue.`;
+    return `Wallet connected: ${walletState.normalizedWalletAddress}. Sign the verification message to continue.`;
   }
   return 'No MetaMask wallet connected yet.';
 }
@@ -78,43 +78,43 @@ export function getControlledAccessNextStepText({
 
   if (mode === 'returning') {
     if (!walletState.isConnected) {
-      return 'Returning user? Connect your approved wallet.';
+      return 'Returning tester? Connect your approved wallet.';
     }
     if (!walletState.isVerifiedSession) {
-      return 'Returning user? Sign the wallet verification challenge to check whether this wallet is already approved.';
+      return 'Sign the wallet verification message so we can confirm this approved wallet.';
     }
     if (bindingStatus === 'revoked') {
-      return 'This wallet binding was revoked. Request access or enter a fresh invite code from the operator.';
+      return 'This wallet connection was revoked. Ask the team for help or use a fresh invite if you were re-approved.';
     }
     if (accountStatus === 'suspended') {
-      return 'This approved wallet belongs to a suspended access account. Contact the operator for reactivation.';
+      return 'This wallet belongs to a suspended beta account. Contact the team for reactivation.';
     }
     if (accountStatus === 'revoked') {
-      return 'This approved wallet belongs to a revoked access account. Contact the operator before trying again.';
+      return 'This wallet belongs to a revoked beta account. Contact the team before trying again.';
     }
     if (accessGranted || (walletBound && isActiveAccount(accessState))) {
-      return 'Approved wallet verified. Loading controlled testnet access.';
+      return 'Approved wallet verified. Opening the beta app.';
     }
     if (walletSessionAuthenticated) {
-      return 'This wallet is not approved. Request access or enter an invite code.';
+      return 'This wallet is verified, but it is not approved for beta access yet.';
     }
-    return 'Sign the wallet verification challenge to continue.';
+    return 'Sign the wallet verification message to continue.';
   }
 
   if (!inviteAuthenticated) {
-    return 'Enter your invite code first. Wallet binding only starts after the invite is accepted.';
+    return 'Start with your invite code. Wallet setup begins after the invite is accepted.';
   }
   if (!walletState.isConnected) {
     return 'Connect MetaMask to continue.';
   }
   if (!walletState.isVerifiedSession) {
-    return 'Verify this MetaMask wallet before binding it to the approved access account.';
+    return 'Verify this wallet before linking it to your approved beta access.';
   }
   if (!walletBound) {
-    return 'Bind the first verified MetaMask wallet to the approved access account.';
+    return 'Finish setup by binding this verified wallet to your approved beta access.';
   }
   if (accessGranted) {
-    return 'This MetaMask wallet is already bound to the approved access account.';
+    return 'This wallet is already linked and ready for the beta app.';
   }
-  return 'This approved account is not active right now. Contact the operator for help.';
+  return 'This approved account is not active right now. Contact the team for help.';
 }

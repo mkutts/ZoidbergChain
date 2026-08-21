@@ -35,7 +35,7 @@ test('access gate shows returning-user wallet login path', () => {
         accessSessionToken: '',
       },
     }),
-    /returning user\? connect your approved wallet/i,
+    /returning tester\? connect your approved wallet/i,
   );
 });
 
@@ -59,7 +59,7 @@ test('previously bound wallet can reconnect and unlock without invite code promp
     },
   });
 
-  assert.match(nextStep, /approved wallet verified/i);
+  assert.match(nextStep, /opening the beta app/i);
   assert.doesNotMatch(nextStep, /invite code/i);
 });
 
@@ -83,7 +83,7 @@ test('unapproved wallet stays locked', () => {
     },
   });
 
-  assert.match(nextStep, /wallet is not approved/i);
+  assert.match(nextStep, /not approved for beta access/i);
 });
 
 test('disconnect path clears wallet session locally without implying invite reuse', () => {
@@ -116,7 +116,7 @@ test('new-user invite flow still exposes invite-first bind guidance', () => {
     },
   });
 
-  assert.match(nextStep, /enter your invite code first/i);
+  assert.match(nextStep, /start with your invite code/i);
 });
 
 test('suspended or revoked returning wallets show clear denial copy', () => {
@@ -153,8 +153,8 @@ test('suspended or revoked returning wallets show clear denial copy', () => {
     },
   });
 
-  assert.match(suspended, /suspended access account/i);
-  assert.match(revokedBinding, /binding was revoked/i);
+  assert.match(suspended, /suspended beta account/i);
+  assert.match(revokedBinding, /connection was revoked/i);
 });
 
 test('wallet status text stays friendly for connected and verified returning users', () => {
@@ -164,7 +164,7 @@ test('wallet status text stays friendly for connected and verified returning use
       isVerifiedSession: false,
       normalizedWalletAddress: '0x1234',
     }),
-    /connected wallet 0x1234/i,
+    /wallet connected: 0x1234/i,
   );
   assert.match(
     getAccessGateWalletStatusText({
@@ -172,6 +172,6 @@ test('wallet status text stays friendly for connected and verified returning use
       isVerifiedSession: true,
       verifiedWalletAddress: '0x5678',
     }),
-    /verified wallet 0x5678/i,
+    /wallet verified: 0x5678/i,
   );
 });

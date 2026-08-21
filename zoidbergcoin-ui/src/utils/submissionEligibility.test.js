@@ -14,7 +14,7 @@ test('normal approved submission state does not imply an override', () => {
   });
 
   assert.equal(view.tone, 'success');
-  assert.match(view.headline, /enabled for this verified wallet/i);
+  assert.match(view.headline, /can submit with this verified wallet/i);
   assert.match(view.detail, /controlled beta access/i);
   assert.doesNotMatch(`${view.headline} ${view.detail}`, /override/i);
 });
@@ -46,6 +46,6 @@ test('submission override state renders clearly when present', () => {
   });
 
   assert.equal(view.tone, 'success');
-  assert.match(view.headline, /admin submission override/i);
-  assert.match(view.detail, /direct submission override/i);
+  assert.match(view.headline, /admin approval is active/i);
+  assert.match(view.detail, /direct beta approval/i);
 });

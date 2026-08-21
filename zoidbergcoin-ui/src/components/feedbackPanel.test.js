@@ -22,6 +22,8 @@ test('blocked access gate exposes the in-app feedback entry point', () => {
   const source = read('./ControlledAccessGate.vue');
 
   assert.match(source, /<FeedbackPanel/i);
+  assert.match(source, /I&apos;m New/i);
+  assert.match(source, /Returning With My Approved Wallet/i);
   assert.match(source, /Blocked or stuck\? Send feedback\./i);
   assert.match(source, /entry-point="access_gate"/i);
   assert.match(source, /requestFeedbackPanelOpen/i);
@@ -53,4 +55,23 @@ test('unlocked app shell and wallet surface expose visible feedback entry points
   assert.match(walletSource, /requestFeedbackPanelOpen/i);
   assert.match(walletSource, /@click="openFeedbackPanel"/i);
   assert.match(walletSource, /Send Feedback/i);
+});
+
+test('dashboard keeps user-facing workflow copy and hides dev-only review controls by default', () => {
+  const dashboardSource = read('../pages/Dashboard.vue');
+
+  assert.match(dashboardSource, /Create, vote, and track test ZOID/i);
+  assert.match(dashboardSource, /Prepare Your Content/i);
+  assert.match(dashboardSource, /Vote On Originality/i);
+  assert.match(dashboardSource, /v-if="showMintQueueTools"/i);
+  assert.match(dashboardSource, /v-if="showMintQueueTools" @click="evaluateSubmission/i);
+});
+
+test('public beta banner keeps tester-facing warnings visible', () => {
+  const bannerSource = read('./PublicDemoBanner.vue');
+
+  assert.match(bannerSource, /Controlled Beta/i);
+  assert.match(bannerSource, /Test ZOID has no real monetary value/i);
+  assert.match(bannerSource, /Wallets are used for identity and signatures/i);
+  assert.match(bannerSource, /Never enter a seed phrase or private key/i);
 });

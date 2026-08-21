@@ -2,23 +2,22 @@
   <div class="home-container">
     <PublicDemoBanner v-if="showPublicDemoBanner" />
     <h1>ZoidbergCoin</h1>
-    <p class="subtitle">The Meme-Centric Blockchain</p>
+    <p class="subtitle">A controlled beta for community-reviewed meme publishing</p>
 
     <WalletPanel />
 
     <blockquote class="quote">
-      "The remedy to be applied is more speech, not enforced silence."
-      <span class="author"> - Louis Brandeis</span>
+      Submit memes, vote on originality, and follow test ZOID rewards while the beta stays invite-only.
     </blockquote>
 
     <div class="form-container">
-      <button @click="goToDashboard" class="btn secondary">Welcome</button>
+      <button @click="goToDashboard" class="btn secondary">Open Beta App</button>
       <button v-if="showDevWalletTools" @click="generateWallet" class="btn primary">Development-Only Server Wallet</button>
       <p v-if="showDevWalletTools" class="dev-wallet-note">
         Development-only wallet generation remains available for local testing, but verified MetaMask sessions are the normal identity path.
       </p>
 
-      <button @click="goToWhyPage" class="btn secondary why-btn">Why ZoidbergCoin? ... Why not ZoidbergCoin</button>
+      <button @click="goToWhyPage" class="btn secondary why-btn">How ZoidbergChain Works</button>
 
       <a :href="whitePaperURL" download class="btn primary">Download White Paper</a>
     </div>

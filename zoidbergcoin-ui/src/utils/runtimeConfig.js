@@ -63,7 +63,8 @@ export function publicDemoBannerLines() {
     'Test ZOID has no real monetary value',
     'This network may reset',
     'Not mainnet',
+    'Wallets are used for identity and signatures',
     'Native ZOID lives on ZoidbergChain, not Ethereum',
-    'MetaMask signs ZoidbergChain actions',
+    'Never enter a seed phrase or private key in this app',
   ];
 }

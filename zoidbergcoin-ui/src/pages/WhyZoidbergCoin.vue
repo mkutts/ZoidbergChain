@@ -1,42 +1,52 @@
 <template>
-  <div class="why-container">
-    <h1>Why ZoidbergCoin? ... Why not ZoidbergCoin</h1>
+  <div class="why-shell">
+    <section class="why-card">
+      <p class="eyebrow">Why ZoidbergChain?</p>
+      <h1>Memes, originality, and community review</h1>
+      <p class="lead">
+        ZoidbergChain is a playful blockchain experiment where memes are submitted, reviewed by the community,
+        and preserved with originality certificates when they pass.
+      </p>
 
-    <p>
-      ZoidbergCoin is inspired by the “Why Not Zoidberg?” meme from the animated sci-fi series <strong>Futurama</strong>.
-      The meme originates from the eccentric and often underappreciated character Dr. John Zoidberg, who frequently
-      suggests himself for roles he is wildly unqualified for—often punctuated with the phrase “Why not Zoidberg?”
-    </p>
+      <div class="reason-grid">
+        <article class="reason-card">
+          <h2>Why the name?</h2>
+          <p>
+            The project borrows the spirit of the “Why not Zoidberg?” joke: a little chaotic, a little self-aware,
+            and willing to try something unconventional if it makes people smile.
+          </p>
+        </article>
+        <article class="reason-card">
+          <h2>What happens here?</h2>
+          <p>
+            Testers submit content, other testers vote on originality, and approved items can become certified meme
+            blocks on the chain.
+          </p>
+        </article>
+        <article class="reason-card">
+          <h2>What is test ZOID?</h2>
+          <p>
+            Test ZOID is only for the controlled beta. It has no real monetary value, may reset, and is used to help
+            us test rewards, balances, and transfers safely.
+          </p>
+        </article>
+      </div>
 
-    <p>
-      This phrase became a widespread meme, symbolizing an enthusiastic yet misguided suggestion, often in response to
-      situations where someone is struggling to find an answer. Over time, it evolved into a playful way of endorsing
-      something unconventional or overlooked with a humorous, self-aware tone.
-    </p>
+      <div class="detail-panel">
+        <p class="section-label">Beta Principles</p>
+        <ul>
+          <li>Wallets are used for identity and signatures.</li>
+          <li>Some actions require approval while we reduce spam during testing.</li>
+          <li>MetaMask never gives this app your seed phrase or private key.</li>
+          <li>The goal is to make the tester journey understandable before the wider launch.</li>
+        </ul>
+      </div>
 
-    <h2>ZoidbergCoin: Embracing the Meme Economy</h2>
-
-    <p>
-      In the world of cryptocurrency, meme coins thrive on internet culture, humor, and community engagement.
-      ZoidbergCoin embraces this fully, positioning itself as a fun-first, decentralized platform for meme creators
-      and enthusiasts. Just as Zoidberg persistently asks, “Why not me?”, ZoidbergCoin asks:
-    </p>
-
-    <ul>
-      <li>Why not a blockchain that celebrates and preserves meme culture?</li>
-      <li>Why not reward creators for their contributions to internet culture?</li>
-      <li>Why not build a blockchain where memes are the currency itself?</li>
-    </ul>
-
-    <p>
-      By fusing decentralized technology with meme culture, ZoidbergCoin champions free expression and creativity while
-      ensuring memes are immortalized on the blockchain—safe from censorship, takedowns, or disappearing internet
-      archives.
-    </p>
-
-    <p><strong>Why ZoidbergCoin? The real question is: Why not ZoidbergCoin?</strong></p>
-
-    <button @click="goBack" class="btn secondary">Back to Home</button>
+      <div class="action-row">
+        <button @click="goToDashboard" class="btn primary">Open Beta App</button>
+        <button @click="goBack" class="btn secondary">Back</button>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -45,83 +55,134 @@ export default {
   methods: {
     goBack() {
       this.$router.push('/');
-    }
-  }
+    },
+    goToDashboard() {
+      this.$router.push('/dashboard');
+    },
+  },
 };
 </script>
 
 <style scoped>
-/* General Layout */
-.why-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  text-align: center;
-  background: radial-gradient(circle, #1a1a1a 0%, #000000 100%);
-  color: #fff;
-  font-family: 'Arial', sans-serif;
+.why-shell {
   min-height: 100vh;
+  padding: 36px 16px 48px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 69, 0.18), transparent 28%),
+    linear-gradient(180deg, #0d1320 0%, #05070d 100%);
+  color: #f7f0de;
 }
 
-/* Title */
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-  text-shadow: 3px 3px 6px rgba(255, 0, 0, 0.5);
+.why-card {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 205, 115, 0.18);
+  background: rgba(8, 12, 20, 0.92);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 18px;
 }
 
-/* Subtitle */
-h2 {
-  font-size: 1.8rem;
-  margin-top: 20px;
-  color: #ff4747;
+.eyebrow,
+.section-label {
+  margin: 0;
+  color: #ffcd73;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
-/* Paragraphs */
+h1,
+h2,
 p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.02;
+}
+
+h2 {
   font-size: 1.2rem;
-  margin-bottom: 15px;
-  max-width: 800px;
-  text-align: justify;
+}
+
+.lead,
+.reason-card p,
+.detail-panel li {
+  color: #ddd6c6;
   line-height: 1.6;
 }
 
-/* Bullet Points */
-ul {
-  text-align: left;
-  max-width: 800px;
-  margin: 20px 0;
+.reason-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
-li {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
-  color: #bbb;
+.reason-card,
+.detail-panel {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 115, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 18px;
+  display: grid;
+  gap: 10px;
 }
 
-/* Back to Home Button */
+.detail-panel ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .btn {
-  width: 200px;
-  padding: 12px;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 20px;
-  transition: 0.3s ease-in-out;
-  font-weight: bold;
 }
 
-/* Secondary Button */
+.primary {
+  background: linear-gradient(135deg, #ffcd73 0%, #ff945f 100%);
+  color: #20150a;
+}
+
 .secondary {
-  background: linear-gradient(135deg, #4a90e2 0%, #2455a5 100%);
-  color: white;
-  box-shadow: 0px 4px 10px rgba(74, 144, 226, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7f0de;
 }
 
-.secondary:hover {
-  background: linear-gradient(135deg, #2455a5 0%, #123a70 100%);
+@media (max-width: 900px) {
+  .reason-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .why-shell {
+    padding: 24px 12px 36px;
+  }
+
+  .why-card {
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

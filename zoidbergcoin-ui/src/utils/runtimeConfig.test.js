@@ -65,6 +65,7 @@ test('public demo banner includes required controlled-testnet labels', () => {
   assert.ok(lines.includes('Test ZOID has no real monetary value'));
   assert.ok(lines.includes('This network may reset'));
   assert.ok(lines.includes('Not mainnet'));
+  assert.ok(lines.includes('Wallets are used for identity and signatures'));
   assert.ok(lines.includes('Native ZOID lives on ZoidbergChain, not Ethereum'));
-  assert.ok(lines.includes('MetaMask signs ZoidbergChain actions'));
+  assert.ok(lines.includes('Never enter a seed phrase or private key in this app'));
 });

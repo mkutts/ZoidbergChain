@@ -1,13 +1,14 @@
 <template>
   <section class="public-demo-banner">
-    <p class="banner-label">Public Demo</p>
+    <p class="banner-label">Controlled Beta</p>
     <h2>ZoidbergChain controlled testnet</h2>
     <p class="banner-copy">
       Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
     </p>
     <ul class="banner-points">
+      <li>Wallets are used for identity and signatures.</li>
       <li>Native ZOID lives on ZoidbergChain, not Ethereum.</li>
-      <li>MetaMask signs ZoidbergChain actions.</li>
+      <li>Never enter a seed phrase or private key in this app.</li>
     </ul>
   </section>
 </template>

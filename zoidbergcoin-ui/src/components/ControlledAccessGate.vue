@@ -4,26 +4,44 @@
     <section class="access-card">
       <p class="eyebrow">Controlled Testnet Access</p>
       <p v-if="accessLabel" class="access-label">{{ accessLabel }}</p>
-      <h1>ZoidbergChain is currently a controlled testnet.</h1>
+      <h1>Join the ZoidbergChain beta</h1>
       <p class="lead">
-        Access is invite-only while we test voting, rewards, and network safety. Test ZOID has no real monetary value, and this does not represent mainnet.
+        ZoidbergChain is in controlled beta while we test submissions, originality voting, rewards, and wallet safety. Test ZOID has no real monetary value, and this is not mainnet.
       </p>
       <div class="top-feedback-cta">
         <button type="button" class="ghost-btn feedback-shortcut" @click="openFeedbackPanel">Send Feedback</button>
         <p class="wallet-note">If something is broken or confusing, you can report it directly from this screen.</p>
       </div>
 
+      <div class="journey-grid">
+        <article class="journey-card">
+          <p class="section-label">I&apos;m New</p>
+          <strong>Request beta access.</strong>
+          <p class="wallet-note">Tell us why you want in, wait for approval, then use your invite once.</p>
+        </article>
+        <article class="journey-card">
+          <p class="section-label">I Have an Invite</p>
+          <strong>Use the code, then bind your wallet.</strong>
+          <p class="wallet-note">Invite codes are one-time. After that, your approved wallet becomes your normal return path.</p>
+        </article>
+        <article class="journey-card">
+          <p class="section-label">I&apos;m Returning</p>
+          <strong>Connect your approved wallet.</strong>
+          <p class="wallet-note">Reconnect the same wallet and sign a quick verification message to continue.</p>
+        </article>
+      </div>
+
       <div class="rules-panel">
-        <p class="section-label">Allowlist / Beta Eligibility Rules</p>
+        <p class="section-label">How Beta Access Works</p>
         <p class="wallet-note">
-          ZoidbergChain is in a controlled beta. App access, submissions, voting, and rewards can require admin approval, an allowlist entry, a verified wallet, and good standing while we limit spam during testing.
+          Some actions need approval while the beta is small. Your invite, verified wallet, and account standing decide what you can do next.
         </p>
         <ul class="rules-list">
-          <li>The beta is controlled and invite-only.</li>
-          <li>Submissions currently require controlled beta access plus a verified wallet.</li>
-          <li>Voting and rewards can still have separate review eligibility rules.</li>
-          <li>Admins can grant temporary overrides for early testers.</li>
-          <li>Test ZOID is only for testing and has no real monetary value.</li>
+          <li>New testers can request access or use an invite code from the team.</li>
+          <li>Returning testers usually only need their approved wallet and a fresh verification signature.</li>
+          <li>Submitting content requires beta access plus a verified wallet.</li>
+          <li>Voting and rewards can still have separate approval rules while we reduce spam.</li>
+          <li>Never enter a seed phrase or private key anywhere in this app.</li>
         </ul>
       </div>
 
@@ -34,7 +52,7 @@
           :class="{ active: entryMode === 'new' }"
           @click="setEntryMode('new')"
         >
-          New User
+          I&apos;m New
         </button>
         <button
           type="button"
@@ -42,7 +60,7 @@
           :class="{ active: entryMode === 'returning' }"
           @click="setEntryMode('returning')"
         >
-          Returning Approved User
+          Returning With My Approved Wallet
         </button>
       </div>
 
@@ -108,15 +126,15 @@
             >
               Retry Wallet Step
             </button>
-            <button
-              type="button"
-              class="ghost-btn"
-              @click="setEntryMode('new')"
-            >
-              I Need a New Invite
-            </button>
-          </div>
+          <button
+            type="button"
+            class="ghost-btn"
+            @click="setEntryMode('new')"
+          >
+              I&apos;m New Here
+          </button>
         </div>
+      </div>
       </div>
 
       <template v-else>
@@ -127,7 +145,7 @@
             :class="{ active: newUserMode === 'invite' }"
             @click="setNewUserMode('invite')"
           >
-            Enter Invite Code
+            I Have an Invite
           </button>
           <button
             v-if="requestsEnabled"
@@ -136,22 +154,22 @@
             :class="{ active: newUserMode === 'request' }"
             @click="setNewUserMode('request')"
           >
-            Request Access
+            Request Beta Access
           </button>
         </div>
 
         <div v-if="newUserMode === 'invite'" class="panel-stack">
           <label class="field">
-            <span>Invite / Access Code</span>
+            <span>Invite Code</span>
             <input v-model.trim="inviteCode" type="text" placeholder="ZC-..." autocomplete="one-time-code" />
           </label>
           <button type="button" class="primary-btn" @click="login" :disabled="access.state.isLoggingIn || !inviteCode">
-            {{ access.state.isLoggingIn ? 'Checking Invite...' : 'Use Invite Code' }}
+            {{ access.state.isLoggingIn ? 'Checking Invite...' : 'Continue With Invite' }}
           </button>
           <p v-if="inviteAcceptedMessage" class="status success">{{ inviteAcceptedMessage }}</p>
 
           <div class="wallet-box">
-            <p class="section-label">Wallet Bind</p>
+            <p class="section-label">Connect And Verify Your Wallet</p>
             <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
             <p class="wallet-note">{{ walletNextStepText }}</p>
             <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
@@ -205,31 +223,31 @@
             <input v-model.trim="requestForm.email" type="email" required />
           </label>
           <label class="field">
-            <span>Organization / Social Handle (Optional)</span>
+            <span>Organization Or Social Handle (Optional)</span>
             <input v-model.trim="requestForm.handle" type="text" />
           </label>
           <label class="field">
-            <span>Reason For Access</span>
+            <span>Why Would You Like Access?</span>
             <textarea v-model.trim="requestForm.reason" rows="3" required />
           </label>
           <label class="field">
-            <span>Notes (Optional)</span>
+            <span>Anything Else We Should Know? (Optional)</span>
             <textarea v-model.trim="requestForm.notes" rows="3" />
           </label>
           <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingRequest">
-            {{ access.state.isSubmittingRequest ? 'Submitting Request...' : 'Submit Access Request' }}
+            {{ access.state.isSubmittingRequest ? 'Sending Request...' : 'Send Access Request' }}
           </button>
         </form>
 
         <div v-else class="panel-stack">
           <p class="status">
-            New access requests are currently disabled on this node. Use an approved invite code from the operator to enter the controlled testnet.
+            New requests are paused on this node right now. If you already have approval, use your invite code or return with your approved wallet.
           </p>
         </div>
       </template>
 
       <section v-if="shouldShowEligibilityStatus" class="rules-panel">
-        <p class="section-label">Why Am I Blocked?</p>
+        <p class="section-label">What Is Blocking Me?</p>
         <p v-if="eligibilityHeadline" class="status" :class="eligibilityTone">{{ eligibilityHeadline }}</p>
         <p v-if="primaryBlockedReason" class="wallet-note">{{ primaryBlockedReason }}</p>
         <div v-if="accessRuleChecks.length" class="eligibility-checklist">
@@ -254,27 +272,27 @@
       <section v-if="canRequestOverride" class="rules-panel">
         <div class="card-heading-inline">
           <div>
-            <p class="section-label">Request an Override</p>
+            <p class="section-label">Still Blocked?</p>
             <p class="wallet-note">
-              If you were invited or approved but still cannot access something, send a focused override request for this controlled beta.
+              If you believe this wallet should already work, send a quick beta help request so an operator can review it.
             </p>
           </div>
           <button type="button" class="ghost-btn" @click="showOverrideForm = !showOverrideForm">
-            {{ showOverrideForm ? 'Hide Override Form' : 'Request an Override' }}
+            {{ showOverrideForm ? 'Hide Beta Help Form' : 'Request Beta Help' }}
           </button>
         </div>
 
         <form v-if="showOverrideForm" class="panel-stack" @submit.prevent="submitOverride">
           <label class="field">
-            <span>Requested Scope</span>
-            <select v-model="overrideForm.requested_scope" class="field-select">
-              <option value="access">Access Allowlist</option>
-              <option value="review">Review Eligibility Allowlist</option>
-              <option value="voting">Voting Override</option>
-              <option value="rewards">Rewards Override</option>
-              <option value="all_beta">All Beta Permissions</option>
-            </select>
-          </label>
+              <span>Requested Scope</span>
+              <select v-model="overrideForm.requested_scope" class="field-select">
+              <option value="access">App Access</option>
+              <option value="review">Review Access</option>
+              <option value="voting">Voting Access</option>
+              <option value="rewards">Rewards Access</option>
+              <option value="all_beta">Full Beta Access</option>
+              </select>
+            </label>
           <label class="field">
             <span>Name (Optional)</span>
             <input v-model.trim="overrideForm.name" type="text" />
@@ -292,7 +310,7 @@
             <textarea v-model.trim="overrideForm.reason" rows="3" required />
           </label>
           <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingOverrideRequest || !overrideForm.reason">
-            {{ access.state.isSubmittingOverrideRequest ? 'Submitting Override Request...' : 'Submit Override Request' }}
+            {{ access.state.isSubmittingOverrideRequest ? 'Sending Beta Help Request...' : 'Send Beta Help Request' }}
           </button>
         </form>
       </section>
@@ -500,7 +518,7 @@ const inviteAcceptedMessage = computed(() => {
   if (!inviteAuthenticated.value || access.state.me?.wallet_bound) {
     return '';
   }
-  return 'Invite accepted. Connect and verify your MetaMask wallet to bind this access account.';
+  return 'Invite accepted. Connect MetaMask, verify the wallet, and bind it once to finish setup.';
 });
 
 const returningStatusMessage = computed(() => {
@@ -557,25 +575,25 @@ const activeOverrideMessage = computed(() => {
   if (!accessOverride) {
     return '';
   }
-  return `An admin override is active for ${String(accessOverride.allowlist_scope || accessOverride.scope || 'this account').replace(/_/g, ' ')}.`;
+  return `Admin approval is active for ${String(accessOverride.allowlist_scope || accessOverride.scope || 'this account').replace(/_/g, ' ')}.`;
 });
 const eligibilityHeadline = computed(() => {
   if (access.state.me?.access_granted) {
-    return 'You are approved for app access.';
+    return 'You are approved for the beta app.';
   }
   if (activeOverrideMessage.value) {
-    return 'An admin override is active for this session.';
+    return 'Admin approval is active for this session.';
   }
   if (walletAccountStatus.value === 'suspended') {
-    return 'You are blocked because this account is suspended.';
+    return 'This account is currently suspended.';
   }
   if (walletBindingStatus.value === 'revoked') {
-    return 'You are blocked because this wallet binding was revoked.';
+    return 'This wallet connection was revoked.';
   }
   if (wallet.state.isVerifiedSession) {
-    return 'Your wallet is connected but not approved yet.';
+    return 'Your wallet is verified, but beta approval is still missing.';
   }
-  return 'Approval or an override may still be required.';
+  return 'You may still need approval before this wallet can continue.';
 });
 const eligibilityTone = computed(() => (access.state.me?.access_granted || activeOverrideMessage.value ? 'success' : 'warning'));
 const canRequestOverride = computed(
@@ -786,6 +804,26 @@ h2 {
   border-radius: 18px;
   border: 1px solid rgba(255, 205, 115, 0.16);
   background: rgba(255, 205, 115, 0.06);
+}
+
+.journey-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+}
+
+.journey-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(159, 211, 255, 0.16);
+  background: rgba(159, 211, 255, 0.06);
+  display: grid;
+  gap: 8px;
+}
+
+.journey-card strong {
+  color: #f7f0de;
 }
 
 .feedback-shortcut {
@@ -1010,7 +1048,8 @@ h2 {
 
   .entry-switch,
   .mode-switch,
-  .wallet-actions {
+  .wallet-actions,
+  .journey-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }

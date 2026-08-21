@@ -21,33 +21,33 @@ export function buildSubmissionEligibilityView(eligibility = {}) {
     if (source === 'admin_submission_override') {
       return {
         tone: 'success',
-        headline: 'Submission is enabled by an admin submission override.',
-        detail: 'A direct submission override is active for this wallet on the current beta node.',
+        headline: 'Submission is open because admin approval is active for this wallet.',
+        detail: 'A direct beta approval is currently allowing this wallet to submit.',
         policyNote,
       };
     }
     if (source === 'review_override') {
       return {
         tone: 'success',
-        headline: 'Submission is enabled by a review override.',
-        detail: 'A review-scoped admin override is currently allowing submissions for this wallet.',
+        headline: 'Submission is open because review approval is active for this wallet.',
+        detail: 'A review-scoped beta approval is currently allowing this wallet to submit.',
         policyNote,
       };
     }
     if (source === 'all_beta_override') {
       return {
         tone: 'success',
-        headline: 'Submission is enabled by an all beta override.',
-        detail: 'An all beta permissions override is currently allowing submissions for this wallet.',
+        headline: 'Submission is open because full beta approval is active for this wallet.',
+        detail: 'An all-beta approval is currently allowing this wallet to submit.',
         policyNote,
       };
     }
     return {
       tone: 'success',
-      headline: 'Submission is enabled for this verified wallet.',
+      headline: 'You can submit with this verified wallet.',
       detail: String(
         submission.message
-        || 'Submission is allowed because controlled beta access is active and the wallet session is verified.',
+        || 'Submission is allowed because beta access is active and this wallet is verified.',
       ).trim(),
       policyNote,
     };

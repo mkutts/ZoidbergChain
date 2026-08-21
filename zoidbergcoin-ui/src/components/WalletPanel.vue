@@ -1,10 +1,10 @@
 <template>
   <section class="wallet-panel">
     <div class="wallet-copy">
-      <p class="wallet-label">Native Account</p>
-      <h2>MetaMask-backed ZoidbergChain account</h2>
+      <p class="wallet-label">Wallet And Test ZOID</p>
+      <h2>Your ZoidbergChain beta wallet</h2>
       <p class="wallet-note">
-        MetaMask provides the signing key for your native ZoidbergChain account. Native ZOID lives on ZoidbergChain, settles in meme-mined blocks, and does not appear in normal MetaMask yet.
+        MetaMask proves who you are and signs actions in the beta. Test ZOID lives inside ZoidbergChain, settles in meme-mined blocks, and does not appear in normal MetaMask yet.
       </p>
       <p v-if="showPublicDemoNotice" class="wallet-demo-note">
         Controlled testnet. Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
@@ -22,16 +22,16 @@
       <template v-if="wallet.state.isConnected">
         <p class="address-short">{{ shortenedAddress }}</p>
         <p class="address-full">{{ wallet.state.normalizedWalletAddress }}</p>
-        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Verified MetaMask-backed ZoidbergChain account. This session is the active native account identity for signed submissions, votes, rewards, and native ZOID transfers.</p>
-        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but the verified session expired or changed. Verify again to restore the active native ZoidbergChain account identity.</p>
-        <p v-else class="wallet-meta">Connected only at the browser level. Verify this wallet before using it as a native ZoidbergChain account identity.</p>
+        <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Wallet verified. You can now use this wallet for submissions, voting, rewards, and test ZOID transfers.</p>
+        <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but verification expired or changed. Verify again to keep using the beta app.</p>
+        <p v-else class="wallet-meta">Wallet connected. Verify it to unlock signing and other beta actions.</p>
         <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
         <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
-          Session expires at: {{ sessionExpiryLabel }}
+          Verification expires at: {{ sessionExpiryLabel }}
         </p>
 
         <div v-if="showAccessStatusCard" class="access-card">
-          <span class="native-balance-label">Controlled Access</span>
+          <span class="native-balance-label">Beta Access</span>
           <strong :class="accessStatusClass">{{ accessStatusHeadline }}</strong>
           <p class="wallet-meta">{{ accessStatusDetail }}</p>
           <p v-if="accessAccountLine" class="wallet-meta">{{ accessAccountLine }}</p>
@@ -56,25 +56,25 @@
           <p v-for="step in eligibilityNextSteps" :key="step" class="wallet-meta">{{ step }}</p>
           <div v-if="showWalletOverrideTools" class="wallet-actions">
             <button type="button" class="wallet-btn secondary compact" @click="showOverrideForm = !showOverrideForm">
-              {{ showOverrideForm ? 'Hide Override Form' : 'Request an Override' }}
+              {{ showOverrideForm ? 'Hide Beta Help Form' : 'Request Beta Help' }}
             </button>
           </div>
           <form v-if="showOverrideForm" class="override-form" @submit.prevent="submitEligibilityOverride">
             <label class="transfer-field">
               <span>Requested Scope</span>
               <select v-model="overrideForm.requested_scope">
-                <option value="review">Review Eligibility Allowlist</option>
-                <option value="voting">Voting Override</option>
-                <option value="rewards">Rewards Override</option>
-                <option value="all_beta">All Beta Permissions</option>
+                <option value="review">Review Access</option>
+                <option value="voting">Voting Access</option>
+                <option value="rewards">Rewards Access</option>
+                <option value="all_beta">Full Beta Access</option>
               </select>
             </label>
             <label class="transfer-field">
-              <span>Reason</span>
-              <textarea v-model="overrideForm.reason" rows="3" placeholder="Explain what is blocked and what you need." />
+              <span>What Is Blocked?</span>
+              <textarea v-model="overrideForm.reason" rows="3" placeholder="Explain what you were trying to do and what should have happened." />
             </label>
             <button type="submit" class="wallet-btn primary compact" :disabled="access.state.isSubmittingOverrideRequest || !overrideForm.reason">
-              {{ access.state.isSubmittingOverrideRequest ? 'Submitting Override...' : 'Submit Override Request' }}
+              {{ access.state.isSubmittingOverrideRequest ? 'Sending Beta Help Request...' : 'Send Beta Help Request' }}
             </button>
           </form>
           <p v-if="access.state.errorMessage" class="wallet-error">{{ access.state.errorMessage }}</p>
@@ -95,14 +95,14 @@
 
         <div v-if="wallet.state.isVerifiedSession" class="reward-card">
           <div class="history-header">
-            <span class="native-balance-label">Canonical native account summary</span>
+            <span class="native-balance-label">Wallet Activity</span>
             <button
               type="button"
               class="wallet-btn secondary compact"
               @click="refreshAccountData"
               :disabled="isBalanceLoading || isRewardHistoryLoading || isTransferHistoryLoading"
             >
-              {{ isBalanceLoading || isRewardHistoryLoading || isTransferHistoryLoading ? 'Refreshing Account...' : 'Refresh Account Data' }}
+              {{ isBalanceLoading || isRewardHistoryLoading || isTransferHistoryLoading ? 'Refreshing Wallet...' : 'Refresh Wallet Data' }}
             </button>
           </div>
           <div v-if="accountSummaryRows.length" class="wallet-summary-list">
@@ -112,13 +112,13 @@
             </div>
           </div>
           <p class="wallet-meta">
-            Native accounts do not need to be pre-registered in the old dev wallet list. Your verified 0x address becomes a ZoidbergChain account when it submits, votes, receives rewards, or holds balance.
+            Your verified wallet becomes your ZoidbergChain beta identity as soon as it submits, votes, receives rewards, or holds balance.
           </p>
         </div>
 
         <div v-if="wallet.state.isVerifiedSession" class="reward-card">
           <div class="history-header">
-            <span class="native-balance-label">Native ZOID reward history</span>
+            <span class="native-balance-label">Rewards</span>
             <button
               type="button"
               class="wallet-btn secondary compact"
@@ -129,7 +129,7 @@
             </button>
           </div>
           <p v-if="rewardError" class="wallet-error">{{ rewardError }}</p>
-          <p v-else-if="!rewardHistory.length" class="wallet-meta">No native ZOID rewards yet.</p>
+          <p v-else-if="!rewardHistory.length" class="wallet-meta">No rewards yet. Vote on originality and check back after final decisions settle.</p>
           <template v-else>
             <p class="wallet-meta">Voter rewards are testnet ZOID only and go only to voters on the final majority side.</p>
             <ul class="history-list">
@@ -150,16 +150,17 @@
         </div>
 
         <div class="transfer-card">
-          <span class="native-balance-label">Native ZOID transfer</span>
+          <span class="native-balance-label">Send Test ZOID</span>
           <template v-if="wallet.state.isVerifiedSession">
             <p class="wallet-meta">{{ transferWarning }}</p>
-            <p class="wallet-meta">Current next nonce: <strong>{{ nextTransferNonceLabel }}</strong></p>
+            <p class="wallet-meta">Pending transfers can affect your available balance before final settlement.</p>
+            <p class="wallet-meta">Current next transfer number: <strong>{{ nextTransferNonceLabel }}</strong></p>
             <label class="transfer-field">
-              <span>From Native Account</span>
+              <span>From Wallet</span>
               <input :value="wallet.state.verifiedWalletAddress" type="text" readonly />
             </label>
             <label class="transfer-field">
-              <span>To Native Account</span>
+              <span>To Wallet</span>
               <input v-model="transferForm.toAddress" type="text" placeholder="0x..." />
             </label>
             <label class="transfer-field">
@@ -177,7 +178,7 @@
                 @click="submitTransferIntent"
                 :disabled="isTransferSubmitting"
               >
-                {{ isTransferSubmitting ? 'Signing Native Transfer...' : 'Sign Native ZOID Transfer' }}
+                {{ isTransferSubmitting ? 'Signing Transfer...' : 'Sign Test ZOID Transfer' }}
               </button>
               <button
                 type="button"
@@ -185,24 +186,16 @@
                 @click="refreshTransferHistory"
                 :disabled="isTransferHistoryLoading"
               >
-                {{ isTransferHistoryLoading ? 'Refreshing History...' : 'Refresh Transaction History' }}
-              </button>
-              <button
-                type="button"
-                class="wallet-btn secondary"
-                @click="refreshMempool"
-                :disabled="isMempoolLoading"
-              >
-                {{ isMempoolLoading ? 'Refreshing Mempool...' : 'Refresh Mempool' }}
+                {{ isTransferHistoryLoading ? 'Refreshing Transfers...' : 'Refresh Transfers' }}
               </button>
             </div>
             <p v-if="transferSuccessMessage" class="wallet-meta transfer-success">{{ transferSuccessMessage }}</p>
             <p v-if="transferError" class="wallet-error">{{ transferError }}</p>
             <div class="transfer-history">
-              <p class="wallet-meta transfer-history-title">Native ZOID transaction history</p>
-              <p v-if="!transferHistory.length" class="wallet-meta">No native ZOID transactions yet.</p>
+              <p class="wallet-meta transfer-history-title">Recent transfers</p>
+              <p v-if="!transferHistory.length" class="wallet-meta">No transfers yet. Send a small amount of test ZOID to start your activity history.</p>
               <template v-else>
-                <p class="wallet-meta">Signed and mempool transactions are non-final. Settled transactions show their meme-mined block reference.</p>
+                <p class="wallet-meta">Pending transfers are not final yet. Settled transfers show the block that confirmed them.</p>
                 <ul class="history-list">
                   <li v-for="transfer in transferHistory" :key="transfer.tx_id || transfer.transfer_id" class="history-card">
                     <div class="history-title-row">
@@ -219,11 +212,11 @@
                         <strong>{{ transferStatusLabel(transfer.status) }}</strong>
                       </div>
                       <div>
-                        <span>From Native Account</span>
+                        <span>From Wallet</span>
                         <strong>{{ wallet.shortenAddress(transfer.from_address) }}</strong>
                       </div>
                       <div>
-                        <span>To Native Account</span>
+                        <span>To Wallet</span>
                         <strong>{{ wallet.shortenAddress(transfer.to_address) }}</strong>
                       </div>
                       <div>
@@ -242,7 +235,7 @@
                         <span>Created At</span>
                         <strong>{{ formatDateTime(transfer.created_at || transferTimestamp(transfer)) || 'Unknown time' }}</strong>
                       </div>
-                      <div>
+                      <div v-if="showDevTransferTools">
                         <span>Admitted At</span>
                         <strong>{{ formatDateTime(transfer.admitted_at) || 'Not admitted' }}</strong>
                       </div>
@@ -262,7 +255,7 @@
                     <p v-if="transfer.memo" class="wallet-meta history-note">Memo: {{ transfer.memo }}</p>
                     <p v-if="transfer.rejection_reason" class="wallet-meta history-note">Rejection reason: {{ transfer.rejection_reason }}</p>
                     <p v-if="transfer.status_detail" class="wallet-meta history-note">{{ transfer.status_detail }}</p>
-                    <div v-if="transfer.status === 'signed_pending' && transfer.tx_id" class="wallet-actions">
+                    <div v-if="showDevTransferTools && transfer.status === 'signed_pending' && transfer.tx_id" class="wallet-actions">
                       <button
                         type="button"
                         class="wallet-btn secondary"
@@ -272,13 +265,13 @@
                         {{ isMempoolSubmitting ? 'Admitting...' : 'Admit to Mempool' }}
                       </button>
                     </div>
-                    <p v-if="transfer.status === 'signed_pending'" class="wallet-meta history-note">Signed native ZOID transfer. It reduces available balance now, but final balance changes only after settlement in a meme-mined block.</p>
+                    <p v-if="transfer.status === 'signed_pending'" class="wallet-meta history-note">This transfer is signed and pending. It can reduce available balance before the final block settlement appears.</p>
                   </li>
                 </ul>
               </template>
             </div>
-            <div class="transfer-history">
-              <p class="wallet-meta transfer-history-title">Local mempool</p>
+            <div v-if="showDevTransferTools" class="transfer-history">
+              <p class="wallet-meta transfer-history-title">Local pending queue</p>
               <p v-if="!mempoolTransactions.length" class="wallet-meta">No local mempool transactions.</p>
               <template v-else>
                 <p class="wallet-meta">The mempool is local to this node. Transactions settle only when included in an accepted meme-mined block.</p>
@@ -298,11 +291,11 @@
                         <strong>{{ transferStatusLabel(transaction.status) }}</strong>
                       </div>
                       <div>
-                        <span>From Native Account</span>
+                        <span>From Wallet</span>
                         <strong>{{ wallet.shortenAddress(transaction.from_address) }}</strong>
                       </div>
                       <div>
-                        <span>To Native Account</span>
+                        <span>To Wallet</span>
                         <strong>{{ wallet.shortenAddress(transaction.to_address) }}</strong>
                       </div>
                       <div>
@@ -324,10 +317,10 @@
             </div>
           </template>
           <template v-else-if="wallet.state.isConnected">
-            <p class="wallet-meta">Verify wallet before signing a transfer.</p>
+            <p class="wallet-meta">Verify this wallet before sending test ZOID.</p>
           </template>
           <template v-else>
-            <p class="wallet-meta">Connect MetaMask to prepare a native ZOID transfer.</p>
+            <p class="wallet-meta">Connect MetaMask first, then verify your wallet to send test ZOID.</p>
           </template>
         </div>
 
@@ -416,12 +409,13 @@ import {
   getFailedRequiredRuleChecks,
 } from '../utils/eligibilityChecklist.js';
 import { describeWalletSupport } from '../utils/mobileWallet.js';
-import { isPublicDemoMode } from '../utils/runtimeConfig';
+import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 
 const wallet = useWallet();
 const access = useAccess();
 const showPublicDemoNotice = isPublicDemoMode();
+const showDevTransferTools = showDevelopmentTools();
 const copyButtonLabel = ref('Copy Full Address');
 const accountSummary = ref(null);
 const isBalanceLoading = ref(false);
@@ -530,18 +524,18 @@ const showAccessStatusCard = computed(() => {
 
 const accessStatusHeadline = computed(() => {
   if (access.state.me?.access_granted) {
-    return 'Bound active controlled-testnet access account';
+    return 'Beta access is active';
   }
   if (access.state.me?.access_account && !access.state.me?.wallet_binding) {
-    return 'Invite accepted. Bind this verified wallet to unlock restricted actions.';
+    return 'Invite accepted. Finish wallet setup to unlock the beta app.';
   }
   if (wallet.state.isVerifiedSession) {
-    return 'This verified wallet is not bound to an active controlled-testnet access account.';
+    return 'This verified wallet is not fully approved yet.';
   }
   if (access.requiresAppAccess()) {
-    return 'Invite-only access is required for this controlled testnet.';
+    return 'This beta currently requires approval.';
   }
-  return 'Open local development mode remains available.';
+  return 'Open local testing is available on this node.';
 });
 
 const accessStatusClass = computed(() => {
@@ -557,18 +551,18 @@ const accessStatusClass = computed(() => {
 const accessStatusDetail = computed(() => {
   const status = access.state.publicStatus || {};
   if (access.state.me?.access_granted) {
-    return 'This wallet can submit while controlled beta access stays active and the verified wallet session remains current. Voting and rewards can still depend on separate review eligibility rules.';
+    return 'This wallet can use the beta app while access stays active and the verification session remains current. Voting and rewards can still have separate approval rules.';
   }
   if (access.state.me?.access_account && !access.state.me?.wallet_binding) {
-    return 'The invite was accepted, but the first verified MetaMask wallet still needs to be bound to this access account.';
+    return 'Your invite was accepted, but you still need to bind the first verified wallet to finish setup.';
   }
   if (wallet.state.isVerifiedSession) {
-    return 'Restricted actions can still fail until the operator-approved access account is active and this wallet is bound to it.';
+    return 'Some actions can still stay blocked until this wallet is approved and linked to an active beta account.';
   }
   if (status.access_dev_bypass_enabled) {
-    return 'Development bypass is active locally, so normal testing stays open without an invite code.';
+    return 'This local node is open for development testing right now.';
   }
-  return 'This node can require operator-approved access before submissions, votes, rewards, or transfers are allowed.';
+  return 'This node can require approval before submissions, votes, rewards, or transfers are allowed.';
 });
 
 const accessAccountLine = computed(() => {
@@ -577,7 +571,7 @@ const accessAccountLine = computed(() => {
     return '';
   }
   const status = String(account.status || 'unknown').replace(/_/g, ' ');
-  return `Access account ${account.email || account.name || account.access_account_id}: ${status}.`;
+  return `Approved account: ${account.email || account.name || account.access_account_id} (${status}).`;
 });
 
 const walletBindingLine = computed(() => {
@@ -585,7 +579,7 @@ const walletBindingLine = computed(() => {
   if (!binding?.wallet_address) {
     return '';
   }
-  return `Bound wallet: ${wallet.shortenAddress(binding.wallet_address)} (${binding.status || 'unknown'}).`;
+  return `Linked wallet: ${wallet.shortenAddress(binding.wallet_address)} (${binding.status || 'unknown'}).`;
 });
 const accessRuleChecks = computed(
   () => getEligibilityRuleChecks(access.state.eligibility, ['access']),
@@ -606,7 +600,7 @@ const eligibilityOverrideMessage = computed(() => {
   if (!accessOverride) {
     return '';
   }
-  return `An admin override is active for ${String(accessOverride.allowlist_scope || accessOverride.scope || 'this wallet').replace(/_/g, ' ')}.`;
+  return `Admin approval is active for ${String(accessOverride.allowlist_scope || accessOverride.scope || 'this wallet').replace(/_/g, ' ')}.`;
 });
 const showWalletOverrideTools = computed(
   () => (wallet.state.isVerifiedSession && !access.state.me?.access_granted) || Boolean(eligibilityBlockedReason.value),
@@ -614,24 +608,24 @@ const showWalletOverrideTools = computed(
 
 const statusText = computed(() => {
   if (wallet.state.isVerifiedSession) {
-    return 'Verified ZoidbergChain Wallet';
+    return 'Wallet Verified';
   }
   if (wallet.state.connectionStatus === 'expired') {
-    return 'Verification Required Again';
+    return 'Verify Again';
   }
   if (wallet.state.connectionStatus === 'verifying') {
-    return 'Verification In Progress';
+    return 'Verifying Wallet';
   }
   if (wallet.state.isConnected) {
-    return 'Connected - Verification Required';
+    return 'Wallet Connected';
   }
   if (!wallet.state.isMetaMaskAvailable) {
-    return 'MetaMask Unavailable';
+    return 'MetaMask Not Found';
   }
   if (wallet.state.connectionStatus === 'connecting') {
-    return 'Connecting';
+    return 'Connecting Wallet';
   }
-  return 'Disconnected';
+  return 'Wallet Not Connected';
 });
 
 const statusClass = computed(() => {

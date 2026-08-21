@@ -491,18 +491,26 @@
             <div v-for="entry in allowlistEntries" :key="entry.allowlist_entry_id" class="account-card">
               <div class="card-topline">
                 <strong>{{ entry.scope }}</strong>
-                <span>{{ entry.status }}</span>
+                <span>{{ entry.effective_status || entry.status }}</span>
               </div>
               <p>{{ entry.subject_type }}: {{ entry.subject_value }}</p>
+              <p v-if="entry.normalized_subject_value" class="muted-copy">Normalized subject: {{ entry.normalized_subject_value }}</p>
               <p v-if="entry.reason" class="muted-copy">{{ entry.reason }}</p>
               <p class="meta-row">Created: {{ formatDate(entry.created_at) }}</p>
               <p class="meta-row">Updated: {{ formatDate(entry.updated_at) }}</p>
               <p class="meta-row">Expires: {{ formatDate(entry.expires_at) }}</p>
+              <p class="meta-row">Active now: {{ yesNo(entry.is_active_now) }}</p>
               <p v-if="entry.related_access_account" class="muted-copy">
                 Related account: {{ entry.related_access_account.email || entry.related_access_account.name || entry.related_access_account.access_account_id }}
               </p>
+              <p v-if="entry.related_wallet_binding" class="muted-copy">
+                Known wallet binding: {{ entry.related_wallet_binding.status }} for {{ entry.related_wallet_binding.access_account_id || 'unknown account' }}
+              </p>
               <p v-if="entry.related_access_request" class="muted-copy">
                 Related request: {{ entry.related_access_request.email || entry.related_access_request.request_id }}
+              </p>
+              <p v-for="message in entry.diagnostic_messages || []" :key="`${entry.allowlist_entry_id}-${message}`" class="muted-copy">
+                {{ message }}
               </p>
               <div class="inline-actions wrap-actions">
                 <button class="secondary-button small-button" :disabled="admin.state.isSubmitting || entry.status === 'revoked'" @click="revokeAllowlistEntry(entry)">

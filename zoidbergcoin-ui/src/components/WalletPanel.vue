@@ -34,6 +34,21 @@
           <p v-if="accessAccountLine" class="wallet-meta">{{ accessAccountLine }}</p>
           <p v-if="walletBindingLine" class="wallet-meta">{{ walletBindingLine }}</p>
           <p v-if="eligibilityBlockedReason" class="wallet-meta wallet-warning">{{ eligibilityBlockedReason }}</p>
+          <div v-if="accessRuleChecks.length" class="eligibility-checklist">
+            <div
+              v-for="rule in accessRuleChecks"
+              :key="`${rule.scope}-${rule.rule_id}`"
+              class="eligibility-rule"
+              :class="{ pass: rule.passed, fail: rule.required && !rule.passed }"
+            >
+              <strong>{{ rule.label }}</strong>
+              <p class="wallet-meta">{{ rule.description }}</p>
+              <p class="wallet-meta eligibility-rule-value">
+                Current: {{ rule.current_value ?? 'Not available' }}
+                <span v-if="rule.required_value !== null && rule.required_value !== undefined"> | Needed: {{ rule.required_value }}</span>
+              </p>
+            </div>
+          </div>
           <p v-if="eligibilityOverrideMessage" class="wallet-meta transfer-success">{{ eligibilityOverrideMessage }}</p>
           <p v-for="step in eligibilityNextSteps" :key="step" class="wallet-meta">{{ step }}</p>
           <div v-if="showWalletOverrideTools" class="wallet-actions">
@@ -393,6 +408,10 @@ import {
   formatTransferIntentTimestamp,
   humanizeNativeTransferError,
 } from '../utils/nativeWalletUi.js';
+import {
+  getEligibilityRuleChecks,
+  getFailedRequiredRuleChecks,
+} from '../utils/eligibilityChecklist.js';
 import { describeWalletSupport } from '../utils/mobileWallet.js';
 import { isPublicDemoMode } from '../utils/runtimeConfig';
 
@@ -560,18 +579,26 @@ const walletBindingLine = computed(() => {
   }
   return `Bound wallet: ${wallet.shortenAddress(binding.wallet_address)} (${binding.status || 'unknown'}).`;
 });
+const accessRuleChecks = computed(
+  () => getEligibilityRuleChecks(access.state.eligibility, ['access']),
+);
+const failedAccessRuleChecks = computed(
+  () => getFailedRequiredRuleChecks(access.state.eligibility, ['access']),
+);
 const eligibilityBlockedReason = computed(
-  () => access.state.eligibility?.blocked_reasons?.[0]?.message || '',
+  () => access.state.eligibility?.blocked_reasons?.find((item) => item.scope === 'access')?.message
+    || failedAccessRuleChecks.value[0]?.description
+    || '',
 );
 const eligibilityNextSteps = computed(
   () => Array.isArray(access.state.eligibility?.possible_next_steps) ? access.state.eligibility.possible_next_steps : [],
 );
 const eligibilityOverrideMessage = computed(() => {
-  const overrides = access.state.eligibility?.allowlist_overrides_applied || [];
-  if (!overrides.length) {
+  const accessOverride = (access.state.eligibility?.allowlist_overrides_applied || []).find((item) => item.scope === 'access');
+  if (!accessOverride) {
     return '';
   }
-  return `An admin override is active for ${String(overrides[0].allowlist_scope || overrides[0].scope || 'this wallet').replace(/_/g, ' ')}.`;
+  return `An admin override is active for ${String(accessOverride.allowlist_scope || accessOverride.scope || 'this wallet').replace(/_/g, ' ')}.`;
 });
 const showWalletOverrideTools = computed(
   () => (wallet.state.isVerifiedSession && !access.state.me?.access_granted) || Boolean(eligibilityBlockedReason.value),
@@ -1063,6 +1090,32 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.eligibility-checklist {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.eligibility-rule {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.eligibility-rule.pass {
+  border-color: rgba(141, 245, 166, 0.24);
+}
+
+.eligibility-rule.fail {
+  border-color: rgba(255, 140, 140, 0.28);
+}
+
+.eligibility-rule-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .native-balance-card {

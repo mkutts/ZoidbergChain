@@ -220,6 +220,21 @@
           <p v-if="submissionEligibilityView.headline" class="status-message" :class="submissionEligibilityToneClass">{{ submissionEligibilityView.headline }}</p>
           <p v-if="submissionEligibilityView.detail" class="hint">{{ submissionEligibilityView.detail }}</p>
           <p v-if="submissionEligibilityView.policyNote" class="hint">{{ submissionEligibilityView.policyNote }}</p>
+          <div v-if="submissionRuleChecks.length" class="eligibility-checklist">
+            <div
+              v-for="rule in submissionRuleChecks"
+              :key="`${rule.scope}-${rule.rule_id}`"
+              class="eligibility-rule"
+              :class="{ pass: rule.passed, fail: rule.required && !rule.passed }"
+            >
+              <strong>{{ rule.label }}</strong>
+              <p class="hint">{{ rule.description }}</p>
+              <p class="hint eligibility-rule-value">
+                Current: {{ rule.current_value ?? 'Not available' }}
+                <span v-if="rule.required_value !== null && rule.required_value !== undefined"> | Needed: {{ rule.required_value }}</span>
+              </p>
+            </div>
+          </div>
         </div>
 
         <div v-if="submitMessage || errorMessage" class="message-stack">
@@ -295,6 +310,21 @@
           <p v-if="reviewerEligibilityMessage" class="status-message error">{{ reviewerEligibilityMessage }}</p>
           <p v-if="reviewEligibilityBlockedReason" class="status-message error">{{ reviewEligibilityBlockedReason }}</p>
           <p v-if="reviewEligibilityOverrideMessage" class="status-message success">{{ reviewEligibilityOverrideMessage }}</p>
+          <div v-if="reviewEligibilityRuleChecks.length" class="eligibility-checklist">
+            <div
+              v-for="rule in reviewEligibilityRuleChecks"
+              :key="`${rule.scope}-${rule.rule_id}`"
+              class="eligibility-rule"
+              :class="{ pass: rule.passed, fail: rule.required && !rule.passed }"
+            >
+              <strong>{{ rule.label }}</strong>
+              <p class="hint">{{ rule.description }}</p>
+              <p class="hint eligibility-rule-value">
+                Current: {{ rule.current_value ?? 'Not available' }}
+                <span v-if="rule.required_value !== null && rule.required_value !== undefined"> | Needed: {{ rule.required_value }}</span>
+              </p>
+            </div>
+          </div>
           <p v-for="step in reviewEligibilityNextSteps" :key="step" class="hint">{{ step }}</p>
           <div v-if="canRequestReviewOverride" class="card-actions">
             <button @click="showReviewOverrideForm = !showReviewOverrideForm" class="btn ghost">
@@ -863,6 +893,7 @@ import {
 } from '../utils/voterRewards';
 import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
 import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.js';
+import { getEligibilityRuleChecks } from '../utils/eligibilityChecklist.js';
 
 export default {
   components: {
@@ -1011,6 +1042,9 @@ export default {
     submissionEligibilityToneClass() {
       return this.submissionEligibilityView.tone === 'error' ? 'error' : 'success';
     },
+    submissionRuleChecks() {
+      return getEligibilityRuleChecks(this.accessService.state.eligibility, ['submission']);
+    },
     reviewPolicySummary() {
       return this.reviewPolicy ? buildReviewPolicySummary(this.reviewPolicy) : 'Loading reviewer policy...';
     },
@@ -1022,6 +1056,9 @@ export default {
     },
     reviewEligibilityBlockedReason() {
       return this.accessService.state.eligibility?.blocked_reasons?.find((item) => ['review', 'voting', 'rewards'].includes(item.scope))?.message || '';
+    },
+    reviewEligibilityRuleChecks() {
+      return getEligibilityRuleChecks(this.accessService.state.eligibility, ['voting', 'rewards']);
     },
     reviewEligibilityNextSteps() {
       return Array.isArray(this.accessService.state.eligibility?.possible_next_steps)
@@ -2091,6 +2128,31 @@ h3 {
 .review-policy-panel {
   border: 1px solid rgba(255, 184, 77, 0.35);
   background: rgba(255, 184, 77, 0.08);
+}
+
+.eligibility-checklist {
+  display: grid;
+  gap: 10px;
+}
+
+.eligibility-rule {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eligibility-rule.pass {
+  border-color: rgba(141, 245, 166, 0.24);
+}
+
+.eligibility-rule.fail {
+  border-color: rgba(255, 71, 71, 0.3);
+}
+
+.eligibility-rule-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .inline-override-panel {

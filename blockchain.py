@@ -467,6 +467,7 @@ class Blockchain:
             "submission": {"submission", "review", "all_beta"},
             "voting": {"voting", "review", "all_beta"},
             "rewards": {"rewards", "review", "all_beta"},
+            "all_beta": {"all_beta"},
         }
         return normalized_entry_scope in scope_map.get(normalized_requested_scope, set())
 
@@ -507,6 +508,7 @@ class Blockchain:
 
     def list_allowlist_entries(self, *, scope=None, subject_type=None, subject_value=None, status=None):
         entries = list(self.allowlist_entries)
+        normalized_subject_type = None
         if scope is not None:
             normalized_scope = str(scope or "").strip().lower()
             entries = [
@@ -520,7 +522,16 @@ class Blockchain:
                 if str(entry.get("subject_type") or "").strip().lower() == normalized_subject_type
             ]
         if subject_value is not None:
-            normalized_subject_value = normalize_text_field(subject_value)
+            if normalized_subject_type == "wallet":
+                normalized_subject_value = self._normalize_access_wallet(subject_value)
+            elif normalized_subject_type == "email":
+                normalized_subject_value = normalize_email(subject_value)
+            elif normalized_subject_type == "handle":
+                normalized_subject_value = normalize_handle(subject_value)
+            elif normalized_subject_type == "access_account":
+                normalized_subject_value = normalize_text_field(subject_value)
+            else:
+                normalized_subject_value = normalize_text_field(subject_value)
             entries = [
                 entry for entry in entries
                 if str(entry.get("subject_value") or "").strip() == normalized_subject_value

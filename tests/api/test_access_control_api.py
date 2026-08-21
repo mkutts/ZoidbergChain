@@ -178,6 +178,23 @@ def _configure_access(monkeypatch, **overrides):
         monkeypatch.setattr(blockchain_module, "REQUIRE_ACCESS_FOR_REWARDS", defaults["REQUIRE_ACCESS_FOR_REWARDS"])
 
 
+def _clear_review_policy_env(monkeypatch):
+    for name in [
+        "REVIEW_ELIGIBILITY_MODE",
+        "REVIEW_ALLOWLIST_WALLETS",
+        "REVIEW_DENYLIST_WALLETS",
+        "MIN_REVIEWER_ACCOUNT_AGE_SECONDS",
+        "MIN_REVIEWER_SUBMISSION_COUNT",
+        "MIN_REVIEWER_VOTE_COUNT",
+        "MIN_REVIEWER_REWARD_COUNT",
+        "MIN_REVIEWER_SETTLED_BALANCE_ZOID",
+        "MIN_REVIEWER_SETTLED_TRANSFER_COUNT",
+        "MAX_REVIEW_VOTES_PER_WALLET_PER_DAY",
+        "REVIEW_POLICY_PUBLIC_LABEL",
+    ]:
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_access_status_is_public_and_non_secret(blockchain, monkeypatch):
     _configure_access(monkeypatch)
     client = _client(blockchain)
@@ -318,6 +335,63 @@ def test_access_allowlisted_wallet_can_unlock_without_invite(blockchain, monkeyp
     assert payload["access_granted"] is True
     assert payload["allowlist_override_applied"] is True
     assert payload["allowlist_scope"] == "access"
+
+
+def test_access_allowlist_normalizes_wallet_case_and_whitespace(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+
+    entry = blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=f"  {wallet.address.upper()}  ",
+        reason="normalized beta wallet",
+    )
+    blockchain.save_blockchain()
+
+    response = client.get("/access/me", headers=wallet_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert entry["subject_value"] == wallet.address.lower()
+    assert payload["access_granted"] is True
+    assert payload["allowlist_override_applied"] is True
+
+
+def test_inactive_and_expired_allowlist_entries_do_not_grant_access(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    client = _client(blockchain)
+
+    inactive_wallet = _create_account()
+    inactive_headers = _verify_wallet_session(client, inactive_wallet)
+    blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=inactive_wallet.address,
+        status="inactive",
+        reason="inactive allowlist",
+    )
+
+    expired_wallet = _create_account()
+    expired_headers = _verify_wallet_session(client, expired_wallet)
+    blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=expired_wallet.address,
+        expires_at="2025-01-01T00:00:00+00:00",
+        reason="expired allowlist",
+    )
+    blockchain.save_blockchain()
+
+    inactive_response = client.get("/access/me", headers=inactive_headers)
+    expired_response = client.get("/access/me", headers=expired_headers)
+
+    assert inactive_response.status_code == 200
+    assert inactive_response.json()["access_granted"] is False
+    assert expired_response.status_code == 200
+    assert expired_response.json()["access_granted"] is False
 
 
 def test_redeemed_invite_code_cannot_be_reused(blockchain, monkeypatch):
@@ -782,6 +856,123 @@ def test_all_beta_allowlist_can_unlock_submission_by_granting_access(blockchain,
         "all beta submission unlock",
     )
     assert challenge.status_code == 200
+
+    access_me = client.get("/access/me", headers=wallet_headers)
+    assert access_me.status_code == 200
+    assert access_me.json()["allowlist_scope"] == "all_beta"
+
+
+def test_eligibility_status_separates_access_allowlist_from_review_allowlist_failures(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "allowlist")
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="app access allowlist only",
+    )
+    blockchain.save_blockchain()
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["can_access_app"] is True
+    assert payload["access_granted"] is True
+    assert any(
+        rule["rule_id"] == "access_allowlist_match" and rule["scope"] == "access" and rule["passed"] is True
+        for rule in payload["rule_checks"]
+    )
+    assert any(item["scope"] == "voting" and item["reason"] == "wallet_not_allowlisted" for item in payload["blocked_reasons"])
+    assert not any(item["scope"] == "access" and item["reason"] == "wallet_not_allowlisted" for item in payload["blocked_reasons"])
+
+
+def test_eligibility_status_returns_rule_checks_and_no_secrets(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "allowlist")
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert isinstance(payload["rule_checks"], list)
+    assert any(rule["scope"] == "access" for rule in payload["rule_checks"])
+    assert any(rule["scope"] == "submission" for rule in payload["rule_checks"])
+    assert any(rule["scope"] == "voting" for rule in payload["rule_checks"])
+    assert any(
+        rule["scope"] == "voting" and rule["rule_id"] == "voting_config_review_allowlist"
+        for rule in payload["rule_checks"]
+    )
+    serialized = str(payload)
+    assert "invite_code_hash" not in serialized
+    assert "session_token" not in serialized
+    assert "PEER_SHARED_SECRET" not in serialized
+
+
+def test_blocked_reasons_match_failed_required_rule_checks(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "allowlist")
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    failed_required = {
+        (rule["scope"], rule["rule_id"])
+        for rule in payload["rule_checks"]
+        if rule["required"] and rule["passed"] is False
+    }
+    blocked_rule_pairs = {
+        (item["scope"], item["rule_id"])
+        for item in payload["blocked_reasons"]
+    }
+    assert blocked_rule_pairs.issubset(failed_required)
+
+
+def test_review_and_rewards_allowlist_scopes_affect_eligibility_status(blockchain, monkeypatch):
+    _configure_access(monkeypatch)
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "allowlist")
+    client = _client(blockchain)
+
+    wallet = _create_account()
+    wallet_headers = _verify_wallet_session(client, wallet)
+    blockchain.create_allowlist_entry(
+        scope="access",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="access allowlist",
+    )
+    blockchain.create_allowlist_entry(
+        scope="review",
+        subject_type="wallet",
+        subject_value=wallet.address,
+        reason="review override",
+    )
+    blockchain.save_blockchain()
+
+    eligibility = client.get("/eligibility/status", headers=wallet_headers)
+
+    assert eligibility.status_code == 200
+    payload = eligibility.json()
+    assert payload["can_access_app"] is True
+    assert payload["can_vote"] is True
+    assert payload["can_receive_rewards"] is True
+    assert any(item["scope"] == "voting" and item["allowlist_scope"] == "review" for item in payload["allowlist_overrides_applied"])
+    assert any(item["scope"] == "rewards" and item["allowlist_scope"] == "review" for item in payload["allowlist_overrides_applied"])
 
 
 def test_revoked_all_beta_allowlist_no_longer_allows_submission(blockchain, monkeypatch):

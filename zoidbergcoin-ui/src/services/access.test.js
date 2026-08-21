@@ -53,6 +53,8 @@ function setEligibilityHandler(publicApi, payload = {}) {
       can_receive_rewards: Boolean(payload.can_receive_rewards),
       blocked_reasons: payload.blocked_reasons || [],
       allowlist_overrides_applied: payload.allowlist_overrides_applied || [],
+      rule_checks: payload.rule_checks || [],
+      next_steps: payload.next_steps || payload.possible_next_steps || [],
       possible_next_steps: payload.possible_next_steps || [],
       override_requests_enabled: payload.override_requests_enabled !== false,
       submission: payload.submission || {

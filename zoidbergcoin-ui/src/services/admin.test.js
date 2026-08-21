@@ -220,7 +220,10 @@ test('admin can load and create allowlist entries', async () => {
           scope: 'access',
           subject_type: 'wallet',
           subject_value: '0x1111111111111111111111111111111111111111',
+          normalized_subject_value: '0x1111111111111111111111111111111111111111',
           status: 'active',
+          effective_status: 'active',
+          diagnostic_messages: ['This wallet is currently recognized as allowlisted for app access.'],
         },
       ],
     },
@@ -244,6 +247,8 @@ test('admin can load and create allowlist entries', async () => {
   });
 
   assert.equal(entries.length, 1);
+  assert.equal(entries[0].normalized_subject_value, '0x1111111111111111111111111111111111111111');
+  assert.match(entries[0].diagnostic_messages[0], /allowlisted for app access/i);
   assert.equal(created.allowlist_entry.allowlist_entry_id, 'allow-1');
   assert.equal(admin.state.allowlistEntries[0].allowlist_entry_id, 'allow-1');
 });

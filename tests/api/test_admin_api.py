@@ -241,6 +241,8 @@ def test_admin_can_create_revoke_and_reactivate_allowlist_entries(blockchain, mo
     assert create_response.status_code == 200
     entry = create_response.json()["allowlist_entry"]
     assert entry["status"] == "active"
+    assert entry["normalized_subject_value"] == "0x1111111111111111111111111111111111111111"
+    assert entry["effective_status"] == "active"
 
     revoke_response = client.post(
         f"/admin/allowlist/{entry['allowlist_entry_id']}/revoke",

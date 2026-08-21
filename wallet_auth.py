@@ -92,7 +92,7 @@ def _isoformat(value: datetime) -> str:
 
 def normalize_wallet_address(wallet_address: str) -> str | None:
     candidate = str(wallet_address or "").strip()
-    if len(candidate) != 42 or not candidate.startswith("0x"):
+    if len(candidate) != 42 or candidate[:2].lower() != "0x":
         return None
     hex_part = candidate[2:]
     if not hex_part or any(ch not in "0123456789abcdefABCDEF" for ch in hex_part):

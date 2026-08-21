@@ -1771,6 +1771,29 @@ def _admin_allowlist_entry(entry: dict | None) -> dict | None:
             ),
             None,
         )
+    is_expired = not blockchain._allowlist_entry_active(entry) and str(entry.get("status") or "").strip().lower() == "active"
+    effective_status = "expired" if is_expired else str(entry.get("status") or "").strip().lower()
+    diagnostic_messages: list[str] = []
+    if subject_type == "wallet":
+        if entry.get("scope") == "access":
+            if blockchain.find_matching_allowlist_entry("access", wallet_address=subject_value, access_account=related_account):
+                diagnostic_messages.append("This wallet is currently recognized as allowlisted for app access.")
+            else:
+                diagnostic_messages.append("This wallet is not currently matching an active app access allowlist path.")
+        elif entry.get("scope") in {"review", "voting", "rewards", "all_beta", "submission"}:
+            if blockchain.find_matching_allowlist_entry(str(entry.get("scope") or "review"), wallet_address=subject_value, access_account=related_account):
+                diagnostic_messages.append(f"This wallet is currently recognized as allowlisted for {entry.get('scope')}.")
+            else:
+                diagnostic_messages.append(f"This wallet is not currently matching an active {entry.get('scope')} allowlist path.")
+        if related_binding is None:
+            diagnostic_messages.append("This wallet has no active known wallet binding on this node.")
+    body["normalized_subject_value"] = subject_value
+    body["is_expired"] = is_expired
+    body["is_active_now"] = blockchain._allowlist_entry_active(entry)
+    body["effective_status"] = effective_status
+    body["matches_known_wallet_binding"] = bool(related_binding)
+    body["matches_known_access_account"] = bool(related_account)
+    body["diagnostic_messages"] = diagnostic_messages
     body["related_access_account"] = _public_access_account(related_account)
     body["related_wallet_binding"] = _public_wallet_binding(related_binding)
     body["related_access_request"] = _public_access_request(related_request)
@@ -1890,6 +1913,481 @@ def _eligibility_reason_message(scope: str, reason: str) -> str:
     }
     default_label = f"{scope.title()} is currently blocked."
     return labels.get(str(reason or "").strip().lower(), default_label)
+
+
+def _eligibility_rule_check(
+    *,
+    rule_id: str,
+    label: str,
+    description: str,
+    passed: bool,
+    required: bool,
+    scope: str,
+    current_value: Any = None,
+    required_value: Any = None,
+    applicable: bool = True,
+):
+    return {
+        "rule_id": str(rule_id or "").strip(),
+        "label": str(label or "").strip(),
+        "description": str(description or "").strip(),
+        "passed": bool(passed),
+        "required": bool(required),
+        "scope": str(scope or "").strip().lower(),
+        "current_value": current_value,
+        "required_value": required_value,
+        "applicable": bool(applicable),
+    }
+
+
+def _format_age_days(seconds: Any) -> str:
+    try:
+        total_seconds = max(int(seconds or 0), 0)
+    except (TypeError, ValueError):
+        total_seconds = 0
+    days = Decimal(total_seconds) / Decimal(86400)
+    return f"{days.quantize(Decimal('0.01'))} days"
+
+
+def _configured_activity_thresholds(config) -> list[tuple[str, str, Any, Any, str]]:
+    thresholds: list[tuple[str, str, Any, Any, str]] = []
+    if int(config.min_reviewer_account_age_seconds or 0) > 0:
+        thresholds.append((
+            "reviewer_account_age",
+            "Account age requirement",
+            _format_age_days(config.min_reviewer_account_age_seconds),
+            config.min_reviewer_account_age_seconds,
+            "Your wallet needs a testnet account age that meets the configured minimum.",
+        ))
+    if int(config.min_reviewer_submission_count or 0) > 0:
+        thresholds.append((
+            "reviewer_submission_count",
+            "Submission activity requirement",
+            int(config.min_reviewer_submission_count),
+            int(config.min_reviewer_submission_count),
+            "Your wallet needs enough prior submissions to satisfy the reviewer activity policy.",
+        ))
+    if int(config.min_reviewer_vote_count or 0) > 0:
+        thresholds.append((
+            "reviewer_vote_count",
+            "Prior vote requirement",
+            int(config.min_reviewer_vote_count),
+            int(config.min_reviewer_vote_count),
+            "Your wallet needs enough completed votes to satisfy the reviewer activity policy.",
+        ))
+    if int(config.min_reviewer_reward_count or 0) > 0:
+        thresholds.append((
+            "reviewer_reward_count",
+            "Reward history requirement",
+            int(config.min_reviewer_reward_count),
+            int(config.min_reviewer_reward_count),
+            "Your wallet needs enough prior rewards to satisfy the reviewer activity policy.",
+        ))
+    if str(config.min_reviewer_settled_balance_zoid or "0") not in {"", "0", "0.0"}:
+        thresholds.append((
+            "reviewer_settled_balance",
+            "Settled balance requirement",
+            str(config.min_reviewer_settled_balance_zoid),
+            str(config.min_reviewer_settled_balance_zoid),
+            "Your wallet needs enough settled native ZOID balance to satisfy the reviewer activity policy.",
+        ))
+    if int(config.min_reviewer_settled_transfer_count or 0) > 0:
+        thresholds.append((
+            "reviewer_settled_transfer_count",
+            "Settled transfer requirement",
+            int(config.min_reviewer_settled_transfer_count),
+            int(config.min_reviewer_settled_transfer_count),
+            "Your wallet needs enough settled transfers to satisfy the reviewer activity policy.",
+        ))
+    return thresholds
+
+
+def _review_scope_label(scope: str) -> str:
+    labels = {
+        "review": "review access",
+        "voting": "voting",
+        "rewards": "reward eligibility",
+    }
+    return labels.get(str(scope or "").strip().lower(), str(scope or "review").strip().lower())
+
+
+def _build_access_rule_checks(
+    *,
+    wallet_address: str | None,
+    access_account: dict | None,
+    binding: dict | None,
+    session_access_account: dict | None,
+    wallet_session_authenticated: bool,
+    access_decision,
+    access_payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    effective_account = access_account or session_access_account
+    access_gate_required = access_feature_required("app")
+    binding_required = access_mode_enforces_binding()
+    access_allowlist_entry = None
+    if wallet_address or effective_account:
+        access_allowlist_entry = blockchain.find_matching_allowlist_entry(
+            "access",
+            wallet_address=wallet_address,
+            access_account=effective_account,
+        )
+
+    checks.append(_eligibility_rule_check(
+        rule_id="wallet_verified",
+        label="Connect and verify a wallet",
+        description="You need to connect MetaMask and sign a wallet verification message before gated beta checks can run.",
+        passed=bool(wallet_session_authenticated and wallet_address),
+        required=True,
+        scope="access",
+        current_value=wallet_address or "not verified",
+        required_value="verified wallet session",
+    ))
+    checks.append(_eligibility_rule_check(
+        rule_id="access_control_mode",
+        label="Access gate mode",
+        description="This shows whether the app is currently using open access or controlled beta access rules.",
+        passed=True,
+        required=False,
+        scope="access",
+        current_value=ACCESS_CONTROL_MODE,
+        required_value="invite_only or allowlist when gating is enabled",
+    ))
+    checks.append(_eligibility_rule_check(
+        rule_id="access_gate_enabled",
+        label="App access gate enabled",
+        description="App access is only restricted when the controlled beta gate for app access is enabled on this node.",
+        passed=not access_gate_required or bool(access_payload.get("access_granted")),
+        required=False,
+        scope="access",
+        current_value="enabled" if access_gate_required else "disabled",
+        required_value="disabled or approved access path",
+    ))
+
+    binding_status = str(binding.get("status") or "").strip().lower() if binding else "not_bound"
+    checks.append(_eligibility_rule_check(
+        rule_id="wallet_binding_not_revoked",
+        label="Wallet binding is not revoked",
+        description="Previously revoked wallet bindings stay blocked until an operator explicitly reapproves or rebinds the wallet.",
+        passed=binding_status != "revoked",
+        required=True,
+        scope="access",
+        current_value=binding_status,
+        required_value="not revoked",
+        applicable=bool(binding),
+    ))
+
+    account_status = str(effective_account.get("status") or "").strip().lower() if effective_account else "not_linked"
+    checks.append(_eligibility_rule_check(
+        rule_id="access_account_active",
+        label="Access account is active",
+        description="Suspended or revoked access accounts remain blocked even if a stale allowlist entry exists.",
+        passed=not effective_account or account_status == "active",
+        required=True,
+        scope="access",
+        current_value=account_status,
+        required_value="active",
+        applicable=bool(effective_account),
+    ))
+
+    checks.append(_eligibility_rule_check(
+        rule_id="access_allowlist_match",
+        label="Access allowlist entry",
+        description="A verified wallet can unlock controlled beta access directly when it matches an active access or all beta allowlist entry.",
+        passed=bool(access_allowlist_entry),
+        required=False,
+        scope="access",
+        current_value=(
+            f"matched {access_allowlist_entry.get('scope')}"
+            if access_allowlist_entry
+            else "no active access or all_beta allowlist entry"
+        ),
+        required_value="active access or all_beta allowlist entry",
+        applicable=bool(wallet_address or effective_account),
+    ))
+
+    approval_path = "not approved"
+    if dev_bypass_effective():
+        approval_path = "development bypass"
+    elif not binding_required:
+        approval_path = "open access mode"
+    elif binding_status == "active" and account_status in {"active", "not_linked"}:
+        approval_path = "active bound wallet"
+    elif access_allowlist_entry:
+        approval_path = f"allowlist override ({access_allowlist_entry.get('scope')})"
+
+    checks.append(_eligibility_rule_check(
+        rule_id="access_approval_path",
+        label="Approved app access path",
+        description="When app access is gated, you need either an active approved wallet binding or an active access/all beta allowlist entry.",
+        passed=bool(access_payload.get("access_granted")),
+        required=bool(access_gate_required),
+        scope="access",
+        current_value=approval_path,
+        required_value="active bound wallet or active access/all_beta allowlist entry",
+    ))
+    return checks
+
+
+def _build_submission_rule_checks(
+    *,
+    wallet_address: str | None,
+    wallet_session_authenticated: bool,
+    submission_status: dict[str, Any],
+    access_payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    approval_path = "submission blocked"
+    if submission_status.get("can_submit"):
+        approval_path = "verified wallet plus active controlled beta access"
+    elif not wallet_session_authenticated:
+        approval_path = "wallet not verified"
+    elif not access_payload.get("access_granted"):
+        approval_path = "app access not approved"
+
+    return [
+        _eligibility_rule_check(
+            rule_id="submission_wallet_verified",
+            label="Wallet is verified for submissions",
+            description="Submission signing requires the currently connected wallet to be verified in this session.",
+            passed=bool(wallet_session_authenticated and wallet_address),
+            required=True,
+            scope="submission",
+            current_value=wallet_address or "not verified",
+            required_value="verified wallet session",
+        ),
+        _eligibility_rule_check(
+            rule_id="submission_access_path",
+            label="Submission access path",
+            description="This node allows submissions when the verified wallet also has controlled beta access for submissions.",
+            passed=bool(submission_status.get("can_submit")),
+            required=True,
+            scope="submission",
+            current_value=approval_path,
+            required_value="verified wallet plus active controlled beta access",
+        ),
+        _eligibility_rule_check(
+            rule_id="submission_policy_mode",
+            label="Submission policy",
+            description="This describes the current backend submission rule so the UI does not imply a fake extra override path.",
+            passed=True,
+            required=False,
+            scope="submission",
+            current_value=submission_status.get("policy_rule"),
+            required_value=None,
+        ),
+    ]
+
+
+def _build_review_scope_rule_checks(
+    *,
+    wallet_address: str | None,
+    scope: str,
+    decision,
+    access_payload: dict[str, Any],
+    wallet_session_authenticated: bool,
+) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    normalized_wallet = normalize_wallet_address(wallet_address or "")
+    config = _current_review_policy_config()
+    scope_label = _review_scope_label(scope)
+    activity_summary = blockchain.get_account_activity_summary(normalized_wallet) if normalized_wallet else {}
+    recent_vote_count = blockchain.count_votes_by_wallet_since(
+        normalized_wallet,
+        current_day_window(),
+    ) if normalized_wallet else 0
+    access_account, binding, hard_block_reason = _review_hard_block_for_wallet(normalized_wallet) if normalized_wallet else (None, None, None)
+    override_entry = blockchain.find_matching_allowlist_entry(
+        scope,
+        wallet_address=normalized_wallet,
+        access_account=access_account,
+    ) if normalized_wallet else None
+    wallet_allowlisted = bool(normalized_wallet and normalized_wallet in config.allowlist_wallets)
+    denylisted = bool(normalized_wallet and normalized_wallet in config.denylist_wallets)
+
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_wallet_verified",
+        label=f"Wallet is verified for {scope_label}",
+        description=f"A verified wallet session is required before the app can evaluate {scope_label} eligibility.",
+        passed=bool(wallet_session_authenticated and normalized_wallet),
+        required=True,
+        scope=scope,
+        current_value=normalized_wallet or "not verified",
+        required_value="verified wallet session",
+    ))
+
+    binding_status = str(binding.get("status") or "").strip().lower() if binding else "not_bound"
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_wallet_binding_not_revoked",
+        label="Wallet binding is not revoked",
+        description="Revoked wallet bindings stay blocked for beta review actions until an operator explicitly restores them.",
+        passed=binding_status != "revoked",
+        required=True,
+        scope=scope,
+        current_value=binding_status,
+        required_value="not revoked",
+        applicable=bool(binding),
+    ))
+
+    account_status = str(access_account.get("status") or "").strip().lower() if access_account else "not_linked"
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_access_account_active",
+        label="Access account is in good standing",
+        description="Suspended or revoked access accounts remain blocked for beta review actions.",
+        passed=not access_account or account_status == "active",
+        required=True,
+        scope=scope,
+        current_value=account_status,
+        required_value="active",
+        applicable=bool(access_account),
+    ))
+
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_admin_allowlist_override",
+        label="Admin allowlist override",
+        description=f"An operator can grant a scoped allowlist override for {scope_label} when normal reviewer rules would otherwise block this wallet.",
+        passed=bool(override_entry),
+        required=False,
+        scope=scope,
+        current_value=(
+            f"matched {override_entry.get('scope')}"
+            if override_entry
+            else "no scoped admin override"
+        ),
+        required_value=f"active {scope}, review, or all_beta override",
+        applicable=bool(normalized_wallet),
+    ))
+
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_review_policy_mode",
+        label="Reviewer eligibility mode",
+        description=f"The node applies the configured reviewer policy mode before {scope_label} is allowed.",
+        passed=True,
+        required=False,
+        scope=scope,
+        current_value=config.eligibility_mode,
+        required_value="open, allowlist, activity, or hybrid",
+        applicable=bool(normalized_wallet),
+    ))
+
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_denylist_check",
+        label="Wallet is not denylisted",
+        description="Denylisted wallets stay blocked even if other reviewer checks would pass.",
+        passed=not denylisted,
+        required=bool(config.denylist_enabled),
+        scope=scope,
+        current_value="denylisted" if denylisted else "not denylisted",
+        required_value="not denylisted",
+        applicable=bool(config.denylist_enabled and normalized_wallet),
+    ))
+
+    if scope == "voting" and int(config.max_review_votes_per_wallet_per_day or 0) > 0:
+        checks.append(_eligibility_rule_check(
+            rule_id="voting_daily_limit",
+            label="Daily vote limit",
+            description="Voting stays blocked after the wallet reaches the configured daily review vote limit.",
+            passed=recent_vote_count < int(config.max_review_votes_per_wallet_per_day),
+            required=True,
+            scope="voting",
+            current_value=int(recent_vote_count),
+            required_value=int(config.max_review_votes_per_wallet_per_day),
+            applicable=bool(normalized_wallet),
+        ))
+
+    if config.eligibility_mode in {"allowlist", "hybrid"}:
+        checks.append(_eligibility_rule_check(
+            rule_id=f"{scope}_config_review_allowlist",
+            label="Configured review allowlist",
+            description=f"The configured review allowlist can satisfy {scope_label} when the node is running in allowlist or hybrid reviewer mode.",
+            passed=wallet_allowlisted,
+            required=(config.eligibility_mode == "allowlist" and not bool(override_entry)),
+            scope=scope,
+            current_value="wallet on configured review allowlist" if wallet_allowlisted else "wallet not on configured review allowlist",
+            required_value="wallet on configured review allowlist",
+            applicable=bool(normalized_wallet),
+        ))
+
+    configured_thresholds = _configured_activity_thresholds(config)
+    threshold_results: list[bool] = []
+    metric_value_map = {
+        "reviewer_account_age": int(activity_summary.get("account_age_seconds") or 0),
+        "reviewer_submission_count": int(activity_summary.get("submission_count") or 0),
+        "reviewer_vote_count": int(activity_summary.get("vote_count") or 0),
+        "reviewer_reward_count": int(activity_summary.get("reward_count") or 0),
+        "reviewer_settled_balance": str(activity_summary.get("settled_balance_zoid") or "0"),
+        "reviewer_settled_transfer_count": int(activity_summary.get("settled_transfer_count") or 0),
+    }
+    if config.eligibility_mode in {"activity", "hybrid"}:
+        for metric_key, label, required_value, raw_required_value, description in configured_thresholds:
+            actual_value = metric_value_map.get(metric_key)
+            if metric_key == "reviewer_settled_balance":
+                passed = Decimal(str(actual_value or "0")) >= Decimal(str(raw_required_value))
+                current_value = str(actual_value or "0")
+            elif metric_key == "reviewer_account_age":
+                passed = int(actual_value or 0) >= int(raw_required_value)
+                current_value = _format_age_days(actual_value)
+            else:
+                passed = int(actual_value or 0) >= int(raw_required_value)
+                current_value = int(actual_value or 0)
+            threshold_results.append(bool(passed))
+            checks.append(_eligibility_rule_check(
+                rule_id=metric_key,
+                label=label,
+                description=description,
+                passed=bool(passed),
+                required=False,
+                scope=scope,
+                current_value=current_value,
+                required_value=required_value,
+                applicable=bool(normalized_wallet),
+            ))
+
+        if config.eligibility_mode == "activity":
+            activity_passed = bool(decision.eligible or decision.matched_threshold or any(threshold_results))
+            checks.append(_eligibility_rule_check(
+                rule_id=f"{scope}_activity_path",
+                label="Reviewer activity path",
+                description=f"When reviewer activity mode is enabled, this wallet must satisfy at least one configured reviewer threshold before {scope_label} is allowed.",
+                passed=activity_passed,
+                required=True,
+                scope=scope,
+                current_value=decision.matched_threshold or ("no configured thresholds passed" if configured_thresholds else "no reviewer thresholds configured"),
+                required_value="at least one configured reviewer threshold",
+                applicable=bool(normalized_wallet),
+            ))
+        elif config.eligibility_mode == "hybrid":
+            hybrid_passed = bool(override_entry or wallet_allowlisted or any(threshold_results))
+            checks.append(_eligibility_rule_check(
+                rule_id=f"{scope}_hybrid_policy_path",
+                label="Hybrid reviewer policy path",
+                description=f"When hybrid reviewer mode is enabled, {scope_label} can pass through either the configured review allowlist or reviewer activity thresholds.",
+                passed=hybrid_passed,
+                required=True,
+                scope=scope,
+                current_value=(
+                    f"admin override ({override_entry.get('scope')})"
+                    if override_entry
+                    else "configured review allowlist"
+                    if wallet_allowlisted
+                    else decision.matched_threshold
+                    or ("no configured thresholds passed" if configured_thresholds else "no reviewer thresholds configured")
+                ),
+                required_value="configured review allowlist or at least one configured reviewer threshold",
+                applicable=bool(normalized_wallet),
+            ))
+
+    checks.append(_eligibility_rule_check(
+        rule_id=f"{scope}_final_decision",
+        label=f"{scope_label.title()} decision",
+        description=f"This is the final backend decision after the configured {scope_label} rules and overrides are evaluated together.",
+        passed=bool(decision.eligible),
+        required=True,
+        scope=scope,
+        current_value=decision.reason or hard_block_reason or "eligible",
+        required_value="eligible",
+        applicable=bool(normalized_wallet),
+    ))
+    return checks
 
 
 def _submission_policy_rule() -> str:
@@ -2025,18 +2523,34 @@ def _build_eligibility_status_payload(
     blocked_reasons: list[dict[str, str]] = []
     possible_next_steps: list[str] = []
     allowlist_overrides_applied: list[dict[str, str]] = []
+    rule_checks: list[dict[str, Any]] = []
 
     if access_payload.get("allowlist_override_applied"):
         allowlist_overrides_applied.append({
             "scope": "access",
             "allowlist_scope": str(access_payload.get("allowlist_scope") or "access"),
         })
+    rule_checks.extend(_build_access_rule_checks(
+        wallet_address=wallet_address,
+        access_account=access_account,
+        binding=binding,
+        session_access_account=session_access_account,
+        wallet_session_authenticated=wallet_session_authenticated,
+        access_decision=access_decision,
+        access_payload=access_payload,
+    ))
 
     submission_status = _submission_eligibility_for_wallet(
         wallet_address,
         wallet_session_authenticated=wallet_session_authenticated,
     )
     can_submit = bool(submission_status.get("can_submit"))
+    rule_checks.extend(_build_submission_rule_checks(
+        wallet_address=wallet_address,
+        wallet_session_authenticated=wallet_session_authenticated,
+        submission_status=submission_status,
+        access_payload=access_payload,
+    ))
     can_vote = False
     can_receive_rewards = False
 
@@ -2051,6 +2565,20 @@ def _build_eligibility_status_payload(
             and rewards_decision.eligible
             and wallet_session_authenticated
         )
+        rule_checks.extend(_build_review_scope_rule_checks(
+            wallet_address=wallet_address,
+            scope="voting",
+            decision=voting_decision,
+            access_payload=access_payload,
+            wallet_session_authenticated=wallet_session_authenticated,
+        ))
+        rule_checks.extend(_build_review_scope_rule_checks(
+            wallet_address=wallet_address,
+            scope="rewards",
+            decision=rewards_decision,
+            access_payload=access_payload,
+            wallet_session_authenticated=wallet_session_authenticated,
+        ))
         for scope_name, decision in (("voting", voting_decision), ("rewards", rewards_decision)):
             if decision.allowlist_override_applied:
                 allowlist_overrides_applied.append({
@@ -2060,6 +2588,7 @@ def _build_eligibility_status_payload(
             if not decision.eligible:
                 blocked_reasons.append({
                     "scope": scope_name,
+                    "rule_id": f"{scope_name}_final_decision",
                     "reason": str(decision.blocked_reason or decision.reason or ""),
                     "message": _eligibility_reason_message(scope_name, decision.blocked_reason or decision.reason or ""),
                 })
@@ -2072,6 +2601,7 @@ def _build_eligibility_status_payload(
         if blocked_reason:
             blocked_reasons.insert(0, {
                 "scope": "access",
+                "rule_id": "access_approval_path",
                 "reason": blocked_reason,
                 "message": _eligibility_reason_message("access", blocked_reason),
             })
@@ -2085,6 +2615,14 @@ def _build_eligibility_status_payload(
     if wallet_session_authenticated and access_payload.get("access_granted") and not can_vote:
         possible_next_steps.append("You can access the app, but review actions may still need reviewer eligibility or an override.")
 
+    if not can_submit and submission_status.get("blocked_reason"):
+        blocked_reasons.append({
+            "scope": "submission",
+            "rule_id": "submission_access_path",
+            "reason": str(submission_status.get("blocked_reason") or ""),
+            "message": str(submission_status.get("message") or _eligibility_reason_message("submission", submission_status.get("blocked_reason") or "")),
+        })
+
     if submission_status.get("recommended_action"):
         possible_next_steps.append(str(submission_status["recommended_action"]))
 
@@ -2092,13 +2630,14 @@ def _build_eligibility_status_payload(
     deduped_blocked_reasons = []
     seen_block_keys = set()
     for item in blocked_reasons:
-        key = (item.get("scope"), item.get("reason"))
+        key = (item.get("scope"), item.get("reason"), item.get("rule_id"))
         if key in seen_block_keys:
             continue
         seen_block_keys.add(key)
         deduped_blocked_reasons.append(item)
 
     return {
+        "can_access_app": bool(access_payload.get("access_granted")),
         "access_granted": bool(access_payload.get("access_granted")),
         "connected_wallet": wallet_address,
         "wallet_bound": bool(access_payload.get("wallet_bound")),
@@ -2107,6 +2646,8 @@ def _build_eligibility_status_payload(
         "can_receive_rewards": can_receive_rewards,
         "blocked_reasons": deduped_blocked_reasons,
         "allowlist_overrides_applied": allowlist_overrides_applied,
+        "rule_checks": rule_checks,
+        "next_steps": deduped_steps,
         "possible_next_steps": deduped_steps,
         "override_requests_enabled": True,
         "submission": submission_status,

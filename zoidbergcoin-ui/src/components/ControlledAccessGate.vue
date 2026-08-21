@@ -228,6 +228,21 @@
         <p class="section-label">Why Am I Blocked?</p>
         <p v-if="eligibilityHeadline" class="status" :class="eligibilityTone">{{ eligibilityHeadline }}</p>
         <p v-if="primaryBlockedReason" class="wallet-note">{{ primaryBlockedReason }}</p>
+        <div v-if="accessRuleChecks.length" class="eligibility-checklist">
+          <div
+            v-for="rule in accessRuleChecks"
+            :key="`${rule.scope}-${rule.rule_id}`"
+            class="eligibility-rule"
+            :class="{ pass: rule.passed, fail: rule.required && !rule.passed }"
+          >
+            <strong>{{ rule.label }}</strong>
+            <p class="wallet-note">{{ rule.description }}</p>
+            <p class="wallet-note eligibility-rule-value">
+              Current: {{ rule.current_value ?? 'Not available' }}
+              <span v-if="rule.required_value !== null && rule.required_value !== undefined"> | Needed: {{ rule.required_value }}</span>
+            </p>
+          </div>
+        </div>
         <p v-for="step in nextSteps" :key="step" class="wallet-note">{{ step }}</p>
         <p v-if="activeOverrideMessage" class="status success">{{ activeOverrideMessage }}</p>
       </section>
@@ -295,6 +310,10 @@ import {
   getControlledAccessActionState,
   getControlledAccessNextStepText,
 } from '../utils/controlledAccessUi.js';
+import {
+  getEligibilityRuleChecks,
+  getFailedRequiredRuleChecks,
+} from '../utils/eligibilityChecklist.js';
 import {
   buildReturningWalletGuidance,
   describeWalletSupport,
@@ -497,19 +516,26 @@ const showRetryButton = computed(
 const shouldShowEligibilityStatus = computed(
   () => Boolean(access.state.eligibility || access.state.me?.blocked_reason || access.state.me?.allowlist_override_applied),
 );
+const accessRuleChecks = computed(
+  () => getEligibilityRuleChecks(access.state.eligibility, ['access']),
+);
+const failedAccessRuleChecks = computed(
+  () => getFailedRequiredRuleChecks(access.state.eligibility, ['access']),
+);
 const primaryBlockedReason = computed(
-  () => access.state.eligibility?.blocked_reasons?.[0]?.message || '',
+  () => access.state.eligibility?.blocked_reasons?.find((item) => item.scope === 'access')?.message
+    || failedAccessRuleChecks.value[0]?.description
+    || '',
 );
 const nextSteps = computed(
   () => Array.isArray(access.state.eligibility?.possible_next_steps) ? access.state.eligibility.possible_next_steps : [],
 );
 const activeOverrideMessage = computed(() => {
-  const overrides = access.state.eligibility?.allowlist_overrides_applied || [];
-  if (!overrides.length) {
+  const accessOverride = (access.state.eligibility?.allowlist_overrides_applied || []).find((item) => item.scope === 'access');
+  if (!accessOverride) {
     return '';
   }
-  const firstOverride = overrides[0];
-  return `An admin override is active for ${String(firstOverride.allowlist_scope || firstOverride.scope || 'this account').replace(/_/g, ' ')}.`;
+  return `An admin override is active for ${String(accessOverride.allowlist_scope || accessOverride.scope || 'this account').replace(/_/g, ' ')}.`;
 });
 const eligibilityHeadline = computed(() => {
   if (access.state.me?.access_granted) {
@@ -728,6 +754,32 @@ h2 {
 
 .lead {
   margin: 0 0 22px;
+}
+
+.eligibility-checklist {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.eligibility-rule {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.eligibility-rule.pass {
+  border-color: rgba(114, 224, 153, 0.3);
+}
+
+.eligibility-rule.fail {
+  border-color: rgba(255, 145, 117, 0.35);
+}
+
+.eligibility-rule-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .entry-switch,

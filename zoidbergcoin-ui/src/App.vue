@@ -52,11 +52,9 @@ const showGlobalFeedback = computed(
 );
 
 const globalFeedbackEntryPoint = computed(() => {
-  if (route.path === '/dashboard') {
-    return 'dashboard';
-  }
-  if (route.path === '/blockchain') {
-    return 'blockchain';
+  const appSection = route.meta?.appSection;
+  if (appSection) {
+    return `app_${appSection}`;
   }
   if (route.path === '/why-zoidbergcoin') {
     return 'why_zoidbergcoin';

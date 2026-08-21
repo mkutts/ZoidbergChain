@@ -3,53 +3,91 @@
     <PublicDemoBanner v-if="showPublicDemoBanner" />
     <header class="dashboard-header">
       <div>
-        <p class="eyebrow">Controlled Beta Dashboard</p>
-        <h1>Create, vote, and track test ZOID</h1>
-        <p class="subtitle">This is the main beta workspace for submitting content, voting on originality, and following your rewards.</p>
+        <p class="eyebrow">{{ pageEyebrow }}</p>
+        <h1>{{ pageTitle }}</h1>
+        <p class="subtitle">{{ pageSubtitle }}</p>
       </div>
       <div class="header-actions">
-        <button @click="refreshWorkflow" class="btn secondary" :disabled="isRefreshing">
+        <button v-if="showRefreshButton" @click="refreshWorkflow" class="btn secondary" :disabled="isRefreshing">
           {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
         </button>
         <button type="button" class="btn primary feedback-link" @click="openFeedbackPanel">Send Feedback</button>
-        <router-link to="/why-zoidbergcoin" class="btn ghost">Beta Guide</router-link>
-        <router-link to="/blockchain" class="btn ghost">Activity Explorer</router-link>
+        <router-link to="/help" class="btn ghost">Help</router-link>
       </div>
     </header>
 
-    <WalletPanel />
+    <nav class="navigation-card app-nav" aria-label="Beta app navigation">
+      <router-link
+        v-for="item in navigationItems"
+        :key="item.to"
+        :to="item.to"
+        class="btn ghost nav-link"
+        :class="{ active: item.section === appSection }"
+      >
+        {{ item.label }}
+      </router-link>
+    </nav>
 
-    <section class="navigation-card quickstart-card">
-      <article class="quickstart-item">
-        <p class="section-label">Step 1</p>
-        <strong>Prepare your content</strong>
-        <p class="hint">Upload an image or text post, then reuse it in your submission.</p>
-      </article>
-      <article class="quickstart-item">
-        <p class="section-label">Step 2</p>
-        <strong>Submit with your verified wallet</strong>
-        <p class="hint">Beta access and a verified wallet are both required before submission opens.</p>
-      </article>
-      <article class="quickstart-item">
-        <p class="section-label">Step 3</p>
-        <strong>Vote on originality</strong>
-        <p class="hint">Review what other testers submit and help decide what becomes certified.</p>
-      </article>
-      <article class="quickstart-item">
-        <p class="section-label">Step 4</p>
-        <strong>Check rewards and recent activity</strong>
-        <p class="hint">Track test ZOID, certified memes, and recent block activity as the beta evolves.</p>
-      </article>
+    <section v-if="isHomePage" class="home-overview">
+      <div class="home-grid">
+        <article class="section-panel home-card">
+          <p class="section-label">Access And Wallet</p>
+          <h2>{{ accessSummaryHeadline }}</h2>
+          <p class="hint">{{ accessSummaryDetail }}</p>
+          <div class="detail-grid compact-detail-grid">
+            <div>
+              <span>Wallet</span>
+              <strong>{{ walletSummaryHeadline }}</strong>
+            </div>
+            <div>
+              <span>App Access</span>
+              <strong>{{ accessUnlockLabel }}</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-panel home-card">
+          <p class="section-label">What To Do Next</p>
+          <h2>{{ nextActionTitle }}</h2>
+          <p class="hint">{{ nextActionDetail }}</p>
+          <router-link :to="nextActionRoute" class="btn primary">
+            {{ nextActionLabel }}
+          </router-link>
+        </article>
+      </div>
+
+      <section class="navigation-card quickstart-card home-action-grid">
+        <article v-for="card in homeActionCards" :key="card.to" class="quickstart-item home-action-card">
+          <p class="section-label">{{ card.kicker }}</p>
+          <strong>{{ card.title }}</strong>
+          <p class="hint">{{ card.copy }}</p>
+          <router-link :to="card.to" class="btn ghost">Open</router-link>
+        </article>
+      </section>
+
+      <section class="navigation-card helper-strip">
+        <p class="hint">
+          Need the walkthrough again? Open the Beta Guide for access, MetaMask, submission, voting, rewards, mobile tips, and safety reminders.
+        </p>
+      </section>
+
+      <section class="navigation-card helper-strip">
+        <p class="hint">
+          Controlled beta only. Test ZOID has no real monetary value, balances can reset, and admin tools remain separate at /admin.
+        </p>
+      </section>
     </section>
 
-    <section class="navigation-card helper-strip">
+    <section v-if="isRewardsPage" class="navigation-card helper-strip rewards-intro-card">
       <p class="hint">
-        Need the walkthrough again? Open the Beta Guide for access, MetaMask, submission, voting, rewards, mobile tips, and safety reminders.
+        Rewards, balances, and transfers live here. Test ZOID has no real monetary value, and your verified wallet remains the only way to sign balance-affecting actions in beta.
       </p>
     </section>
 
-    <main class="dashboard-shell">
-      <section class="section-panel summary-panel">
+    <WalletPanel v-if="isRewardsPage" />
+
+    <main v-if="mainSectionVisible" class="dashboard-shell">
+      <section v-if="isActivityPage" class="section-panel summary-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Beta Overview</p>
@@ -92,7 +130,7 @@
         </div>
       </section>
 
-      <section class="section-panel content-panel">
+      <section v-if="isSubmitPage" class="section-panel content-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Step 1</p>
@@ -192,7 +230,7 @@
         </div>
       </section>
 
-      <section class="section-panel submit-panel">
+      <section v-if="isSubmitPage" class="section-panel submit-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Step 2</p>
@@ -300,7 +338,46 @@
         </div>
       </section>
 
-      <section class="section-panel voting-panel">
+      <section v-if="isSubmitPage" class="section-panel recent-submissions-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Recent Submissions</p>
+            <h2>Your Recent Submission Activity</h2>
+          </div>
+        </div>
+
+        <div v-if="userRecentSubmissions.length === 0" class="empty-state">
+          Submit your first meme to start testing originality review.
+        </div>
+
+        <div v-else class="submission-list">
+          <article v-for="submission in userRecentSubmissions" :key="submission.submission_id" class="submission-card">
+            <div class="submission-header">
+              <span class="status-pill" :class="submission.status === 'approved' ? 'ready' : submission.status === 'rejected' ? 'pending' : ''">
+                {{ formatStatus(submission.status) }}
+              </span>
+              <span>{{ formatDate(submission.created_at) }}</span>
+            </div>
+            <div v-if="hasContentPreview(submission)" class="content-preview">
+              <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Recent submission preview" class="content-image">
+              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+            </div>
+            <p class="submission-text">{{ submission.text_content || 'Uploaded submission content' }}</p>
+            <div class="detail-grid">
+              <div>
+                <span>Tracking ID</span>
+                <strong>{{ shortenHash(submission.submission_id) }}</strong>
+              </div>
+              <div>
+                <span>Storage Status</span>
+                <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section v-if="isVotePage" class="section-panel voting-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Step 3</p>
@@ -448,7 +525,7 @@
         </div>
       </section>
 
-      <section class="section-panel approved-panel">
+      <section v-if="isActivityPage" class="section-panel approved-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Certified Results</p>
@@ -532,7 +609,7 @@
         </div>
       </section>
 
-      <section v-if="rejectedSubmissions.length > 0" class="section-panel resolved-panel">
+      <section v-if="isActivityPage && rejectedSubmissions.length > 0" class="section-panel resolved-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Rejected Decisions</p>
@@ -578,7 +655,7 @@
         </div>
       </section>
 
-      <section v-if="showMintQueueTools && approvedMissingCertificateSubmissions.length > 0" class="section-panel missing-panel">
+      <section v-if="isActivityPage && showMintQueueTools && approvedMissingCertificateSubmissions.length > 0" class="section-panel missing-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Approved / Certificate Missing</p>
@@ -641,7 +718,7 @@
         </div>
       </section>
 
-      <section v-if="showMintQueueTools" class="section-panel queue-panel">
+      <section v-if="isActivityPage && showMintQueueTools" class="section-panel queue-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Mint Queue</p>
@@ -770,7 +847,7 @@
         </div>
       </section>
 
-      <section class="section-panel blocks-panel">
+      <section v-if="isActivityPage" class="section-panel blocks-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Recent Activity</p>
@@ -885,12 +962,57 @@
           </article>
         </div>
       </section>
-    </main>
 
-    <nav class="navigation-card">
-      <router-link to="/blockchain" class="btn secondary">View Blockchain Explorer</router-link>
-      <button @click="goToHome" class="btn secondary">Home</button>
-    </nav>
+      <section v-if="isHelpPage" class="section-panel help-panel">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Beta Guide</p>
+            <h2>Use this guide if you get stuck.</h2>
+          </div>
+          <router-link to="/why-zoidbergcoin" class="btn ghost">Open Full Guide Page</router-link>
+        </div>
+
+        <div class="page-help-grid">
+          <article class="quickstart-item">
+            <p class="section-label">MetaMask</p>
+            <strong>Connect the same approved wallet each time.</strong>
+            <p class="hint">Use MetaMask on desktop or the MetaMask Mobile browser on phones before trying to submit, vote, or send test ZOID.</p>
+          </article>
+          <article class="quickstart-item">
+            <p class="section-label">How Beta Works</p>
+            <strong>Invites unlock access, wallets prove identity.</strong>
+            <p class="hint">Invite codes are one-time, but returning approved wallets can reconnect and sign again without reusing the invite.</p>
+          </article>
+          <article class="quickstart-item">
+            <p class="section-label">Safety</p>
+            <strong>Never share secrets in this app.</strong>
+            <p class="hint">Do not enter seed phrases, private keys, passwords, or invite codes into feedback or any free-text field.</p>
+          </article>
+          <article class="quickstart-item">
+            <p class="section-label">Feedback</p>
+            <strong>Send a note whenever something feels off.</strong>
+            <p class="hint">Feedback stays available from Home, this Help page, and the blocked access flow so testers can always report issues.</p>
+          </article>
+        </div>
+      </section>
+
+      <section v-if="isFeedbackPage" class="section-panel feedback-cta-card">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Feedback</p>
+            <h2>Tell us what is broken, confusing, or missing.</h2>
+          </div>
+        </div>
+        <p class="hint">
+          Use the feedback form to report bugs, wallet issues, mobile problems, confusing copy, or anything else making the beta harder to use.
+        </p>
+        <div class="card-actions">
+          <button type="button" class="btn primary" @click="openFeedbackPanel">Open Feedback Form</button>
+          <router-link to="/help" class="btn ghost">Read Beta Guide</router-link>
+          <router-link to="/dashboard" class="btn ghost">Back To Home</router-link>
+        </div>
+      </section>
+    </main>
   </div>
 </template>
 
@@ -976,6 +1098,186 @@ export default {
     };
   },
   computed: {
+    appSection() {
+      return this.$route.meta?.appSection || 'home';
+    },
+    isHomePage() {
+      return this.appSection === 'home';
+    },
+    isSubmitPage() {
+      return this.appSection === 'submit';
+    },
+    isVotePage() {
+      return this.appSection === 'vote';
+    },
+    isRewardsPage() {
+      return this.appSection === 'rewards';
+    },
+    isActivityPage() {
+      return this.appSection === 'activity';
+    },
+    isHelpPage() {
+      return this.appSection === 'help';
+    },
+    isFeedbackPage() {
+      return this.appSection === 'feedback';
+    },
+    mainSectionVisible() {
+      return !this.isHomePage && !this.isRewardsPage;
+    },
+    pageEyebrow() {
+      const labels = {
+        home: 'Controlled Beta Home',
+        submit: 'Submit',
+        vote: 'Vote',
+        rewards: 'Rewards And Wallet',
+        activity: 'Activity And Explorer',
+        help: 'Help And Beta Guide',
+        feedback: 'Feedback',
+      };
+      return labels[this.appSection] || 'Controlled Beta Dashboard';
+    },
+    pageTitle() {
+      const labels = {
+        home: 'What should you do next?',
+        submit: 'Prepare and submit a meme',
+        vote: 'Review originality and cast votes',
+        rewards: 'Track rewards, wallet state, and test ZOID',
+        activity: 'Follow recent submissions and chain activity',
+        help: 'Use this guide if you get stuck',
+        feedback: 'Send beta feedback without leaving the app',
+      };
+      return labels[this.appSection] || 'Create, vote, and track test ZOID';
+    },
+    pageSubtitle() {
+      const labels = {
+        home: 'Home keeps the beta simple: check your status, see the next recommended action, and jump into the right tool.',
+        submit: 'Upload content, check submission eligibility, and send new memes into originality review.',
+        vote: 'Review the current queue, confirm voting eligibility, and help decide what becomes certified.',
+        rewards: 'See your balance, reward history, transfer tools, and wallet verification details in one place.',
+        activity: 'Keep the more technical submission, certificate, and recent block details off the main dashboard but easy to reach.',
+        help: 'Find setup reminders, MetaMask guidance, beta rules, feedback entry points, and safety warnings.',
+        feedback: 'Feedback stays easy to find before and after login so beta testers can report issues quickly.',
+      };
+      return labels[this.appSection] || 'This is the main beta workspace for submitting content, voting on originality, and following your rewards.';
+    },
+    showRefreshButton() {
+      return !this.isHelpPage && !this.isFeedbackPage;
+    },
+    navigationItems() {
+      return [
+        { label: 'Home', to: '/dashboard', section: 'home' },
+        { label: 'Submit', to: '/submit', section: 'submit' },
+        { label: 'Vote', to: '/vote', section: 'vote' },
+        { label: 'Rewards', to: '/rewards', section: 'rewards' },
+        { label: 'Activity', to: '/activity', section: 'activity' },
+        { label: 'Help', to: '/help', section: 'help' },
+        { label: 'Feedback', to: '/feedback', section: 'feedback' },
+      ];
+    },
+    accessSummaryHeadline() {
+      if (this.accessService.isAppUnlocked()) {
+        return 'Your approved beta session is active.';
+      }
+      if (this.accessService.state.me?.wallet_session_authenticated) {
+        return 'Wallet verified, but approval is still limited.';
+      }
+      return 'Reconnect your approved wallet to keep testing.';
+    },
+    accessSummaryDetail() {
+      return this.accessService.state.eligibility?.blocked_reasons?.[0]?.message
+        || 'Admin tools remain separate. Use these pages only for normal tester actions such as submit, vote, rewards, activity, help, and feedback.';
+    },
+    walletSummaryHeadline() {
+      if (this.walletManager.state.isVerifiedSession) {
+        return this.walletManager.shortenAddress(this.walletManager.state.verifiedWalletAddress);
+      }
+      if (this.walletManager.state.isConnected) {
+        return 'Connected but not verified';
+      }
+      return 'Not connected';
+    },
+    accessUnlockLabel() {
+      return this.accessService.isAppUnlocked() ? 'Unlocked' : 'Needs approval';
+    },
+    nextActionTitle() {
+      if (!this.walletManager.state.isConnected || !this.walletManager.state.isVerifiedSession) {
+        return 'Reconnect and verify your wallet';
+      }
+      if (this.submissionEligibility?.can_submit === false) {
+        return 'Check what is blocking submissions';
+      }
+      if (this.pendingSubmissions.length > 0) {
+        return 'Review the current vote queue';
+      }
+      return 'Submit your next meme';
+    },
+    nextActionDetail() {
+      if (!this.walletManager.state.isConnected || !this.walletManager.state.isVerifiedSession) {
+        return 'Most beta actions still require the same approved wallet you used before. Verify it again before testing submit, vote, or rewards.';
+      }
+      if (this.submissionEligibility?.can_submit === false) {
+        return this.submissionEligibilityView.detail || 'Submission eligibility is currently blocked. Open Submit to see the rule checks and next steps.';
+      }
+      if (this.pendingSubmissions.length > 0) {
+        return 'There are submissions waiting for originality review right now. Voting helps decide what becomes certified.';
+      }
+      return 'Nothing is waiting on you yet, so the easiest next step is to submit content and start a fresh review.';
+    },
+    nextActionRoute() {
+      if (!this.walletManager.state.isConnected || !this.walletManager.state.isVerifiedSession) {
+        return '/rewards';
+      }
+      if (this.submissionEligibility?.can_submit === false) {
+        return '/submit';
+      }
+      if (this.pendingSubmissions.length > 0) {
+        return '/vote';
+      }
+      return '/submit';
+    },
+    nextActionLabel() {
+      if (!this.walletManager.state.isConnected || !this.walletManager.state.isVerifiedSession) {
+        return 'Open Rewards And Wallet';
+      }
+      if (this.submissionEligibility?.can_submit === false) {
+        return 'Open Submit';
+      }
+      if (this.pendingSubmissions.length > 0) {
+        return 'Open Vote';
+      }
+      return 'Open Submit';
+    },
+    homeActionCards() {
+      return [
+        {
+          kicker: 'Main Action',
+          title: 'Submit a meme',
+          copy: 'Upload content, check submission eligibility, and send a new meme into originality review.',
+          to: '/submit',
+        },
+        {
+          kicker: 'Main Action',
+          title: 'Vote on originality',
+          copy: this.pendingSubmissions.length > 0
+            ? `${this.pendingSubmissions.length} submission${this.pendingSubmissions.length === 1 ? '' : 's'} waiting for review right now.`
+            : 'Nothing to vote on right now. Check back after someone submits content.',
+          to: '/vote',
+        },
+        {
+          kicker: 'Wallet',
+          title: 'View rewards',
+          copy: 'Check your test ZOID balance, reward history, wallet verification state, and transfer tools.',
+          to: '/rewards',
+        },
+        {
+          kicker: 'Support',
+          title: 'Read beta guide',
+          copy: 'Open setup help, MetaMask instructions, safety reminders, and feedback guidance.',
+          to: '/help',
+        },
+      ];
+    },
     pendingSubmissions() {
       return this.submissions.filter((submission) => submission.status === 'pending');
     },
@@ -1100,6 +1402,17 @@ export default {
     },
     voterRewardPolicyLines() {
       return buildVoterRewardRulesCopy();
+    },
+    userRecentSubmissions() {
+      const walletAddress = String(this.submissionWalletAddress || '').toLowerCase();
+      if (!walletAddress) {
+        return [];
+      }
+      return this.submissions
+        .filter((submission) => String(submission.submitter || submission.creator_wallet_address || '').toLowerCase() === walletAddress)
+        .slice()
+        .sort((left, right) => (right.created_at || 0) - (left.created_at || 0))
+        .slice(0, 5);
     },
   },
   async created() {
@@ -1929,53 +2242,9 @@ h3 {
 
 .dashboard-shell {
   display: grid;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
-  grid-template-areas:
-    "summary summary"
-    "content content"
-    "submit voting"
-    "approved voting"
-    "resolved voting"
-    "missing voting"
-    "queue blocks";
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
   align-items: start;
-}
-
-.summary-panel {
-  grid-area: summary;
-}
-
-.content-panel {
-  grid-area: content;
-}
-
-.submit-panel {
-  grid-area: submit;
-}
-
-.voting-panel {
-  grid-area: voting;
-}
-
-.approved-panel {
-  grid-area: approved;
-}
-
-.missing-panel {
-  grid-area: missing;
-}
-
-.resolved-panel {
-  grid-area: resolved;
-}
-
-.queue-panel {
-  grid-area: queue;
-}
-
-.blocks-panel {
-  grid-area: blocks;
 }
 
 .section-panel,
@@ -2461,31 +2730,73 @@ h3 {
   justify-content: flex-start;
 }
 
+.app-nav {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.nav-link.active {
+  background: linear-gradient(135deg, #ff4747 0%, #d71919 100%);
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(255, 0, 0, 0.28);
+}
+
+.home-overview,
+.rewards-intro-card {
+  width: min(1220px, 100%);
+  margin: 22px auto 0;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.home-card {
+  display: grid;
+  gap: 16px;
+}
+
+.compact-detail-grid {
+  margin-top: 0;
+}
+
+.home-action-grid {
+  margin-top: 22px;
+}
+
+.home-action-card {
+  gap: 12px;
+}
+
+.page-help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.feedback-cta-card {
+  width: 100%;
+}
+
 @media (max-width: 1060px) {
   .dashboard-header {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .dashboard-shell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "summary"
-      "content"
-      "submit"
-      "voting"
-      "approved"
-      "missing"
-      "queue"
-      "blocks";
-  }
-
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .home-grid,
   .quickstart-card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-help-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -2517,6 +2828,7 @@ h3 {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .home-grid,
   .quickstart-card {
     grid-template-columns: minmax(0, 1fr);
   }

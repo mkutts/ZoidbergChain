@@ -37,6 +37,7 @@ export function describeWalletSupport({
     : '';
 
   return {
+    primaryWalletProviderLabel: 'MetaMask',
     isMobileDevice: mobileDevice,
     hasInjectedProvider: injectedProvider,
     isMetaMaskMobileBrowser: metaMaskMobileBrowser,

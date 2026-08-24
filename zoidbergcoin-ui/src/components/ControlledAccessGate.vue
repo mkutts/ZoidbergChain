@@ -49,6 +49,22 @@
         </ul>
       </div>
 
+      <div class="rules-panel">
+        <p class="section-label">Login Options</p>
+        <div class="journey-grid onboarding-grid">
+          <article
+            v-for="option in onboardingOptions"
+            :key="option.id"
+            class="journey-card"
+          >
+            <p class="section-label">{{ option.availability === 'available' ? 'Available Now' : 'Coming Soon' }}</p>
+            <strong>{{ option.title }}</strong>
+            <p class="wallet-note">{{ option.description }}</p>
+            <p v-if="option.warning" class="wallet-note">{{ option.warning }}</p>
+          </article>
+        </div>
+      </div>
+
       <div class="entry-switch">
         <button
           type="button"
@@ -185,7 +201,7 @@
                 @click="connectWallet"
                 :disabled="wallet.state.connectionStatus === 'connecting'"
               >
-                {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect MetaMask' }}
+                {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : `Continue with ${wallet.state.providerLabel || 'MetaMask'}` }}
               </button>
               <button
                 v-else-if="accessActionState.showVerify"
@@ -354,6 +370,7 @@ import {
   buildReturningWalletGuidance,
   describeWalletSupport,
 } from '../utils/mobileWallet.js';
+import { getWalletOnboardingOptions } from '../utils/walletOnboarding.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 
 const emit = defineEmits(['unlocked']);
@@ -381,7 +398,9 @@ const overrideForm = ref({
   reason: '',
 });
 const showOverrideForm = ref(false);
+const onboardingOptions = getWalletOnboardingOptions();
 const mobileWalletSupport = ref({
+  primaryWalletProviderLabel: 'MetaMask',
   isMobileDevice: false,
   hasInjectedProvider: false,
   isMetaMaskMobileBrowser: false,
@@ -522,7 +541,7 @@ const inviteAcceptedMessage = computed(() => {
   if (!inviteAuthenticated.value || access.state.me?.wallet_bound) {
     return '';
   }
-  return 'Invite accepted. Connect MetaMask, verify the wallet, and bind it once to finish setup.';
+  return `Invite accepted. Connect ${wallet.state.providerLabel || 'MetaMask'}, verify the wallet, and bind it once to finish setup.`;
 });
 
 const returningStatusMessage = computed(() => {
@@ -815,6 +834,10 @@ h2 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 0 0 20px;
+}
+
+.onboarding-grid {
+  margin: 12px 0 0;
 }
 
 .journey-card {

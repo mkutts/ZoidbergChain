@@ -1,4 +1,5 @@
 import { normalizeWalletAddress } from '../utils/walletAddress.js';
+import { createMetaMaskAdapter } from './walletProviderAdapter.js';
 
 export const TRANSFER_PENDING_WARNING = 'This signs a native ZOID transfer on ZoidbergChain. Pending outgoing transfers reduce available balance. Final balance changes only when a transfer is settled in a meme-mined block.';
 
@@ -56,14 +57,15 @@ export function validateNativeTransferDraft({ fromAddress, toAddress, amount, me
 
 export function createNativeTransferService(options = {}) {
   const api = options.api;
-  const getProvider = options.getProvider || (() => (typeof window === 'undefined' ? null : window.ethereum || null));
+  const walletAdapter = options.walletAdapter || createMetaMaskAdapter({
+    getProvider: options.getProvider,
+  });
   const getApiErrorMessage = options.getApiErrorMessage || ((error, fallback) => error?.message || fallback);
 
   return {
     async submitSignedTransferIntent({ fromAddress, walletAddressForSigning, toAddress, amount, memo = '', availableBalance = null }) {
-      const provider = getProvider();
-      if (!provider) {
-        throw new Error('MetaMask is not available in this browser.');
+      if (!walletAdapter.isAvailable()) {
+        throw new Error(`${walletAdapter.providerLabel} is not available in this browser.`);
       }
 
       const draft = validateNativeTransferDraft({
@@ -83,10 +85,7 @@ export function createNativeTransferService(options = {}) {
           memo: draft.memo || null,
         });
         const challenge = challengeResponse.data;
-        const signature = await provider.request({
-          method: 'personal_sign',
-          params: [challenge.message, walletAddressForSigning],
-        });
+        const signature = await walletAdapter.requestSignature(challenge.message, walletAddressForSigning);
         const submitResponse = await api.post('/transfers/submit', {
           from_address: draft.fromAddress,
           to_address: draft.toAddress,
@@ -99,7 +98,7 @@ export function createNativeTransferService(options = {}) {
         return submitResponse.data;
       } catch (error) {
         if (error?.code === 4001) {
-          throw new Error('Signature request was rejected in MetaMask.');
+          throw new Error(`Signature request was rejected in ${walletAdapter.providerLabel}.`);
         }
         throw new Error(getApiErrorMessage(error, 'Native transfer intent submission failed.'));
       }

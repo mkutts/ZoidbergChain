@@ -1,6 +1,7 @@
 import { reactive, readonly } from 'vue';
 import { normalizeWalletAddress, shortenWalletAddress } from '../utils/walletAddress.js';
 import { apiClient, configureWalletApiAuth, getApiErrorMessage } from '../config/api.js';
+import { createWalletProviderRegistry } from './walletProviderAdapter.js';
 
 const LAST_CONNECTED_ADDRESS_KEY = 'zoidberg:last-wallet-address';
 const VERIFIED_SESSION_KEY = 'zoidberg:verified-wallet-session';
@@ -26,6 +27,7 @@ function defaultStorage() {
 function createInitialState() {
   return {
     isMetaMaskAvailable: false,
+    isWalletProviderAvailable: false,
     isConnected: false,
     walletAddress: '',
     normalizedWalletAddress: '',
@@ -38,6 +40,10 @@ function createInitialState() {
     sessionExpiresAt: '',
     verifiedWalletAddress: '',
     identitySource: 'none',
+    providerId: 'metamask',
+    providerLabel: 'MetaMask',
+    providerType: 'injected_wallet',
+    availableWalletProviders: [],
     authError: '',
     connected_wallet_address: '',
     normalized_wallet_address: '',
@@ -47,31 +53,35 @@ function createInitialState() {
     session_expires_at: '',
     verified_wallet_address: '',
     identity_source: 'none',
+    provider_id: 'metamask',
     auth_error: '',
   };
 }
 
-function mapWalletError(error) {
+function mapWalletError(error, providerLabel = 'wallet provider') {
   const code = error?.code;
   if (code === 4001) {
-    return 'Connection request was rejected in MetaMask.';
+    return `Connection request was rejected in ${providerLabel}.`;
   }
   if (code === -32002) {
-    return 'A MetaMask connection request is already pending.';
+    return `A ${providerLabel} connection request is already pending.`;
   }
   if (code === 4900 || code === 4901) {
-    return 'MetaMask is connected to an unavailable network right now.';
+    return `${providerLabel} is connected to an unavailable network right now.`;
   }
   if (error?.message) {
     return error.message;
   }
-  return 'Unable to connect to MetaMask right now.';
+  return `Unable to connect to ${providerLabel} right now.`;
 }
 
 export function createWalletManager(options = {}) {
   const state = reactive(createInitialState());
-  const getProvider = options.getProvider || defaultProviderGetter;
   const storage = options.storage ?? defaultStorage();
+  const walletProviderRegistry = options.walletProviderRegistry || createWalletProviderRegistry({
+    getProvider: options.getProvider || defaultProviderGetter,
+  });
+  const adapter = options.walletAdapter || walletProviderRegistry.getDefaultAdapter();
   const authApi = options.authApi || {
     async createChallenge(walletAddress) {
       const response = await apiClient.post('/auth/wallet/challenge', { wallet_address: walletAddress });
@@ -97,6 +107,27 @@ export function createWalletManager(options = {}) {
   let onChainChanged = null;
   let onDisconnect = null;
 
+  function syncAvailableProviders() {
+    state.availableWalletProviders = walletProviderRegistry.listAdapters().map((item) => ({
+      provider_id: item.providerId,
+      provider_label: item.providerLabel,
+      provider_type: item.providerType,
+      availability: item.isAvailable() ? 'available' : 'unavailable',
+      supports_message_signing: Boolean(item.supportsMessageSigning),
+      supports_native_transfer_signing: Boolean(item.supportsNativeTransferSigning),
+      supports_export_info: Boolean(item.supportsExportInfo),
+      supports_portable_wallet_promise: Boolean(item.supportsPortableWalletPromise),
+    }));
+  }
+
+  function syncProviderFields() {
+    state.providerId = adapter.providerId;
+    state.providerLabel = adapter.providerLabel;
+    state.providerType = adapter.providerType;
+    state.provider_id = adapter.providerId;
+    syncAvailableProviders();
+  }
+
   function syncIdentityFields() {
     state.connectedWalletAddress = state.walletAddress;
     state.connected_wallet_address = state.walletAddress;
@@ -107,14 +138,15 @@ export function createWalletManager(options = {}) {
     state.session_expires_at = state.sessionExpiresAt;
     state.verified_wallet_address = state.verifiedWalletAddress;
     state.identity_source = state.identitySource;
+    state.provider_id = state.providerId;
     state.auth_error = state.authError;
   }
 
   function setIdentitySource() {
     if (state.isVerifiedSession && state.verifiedWalletAddress) {
-      state.identitySource = 'metamask_verified';
+      state.identitySource = `${state.providerId}_verified`;
     } else if (state.isConnected && state.normalizedWalletAddress) {
-      state.identitySource = 'metamask_unverified';
+      state.identitySource = `${state.providerId}_unverified`;
     } else {
       state.identitySource = 'none';
     }
@@ -253,23 +285,25 @@ export function createWalletManager(options = {}) {
   }
 
   async function syncAccounts(accounts = null) {
-    provider = getProvider();
-    state.isMetaMaskAvailable = Boolean(provider);
+    syncProviderFields();
+    provider = adapter.getProvider();
+    state.isMetaMaskAvailable = adapter.providerId === 'metamask' && adapter.isAvailable();
+    state.isWalletProviderAvailable = adapter.isAvailable();
 
     if (!provider) {
       state.connectionStatus = 'unavailable';
-      state.errorMessage = 'MetaMask is not installed or the browser wallet provider is unavailable.';
+      state.errorMessage = `${adapter.providerLabel} is not installed or the browser wallet provider is unavailable.`;
       applyDisconnectedState();
       return null;
     }
 
     const nextAccounts = Array.isArray(accounts)
       ? accounts
-      : await provider.request({ method: 'eth_accounts' });
+      : await adapter.getAccounts();
 
     if (!Array.isArray(nextAccounts)) {
       state.connectionStatus = 'error';
-      state.errorMessage = 'MetaMask returned an unsupported account response.';
+      state.errorMessage = `${adapter.providerLabel} returned an unsupported account response.`;
       applyDisconnectedState();
       return null;
     }
@@ -280,7 +314,7 @@ export function createWalletManager(options = {}) {
 
     if (!selectedAddress || !normalized) {
       state.errorMessage = nextAccounts.length > 0
-        ? 'MetaMask returned an invalid wallet address.'
+        ? `${adapter.providerLabel} returned an invalid wallet address.`
         : '';
       applyDisconnectedState();
       return null;
@@ -301,7 +335,7 @@ export function createWalletManager(options = {}) {
   }
 
   function attachProviderListeners() {
-    provider = getProvider();
+    provider = adapter.getProvider();
     if (!provider || listenersAttached || typeof provider.on !== 'function') {
       return;
     }
@@ -314,7 +348,7 @@ export function createWalletManager(options = {}) {
         await syncAccounts(accounts);
       } catch (error) {
         state.connectionStatus = 'error';
-        state.errorMessage = mapWalletError(error);
+        state.errorMessage = mapWalletError(error, adapter.providerLabel);
         applyDisconnectedState();
       }
     };
@@ -332,24 +366,26 @@ export function createWalletManager(options = {}) {
     };
 
     onDisconnect = () => {
-      state.errorMessage = 'MetaMask disconnected from this app.';
+      state.errorMessage = `${adapter.providerLabel} disconnected from this app.`;
       applyDisconnectedState();
     };
 
-    provider.on('accountsChanged', onAccountsChanged);
-    provider.on('chainChanged', onChainChanged);
-    provider.on('disconnect', onDisconnect);
+    adapter.on('accountsChanged', onAccountsChanged);
+    adapter.on('chainChanged', onChainChanged);
+    adapter.on('disconnect', onDisconnect);
     listenersAttached = true;
   }
 
   async function detectMetaMask() {
     restorePersistedAddress();
-    provider = getProvider();
-    state.isMetaMaskAvailable = Boolean(provider);
+    syncProviderFields();
+    provider = adapter.getProvider();
+    state.isMetaMaskAvailable = adapter.providerId === 'metamask' && adapter.isAvailable();
+    state.isWalletProviderAvailable = adapter.isAvailable();
 
     if (!provider) {
       state.connectionStatus = 'unavailable';
-      state.errorMessage = 'MetaMask is not installed or the browser wallet provider is unavailable.';
+      state.errorMessage = `${adapter.providerLabel} is not installed or the browser wallet provider is unavailable.`;
       applyDisconnectedState();
       return false;
     }
@@ -360,16 +396,18 @@ export function createWalletManager(options = {}) {
     if (!state.isConnected) {
       state.connectionStatus = 'disconnected';
     }
-    return state.isMetaMaskAvailable;
+    return state.isWalletProviderAvailable;
   }
 
   async function connectWallet() {
-    provider = getProvider();
-    state.isMetaMaskAvailable = Boolean(provider);
+    syncProviderFields();
+    provider = adapter.getProvider();
+    state.isMetaMaskAvailable = adapter.providerId === 'metamask' && adapter.isAvailable();
+    state.isWalletProviderAvailable = adapter.isAvailable();
 
     if (!provider) {
       state.connectionStatus = 'unavailable';
-      state.errorMessage = 'MetaMask is not installed. Install MetaMask to connect a wallet.';
+      state.errorMessage = `${adapter.providerLabel} is not installed. Install ${adapter.providerLabel} to connect a wallet.`;
       return null;
     }
 
@@ -378,17 +416,17 @@ export function createWalletManager(options = {}) {
     state.errorMessage = '';
 
     try {
-      const accounts = await provider.request({ method: 'eth_requestAccounts' });
+      const accounts = await adapter.connect();
       const normalized = await syncAccounts(accounts);
       if (!normalized) {
         state.connectionStatus = 'error';
-        state.errorMessage = 'MetaMask did not return a usable wallet address.';
+        state.errorMessage = `${adapter.providerLabel} did not return a usable wallet address.`;
       }
       return normalized;
     } catch (error) {
       applyDisconnectedState();
       state.connectionStatus = 'error';
-      state.errorMessage = mapWalletError(error);
+      state.errorMessage = mapWalletError(error, adapter.providerLabel);
       return null;
     }
   }
@@ -407,9 +445,9 @@ export function createWalletManager(options = {}) {
   }
 
   async function verifyWallet() {
-    provider = getProvider();
+    provider = adapter.getProvider();
     if (!provider || !state.isConnected || !state.normalizedWalletAddress) {
-      state.errorMessage = 'Connect MetaMask before verifying this wallet.';
+      state.errorMessage = `Connect ${adapter.providerLabel} before verifying this wallet.`;
       return null;
     }
 
@@ -420,10 +458,7 @@ export function createWalletManager(options = {}) {
 
     try {
       const challenge = await authApi.createChallenge(state.normalizedWalletAddress);
-      const signature = await provider.request({
-        method: 'personal_sign',
-        params: [challenge.message, state.walletAddress],
-      });
+      const signature = await adapter.requestSignature(challenge.message, state.walletAddress);
       const verification = await authApi.verifyChallenge({
         wallet_address: state.normalizedWalletAddress,
         message: challenge.message,
@@ -445,7 +480,7 @@ export function createWalletManager(options = {}) {
       state.connectionStatus = 'error';
       clearVerifiedSession();
       if (error?.code === 4001) {
-        state.errorMessage = 'Signature request was rejected in MetaMask.';
+        state.errorMessage = `Signature request was rejected in ${adapter.providerLabel}.`;
       } else {
         state.errorMessage = getApiErrorMessage(error, 'Wallet verification failed.');
       }
@@ -473,6 +508,8 @@ export function createWalletManager(options = {}) {
     state.errorMessage = '';
     clearVerifiedSession(getApiErrorMessage(error, 'Session expired - verify again.'));
   }
+
+  syncProviderFields();
 
   configureWalletApiAuth({
     getAuthHeaders() {

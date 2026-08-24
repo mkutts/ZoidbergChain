@@ -6,6 +6,9 @@
       <p class="wallet-note">
         MetaMask proves who you are and signs actions in the beta. Test ZOID lives inside ZoidbergChain, settles in meme-mined blocks, and does not appear in normal MetaMask yet.
       </p>
+      <p class="wallet-note">
+        Easier email, social, or passkey onboarding is planned, but it still has to preserve portable wallet control before mainnet-value use.
+      </p>
       <p v-if="showPublicDemoNotice" class="wallet-demo-note">
         Controlled testnet. Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
       </p>

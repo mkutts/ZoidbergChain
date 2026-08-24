@@ -4,9 +4,11 @@ import hashlib
 import math
 import time
 import base64
+import binascii
 import re
 import secrets
 from collections import Counter
+from pathlib import Path
 from PIL import Image
 import imagehash
 from concurrent.futures import ThreadPoolExecutor
@@ -26,6 +28,8 @@ from config import (
     COIN_NAME,
     ENVIRONMENT,
     MEME_BLOCK_REWARD,
+    MAX_BLOCK_SIZE_BYTES,
+    MAX_CANONICAL_CONTENT_BYTES,
     MAX_TRANSACTIONS_PER_BLOCK,
     MIN_VOTE_FLOOR,
     NETWORK_NAME,
@@ -46,6 +50,8 @@ from config import (
 from review_policy import current_day_window, evaluate_review_eligibility, load_review_policy_config
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from content import (
+    CANONICAL_COMPRESSION_GZIP,
+    CANONICAL_COMPRESSION_VERSION,
     CONTENT_TYPE_IMAGE,
     CONTENT_TYPE_MIXED,
     CONTENT_TYPE_TEXT,
@@ -60,7 +66,11 @@ from content import (
     STORAGE_STATUS_REMOTE,
     STORAGE_STATUS_VERIFIED,
     ContentObject,
+    calculate_content_id,
+    canonical_compress_content_bytes,
+    canonical_decompress_content_bytes,
     canonicalize_text_content,
+    compute_content_hash_bytes,
     content_object_from_submission_data,
     compute_text_content_hash,
     ensure_content_storage_dir,
@@ -142,6 +152,15 @@ def _coerce_timestamp(value):
 
 
 _NATIVE_ZOID_REWARD_SCALE = Decimal("1000000")
+
+
+def _canonical_block_json_bytes(block_dict):
+    return json.dumps(
+        block_dict,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
 
 
 class NativeBlockValidationError(ValueError):
@@ -268,6 +287,24 @@ class Blockchain:
             return datetime.fromtimestamp(float(value), tz=timezone.utc).isoformat()
         candidate = str(value or "").strip()
         return candidate
+
+    @staticmethod
+    def serialized_block_size_bytes(block_or_dict) -> int:
+        if isinstance(block_or_dict, dict):
+            block_dict = dict(block_or_dict)
+        elif hasattr(block_or_dict, "to_dict"):
+            block_dict = block_or_dict.to_dict()
+        else:
+            raise ValueError("Block serialization requires a block object or dictionary.")
+        return len(_canonical_block_json_bytes(block_dict))
+
+    def validate_serialized_block_size(self, block_or_dict) -> int:
+        size_bytes = self.serialized_block_size_bytes(block_or_dict)
+        if size_bytes > MAX_BLOCK_SIZE_BYTES:
+            raise ValueError(
+                f"Serialized block exceeds MAX_BLOCK_SIZE_BYTES ({MAX_BLOCK_SIZE_BYTES} bytes)."
+            )
+        return size_bytes
 
     @staticmethod
     def _build_transfer_intent_record_from_transaction(
@@ -1406,14 +1443,20 @@ class Blockchain:
                         submission_id=block_data.get("submission_id"),
                         certificate_id=block_data.get("certificate_id"),
                         content_hash=block_data.get("content_hash"),
+                        original_content_hash=block_data.get("original_content_hash"),
                         content_id=block_data.get("content_id"),
                         content_type=block_data.get("content_type"),
                         mime_type=block_data.get("mime_type"),
+                        compression_algorithm=block_data.get("compression_algorithm"),
+                        compression_version=block_data.get("compression_version"),
+                        canonical_size_bytes=block_data.get("canonical_size_bytes"),
+                        original_size_bytes=block_data.get("original_size_bytes"),
                         creator_wallet=block_data.get("creator_wallet"),
                         vote_hash=block_data.get("vote_hash"),
                         approval_percentage=block_data.get("approval_percentage"),
                         decisive_vote_total=block_data.get("decisive_vote_total"),
                         minimum_votes_required=block_data.get("minimum_votes_required"),
+                        minimum_decisive_votes_required=block_data.get("minimum_decisive_votes_required"),
                         approved_at=block_data.get("approved_at"),
                         originality_score=block_data.get("originality_score"),
                         reward_type=block_data.get("reward_type"),
@@ -1741,6 +1784,70 @@ class Blockchain:
         content_object.verification_error = verification["error"]
         return content_object
 
+    def _resolve_content_object_for_submission(self, submission):
+        content_object = None
+        if submission.content_hash:
+            content_object = self.get_content_object_by_hash(submission.content_hash)
+        if content_object is None and submission.content_id:
+            content_object = self.get_content_object(submission.content_id)
+        return content_object
+
+    def _original_content_hash_for_content_object(self, content_object, original_bytes):
+        if content_object is None:
+            return compute_content_hash_bytes(original_bytes)
+        metadata = dict(content_object.metadata or {})
+        byte_hash = str(metadata.get("byte_hash") or "").strip().lower()
+        if byte_hash:
+            return byte_hash
+        if content_object.hash_scheme in {HASH_SCHEME_SHA256_BYTES, HASH_SCHEME_SHA256_TEXT}:
+            return content_object.content_hash
+        return compute_content_hash_bytes(original_bytes)
+
+    def _canonical_block_content_for_submission(self, submission, *, content_object=None):
+        content_object = content_object or self._resolve_content_object_for_submission(submission)
+        if content_object is None:
+            raise ValueError("Content metadata is missing for this submission.")
+
+        if content_object.hash_scheme not in {HASH_SCHEME_SHA256_BYTES, HASH_SCHEME_SHA256_TEXT}:
+            raise ValueError("Legacy/non-canonical content must be re-uploaded before minting.")
+
+        resolved_local_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
+        if resolved_local_path and os.path.isfile(resolved_local_path):
+            original_bytes = Path(resolved_local_path).read_bytes()
+        elif content_object.mime_type == TEXT_MIME_TYPE and content_object.text_content:
+            original_bytes = canonicalize_text_content(content_object.text_content).encode("utf-8")
+        else:
+            raise ValueError("Canonical minting requires verified local content bytes.")
+
+        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
+        if not verification["verified"]:
+            raise ValueError("Canonical minting requires verified local content bytes.")
+
+        original_content_hash = self._original_content_hash_for_content_object(content_object, original_bytes)
+        canonical_bytes = canonical_compress_content_bytes(
+            original_bytes,
+            compression_algorithm=CANONICAL_COMPRESSION_GZIP,
+            compression_version=CANONICAL_COMPRESSION_VERSION,
+        )
+        canonical_size_bytes = len(canonical_bytes)
+        if canonical_size_bytes > MAX_CANONICAL_CONTENT_BYTES:
+            raise ValueError(
+                f"Canonical compressed content exceeds MAX_CANONICAL_CONTENT_BYTES ({MAX_CANONICAL_CONTENT_BYTES} bytes)."
+            )
+
+        return {
+            "content_hash": compute_content_hash_bytes(canonical_bytes),
+            "original_content_hash": original_content_hash,
+            "compression_algorithm": CANONICAL_COMPRESSION_GZIP,
+            "compression_version": CANONICAL_COMPRESSION_VERSION,
+            "canonical_size_bytes": canonical_size_bytes,
+            "original_size_bytes": len(original_bytes),
+            "mime_type": content_object.mime_type,
+            "content_type": content_object.content_type,
+            "content_id": content_object.content_id,
+            "encoded_content": base64.b64encode(canonical_bytes).decode("ascii"),
+        }
+
     def _ensure_content_object_for_submission(
         self,
         submission,
@@ -1793,28 +1900,36 @@ class Blockchain:
         if image_path:
             with open(image_path, "rb") as image_file:
                 image_bytes = image_file.read()
+            payload_hash = compute_content_hash_bytes(image_bytes)
             stored_content = store_content_bytes(
-                submission.content_hash,
+                payload_hash,
                 image_bytes,
                 mime_type=guess_mime_type(os.path.basename(image_path), "image/jpeg"),
                 original_filename=os.path.basename(image_path),
                 data_dir=self.storage.data_dir,
-                hash_scheme=HASH_SCHEME_LEGACY,
+                hash_scheme=HASH_SCHEME_SHA256_BYTES,
             )
+            submission.content_hash = stored_content["content_hash"]
+            submission.content_id = calculate_content_id(submission.content_hash)
             submission.image_path = os.path.abspath(stored_content["path"])
             return stored_content
 
-        normalized_text = (text_content or "").strip()
+        normalized_text = validate_text_content(text_content)
         if not normalized_text:
             return None
 
-        return store_content_bytes(
-            submission.content_hash,
+        payload_hash = compute_text_content_hash(normalized_text)
+        stored_content = store_content_bytes(
+            payload_hash,
             normalized_text.encode("utf-8"),
             mime_type=TEXT_MIME_TYPE,
             data_dir=self.storage.data_dir,
-            hash_scheme=HASH_SCHEME_LEGACY,
+            hash_scheme=HASH_SCHEME_SHA256_TEXT,
         )
+        submission.text_content = normalized_text
+        submission.content_hash = stored_content["content_hash"]
+        submission.content_id = calculate_content_id(submission.content_hash)
+        return stored_content
 
     def refresh_content_object_storage_statuses(self):
         refreshed_any = False
@@ -2271,6 +2386,7 @@ class Blockchain:
                 VOTE_NOT_ORIGINAL: not_original_votes,
                 VOTE_UNSURE: unsure_votes,
             },
+            "decisive_vote_total": decisive_votes,
             "approval_percentage": approval_percentage,
         }
 
@@ -2326,29 +2442,22 @@ class Blockchain:
         return linked_any
 
     def certificate_block_metadata(self, certificate):
-        submission = self.get_submission(certificate.submission_id)
-        content_object = self.get_content_object_by_hash(certificate.content_hash)
-        metadata = {
+        return {
             "submission_id": certificate.submission_id,
             "certificate_id": certificate.certificate_id,
-            "content_hash": certificate.content_hash,
-            "content_id": (
-                certificate.content_id
-                or (submission.content_id if submission is not None else None)
-                or (content_object.content_id if content_object is not None else None)
-            ),
             "creator_wallet": certificate.creator_wallet,
             "vote_hash": certificate.vote_hash,
             "approval_percentage": certificate.approval_percentage,
             "decisive_vote_total": certificate.decisive_vote_total,
             "minimum_votes_required": certificate.minimum_votes_required,
+            "minimum_decisive_votes_required": getattr(
+                certificate,
+                "minimum_decisive_votes_required",
+                certificate.minimum_votes_required,
+            ),
             "approved_at": certificate.approved_at,
             "originality_score": certificate.originality_score,
         }
-        if content_object is not None:
-            metadata["content_type"] = content_object.content_type
-            metadata["mime_type"] = content_object.mime_type
-        return metadata
 
     def _normalize_native_wallet_identity(self, wallet_address):
         candidate = str(wallet_address or "").strip()
@@ -3689,11 +3798,17 @@ class Blockchain:
             "submission_id",
             "certificate_id",
             "content_hash",
+            "original_content_hash",
+            "compression_algorithm",
+            "compression_version",
+            "canonical_size_bytes",
+            "original_size_bytes",
             "creator_wallet",
             "vote_hash",
             "approval_percentage",
             "decisive_vote_total",
             "minimum_votes_required",
+            "minimum_decisive_votes_required",
             "approved_at",
             "originality_score",
             "reward_type",
@@ -4300,17 +4415,21 @@ class Blockchain:
         vote_summary = self.get_submission_votes(submission_id)
         now = now if now is not None else time.time()
         voting_window_expired = now >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
-        minimum_votes = self.get_voting_threshold(now=now)["minimum_votes"]
-        minimum_votes_reached = len(vote_summary["votes"]) >= minimum_votes
+        minimum_decisive_votes_required = self.get_voting_threshold(now=now)["minimum_votes"]
+        decisive_votes_cast = vote_summary["decisive_vote_total"]
+        minimum_decisive_votes_reached = decisive_votes_cast >= minimum_decisive_votes_required
 
         result = {
             "submission_id": submission_id,
             "status": submission.status,
-            "minimum_votes": minimum_votes,
+            "minimum_votes": minimum_decisive_votes_required,
+            "minimum_decisive_votes_required": minimum_decisive_votes_required,
             "votes_cast": len(vote_summary["votes"]),
+            "decisive_votes_cast": decisive_votes_cast,
             "approval_percentage": vote_summary["approval_percentage"],
             "voting_window_expired": voting_window_expired,
-            "minimum_votes_reached": minimum_votes_reached,
+            "minimum_votes_reached": minimum_decisive_votes_reached,
+            "minimum_decisive_votes_reached": minimum_decisive_votes_reached,
         }
 
         if submission.status != PENDING:
@@ -4333,8 +4452,12 @@ class Blockchain:
             result["reason"] = "automated_originality_rejected"
             return result
 
-        if not (voting_window_expired or minimum_votes_reached):
-            result["reason"] = "awaiting_votes_or_window"
+        if not minimum_decisive_votes_reached:
+            result["reason"] = (
+                "awaiting_decisive_votes_window_expired"
+                if voting_window_expired
+                else "awaiting_decisive_votes"
+            )
             return result
 
         if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
@@ -4511,19 +4634,10 @@ class Blockchain:
         verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
         if not verification["verified"]:
             error = str(verification.get("error") or "").lower()
-            if error == "legacy_unverifiable":
-                record["mintable"] = True
-                record["mint_block_reason"] = None
-                record["content_metadata_missing"] = False
-                record["content_status"] = content_object.storage_status
-                record["storage_status"] = content_object.storage_status
-                if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
-                    record["download_url"] = f"/content/{content_object.content_hash}"
-                return record
             if error == "missing_file":
                 record["mint_block_reason"] = "content_payload_missing"
             elif error == "legacy_unverifiable":
-                record["mint_block_reason"] = "legacy_unverifiable_content"
+                record["mint_block_reason"] = "legacy_noncanonical_content"
             elif error in {"hash_mismatch", "file_size_mismatch"}:
                 record["mint_block_reason"] = "content_hash_mismatch"
             else:
@@ -4641,22 +4755,6 @@ class Blockchain:
                     max_block_size_kb=max_block_size_kb,
                     validate_meme=validate_meme,
                 )
-            if record.get("mint_block_reason") in {
-                "content_metadata_missing",
-                "content_payload_missing",
-                "legacy_unverifiable_content",
-                "content_not_verified",
-            }:
-                submission = self.get_submission(submission_id)
-                certificate = self._resolve_mintable_submission_certificate(submission)
-                if certificate is not None:
-                    return self._mint_submission_record(
-                        submission,
-                        certificate,
-                        miner=miner,
-                        max_block_size_kb=max_block_size_kb,
-                        validate_meme=validate_meme,
-                    )
             blocked_records.append(record)
 
         blocked_summary = ", ".join(
@@ -4684,21 +4782,6 @@ class Blockchain:
 
         record = self._evaluate_mint_queue_item(submission_id)
         if not record.get("mintable"):
-            if record.get("mint_block_reason") in {
-                "content_metadata_missing",
-                "content_payload_missing",
-                "legacy_unverifiable_content",
-                "content_not_verified",
-            }:
-                certificate = self._resolve_mintable_submission_certificate(submission)
-                if certificate is not None:
-                    return self._mint_submission_record(
-                        submission,
-                        certificate,
-                        miner=miner,
-                        max_block_size_kb=max_block_size_kb,
-                        validate_meme=validate_meme,
-                    )
             raise ValueError(record.get("mint_block_reason") or "Submission is not mintable.")
 
         certificate = self.require_valid_certificate_for_submission(submission)
@@ -4864,7 +4947,7 @@ class Blockchain:
         image_path,
         text_content=None,
         miner=None,
-        max_block_size_kb=500,
+        max_block_size_kb=None,
         validate_meme=True,
         certificate=None,
         reward_recipient=None,
@@ -4875,6 +4958,10 @@ class Blockchain:
         if not self.is_valid_public_key(miner):
             print(f"Debug: Invalid miner public key: {miner}")
             raise ValueError(f"Invalid public key provided for the miner.")
+        if certificate is None:
+            raise ValueError(
+                "Legacy/non-canonical minting is not allowed. Mint an approved submission through the canonical submission flow."
+            )
 
         file_exists = bool(image_path) and os.path.isfile(image_path)
         file_extension = os.path.splitext(image_path)[1].lower() if image_path else ""
@@ -4888,6 +4975,11 @@ class Blockchain:
         if not file_exists and not is_text_payload:
             print(f"Debug: Image path {image_path} does not exist.")
             raise ValueError("Invalid image path provided for the meme.")
+
+        certificate_submission = self.get_submission(certificate.submission_id)
+        if certificate_submission is None:
+            raise ValueError(f"Submission not found: {certificate.submission_id}")
+        canonical_content = self._canonical_block_content_for_submission(certificate_submission)
 
         # Extract text content if not provided.
         if not text_content:
@@ -4918,13 +5010,7 @@ class Blockchain:
                 print(f"Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
                 raise ValueError("This meme has already been submitted.")
 
-        # Encode the payload for block storage.
-        if is_text_payload:
-            print("Debug: Encoding text payload for block storage.")
-            meme_encoded = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
-        else:
-            print(f"Debug: Encoding image at path {image_path}.")
-            meme_encoded = self.encode_image(image_path)
+        meme_encoded = canonical_content["encoded_content"]
 
         # âœ… Calculate meme size (base64 encoding increases size)
         meme_size_kb = len(meme_encoded) / 1024
@@ -4985,11 +5071,7 @@ class Blockchain:
         total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb + native_tx_size_kb
 
         # âœ… Enforce block size limit
-        if total_block_size_kb > max_block_size_kb:
-            print(f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of {max_block_size_kb} KB. Rejecting block.")
-            return False
-
-        print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
+        print(f"Debug: Approximate pre-serialization block size: {total_block_size_kb:.2f} KB")
 
         # âœ… Ensure minerâ€™s balance is updated
         if miner in self.wallets:
@@ -5016,7 +5098,7 @@ class Blockchain:
         mining_reward = float(MEME_BLOCK_REWARD)
         if self.reward_pool < mining_reward:
             print("Error: Insufficient funds in the reward pool.")
-            return False
+            raise ValueError("Insufficient funds in the reward pool.")
 
         reward_receiver = reward_recipient or miner
         if reward_receiver not in {"GENESIS", "REWARD_POOL"}:
@@ -5047,39 +5129,48 @@ class Blockchain:
         # Create the new block
         latest_block = self.get_latest_block()
         minted_at = time.time()
-        reward_metadata = {}
-        if certificate is not None:
-            certificate_submission = self.get_submission(certificate.submission_id)
-            if certificate_submission is None:
-                raise ValueError(f"Submission not found: {certificate.submission_id}")
-            reward_metadata = self.build_meme_reward_metadata(
-                certificate_submission,
-                certificate,
-                minted_at=minted_at,
-            )
+        reward_metadata = self.build_meme_reward_metadata(
+            certificate_submission,
+            certificate,
+            minted_at=minted_at,
+        )
         new_block = Block(
             index=latest_block.index + 1,
             previous_hash=latest_block.hash,
             timestamp=minted_at,
             transactions=voter_reward_transactions + [reward_transaction] + valid_transactions,
-            meme={"encoded_image": meme_encoded, "text": text_content},
+            meme={
+                "encoded_content": meme_encoded,
+                "text": text_content,
+                "compression_algorithm": canonical_content["compression_algorithm"],
+                "compression_version": canonical_content["compression_version"],
+            },
             miner=miner,
             native_transactions=native_transactions_for_block,
             transaction_ids=native_transaction_plan["transaction_ids"],
             transaction_count=native_transaction_plan["transaction_count"],
             transactions_hash=native_transaction_plan["transactions_hash"],
             **(self.certificate_block_metadata(certificate) if certificate else {}),
+            content_hash=canonical_content["content_hash"],
+            original_content_hash=canonical_content["original_content_hash"],
+            compression_algorithm=canonical_content["compression_algorithm"],
+            compression_version=canonical_content["compression_version"],
+            canonical_size_bytes=canonical_content["canonical_size_bytes"],
+            original_size_bytes=canonical_content["original_size_bytes"],
+            content_id=canonical_content["content_id"],
+            mime_type=canonical_content["mime_type"],
+            content_type=canonical_content["content_type"],
             **reward_metadata,
             voter_rewards=voter_reward_plan["selected"],
         )
-        if certificate is not None:
-            new_block.reward_type = "meme_mining_reward"
-            new_block.reward_recipient = reward_transaction.recipient
-            new_block.reward_amount = float(mining_reward)
-            new_block.reward_source = "reward_pool"
-            new_block.minted_at = minted_at
-            new_block.voter_rewards = list(voter_reward_plan["selected"])
-            new_block.hash = new_block.calculate_hash()
+        new_block.reward_type = "meme_mining_reward"
+        new_block.reward_recipient = reward_transaction.recipient
+        new_block.reward_amount = float(mining_reward)
+        new_block.reward_source = "reward_pool"
+        new_block.minted_at = minted_at
+        new_block.voter_rewards = list(voter_reward_plan["selected"])
+        new_block.hash = new_block.calculate_hash()
+        self.validate_serialized_block_size(new_block)
         self.chain.append(new_block)
         self.settle_block_native_transactions(new_block)
         self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
@@ -5250,14 +5341,20 @@ class Blockchain:
             "submission_id",
             "certificate_id",
             "content_hash",
+            "original_content_hash",
             "content_id",
             "content_type",
             "mime_type",
+            "compression_algorithm",
+            "compression_version",
+            "canonical_size_bytes",
+            "original_size_bytes",
             "creator_wallet",
             "vote_hash",
             "approval_percentage",
             "decisive_vote_total",
             "minimum_votes_required",
+            "minimum_decisive_votes_required",
             "approved_at",
             "originality_score",
             "reward_type",
@@ -5284,9 +5381,116 @@ class Blockchain:
         return True
 
     def validate_block_with_native_transactions(self, block_dict, *, prior_chain=None):
+        self.validate_serialized_block_size(block_dict)
         self.validate_block_certificate_metadata(block_dict, prior_chain=prior_chain)
         self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
         return True
+
+    def _validate_block_canonical_content(self, block_dict, metadata):
+        if block_dict.get("index") == 0:
+            return None
+
+        required_fields = [
+            "content_hash",
+            "original_content_hash",
+            "compression_algorithm",
+            "compression_version",
+            "canonical_size_bytes",
+            "original_size_bytes",
+        ]
+        for field_name in required_fields:
+            if metadata.get(field_name) in (None, ""):
+                self._raise_native_block_validation_error(
+                    "invalid_block_content",
+                    f"Block canonical content metadata missing {field_name}.",
+                    block_index=block_dict.get("index"),
+                    field_name=field_name,
+                )
+
+        meme = block_dict.get("meme")
+        if not isinstance(meme, dict):
+            self._raise_native_block_validation_error(
+                "invalid_block_content",
+                "Block meme payload must be an object for canonical content validation.",
+                block_index=block_dict.get("index"),
+            )
+        encoded_content = str(meme.get("encoded_content") or "").strip()
+        if not encoded_content:
+            self._raise_native_block_validation_error(
+                "invalid_block_content",
+                "Block is missing canonical embedded content.",
+                block_index=block_dict.get("index"),
+            )
+
+        try:
+            canonical_bytes = base64.b64decode(encoded_content.encode("ascii"), validate=True)
+        except (ValueError, binascii.Error):
+            self._raise_native_block_validation_error(
+                "malformed_embedded_content",
+                "Block embedded canonical content is malformed base64.",
+                block_index=block_dict.get("index"),
+            )
+
+        canonical_size_bytes = int(metadata["canonical_size_bytes"])
+        if len(canonical_bytes) != canonical_size_bytes:
+            self._raise_native_block_validation_error(
+                "canonical_size_mismatch",
+                "Block canonical_size_bytes does not match decoded embedded content length.",
+                block_index=block_dict.get("index"),
+                expected_size=canonical_size_bytes,
+                actual_size=len(canonical_bytes),
+            )
+        if canonical_size_bytes > MAX_CANONICAL_CONTENT_BYTES:
+            self._raise_native_block_validation_error(
+                "canonical_content_oversize",
+                "Block canonical content exceeds MAX_CANONICAL_CONTENT_BYTES.",
+                block_index=block_dict.get("index"),
+                canonical_size_bytes=canonical_size_bytes,
+            )
+
+        canonical_hash = compute_content_hash_bytes(canonical_bytes)
+        if canonical_hash != metadata["content_hash"]:
+            self._raise_native_block_validation_error(
+                "content_hash_mismatch",
+                "Block embedded canonical content does not match block content_hash.",
+                block_index=block_dict.get("index"),
+            )
+
+        try:
+            original_bytes = canonical_decompress_content_bytes(
+                canonical_bytes,
+                compression_algorithm=str(metadata["compression_algorithm"]),
+                compression_version=int(metadata["compression_version"]),
+            )
+        except ValueError as exc:
+            self._raise_native_block_validation_error(
+                "malformed_embedded_content",
+                str(exc),
+                block_index=block_dict.get("index"),
+            )
+
+        original_size_bytes = int(metadata["original_size_bytes"])
+        if len(original_bytes) != original_size_bytes:
+            self._raise_native_block_validation_error(
+                "original_size_mismatch",
+                "Block original_size_bytes does not match decompressed content length.",
+                block_index=block_dict.get("index"),
+                expected_size=original_size_bytes,
+                actual_size=len(original_bytes),
+            )
+
+        original_hash = compute_content_hash_bytes(original_bytes)
+        if original_hash != metadata["original_content_hash"]:
+            self._raise_native_block_validation_error(
+                "original_content_hash_mismatch",
+                "Block embedded content does not match block original_content_hash.",
+                block_index=block_dict.get("index"),
+            )
+
+        return {
+            "canonical_hash": canonical_hash,
+            "original_hash": original_hash,
+        }
 
     def _validate_block_voter_rewards(self, block_dict, *, prior_chain=None):
         voter_rewards = block_dict.get("voter_rewards")
@@ -5508,6 +5712,7 @@ class Blockchain:
                     field_name=field_name,
                 )
 
+        self._validate_block_canonical_content(block_dict, metadata)
         certificate = self.get_originality_certificate(metadata["certificate_id"])
         if not certificate:
             self._raise_native_block_validation_error(
@@ -5523,10 +5728,10 @@ class Blockchain:
                 certificate_id=metadata["certificate_id"],
                 submission_id=metadata["submission_id"],
             )
-        if certificate.content_hash != metadata["content_hash"]:
+        if certificate.content_hash != metadata["original_content_hash"]:
             self._raise_native_block_validation_error(
-                "content_hash_mismatch",
-                "Block certificate content_hash does not match block content_hash.",
+                "original_content_hash_mismatch",
+                "Block certificate content_hash does not match block original_content_hash.",
                 certificate_id=metadata["certificate_id"],
                 submission_id=metadata["submission_id"],
             )
@@ -5543,10 +5748,10 @@ class Blockchain:
         submission = self.get_submission(metadata["submission_id"])
         if submission:
             validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
-            if metadata["content_hash"] != submission.content_hash:
+            if metadata["original_content_hash"] != submission.content_hash:
                 self._raise_native_block_validation_error(
-                    "content_hash_mismatch",
-                    "Block content_hash does not match submission.",
+                    "original_content_hash_mismatch",
+                    "Block original_content_hash does not match submission.",
                     submission_id=metadata["submission_id"],
                 )
             if metadata.get("content_id") is not None and metadata["content_id"] != submission.content_id:
@@ -5556,9 +5761,23 @@ class Blockchain:
                     submission_id=metadata["submission_id"],
                 )
 
-        for field_name in required_fields:
+        for field_name in [
+            "submission_id",
+            "certificate_id",
+            "creator_wallet",
+            "vote_hash",
+            "approval_percentage",
+            "decisive_vote_total",
+            "minimum_votes_required",
+            "minimum_decisive_votes_required",
+            "approved_at",
+            "originality_score",
+        ]:
             certificate_value = getattr(certificate, field_name)
-            if metadata[field_name] != certificate_value:
+            metadata_value = metadata.get(field_name)
+            if field_name == "minimum_decisive_votes_required" and metadata_value is None:
+                metadata_value = metadata.get("minimum_votes_required")
+            if metadata_value != certificate_value:
                 self._raise_native_block_validation_error(
                     "certificate_metadata_mismatch",
                     f"Block certificate metadata {field_name} does not match certificate.",
@@ -5667,7 +5886,7 @@ class Blockchain:
                     actual_reward_transactions=sum(reward_transaction_counter.values()),
                 )
 
-        content_object = self.get_content_object_by_hash(metadata["content_hash"])
+        content_object = self.get_content_object_by_hash(metadata["original_content_hash"])
         if content_object is not None:
             if metadata.get("content_id") is not None and metadata["content_id"] != content_object.content_id:
                 self._raise_native_block_validation_error(
@@ -5700,8 +5919,8 @@ class Blockchain:
                 verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
                 if not verification["verified"]:
                     self._raise_native_block_validation_error(
-                        "content_hash_mismatch",
-                        "Verified local content file does not match block content_hash.",
+                        "original_content_hash_mismatch",
+                        "Verified local content file does not match block original_content_hash.",
                         submission_id=metadata["submission_id"],
                     )
 
@@ -5816,7 +6035,12 @@ class Blockchain:
                 sort_keys=True,
                 separators=(",", ":"),
             )
-        block_string = f"{block_dict['index']}{block_dict['previous_hash']}{block_dict['timestamp']}{transaction_data}{block_dict['meme']}{block_dict['miner']}{certificate_data}"
+        meme_data = json.dumps(
+            block_dict["meme"],
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        block_string = f"{block_dict['index']}{block_dict['previous_hash']}{block_dict['timestamp']}{transaction_data}{meme_data}{block_dict['miner']}{certificate_data}"
         return hashlib.sha256(block_string.encode()).hexdigest()
     
     def is_valid_public_key(self, public_key):

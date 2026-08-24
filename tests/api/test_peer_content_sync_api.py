@@ -627,7 +627,7 @@ def test_receiving_peer_block_upgrades_remote_content_metadata(blockchain, submi
         },
     )
 
-    content_object = blockchain.get_content_object_by_hash(block.content_hash)
+    content_object = blockchain.get_content_object_by_hash(block.original_content_hash)
     assert block_response.status_code == 200
     assert content_object.mime_type == block.mime_type
     assert content_object.content_type == block.content_type
@@ -651,7 +651,7 @@ def test_receiving_peer_block_creates_remote_content_reference(blockchain, submi
         },
     )
 
-    content_object = blockchain.get_content_object_by_hash(block.content_hash)
+    content_object = blockchain.get_content_object_by_hash(block.original_content_hash)
     assert response.status_code == 200
     assert content_object is not None
     assert content_object.storage_status == "remote"

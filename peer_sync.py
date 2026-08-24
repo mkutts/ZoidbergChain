@@ -707,9 +707,10 @@ def receive_peer_block(
         if existing_block.index == block.index:
             raise DuplicateBlockError("Block already exists.")
 
-    if block.content_hash:
+    remote_content_hash = block.original_content_hash or block.content_hash
+    if remote_content_hash:
         blockchain.register_remote_content_reference(
-            content_hash=block.content_hash,
+            content_hash=remote_content_hash,
             content_id=block.content_id,
             submitted_by=block.creator_wallet,
             mime_type=block.mime_type or "application/octet-stream",
@@ -1749,6 +1750,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             "unsure_votes",
             "approval_percentage",
             "minimum_votes_required",
+            "minimum_decisive_votes_required",
             "approved_at",
             "network_name",
             "issuing_node_id",
@@ -1771,6 +1773,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
         "unsure_votes",
         "approval_percentage",
         "minimum_votes_required",
+        "minimum_decisive_votes_required",
         "approved_at",
         "network_name",
         "issuing_node_id",
@@ -1827,6 +1830,17 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
                 f"Certificate {field_name} must be a non-negative integer."
             )
         normalized[field_name] = value
+    minimum_decisive_votes_required = certificate_payload.get("minimum_decisive_votes_required")
+    if minimum_decisive_votes_required is not None:
+        if (
+            isinstance(minimum_decisive_votes_required, bool)
+            or not isinstance(minimum_decisive_votes_required, int)
+            or minimum_decisive_votes_required < 0
+        ):
+            raise MalformedCertificateError(
+                "Certificate minimum_decisive_votes_required must be a non-negative integer."
+            )
+        normalized["minimum_decisive_votes_required"] = minimum_decisive_votes_required
 
     for field_name in ["approval_percentage", "approved_at"]:
         value = certificate_payload.get(field_name)
@@ -1863,6 +1877,11 @@ def _validate_certificate_internal(certificate, local_network_name):
         raise MalformedCertificateError("Originality certificate vote_hash is required.")
     if certificate.minimum_votes_required is None:
         raise MalformedCertificateError("Originality certificate minimum_votes_required is required.")
+    required_decisive_votes = (
+        certificate.minimum_decisive_votes_required
+        if getattr(certificate, "minimum_decisive_votes_required", None) is not None
+        else certificate.minimum_votes_required
+    )
     if certificate.approval_percentage < ORIGINALITY_APPROVAL_THRESHOLD:
         raise MalformedCertificateError(
             "Originality certificate approval percentage is below the required threshold."
@@ -1898,6 +1917,10 @@ def _validate_certificate_internal(certificate, local_network_name):
         )
     if certificate.decisive_vote_total <= 0:
         raise MalformedCertificateError("Originality certificate must include decisive votes.")
+    if certificate.decisive_vote_total < required_decisive_votes:
+        raise MalformedCertificateError(
+            "Originality certificate does not meet the decisive vote quorum."
+        )
 
     expected_approval = certificate.original_votes / certificate.decisive_vote_total
     if not math.isclose(certificate.approval_percentage, expected_approval):
@@ -2078,14 +2101,20 @@ def _normalize_block_payload(block_payload):
             "submission_id",
             "certificate_id",
             "content_hash",
+            "original_content_hash",
             "content_id",
             "content_type",
             "mime_type",
+            "compression_algorithm",
+            "compression_version",
+            "canonical_size_bytes",
+            "original_size_bytes",
             "creator_wallet",
             "vote_hash",
             "approval_percentage",
             "decisive_vote_total",
             "minimum_votes_required",
+            "minimum_decisive_votes_required",
             "approved_at",
             "originality_score",
             "reward_type",
@@ -2154,14 +2183,20 @@ def _normalize_block_payload(block_payload):
         submission_id=block_payload.get("submission_id"),
         certificate_id=block_payload.get("certificate_id"),
         content_hash=block_payload.get("content_hash"),
+        original_content_hash=block_payload.get("original_content_hash"),
         content_id=block_payload.get("content_id"),
         content_type=block_payload.get("content_type"),
         mime_type=block_payload.get("mime_type"),
+        compression_algorithm=block_payload.get("compression_algorithm"),
+        compression_version=block_payload.get("compression_version"),
+        canonical_size_bytes=block_payload.get("canonical_size_bytes"),
+        original_size_bytes=block_payload.get("original_size_bytes"),
         creator_wallet=block_payload.get("creator_wallet"),
         vote_hash=block_payload.get("vote_hash"),
         approval_percentage=block_payload.get("approval_percentage"),
         decisive_vote_total=block_payload.get("decisive_vote_total"),
         minimum_votes_required=block_payload.get("minimum_votes_required"),
+        minimum_decisive_votes_required=block_payload.get("minimum_decisive_votes_required"),
         approved_at=block_payload.get("approved_at"),
         originality_score=block_payload.get("originality_score"),
         reward_type=block_payload.get("reward_type"),

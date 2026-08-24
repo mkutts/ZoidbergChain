@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import gzip
 import json
 import mimetypes
 import os
@@ -56,6 +57,9 @@ HASH_SCHEMES = {
     HASH_SCHEME_UNKNOWN,
 }
 
+CANONICAL_COMPRESSION_GZIP = "gzip"
+CANONICAL_COMPRESSION_VERSION = 1
+
 
 def _normalize_json_value(value: Any) -> Any:
     if isinstance(value, dict):
@@ -95,6 +99,37 @@ def compute_content_hash_bytes(data: bytes) -> str:
     if not isinstance(data, (bytes, bytearray)):
         raise ValueError("Content bytes are required.")
     return hashlib.sha256(bytes(data)).hexdigest()
+
+
+def canonical_compress_content_bytes(
+    data: bytes,
+    *,
+    compression_algorithm: str = CANONICAL_COMPRESSION_GZIP,
+    compression_version: int = CANONICAL_COMPRESSION_VERSION,
+) -> bytes:
+    payload = bytes(data)
+    if compression_algorithm != CANONICAL_COMPRESSION_GZIP:
+        raise ValueError(f"Unsupported canonical compression algorithm: {compression_algorithm!r}.")
+    if int(compression_version) != CANONICAL_COMPRESSION_VERSION:
+        raise ValueError(f"Unsupported canonical compression version: {compression_version!r}.")
+    return gzip.compress(payload, compresslevel=9, mtime=0)
+
+
+def canonical_decompress_content_bytes(
+    data: bytes,
+    *,
+    compression_algorithm: str = CANONICAL_COMPRESSION_GZIP,
+    compression_version: int = CANONICAL_COMPRESSION_VERSION,
+) -> bytes:
+    payload = bytes(data)
+    if compression_algorithm != CANONICAL_COMPRESSION_GZIP:
+        raise ValueError(f"Unsupported canonical compression algorithm: {compression_algorithm!r}.")
+    if int(compression_version) != CANONICAL_COMPRESSION_VERSION:
+        raise ValueError(f"Unsupported canonical compression version: {compression_version!r}.")
+    try:
+        return gzip.decompress(payload)
+    except OSError as exc:
+        raise ValueError("Canonical compressed content could not be decompressed.") from exc
 
 
 def canonicalize_text_content(text_content: str) -> str:

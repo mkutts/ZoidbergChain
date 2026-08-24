@@ -202,7 +202,7 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
 
     approved_creator = _create_metamask_account()
     approved_creator_headers = _verify_wallet_session(client, approved_creator)
-    approved_majority_voters = [(_create_metamask_account(), None) for _ in range(3)]
+    approved_majority_voters = [(_create_metamask_account(), None) for _ in range(4)]
     approved_majority_voters = [
         (account, _verify_wallet_session(client, account))
         for account, _ in approved_majority_voters
@@ -225,6 +225,7 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
             (approved_majority_voters[0][0], approved_majority_voters[0][1], VOTE_ORIGINAL),
             (approved_majority_voters[1][0], approved_majority_voters[1][1], VOTE_ORIGINAL),
             (approved_majority_voters[2][0], approved_majority_voters[2][1], VOTE_ORIGINAL),
+            (approved_majority_voters[3][0], approved_majority_voters[3][1], VOTE_ORIGINAL),
             (approved_unsure, approved_unsure_headers, VOTE_UNSURE),
             (approved_minority, approved_minority_headers, VOTE_NOT_ORIGINAL),
         ],
@@ -241,16 +242,16 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
     assert approved_pending["reward_status"] == "pending"
     assert approved_pending["final_majority_side"] == "original"
     assert approved_pending["rewarded_voter_count"] == 0
-    assert approved_pending["pending_voter_count"] == 3
+    assert approved_pending["pending_voter_count"] == 4
 
     approved_minted = _mint_submission_via_api(client, approved_submission["submission_id"])
     approved_summary = client.get(
         f"/submissions/{approved_submission['submission_id']}/voter-rewards"
     ).json()
     assert approved_summary["reward_status"] == "finalized"
-    assert approved_summary["rewarded_voter_count"] == 3
+    assert approved_summary["rewarded_voter_count"] == 4
     assert approved_summary["pending_voter_count"] == 0
-    assert len(approved_summary["reward_records"]) == 3
+    assert len(approved_summary["reward_records"]) == 4
     assert approved_summary["pending_reward_records"] == []
 
     approved_creator_rewards = client.get(f"/accounts/{approved_creator.address}/rewards").json()["rewards"]
@@ -278,7 +279,7 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
     approved_summary_after_retry = client.get(
         f"/submissions/{approved_submission['submission_id']}/voter-rewards"
     ).json()
-    assert approved_summary_after_retry["rewarded_voter_count"] == 3
+    assert approved_summary_after_retry["rewarded_voter_count"] == 4
     assert approved_summary_after_retry["pending_voter_count"] == 0
     for account, _headers in approved_majority_voters:
         rewards = client.get(f"/accounts/{account.address}/rewards").json()["rewards"]
@@ -286,7 +287,7 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
 
     rejected_creator = _create_metamask_account()
     rejected_creator_headers = _verify_wallet_session(client, rejected_creator)
-    rejected_majority_voters = [(_create_metamask_account(), None) for _ in range(3)]
+    rejected_majority_voters = [(_create_metamask_account(), None) for _ in range(4)]
     rejected_majority_voters = [
         (account, _verify_wallet_session(client, account))
         for account, _ in rejected_majority_voters
@@ -309,6 +310,7 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
             (rejected_majority_voters[0][0], rejected_majority_voters[0][1], VOTE_NOT_ORIGINAL),
             (rejected_majority_voters[1][0], rejected_majority_voters[1][1], VOTE_NOT_ORIGINAL),
             (rejected_majority_voters[2][0], rejected_majority_voters[2][1], VOTE_NOT_ORIGINAL),
+            (rejected_majority_voters[3][0], rejected_majority_voters[3][1], VOTE_NOT_ORIGINAL),
             (rejected_unsure, rejected_unsure_headers, VOTE_UNSURE),
             (rejected_minority, rejected_minority_headers, VOTE_ORIGINAL),
         ],
@@ -325,7 +327,7 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
     assert rejected_pending["reward_status"] == "pending"
     assert rejected_pending["final_majority_side"] == "not_original"
     assert rejected_pending["rewarded_voter_count"] == 0
-    assert rejected_pending["pending_voter_count"] == 3
+    assert rejected_pending["pending_voter_count"] == 4
     assert client.get(f"/accounts/{rejected_creator.address}/rewards").json()["rewards"] == []
     for account, _headers in rejected_majority_voters:
         assert client.get(f"/accounts/{account.address}/rewards").json()["rewards"] == []
@@ -371,9 +373,9 @@ def test_task_10_3_reward_flows_cover_approved_rejected_and_idempotency(blockcha
         f"/submissions/{rejected_submission['submission_id']}/voter-rewards"
     ).json()
     assert rejected_summary["reward_status"] == "finalized"
-    assert rejected_summary["rewarded_voter_count"] == 3
+    assert rejected_summary["rewarded_voter_count"] == 4
     assert rejected_summary["pending_voter_count"] == 0
-    assert len(rejected_summary["reward_records"]) == 3
+    assert len(rejected_summary["reward_records"]) == 4
     assert rejected_summary["pending_reward_records"] == []
     for account, _headers in rejected_majority_voters:
         rewards = client.get(f"/accounts/{account.address}/rewards").json()["rewards"]

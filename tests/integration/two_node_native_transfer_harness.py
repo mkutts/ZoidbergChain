@@ -110,9 +110,14 @@ def _clone_block(block: Block) -> Block:
         submission_id=block_data.get("submission_id"),
         certificate_id=block_data.get("certificate_id"),
         content_hash=block_data.get("content_hash"),
+        original_content_hash=block_data.get("original_content_hash"),
         content_id=block_data.get("content_id"),
         content_type=block_data.get("content_type"),
         mime_type=block_data.get("mime_type"),
+        compression_algorithm=block_data.get("compression_algorithm"),
+        compression_version=block_data.get("compression_version"),
+        canonical_size_bytes=block_data.get("canonical_size_bytes"),
+        original_size_bytes=block_data.get("original_size_bytes"),
         creator_wallet=block_data.get("creator_wallet"),
         vote_hash=block_data.get("vote_hash"),
         approval_percentage=block_data.get("approval_percentage"),
@@ -461,17 +466,32 @@ def _rebuild_transaction_with_signature(base_transaction: dict[str, Any], signat
 
 def _build_peer_block(blockchain, *, latest_block: Block, submission, certificate, miner: str, text: str, native_transactions: list[dict[str, Any]]):
     minted_at = 1_000_500.0 + latest_block.index
+    canonical_content = blockchain._canonical_block_content_for_submission(submission)
     return Block(
         index=latest_block.index + 1,
         previous_hash=latest_block.hash,
         timestamp=minted_at,
         transactions=[Transaction("REWARD_POOL", miner, 5, created_at=minted_at)],
         miner=miner,
-        meme={"encoded_image": "peer-image", "text": text},
+        meme={
+            "encoded_content": canonical_content["encoded_content"],
+            "text": text,
+            "compression_algorithm": canonical_content["compression_algorithm"],
+            "compression_version": canonical_content["compression_version"],
+        },
         native_transactions=native_transactions,
         transaction_ids=[transaction["tx_id"] for transaction in native_transactions],
         transaction_count=len(native_transactions),
         transactions_hash=blockchain._compute_block_native_transactions_hash(native_transactions),
+        content_hash=canonical_content["content_hash"],
+        original_content_hash=canonical_content["original_content_hash"],
+        compression_algorithm=canonical_content["compression_algorithm"],
+        compression_version=canonical_content["compression_version"],
+        canonical_size_bytes=canonical_content["canonical_size_bytes"],
+        original_size_bytes=canonical_content["original_size_bytes"],
+        content_id=canonical_content["content_id"],
+        mime_type=canonical_content["mime_type"],
+        content_type=canonical_content["content_type"],
         **blockchain.certificate_block_metadata(certificate),
         **blockchain.build_meme_reward_metadata(submission, certificate, minted_at=minted_at),
     )

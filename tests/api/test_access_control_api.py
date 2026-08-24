@@ -1117,6 +1117,8 @@ def test_access_required_rewards_only_pay_bound_active_wallets(blockchain, monke
     unbound_headers = _verify_wallet_session(client, unbound_majority)
     second_unbound_majority = _create_account()
     second_unbound_headers = _verify_wallet_session(client, second_unbound_majority)
+    third_unbound_majority = _create_account()
+    third_unbound_headers = _verify_wallet_session(client, third_unbound_majority)
     unsure_voter = _create_account()
     unsure_headers = _verify_wallet_session(client, unsure_voter)
     minority = _create_account()
@@ -1134,6 +1136,7 @@ def test_access_required_rewards_only_pay_bound_active_wallets(blockchain, monke
     assert _vote_signed_via_api(client, submission_id, bound_majority, bound_headers, vote_type="original").status_code == 200
     assert _vote_signed_via_api(client, submission_id, unbound_majority, unbound_headers, vote_type="original").status_code == 200
     assert _vote_signed_via_api(client, submission_id, second_unbound_majority, second_unbound_headers, vote_type="original").status_code == 200
+    assert _vote_signed_via_api(client, submission_id, third_unbound_majority, third_unbound_headers, vote_type="original").status_code == 200
     assert _vote_signed_via_api(client, submission_id, unsure_voter, unsure_headers, vote_type="unsure").status_code == 200
     assert _vote_signed_via_api(client, submission_id, minority, minority_headers, vote_type="not_original").status_code == 200
 

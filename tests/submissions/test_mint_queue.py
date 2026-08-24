@@ -122,7 +122,7 @@ def test_invalid_mint_queue_entries(blockchain, approved_submissions):
     assert blockchain.mint_queue == [approved.submission_id]
 
 
-def test_legacy_submission_without_content_id_can_still_be_minted(blockchain, submission_image, wallets, monkeypatch):
+def test_legacy_submission_without_content_id_cannot_be_minted_without_canonical_content(blockchain, submission_image, wallets):
     submission = Submission.from_dict(
         {
             "submission_id": "legacy-mint-submission",
@@ -134,12 +134,9 @@ def test_legacy_submission_without_content_id_can_still_be_minted(blockchain, su
         }
     )
     blockchain.submissions.append(submission)
+    blockchain.link_content_objects_to_submissions()
     _certify_submission(blockchain, submission)
     blockchain.add_to_mint_queue(submission.submission_id)
-    monkeypatch.setattr(blockchain, "add_block", lambda **kwargs: True)
 
-    result = blockchain.mint_next_queued_submission(miner=wallets["contributor_one"].public_key)
-
-    assert result is True
-    assert submission.content_id is not None
-    assert submission.status == MINTED
+    with pytest.raises(ValueError, match="legacy_noncanonical_content"):
+        blockchain.mint_next_queued_submission(miner=wallets["contributor_one"].public_key)

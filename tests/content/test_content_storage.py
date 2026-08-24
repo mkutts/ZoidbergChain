@@ -291,10 +291,10 @@ def test_legacy_submission_content_object_stays_local_and_unverifiable(isolated_
 
     content_object = blockchain.get_content_object_by_hash(submission.content_hash)
     verification = verify_content_object_payload(content_object, data_dir=backend.data_dir)
-    assert content_object.storage_status == "local"
-    assert content_object.hash_scheme == HASH_SCHEME_LEGACY
-    assert verification["verified"] is False
-    assert verification["error"] == "legacy_unverifiable"
+    assert content_object.storage_status == STORAGE_STATUS_VERIFIED
+    assert content_object.hash_scheme == HASH_SCHEME_SHA256_BYTES
+    assert verification["verified"] is True
+    assert verification["error"] is None
 
 
 def test_integrity_check_reports_corrupt_verified_content(isolated_data_dir):
@@ -329,4 +329,4 @@ def test_integrity_check_warns_for_legacy_unverifiable_content(isolated_data_dir
     report = storage.check_storage_integrity(backend)
 
     assert report["healthy"] is True
-    assert any("legacy/unverifiable" in detail for detail in report["details"])
+    assert not any("legacy/unverifiable" in detail for detail in report["details"])

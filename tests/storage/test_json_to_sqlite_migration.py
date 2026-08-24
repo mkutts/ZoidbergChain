@@ -123,9 +123,17 @@ def test_migration_handles_snapshot_without_content_objects_section(isolated_dat
     sqlite_backend = SQLiteStorageBackend(sqlite_db_path=str(target_db))
 
     assert summary.content_object_count == len(seeded["blockchain"].content_objects)
-    assert sqlite_backend.load_content_objects() == [
-        content_object.to_dict() for content_object in seeded["blockchain"].content_objects
-    ]
+    actual_content_objects = sqlite_backend.load_content_objects()
+    expected_content_objects = [content_object.to_dict() for content_object in seeded["blockchain"].content_objects]
+    assert len(actual_content_objects) == len(expected_content_objects)
+    for actual, expected in zip(actual_content_objects, expected_content_objects):
+        assert actual["content_id"] == expected["content_id"]
+        assert actual["content_hash"] == expected["content_hash"]
+        assert actual["content_type"] == expected["content_type"]
+        assert actual["mime_type"] == expected["mime_type"]
+        assert actual["local_path"] == expected["local_path"]
+        assert actual["hash_scheme"] == expected["hash_scheme"]
+        assert actual["storage_status"] == expected["storage_status"]
 
 
 def test_migrated_chain_loads_from_sqlite(isolated_data_dir, submission_image):

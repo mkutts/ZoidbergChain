@@ -25,14 +25,20 @@ class Block:
         submission_id=None,
         certificate_id=None,
         content_hash=None,
+        original_content_hash=None,
         content_id=None,
         content_type=None,
         mime_type=None,
+        compression_algorithm=None,
+        compression_version=None,
+        canonical_size_bytes=None,
+        original_size_bytes=None,
         creator_wallet=None,
         vote_hash=None,
         approval_percentage=None,
         decisive_vote_total=None,
         minimum_votes_required=None,
+        minimum_decisive_votes_required=None,
         approved_at=None,
         originality_score=None,
         reward_type=None,
@@ -55,14 +61,24 @@ class Block:
         self.submission_id = submission_id
         self.certificate_id = certificate_id
         self.content_hash = content_hash
+        self.original_content_hash = original_content_hash
         self.content_id = content_id
         self.content_type = content_type
         self.mime_type = mime_type
+        self.compression_algorithm = compression_algorithm
+        self.compression_version = compression_version
+        self.canonical_size_bytes = canonical_size_bytes
+        self.original_size_bytes = original_size_bytes
         self.creator_wallet = creator_wallet
         self.vote_hash = vote_hash
         self.approval_percentage = approval_percentage
         self.decisive_vote_total = decisive_vote_total
         self.minimum_votes_required = minimum_votes_required
+        self.minimum_decisive_votes_required = (
+            minimum_decisive_votes_required
+            if minimum_decisive_votes_required is not None
+            else minimum_votes_required
+        )
         self.approved_at = approved_at
         self.originality_score = originality_score
         self.reward_type = reward_type
@@ -96,14 +112,20 @@ class Block:
             "submission_id": self.submission_id,
             "certificate_id": self.certificate_id,
             "content_hash": self.content_hash,
+            "original_content_hash": self.original_content_hash,
             "content_id": self.content_id,
             "content_type": self.content_type,
             "mime_type": self.mime_type,
+            "compression_algorithm": self.compression_algorithm,
+            "compression_version": self.compression_version,
+            "canonical_size_bytes": self.canonical_size_bytes,
+            "original_size_bytes": self.original_size_bytes,
             "creator_wallet": self.creator_wallet,
             "vote_hash": self.vote_hash,
             "approval_percentage": self.approval_percentage,
             "decisive_vote_total": self.decisive_vote_total,
             "minimum_votes_required": self.minimum_votes_required,
+            "minimum_decisive_votes_required": self.minimum_decisive_votes_required,
             "approved_at": self.approved_at,
             "originality_score": self.originality_score,
             "reward_type": self.reward_type,
@@ -138,5 +160,10 @@ class Block:
                 sort_keys=True,
                 separators=(",", ":"),
             )
-        block_string = f"{self.index}{self.previous_hash}{self.timestamp}{transaction_data}{self.meme}{self.miner}{certificate_data}"
+        meme_data = json.dumps(
+            self.meme,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        block_string = f"{self.index}{self.previous_hash}{self.timestamp}{transaction_data}{meme_data}{self.miner}{certificate_data}"
         return hashlib.sha256(block_string.encode()).hexdigest()

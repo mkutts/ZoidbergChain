@@ -107,6 +107,26 @@ def test_no_votes_allowed_after_certificate_exists(blockchain, submission, walle
         wallets["contributor_one"].public_key,
         VOTE_ORIGINAL,
     )
+    blockchain.cast_submission_vote(
+        submission.submission_id,
+        wallets["contributor_two"].public_key,
+        VOTE_ORIGINAL,
+    )
+    blockchain.cast_submission_vote(
+        submission.submission_id,
+        "community-voter-3",
+        VOTE_ORIGINAL,
+    )
+    blockchain.cast_submission_vote(
+        submission.submission_id,
+        "community-voter-4",
+        VOTE_ORIGINAL,
+    )
+    blockchain.cast_submission_vote(
+        submission.submission_id,
+        "community-voter-5",
+        VOTE_NOT_ORIGINAL,
+    )
     submission.transition_to("approved")
     blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
     submission.status = "pending"
@@ -114,6 +134,6 @@ def test_no_votes_allowed_after_certificate_exists(blockchain, submission, walle
     with pytest.raises(ValueError, match="cannot receive votes"):
         blockchain.cast_submission_vote(
             submission.submission_id,
-            wallets["contributor_two"].public_key,
+            "community-voter-6",
             VOTE_NOT_ORIGINAL,
         )

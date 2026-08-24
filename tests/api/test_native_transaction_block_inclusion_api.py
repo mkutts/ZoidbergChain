@@ -114,6 +114,51 @@ def _prepare_mintable_submission(blockchain, submission_image, submitter):
     return submission
 
 
+def _peer_certified_block(
+    blockchain,
+    submission,
+    certificate,
+    *,
+    miner,
+    minted_at=1_000_500.0,
+    native_transactions=None,
+    transaction_ids=None,
+    text="Peer settled block",
+):
+    latest_block = blockchain.get_latest_block()
+    native_transactions = list(native_transactions or [])
+    transaction_ids = list(transaction_ids or [])
+    canonical_content = blockchain._canonical_block_content_for_submission(submission)
+    return Block(
+        index=latest_block.index + 1,
+        previous_hash=latest_block.hash,
+        timestamp=minted_at,
+        transactions=[Transaction("REWARD_POOL", miner, 5, created_at=minted_at)],
+        miner=miner,
+        meme={
+            "encoded_content": canonical_content["encoded_content"],
+            "text": text,
+            "compression_algorithm": canonical_content["compression_algorithm"],
+            "compression_version": canonical_content["compression_version"],
+        },
+        native_transactions=native_transactions,
+        transaction_ids=transaction_ids,
+        transaction_count=len(native_transactions),
+        transactions_hash=blockchain._compute_block_native_transactions_hash(native_transactions),
+        content_hash=canonical_content["content_hash"],
+        original_content_hash=canonical_content["original_content_hash"],
+        compression_algorithm=canonical_content["compression_algorithm"],
+        compression_version=canonical_content["compression_version"],
+        canonical_size_bytes=canonical_content["canonical_size_bytes"],
+        original_size_bytes=canonical_content["original_size_bytes"],
+        content_id=canonical_content["content_id"],
+        mime_type=canonical_content["mime_type"],
+        content_type=canonical_content["content_type"],
+        **blockchain.certificate_block_metadata(certificate),
+        **blockchain.build_meme_reward_metadata(submission, certificate, minted_at=minted_at),
+    )
+
+
 def _register_peer(api_module, node_id="peer-node-1", url="http://peer-one.test:8000"):
     return api_module.peer_store.register_peer(
         node_id=node_id,
@@ -316,24 +361,16 @@ def test_receive_peer_block_rejects_out_of_order_native_transactions_without_mut
 
     higher_snapshot = blockchain._serialize_native_transaction_for_block(blockchain.get_native_transaction(higher_tx_id))
     lower_snapshot = blockchain._serialize_native_transaction_for_block(blockchain.get_native_transaction(lower_tx_id))
-    latest_block = blockchain.get_latest_block()
     submission = _submission(blockchain, "zoidberg.jpg", recipient.address.lower())
     certificate = _certify_submission(blockchain, submission)
-    minted_at = 1_000_500.0
     out_of_order_snapshots = [higher_snapshot, lower_snapshot]
-    block = Block(
-        index=latest_block.index + 1,
-        previous_hash=latest_block.hash,
-        timestamp=minted_at,
-        transactions=[Transaction("REWARD_POOL", recipient.address.lower(), 5, created_at=1_000_500.0)],
+    block = _peer_certified_block(
+        blockchain,
+        submission,
+        certificate,
         miner=recipient.address.lower(),
-        meme={"encoded_image": "peer-image", "text": "Peer settled block"},
         native_transactions=out_of_order_snapshots,
         transaction_ids=[higher_tx_id, lower_tx_id],
-        transaction_count=2,
-        transactions_hash=blockchain._compute_block_native_transactions_hash(out_of_order_snapshots),
-        **blockchain.certificate_block_metadata(certificate),
-        **blockchain.build_meme_reward_metadata(submission, certificate, minted_at=minted_at),
     )
 
     response = client.post(
@@ -371,23 +408,15 @@ def test_receive_peer_block_with_native_transaction_settles_local_mempool_transa
     )
     tx_id = submit_response.json()["tx_id"]
     transaction_snapshot = blockchain._serialize_native_transaction_for_block(blockchain.get_native_transaction(tx_id))
-    latest_block = blockchain.get_latest_block()
     submission = _submission(blockchain, "zoidberg.jpg", recipient.address.lower())
     certificate = _certify_submission(blockchain, submission)
-    minted_at = 1_000_500.0
-    block = Block(
-        index=latest_block.index + 1,
-        previous_hash=latest_block.hash,
-        timestamp=minted_at,
-        transactions=[Transaction("REWARD_POOL", recipient.address.lower(), 5, created_at=1_000_500.0)],
+    block = _peer_certified_block(
+        blockchain,
+        submission,
+        certificate,
         miner=recipient.address.lower(),
-        meme={"encoded_image": "peer-image", "text": "Peer settled block"},
         native_transactions=[transaction_snapshot],
         transaction_ids=[tx_id],
-        transaction_count=1,
-        transactions_hash=blockchain._compute_block_native_transactions_hash([transaction_snapshot]),
-        **blockchain.certificate_block_metadata(certificate),
-        **blockchain.build_meme_reward_metadata(submission, certificate, minted_at=minted_at),
     )
 
     response = client.post(

@@ -462,7 +462,8 @@ def test_text_content_submission_can_be_minted_from_content_reference(blockchain
     body = mint_response.json()
     assert body["minted"] is True
     assert body["block"]["content_id"] == uploaded["content_id"]
-    assert body["block"]["content_hash"] == uploaded["content_hash"]
+    assert body["block"]["content_hash"] != uploaded["content_hash"]
+    assert body["block"]["original_content_hash"] == uploaded["content_hash"]
     assert body["block"]["meme"]["text"] == "mintable text content"
 
 
@@ -984,7 +985,8 @@ def test_mint_queued_submission_creates_block_and_marks_minted(blockchain, submi
     assert body["block"]["meme"]["text"] == submission.text_content
     assert body["block"]["certificate_id"] == certificate.certificate_id
     assert body["block"]["submission_id"] == submission.submission_id
-    assert body["block"]["content_hash"] == submission.content_hash
+    assert body["block"]["content_hash"] != submission.content_hash
+    assert body["block"]["original_content_hash"] == submission.content_hash
     assert body["block"]["originality_score"] == certificate.originality_score
     assert client.get("/mint-queue").json() == {"mint_queue": []}
 

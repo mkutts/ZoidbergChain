@@ -127,6 +127,13 @@ def validate_certificate_for_submission(
         raise ValueError("Originality certificate decisive_vote_total is inconsistent.")
     if certificate.decisive_vote_total <= 0:
         raise ValueError("Originality certificate must include decisive votes.")
+    required_decisive_votes = getattr(
+        certificate,
+        "minimum_decisive_votes_required",
+        certificate.minimum_votes_required,
+    )
+    if certificate.decisive_vote_total < required_decisive_votes:
+        raise ValueError("Originality certificate does not meet the decisive vote quorum.")
     expected_approval = certificate.original_votes / certificate.decisive_vote_total
     if not math.isclose(certificate.approval_percentage, expected_approval):
         raise ValueError("Originality certificate approval percentage is inconsistent.")
@@ -152,11 +159,14 @@ class OriginalityCertificate:
     network_name: str
     issuing_node_id: str
     vote_hash: str
+    minimum_decisive_votes_required: int | None = None
     content_id: str | None = None
     originality_score: float | None = None
     certificate_id: str = field(default="")
 
     def __post_init__(self):
+        if self.minimum_decisive_votes_required is None:
+            self.minimum_decisive_votes_required = self.minimum_votes_required
         if self.originality_score is None:
             self.originality_score = calculate_originality_score(self)
         if not self.certificate_id:
@@ -190,6 +200,7 @@ class OriginalityCertificate:
             unsure_votes=unsure_votes,
             approval_percentage=approval_percentage,
             minimum_votes_required=minimum_votes_required,
+            minimum_decisive_votes_required=minimum_votes_required,
             approved_at=approved_at if approved_at is not None else time.time(),
             network_name=network_name,
             issuing_node_id=issuing_node_id,
@@ -208,6 +219,7 @@ class OriginalityCertificate:
             "unsure_votes": self.unsure_votes,
             "approval_percentage": self.approval_percentage,
             "minimum_votes_required": self.minimum_votes_required,
+            "minimum_decisive_votes_required": self.minimum_decisive_votes_required,
             "network_name": self.network_name,
             "issuing_node_id": self.issuing_node_id,
             "vote_hash": self.vote_hash,
@@ -227,6 +239,7 @@ class OriginalityCertificate:
             "unsure_votes": self.unsure_votes,
             "approval_percentage": self.approval_percentage,
             "minimum_votes_required": self.minimum_votes_required,
+            "minimum_decisive_votes_required": self.minimum_decisive_votes_required,
             "approved_at": self.approved_at,
             "network_name": self.network_name,
             "issuing_node_id": self.issuing_node_id,
@@ -249,6 +262,7 @@ class OriginalityCertificate:
             unsure_votes=data["unsure_votes"],
             approval_percentage=data["approval_percentage"],
             minimum_votes_required=data["minimum_votes_required"],
+            minimum_decisive_votes_required=data.get("minimum_decisive_votes_required"),
             approved_at=data["approved_at"],
             network_name=data["network_name"],
             issuing_node_id=data["issuing_node_id"],

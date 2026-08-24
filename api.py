@@ -304,6 +304,7 @@ class PeerCertificatePayload(_StrictBodyModel):
     issuing_node_id: NodeIdValue | None = None
     vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
+    minimum_decisive_votes_required: Annotated[int, Field(ge=0)] | None = None
 
 
 class PeerBlockPayload(_StrictBodyModel):
@@ -321,14 +322,20 @@ class PeerBlockPayload(_StrictBodyModel):
     submission_id: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    original_content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_type: Annotated[str, Field(min_length=1, max_length=32)] | None = None
     mime_type: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    compression_algorithm: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    compression_version: Annotated[int, Field(ge=0)] | None = None
+    canonical_size_bytes: Annotated[int, Field(ge=0)] | None = None
+    original_size_bytes: Annotated[int, Field(ge=0)] | None = None
     creator_wallet: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     approval_percentage: Annotated[float, Field(ge=0)] | None = None
     decisive_vote_total: Annotated[int, Field(ge=0)] | None = None
     minimum_votes_required: Annotated[int, Field(ge=0)] | None = None
+    minimum_decisive_votes_required: Annotated[int, Field(ge=0)] | None = None
     approved_at: Annotated[float, Field(ge=0)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
     reward_type: Annotated[str, Field(min_length=1, max_length=64)] | None = None

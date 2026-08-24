@@ -189,6 +189,31 @@ def test_duplicate_matching_peer_vote_after_certificate_is_idempotent(
         vote_type=VOTE_ORIGINAL,
         created_at=100.0,
     )
+    blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=wallets["contributor_two"].public_key,
+        vote_type=VOTE_ORIGINAL,
+        created_at=101.0,
+    )
+    extra_voters = [Account.create().address.lower() for _ in range(3)]
+    blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=extra_voters[0],
+        vote_type=VOTE_ORIGINAL,
+        created_at=102.0,
+    )
+    blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=extra_voters[1],
+        vote_type=VOTE_ORIGINAL,
+        created_at=103.0,
+    )
+    blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=extra_voters[2],
+        vote_type=VOTE_NOT_ORIGINAL,
+        created_at=104.0,
+    )
     submission.transition_to(APPROVED)
     blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
 
@@ -204,7 +229,8 @@ def test_duplicate_matching_peer_vote_after_certificate_is_idempotent(
 
     assert response.status_code == 200
     assert response.json()["action"] == "duplicate"
-    assert blockchain.votes == [existing_vote]
+    assert len(blockchain.votes) == 5
+    assert blockchain.votes[0] == existing_vote
 
 
 def test_duplicate_conflicting_peer_vote_is_rejected(blockchain, submission_image, wallets):
@@ -241,6 +267,15 @@ def test_peer_vote_rejected_after_certificate_exists(blockchain, submission_imag
         voter=wallets["contributor_one"].public_key,
         vote_type=VOTE_ORIGINAL,
     )
+    blockchain.cast_submission_vote(
+        submission_id=submission.submission_id,
+        voter=wallets["contributor_two"].public_key,
+        vote_type=VOTE_ORIGINAL,
+    )
+    extra_voters = [Account.create().address.lower() for _ in range(3)]
+    blockchain.cast_submission_vote(submission.submission_id, extra_voters[0], VOTE_ORIGINAL)
+    blockchain.cast_submission_vote(submission.submission_id, extra_voters[1], VOTE_ORIGINAL)
+    blockchain.cast_submission_vote(submission.submission_id, extra_voters[2], VOTE_NOT_ORIGINAL)
     submission.transition_to(APPROVED)
     blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_000)
 
@@ -248,14 +283,14 @@ def test_peer_vote_rejected_after_certificate_exists(blockchain, submission_imag
         "/peers/votes/receive",
         json=_vote_payload(
             submission.submission_id,
-            wallets["contributor_two"].public_key,
+            Account.create().address.lower(),
             vote_type=VOTE_NOT_ORIGINAL,
         ),
     )
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Finalized or certified submissions cannot receive votes."
-    assert len(blockchain.votes) == 1
+    assert len(blockchain.votes) == 5
 
 
 def test_creator_cannot_vote_through_peer_endpoint(blockchain, submission_image, wallets):

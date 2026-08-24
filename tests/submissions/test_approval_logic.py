@@ -83,8 +83,10 @@ def test_unsure_votes_do_not_hurt_approval(blockchain, submission_image, wallets
         now=now,
     )
 
-    assert submission.status == APPROVED
+    assert submission.status == PENDING
     assert result["approval_percentage"] == 1
+    assert result["decisive_votes_cast"] == 4
+    assert result["reason"] == "awaiting_decisive_votes"
 
 
 def test_submission_remains_pending_before_threshold_or_window(blockchain, submission_image, wallets):
@@ -105,7 +107,7 @@ def test_submission_remains_pending_before_threshold_or_window(blockchain, submi
 
     assert submission.status == PENDING
     assert result["status"] == PENDING
-    assert result["reason"] == "awaiting_votes_or_window"
+    assert result["reason"] == "awaiting_decisive_votes"
 
 
 def test_automated_originality_rejection_is_hard_rejection(blockchain, submission_image, wallets):
@@ -123,7 +125,7 @@ def test_automated_originality_rejection_is_hard_rejection(blockchain, submissio
     assert result["reason"] == "automated_originality_rejected"
 
 
-def test_voting_window_finalizes_submission(blockchain, submission_image, wallets):
+def test_voting_window_does_not_finalize_without_decisive_quorum(blockchain, submission_image, wallets):
     created_at = 1_000_000
     now = created_at + (VOTING_WINDOW_HOURS * SECONDS_PER_HOUR) + 1
     submission = create_submission(blockchain, submission_image, wallets["owner"].public_key, created_at)
@@ -135,7 +137,79 @@ def test_voting_window_finalizes_submission(blockchain, submission_image, wallet
         now=now,
     )
 
-    assert submission.status == APPROVED
-    assert result["status"] == APPROVED
+    assert submission.status == PENDING
+    assert result["status"] == PENDING
     assert result["voting_window_expired"] is True
     assert result["minimum_votes_reached"] is False
+    assert result["minimum_decisive_votes_reached"] is False
+    assert result["reason"] == "awaiting_decisive_votes_window_expired"
+
+
+def test_unsure_votes_do_not_count_toward_decisive_quorum(blockchain, submission_image, wallets):
+    now = 1_000_000
+    submission = create_submission(blockchain, submission_image, wallets["owner"].public_key, now)
+    cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_UNSURE, VOTE_UNSURE],
+        now,
+    )
+
+    result = blockchain.evaluate_submission(
+        submission.submission_id,
+        automated_originality_passed=True,
+        now=now,
+    )
+
+    assert submission.status == PENDING
+    assert result["status"] == PENDING
+    assert result["approval_percentage"] == 1
+    assert result["decisive_votes_cast"] == 3
+    assert result["minimum_decisive_votes_required"] == 5
+    assert result["reason"] == "awaiting_decisive_votes"
+
+
+def test_four_original_and_one_not_original_approves(blockchain, submission_image, wallets):
+    now = 1_000_000
+    submission = create_submission(blockchain, submission_image, wallets["owner"].public_key, now)
+    cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+        now,
+    )
+
+    result = blockchain.evaluate_submission(
+        submission.submission_id,
+        automated_originality_passed=True,
+        now=now,
+    )
+
+    assert submission.status == APPROVED
+    assert result["status"] == APPROVED
+    assert result["approval_percentage"] == 0.8
+    assert result["decisive_votes_cast"] == 5
+    assert result["reason"] == "approved_by_vote"
+
+
+def test_three_original_and_two_not_original_rejects(blockchain, submission_image, wallets):
+    now = 1_000_000
+    submission = create_submission(blockchain, submission_image, wallets["owner"].public_key, now)
+    cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL, VOTE_NOT_ORIGINAL],
+        now,
+    )
+
+    result = blockchain.evaluate_submission(
+        submission.submission_id,
+        automated_originality_passed=True,
+        now=now,
+    )
+
+    assert submission.status == REJECTED
+    assert result["status"] == REJECTED
+    assert result["approval_percentage"] == 0.6
+    assert result["decisive_votes_cast"] == 5
+    assert result["reason"] == "rejected_by_vote"

@@ -44,8 +44,10 @@
           <li>Submitting content requires beta access plus a verified wallet.</li>
           <li>Voting and rewards can still have separate approval rules while we reduce spam.</li>
           <li>Test ZOID stays testnet-only and has no real monetary value.</li>
+          <li>Wallets control your ZoidbergChain identity.</li>
           <li>On mobile, use the MetaMask Mobile browser if your wallet is not detected.</li>
           <li>Never enter a seed phrase or private key anywhere in this app.</li>
+          <li>Before any mainnet-value launch, accounts must have a portable wallet, export path, or migration path.</li>
         </ul>
       </div>
 
@@ -105,7 +107,12 @@
           <p class="section-label">Returning Approved Wallet</p>
           <h2>{{ returningWalletGuidance.headline }}</h2>
           <p class="wallet-note">{{ returningWalletGuidance.detail }}</p>
-          <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
+          <p v-if="accessActionState.showProviderChooser" class="wallet-note">
+            Choose how to connect your approved wallet before you verify it.
+          </p>
+          <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with MetaMask. Use this if you already have a crypto wallet.</p>
+          <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with Email / Social Wallet. This is the planned easier-onboarding path for new users, but it is still coming soon in this Vue app.</p>
+          <p v-if="shouldShowWalletStatus" class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
           <p class="wallet-note">{{ walletNextStepText }}</p>
 
           <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
@@ -113,13 +120,30 @@
 
           <div class="wallet-actions">
             <button
-              v-if="accessActionState.showConnect"
+              v-if="showMetaMaskButton"
               type="button"
               class="primary-btn"
-              @click="continueReturningFlow"
-              :disabled="wallet.state.connectionStatus === 'connecting'"
+              @click="connectMetaMaskWallet"
+              :disabled="wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask'"
             >
-              {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : returningWalletGuidance.actionLabel }}
+              {{ wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask' ? 'Connecting...' : 'Continue with MetaMask' }}
+            </button>
+            <button
+              v-if="showEmbeddedWalletConnectButton"
+              type="button"
+              class="secondary-btn"
+              @click="connectEmbeddedWalletFromExistingSession"
+              :disabled="isConnectingEmbeddedWallet"
+            >
+              {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Continue with Email / Social Wallet' }}
+            </button>
+            <button
+              v-if="showEmbeddedWalletUnavailableButton"
+              type="button"
+              class="ghost-btn"
+              disabled
+            >
+              {{ embeddedWalletDisabledButtonLabel }}
             </button>
             <button
               v-else-if="accessActionState.showVerify"
@@ -146,13 +170,83 @@
             >
               Retry Wallet Step
             </button>
+            <button
+              v-if="shouldShowChangeWalletMethod"
+              type="button"
+              class="ghost-btn"
+              @click="changeWalletMethod"
+            >
+              Change Wallet Method
+            </button>
+            <button
+              type="button"
+              class="ghost-btn"
+              @click="setEntryMode('new')"
+            >
+              I&apos;m New Here
+            </button>
+          </div>
+        <p
+          v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletUnavailableMessage"
+          class="status"
+          :class="embeddedWalletTemporarilyUnavailable ? 'warning' : 'info'"
+        >
+          {{ embeddedWalletUnavailableMessage }}
+        </p>
+        <details v-if="shouldShowEmbeddedWalletDiagnostics" class="diagnostic-panel">
+          <summary>Email / Social Wallet diagnostics (development only)</summary>
+          <p class="wallet-note">Unavailable reason: {{ embeddedWalletDiagnosticReasonLabel }}</p>
+          <ul class="diagnostic-list">
+            <li>providerConfigured: {{ embeddedWalletDiagnostics?.providerConfigured ? 'true' : 'false' }}</li>
+            <li>appIdPresent: {{ embeddedWalletDiagnostics?.appIdPresent ? 'true' : 'false' }}</li>
+            <li>providerName: {{ embeddedWalletDiagnostics?.providerName || '(not set)' }}</li>
+            <li>sdkImportAttempted: {{ embeddedWalletDiagnostics?.sdkImportAttempted ? 'true' : 'false' }}</li>
+            <li>sdkImportSucceeded: {{ embeddedWalletDiagnostics?.sdkImportSucceeded ? 'true' : 'false' }}</li>
+            <li>initAttempted: {{ embeddedWalletDiagnostics?.initAttempted ? 'true' : 'false' }}</li>
+            <li>initSucceeded: {{ embeddedWalletDiagnostics?.initSucceeded ? 'true' : 'false' }}</li>
+            <li>origin: {{ embeddedWalletDiagnostics?.origin || '(not available)' }}</li>
+            <li>isSecureContext: {{ embeddedWalletDiagnostics?.isSecureContext ? 'true' : 'false' }}</li>
+            <li>lastErrorMessage: {{ embeddedWalletDiagnostics?.lastErrorMessage || '(none)' }}</li>
+          </ul>
+        </details>
+        <div v-if="shouldShowEmbeddedAuthPanel" class="panel-stack embedded-auth-panel">
+          <label class="field">
+            <span>Email</span>
+            <input v-model.trim="embeddedWalletEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <div class="wallet-actions">
+            <button
+              type="button"
+              class="secondary-btn"
+              @click="sendEmbeddedWalletCode"
+              :disabled="isSendingEmbeddedWalletCode || !embeddedWalletEmail"
+            >
+              {{ isSendingEmbeddedWalletCode ? 'Sending Code...' : 'Email Me A Code' }}
+            </button>
+            <button
+              v-if="supportsEmbeddedSocialLogin"
+              type="button"
+              class="ghost-btn"
+              @click="startEmbeddedWalletSocialLogin"
+            >
+              Continue with {{ embeddedWalletSocialProviderLabel }}
+            </button>
+          </div>
+          <label class="field">
+            <span>Verification Code</span>
+            <input v-model.trim="embeddedWalletCode" type="text" placeholder="123123" inputmode="numeric" autocomplete="one-time-code" />
+          </label>
           <button
             type="button"
-            class="ghost-btn"
-            @click="setEntryMode('new')"
+            class="primary-btn"
+            @click="connectEmbeddedWalletWithCode"
+            :disabled="isConnectingEmbeddedWallet || !embeddedWalletEmail || !embeddedWalletCode"
           >
-              I&apos;m New Here
+            {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Verify Email And Connect Wallet' }}
           </button>
+          <p class="wallet-note">{{ embeddedWalletOption?.portability_help_copy || 'Embedded wallets must stay portable before any mainnet-value launch.' }}</p>
+          <p v-if="embeddedWalletMessage" class="status success">{{ embeddedWalletMessage }}</p>
+          <p v-if="embeddedWalletError" class="status error">{{ embeddedWalletError }}</p>
         </div>
       </div>
       </div>
@@ -190,18 +284,42 @@
 
           <div class="wallet-box">
             <p class="section-label">Connect And Verify Your Wallet</p>
-            <p class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
+            <h2 v-if="accessActionState.showProviderChooser" class="wallet-box-heading">Choose how to connect your wallet</h2>
+            <p v-if="accessActionState.showProviderChooser" class="wallet-note">
+              Continue with MetaMask if you already have a wallet, or use Email / Social Wallet if you are new to wallets.
+            </p>
+            <p v-if="shouldShowWalletStatus" class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
             <p class="wallet-note">{{ walletNextStepText }}</p>
+            <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with MetaMask. Use this if you already have a crypto wallet.</p>
+            <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with Email / Social Wallet. This is the planned easier-onboarding path for new users, but it is still coming soon in this Vue app.</p>
+            <p v-if="accessActionState.showBind" class="status success">Wallet verified. Bind this wallet to your approved beta access.</p>
             <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
             <div class="wallet-actions">
               <button
-                v-if="accessActionState.showConnect"
+                v-if="showMetaMaskButton"
                 type="button"
                 class="secondary-btn"
-                @click="connectWallet"
-                :disabled="wallet.state.connectionStatus === 'connecting'"
+                @click="connectMetaMaskWallet"
+                :disabled="wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask'"
               >
-                {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : `Continue with ${wallet.state.providerLabel || 'MetaMask'}` }}
+                {{ wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask' ? 'Connecting...' : 'Continue with MetaMask' }}
+              </button>
+              <button
+                v-if="showEmbeddedWalletConnectButton"
+                type="button"
+                class="secondary-btn"
+                @click="connectEmbeddedWalletFromExistingSession"
+                :disabled="isConnectingEmbeddedWallet"
+              >
+                {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Continue with Email / Social Wallet' }}
+              </button>
+              <button
+                v-if="showEmbeddedWalletUnavailableButton"
+                type="button"
+                class="ghost-btn"
+                disabled
+              >
+                {{ embeddedWalletDisabledButtonLabel }}
               </button>
               <button
                 v-else-if="accessActionState.showVerify"
@@ -229,6 +347,76 @@
               >
                 Retry Wallet Step
               </button>
+              <button
+                v-if="shouldShowChangeWalletMethod"
+                type="button"
+                class="ghost-btn"
+                @click="changeWalletMethod"
+              >
+                Change Wallet Method
+              </button>
+            </div>
+            <p
+              v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletUnavailableMessage"
+              class="status"
+              :class="embeddedWalletTemporarilyUnavailable ? 'warning' : 'info'"
+            >
+              {{ embeddedWalletUnavailableMessage }}
+            </p>
+            <details v-if="shouldShowEmbeddedWalletDiagnostics" class="diagnostic-panel">
+              <summary>Email / Social Wallet diagnostics (development only)</summary>
+              <p class="wallet-note">Unavailable reason: {{ embeddedWalletDiagnosticReasonLabel }}</p>
+              <ul class="diagnostic-list">
+                <li>providerConfigured: {{ embeddedWalletDiagnostics?.providerConfigured ? 'true' : 'false' }}</li>
+                <li>appIdPresent: {{ embeddedWalletDiagnostics?.appIdPresent ? 'true' : 'false' }}</li>
+                <li>providerName: {{ embeddedWalletDiagnostics?.providerName || '(not set)' }}</li>
+                <li>sdkImportAttempted: {{ embeddedWalletDiagnostics?.sdkImportAttempted ? 'true' : 'false' }}</li>
+                <li>sdkImportSucceeded: {{ embeddedWalletDiagnostics?.sdkImportSucceeded ? 'true' : 'false' }}</li>
+                <li>initAttempted: {{ embeddedWalletDiagnostics?.initAttempted ? 'true' : 'false' }}</li>
+                <li>initSucceeded: {{ embeddedWalletDiagnostics?.initSucceeded ? 'true' : 'false' }}</li>
+                <li>origin: {{ embeddedWalletDiagnostics?.origin || '(not available)' }}</li>
+                <li>isSecureContext: {{ embeddedWalletDiagnostics?.isSecureContext ? 'true' : 'false' }}</li>
+                <li>lastErrorMessage: {{ embeddedWalletDiagnostics?.lastErrorMessage || '(none)' }}</li>
+              </ul>
+            </details>
+            <div v-if="shouldShowEmbeddedAuthPanel" class="panel-stack embedded-auth-panel">
+              <label class="field">
+                <span>Email</span>
+                <input v-model.trim="embeddedWalletEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+              </label>
+              <div class="wallet-actions">
+                <button
+                  type="button"
+                  class="secondary-btn"
+                  @click="sendEmbeddedWalletCode"
+                  :disabled="isSendingEmbeddedWalletCode || !embeddedWalletEmail"
+                >
+                  {{ isSendingEmbeddedWalletCode ? 'Sending Code...' : 'Email Me A Code' }}
+                </button>
+                <button
+                  v-if="supportsEmbeddedSocialLogin"
+                  type="button"
+                  class="ghost-btn"
+                  @click="startEmbeddedWalletSocialLogin"
+                >
+                  Continue with {{ embeddedWalletSocialProviderLabel }}
+                </button>
+              </div>
+              <label class="field">
+                <span>Verification Code</span>
+                <input v-model.trim="embeddedWalletCode" type="text" placeholder="123123" inputmode="numeric" autocomplete="one-time-code" />
+              </label>
+              <button
+                type="button"
+                class="primary-btn"
+                @click="connectEmbeddedWalletWithCode"
+                :disabled="isConnectingEmbeddedWallet || !embeddedWalletEmail || !embeddedWalletCode"
+              >
+                {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Verify Email And Connect Wallet' }}
+              </button>
+              <p class="wallet-note">{{ embeddedWalletOption?.portability_help_copy || 'Embedded wallets must stay portable before any mainnet-value launch.' }}</p>
+              <p v-if="embeddedWalletMessage" class="status success">{{ embeddedWalletMessage }}</p>
+              <p v-if="embeddedWalletError" class="status error">{{ embeddedWalletError }}</p>
             </div>
           </div>
         </div>
@@ -370,19 +558,30 @@ import {
   buildReturningWalletGuidance,
   describeWalletSupport,
 } from '../utils/mobileWallet.js';
+import { EMBEDDED_WALLET_CONFIG } from '../utils/embeddedWalletConfig.js';
 import { getWalletOnboardingOptions } from '../utils/walletOnboarding.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
+import { showDevelopmentTools } from '../utils/runtimeConfig.js';
 
 const emit = defineEmits(['unlocked']);
 
 const ACCESS_GATE_STATE_KEY = 'zoidberg:access-gate-state';
+const developmentToolsEnabled = showDevelopmentTools();
 const wallet = useWallet();
 const access = useAccess();
 const entryMode = ref('new');
 const newUserMode = ref('invite');
 const inviteCode = ref('');
+const selectedWalletProvider = ref('');
 const interruptedWalletMessage = ref('');
 const pendingWalletAction = ref('');
+const showEmbeddedWalletForm = ref(false);
+const embeddedWalletEmail = ref('');
+const embeddedWalletCode = ref('');
+const embeddedWalletMessage = ref('');
+const embeddedWalletError = ref('');
+const isSendingEmbeddedWalletCode = ref(false);
+const isConnectingEmbeddedWallet = ref(false);
 const requestForm = ref({
   name: '',
   email: '',
@@ -486,12 +685,55 @@ function clearPendingWalletAction() {
   persistGateState();
 }
 
+function resetEmbeddedWalletMessages() {
+  embeddedWalletMessage.value = '';
+  embeddedWalletError.value = '';
+}
+
+function clearWalletMethodUi() {
+  selectedWalletProvider.value = '';
+  showEmbeddedWalletForm.value = false;
+  embeddedWalletEmail.value = '';
+  embeddedWalletCode.value = '';
+  resetEmbeddedWalletMessages();
+}
+
+function selectWalletProvider(providerId, options = {}) {
+  const preserveAuthInputs = options.preserveAuthInputs === true;
+  selectedWalletProvider.value = providerId;
+  if (!preserveAuthInputs || providerId !== 'privy_embedded') {
+    showEmbeddedWalletForm.value = false;
+  }
+  if (!preserveAuthInputs) {
+    embeddedWalletEmail.value = '';
+    embeddedWalletCode.value = '';
+  }
+  resetEmbeddedWalletMessages();
+}
+
+async function changeWalletMethod() {
+  clearPendingWalletAction();
+  clearWalletMethodUi();
+  if (wallet.state.isConnected || wallet.state.isVerifiedSession) {
+    await wallet.disconnectWallet();
+  }
+}
+
+function toggleEmbeddedWalletForm() {
+  showEmbeddedWalletForm.value = !showEmbeddedWalletForm.value;
+  if (showEmbeddedWalletForm.value) {
+    resetEmbeddedWalletMessages();
+  }
+}
+
 function setEntryMode(mode) {
   entryMode.value = mode === 'returning' ? 'returning' : 'new';
+  clearWalletMethodUi();
 }
 
 function setNewUserMode(mode) {
   newUserMode.value = mode === 'request' ? 'request' : 'invite';
+  clearWalletMethodUi();
 }
 
 const accessMode = computed(() => (entryMode.value === 'returning' ? 'returning' : 'login'));
@@ -500,6 +742,7 @@ const accessActionState = computed(() => getControlledAccessActionState({
   mode: accessMode.value,
   walletState: wallet.state,
   accessState: access.state,
+  selectedProviderId: selectedWalletProvider.value,
 }));
 
 const walletStatusText = computed(() => getAccessGateWalletStatusText(wallet.state));
@@ -508,7 +751,44 @@ const walletNextStepText = computed(() => getControlledAccessNextStepText({
   mode: accessMode.value,
   walletState: wallet.state,
   accessState: access.state,
+  selectedProviderId: selectedWalletProvider.value,
 }));
+
+const shouldShowWalletStatus = computed(
+  () => !accessActionState.value.showProviderChooser && (wallet.state.isConnected || wallet.state.isVerifiedSession),
+);
+
+const showMetaMaskButton = computed(
+  () => accessActionState.value.showProviderChooser
+    || (accessActionState.value.showConnect && selectedWalletProvider.value === 'metamask'),
+);
+
+const showEmbeddedWalletConnectButton = computed(
+  () => embeddedWalletAvailable.value
+    && (
+      accessActionState.value.showProviderChooser
+      || (
+        accessActionState.value.showConnect
+        && selectedWalletProvider.value === 'privy_embedded'
+        && !showEmbeddedWalletForm.value
+      )
+    ),
+);
+
+const showEmbeddedWalletUnavailableButton = computed(
+  () => accessActionState.value.showProviderChooser && !embeddedWalletAvailable.value,
+);
+
+const shouldShowChangeWalletMethod = computed(
+  () => !accessActionState.value.showProviderChooser
+    && !access.state.me?.access_granted
+    && (
+      Boolean(selectedWalletProvider.value)
+      || wallet.state.isConnected
+      || wallet.state.isVerifiedSession
+      || showEmbeddedWalletForm.value
+    ),
+);
 
 const returningWalletGuidance = computed(() => buildReturningWalletGuidance({
   accessGranted: Boolean(access.state.me?.access_granted),
@@ -529,6 +809,78 @@ const accessLabel = computed(
   () => access.state.publicStatus?.access_public_label || '',
 );
 
+const embeddedWalletOption = computed(
+  () => wallet.state.availableWalletProviders.find((item) => item.provider_id === 'privy_embedded') || null,
+);
+
+const embeddedWalletAvailability = computed(
+  () => embeddedWalletOption.value?.availability || 'coming_soon',
+);
+
+const embeddedWalletAvailable = computed(
+  () => embeddedWalletAvailability.value === 'available',
+);
+
+const embeddedWalletTemporarilyUnavailable = computed(
+  () => embeddedWalletAvailability.value === 'error',
+);
+
+const embeddedWalletUnavailableMessage = computed(
+  () => embeddedWalletOption.value?.availability_message || '',
+);
+
+const embeddedWalletDiagnostics = computed(
+  () => embeddedWalletOption.value?.diagnostics || null,
+);
+
+const embeddedWalletDiagnosticReasonLabel = computed(() => {
+  switch (embeddedWalletDiagnostics.value?.unavailableReason) {
+    case 'provider_disabled':
+      return 'Provider disabled';
+    case 'missing_app_id':
+      return 'Missing public Privy app id';
+    case 'low_level_sdk_interop_issue':
+      return 'Low-level SDK interop issue';
+    case 'sdk_import_failed':
+      return 'SDK import failed';
+    case 'origin_not_allowed':
+      return 'Origin not allowed';
+    case 'unsupported_browser':
+      return 'Unsupported browser environment';
+    case 'sdk_init_failed':
+      return 'SDK initialization failed';
+    case 'react_sdk_required':
+      return 'Supported React SDK path not implemented yet';
+    default:
+      return 'Unknown';
+  }
+});
+
+const shouldShowEmbeddedWalletDiagnostics = computed(
+  () => developmentToolsEnabled
+    && embeddedWalletAvailability.value !== 'available'
+    && Boolean(embeddedWalletDiagnostics.value),
+);
+
+const embeddedWalletDisabledButtonLabel = computed(() => {
+  if (embeddedWalletTemporarilyUnavailable.value) {
+    return 'Email / Social Wallet Temporarily Unavailable';
+  }
+  return 'Email / Social Wallet Coming Soon';
+});
+
+const supportsEmbeddedSocialLogin = computed(
+  () => EMBEDDED_WALLET_CONFIG.supportsSocialLogin,
+);
+
+const embeddedWalletSocialProviderLabel = computed(() => {
+  const provider = String(EMBEDDED_WALLET_CONFIG.socialProvider || '').trim().toLowerCase();
+  if (!provider) {
+    return 'Google';
+  }
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
+});
+
 const requestsEnabled = computed(
   () => access.state.publicStatus?.access_requests_enabled !== false,
 );
@@ -541,7 +893,7 @@ const inviteAcceptedMessage = computed(() => {
   if (!inviteAuthenticated.value || access.state.me?.wallet_bound) {
     return '';
   }
-  return `Invite accepted. Connect ${wallet.state.providerLabel || 'MetaMask'}, verify the wallet, and bind it once to finish setup.`;
+  return 'Invite accepted. Choose how to connect your wallet, verify it, and bind it once to finish setup.';
 });
 
 const returningStatusMessage = computed(() => {
@@ -623,6 +975,12 @@ const canRequestOverride = computed(
   () => !access.state.me?.access_granted && Boolean(requestsEnabled.value || wallet.state.isVerifiedSession || inviteAuthenticated.value),
 );
 
+const shouldShowEmbeddedAuthPanel = computed(
+  () => selectedWalletProvider.value === 'privy_embedded'
+    && showEmbeddedWalletForm.value
+    && embeddedWalletAvailable.value,
+);
+
 async function refreshAccessAndUnlock() {
   await access.refreshMe(wallet.getAuthorizationHeader());
   await access.refreshEligibility(wallet.getAuthorizationHeader());
@@ -632,14 +990,112 @@ async function refreshAccessAndUnlock() {
   }
 }
 
-async function connectWallet() {
+async function connectWallet(providerId = 'metamask', options = {}) {
   refreshMobileWalletSupport();
-  await wallet.detectMetaMask();
+  await wallet.detectWallets();
   refreshMobileWalletSupport();
-  const result = await wallet.connectWallet();
+  const result = await wallet.connectWallet({
+    providerId,
+    ...options,
+  });
   refreshMobileWalletSupport();
   if (result && wallet.state.isVerifiedSession) {
     await refreshAccessAndUnlock();
+  }
+  return result;
+}
+
+async function connectMetaMaskWallet() {
+  selectWalletProvider('metamask');
+  if (wallet.state.providerId === 'metamask' && (wallet.state.isConnected || wallet.state.isVerifiedSession)) {
+    clearPendingWalletAction();
+    return;
+  }
+  await connectWallet('metamask');
+}
+
+async function sendEmbeddedWalletCode() {
+  selectWalletProvider('privy_embedded', { preserveAuthInputs: true });
+  if (!embeddedWalletEmail.value) {
+    embeddedWalletError.value = 'Enter your email address first.';
+    return;
+  }
+  isSendingEmbeddedWalletCode.value = true;
+  resetEmbeddedWalletMessages();
+  try {
+    await wallet.sendEmbeddedWalletEmailCode(embeddedWalletEmail.value);
+    embeddedWalletMessage.value = 'Verification code sent. Check your email, then enter the code below to connect your wallet.';
+    showEmbeddedWalletForm.value = true;
+  } catch (error) {
+    embeddedWalletError.value = error?.message || 'Unable to send email code right now.';
+  } finally {
+    isSendingEmbeddedWalletCode.value = false;
+  }
+}
+
+async function connectEmbeddedWalletWithCode() {
+  selectWalletProvider('privy_embedded', { preserveAuthInputs: true });
+  if (!embeddedWalletEmail.value || !embeddedWalletCode.value) {
+    embeddedWalletError.value = 'Enter both your email address and verification code.';
+    return;
+  }
+  isConnectingEmbeddedWallet.value = true;
+  resetEmbeddedWalletMessages();
+  try {
+    const result = await connectWallet('privy_embedded', {
+      authMethod: 'email',
+      email: embeddedWalletEmail.value,
+      code: embeddedWalletCode.value,
+    });
+    if (!result) {
+      embeddedWalletError.value = 'Email wallet connection did not complete. Try requesting a fresh code.';
+      return;
+    }
+    embeddedWalletMessage.value = 'Embedded wallet connected. Sign the wallet verification message to continue.';
+  } catch (error) {
+    embeddedWalletError.value = error?.message || 'Unable to connect the embedded wallet right now.';
+  } finally {
+    isConnectingEmbeddedWallet.value = false;
+  }
+}
+
+async function connectEmbeddedWalletFromExistingSession() {
+  selectWalletProvider('privy_embedded');
+  isConnectingEmbeddedWallet.value = true;
+  resetEmbeddedWalletMessages();
+  try {
+    if (wallet.state.providerId === 'privy_embedded' && (wallet.state.isConnected || wallet.state.isVerifiedSession)) {
+      clearPendingWalletAction();
+      embeddedWalletMessage.value = 'Embedded wallet connected. Sign the wallet verification message to continue.';
+      return;
+    }
+    const result = await connectWallet('privy_embedded', {
+      authMethod: 'restore',
+    });
+    if (!result) {
+      showEmbeddedWalletForm.value = true;
+      embeddedWalletMessage.value = 'Email / Social Wallet is coming soon. Continue with MetaMask for the current beta.';
+      return;
+    }
+    embeddedWalletMessage.value = 'Embedded wallet connected. Sign the wallet verification message to continue.';
+  } catch (error) {
+    embeddedWalletError.value = error?.message || 'Unable to reconnect the embedded wallet right now.';
+  } finally {
+    isConnectingEmbeddedWallet.value = false;
+  }
+}
+
+async function startEmbeddedWalletSocialLogin() {
+  selectWalletProvider('privy_embedded', { preserveAuthInputs: true });
+  resetEmbeddedWalletMessages();
+  setPendingWalletAction(
+    'verify_wallet',
+    'Embedded wallet login was interrupted. Return to this page and continue with the same email or social wallet.',
+  );
+  try {
+    await wallet.startEmbeddedWalletOAuthLogin(EMBEDDED_WALLET_CONFIG.socialProvider);
+  } catch (error) {
+    embeddedWalletError.value = error?.message || 'Unable to start social wallet login right now.';
   }
 }
 
@@ -669,10 +1125,12 @@ async function login() {
   const result = await access.loginWithCode(inviteCode.value);
   if (result) {
     inviteCode.value = '';
-    persistGateState();
-    if (wallet.state.isVerifiedSession) {
-      await refreshAccessAndUnlock();
+    clearPendingWalletAction();
+    clearWalletMethodUi();
+    if (wallet.state.isConnected || wallet.state.isVerifiedSession) {
+      await wallet.disconnectWallet();
     }
+    persistGateState();
   }
 }
 
@@ -693,15 +1151,13 @@ async function refreshReturningAccess() {
 }
 
 async function retryPendingWalletAction() {
-  if (pendingWalletAction.value === 'bind_wallet') {
+  const action = pendingWalletAction.value;
+  clearPendingWalletAction();
+  if (action === 'bind_wallet' && accessActionState.value.showBind) {
     await bindWallet();
     return;
   }
-  if (!wallet.state.isConnected) {
-    await connectWallet();
-    return;
-  }
-  await verifyWallet();
+  await changeWalletMethod();
 }
 
 async function submitRequest() {
@@ -851,6 +1307,26 @@ h2 {
 
 .journey-card strong {
   color: #f7f0de;
+}
+
+.diagnostic-panel {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(159, 211, 255, 0.2);
+  background: rgba(9, 16, 28, 0.72);
+}
+
+.diagnostic-panel summary {
+  cursor: pointer;
+  color: #9fd3ff;
+  font-weight: 600;
+}
+
+.diagnostic-list {
+  margin: 10px 0 0 18px;
+  color: #d7deef;
+  line-height: 1.5;
 }
 
 .feedback-shortcut {

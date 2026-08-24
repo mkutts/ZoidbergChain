@@ -12,13 +12,14 @@ function walletBindingStatus(accessState = {}) {
 }
 
 export function getAccessGateWalletStatusText(walletState = {}) {
+  const providerLabel = walletState?.providerLabel || 'wallet';
   if (walletState.isVerifiedSession) {
-    return `Wallet verified: ${walletState.verifiedWalletAddress}`;
+    return `${providerLabel} verified: ${walletState.verifiedWalletAddress}`;
   }
   if (walletState.isConnected) {
-    return `Wallet connected: ${walletState.normalizedWalletAddress}. Sign the verification message to continue.`;
+    return `${providerLabel} connected: ${walletState.normalizedWalletAddress}. Sign the verification message to continue.`;
   }
-  return 'No MetaMask wallet connected yet.';
+  return 'No wallet connected yet.';
 }
 
 export function getInviteAuthenticated(accessState = {}) {
@@ -29,34 +30,73 @@ export function getControlledAccessActionState({
   mode = 'returning',
   walletState = {},
   accessState = {},
+  selectedProviderId = '',
 } = {}) {
   const inviteAuthenticated = getInviteAuthenticated(accessState);
   const walletBound = Boolean(accessState?.me?.wallet_bound);
   const accessGranted = Boolean(accessState?.me?.access_granted);
+  const normalizedSelectedProviderId = String(selectedProviderId || '').trim();
+  const providerMatchesSelection = Boolean(
+    normalizedSelectedProviderId
+    && walletState?.providerId === normalizedSelectedProviderId,
+  );
+  const selectedProviderConnected = Boolean(
+    normalizedSelectedProviderId
+    && providerMatchesSelection
+    && walletState.isConnected,
+  );
+  const selectedProviderVerified = Boolean(
+    normalizedSelectedProviderId
+    && providerMatchesSelection
+    && walletState.isVerifiedSession,
+  );
 
   if (mode === 'returning') {
     return {
-      showConnect: !walletState.isConnected,
-      showVerify: Boolean(walletState.isConnected && !walletState.isVerifiedSession),
+      showProviderChooser: !normalizedSelectedProviderId && !walletState.isVerifiedSession,
+      showConnect: Boolean(normalizedSelectedProviderId && !selectedProviderConnected && !selectedProviderVerified),
+      showVerify: Boolean(selectedProviderConnected && !selectedProviderVerified),
       showBind: false,
       inviteAuthenticated,
       walletBound,
       accessGranted,
+      selectedProviderId: normalizedSelectedProviderId,
     };
   }
 
   return {
-    showConnect: Boolean(inviteAuthenticated && !walletState.isConnected),
-    showVerify: Boolean(inviteAuthenticated && walletState.isConnected && !walletState.isVerifiedSession),
+    showProviderChooser: Boolean(
+      inviteAuthenticated
+      && !walletBound
+      && !accessGranted
+      && !normalizedSelectedProviderId,
+    ),
+    showConnect: Boolean(
+      inviteAuthenticated
+      && !walletBound
+      && !accessGranted
+      && normalizedSelectedProviderId
+      && !selectedProviderConnected
+      && !selectedProviderVerified,
+    ),
+    showVerify: Boolean(
+      inviteAuthenticated
+      && !walletBound
+      && !accessGranted
+      && selectedProviderConnected
+      && !selectedProviderVerified,
+    ),
     showBind: Boolean(
       inviteAuthenticated
-      && walletState.isVerifiedSession
+      && normalizedSelectedProviderId
+      && selectedProviderVerified
       && !walletBound
       && !accessGranted
     ),
     inviteAuthenticated,
     walletBound,
     accessGranted,
+    selectedProviderId: normalizedSelectedProviderId,
   };
 }
 
@@ -64,6 +104,7 @@ export function getControlledAccessNextStepText({
   mode = 'returning',
   walletState = {},
   accessState = {},
+  selectedProviderId = '',
 } = {}) {
   const inviteAuthenticated = getInviteAuthenticated(accessState);
   const bindingStatus = walletBindingStatus(accessState);
@@ -75,10 +116,22 @@ export function getControlledAccessNextStepText({
   const walletSessionAuthenticated = Boolean(accessState?.me?.wallet_session_authenticated);
   const walletBound = Boolean(accessState?.me?.wallet_bound);
   const accessGranted = Boolean(accessState?.me?.access_granted);
+  const normalizedSelectedProviderId = String(selectedProviderId || '').trim();
+  const selectedProviderConnected = Boolean(
+    normalizedSelectedProviderId
+    && walletState?.providerId === normalizedSelectedProviderId
+    && walletState.isConnected,
+  );
 
   if (mode === 'returning') {
+    if (!normalizedSelectedProviderId && !walletState.isVerifiedSession) {
+      return 'Choose how you want to connect your approved wallet.';
+    }
     if (!walletState.isConnected) {
-      return 'Returning tester? Connect your approved wallet.';
+      return 'Continue with your selected wallet method to connect your approved wallet.';
+    }
+    if (!selectedProviderConnected && !walletState.isVerifiedSession) {
+      return 'Reconnect with the wallet method you selected so we can continue.';
     }
     if (!walletState.isVerifiedSession) {
       return 'Sign the wallet verification message so we can confirm this approved wallet.';
@@ -104,8 +157,14 @@ export function getControlledAccessNextStepText({
   if (!inviteAuthenticated) {
     return 'Start with your invite code. Wallet setup begins after the invite is accepted.';
   }
+  if (!normalizedSelectedProviderId) {
+    return 'Choose how you want to connect your wallet before verifying it.';
+  }
   if (!walletState.isConnected) {
-    return 'Connect MetaMask to continue.';
+    return 'Continue with your selected wallet method to connect the wallet you want to bind.';
+  }
+  if (!selectedProviderConnected && !walletState.isVerifiedSession) {
+    return 'Reconnect with the wallet method you selected so we can verify the right wallet.';
   }
   if (!walletState.isVerifiedSession) {
     return 'Verify this wallet before linking it to your approved beta access.';

@@ -1,6 +1,4 @@
 import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
+import { sharedViteConfig } from './scripts/vite.shared.mjs';
 
-export default defineConfig({
-  plugins: [vue()],
-});
+export default defineConfig(sharedViteConfig);

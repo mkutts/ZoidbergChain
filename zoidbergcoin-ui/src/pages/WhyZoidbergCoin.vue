@@ -36,7 +36,7 @@
         <section class="detail-panel">
           <p class="section-label">Before You Start</p>
           <ul>
-            <li>You need MetaMask on desktop, or MetaMask Mobile on mobile.</li>
+            <li>You can use MetaMask, or Email / Social Wallet if that option is enabled on your deployment.</li>
             <li>Use a wallet you can reconnect with later.</li>
             <li>Do not share seed phrases, private keys, passwords, or invite codes.</li>
             <li>Do not upload illegal, abusive, private, or copyrighted content you do not have permission to use.</li>
@@ -48,7 +48,7 @@
           <ol>
             <li>Request access from the gate if you are new.</li>
             <li>Once approved, you receive a one-time invite code.</li>
-            <li>Enter the invite code, connect MetaMask, verify the wallet, and bind it once.</li>
+            <li>Enter the invite code, connect your wallet path, verify the wallet, and bind it once.</li>
             <li>Later, return by connecting the same approved wallet and signing again.</li>
           </ol>
         </section>
@@ -56,7 +56,7 @@
         <section class="detail-panel">
           <p class="section-label">Connect And Reconnect</p>
           <ol>
-            <li>Connect MetaMask from the access gate or dashboard.</li>
+            <li>Choose MetaMask if you already have a crypto wallet, or Email / Social Wallet if you are new to wallets and that option is enabled.</li>
             <li>Sign the verification message so the app knows this wallet is really yours.</li>
             <li>Bind the verified wallet once during your first approved invite flow.</li>
             <li>When you return later, reconnect the same approved wallet and sign again.</li>
@@ -89,7 +89,7 @@
           <ul>
             <li>Refresh the page and reconnect the same approved wallet.</li>
             <li>If a signature popup was missed, try the wallet step again from the access gate.</li>
-            <li>On mobile, switch into the MetaMask Mobile browser before retrying.</li>
+            <li>If you are using MetaMask on mobile, switch into the MetaMask Mobile browser before retrying.</li>
             <li>Use Send Feedback with the page, wallet, and device details so the team can reproduce it.</li>
           </ul>
         </section>
@@ -97,8 +97,9 @@
         <section class="detail-panel">
           <p class="section-label">Mobile Tips</p>
           <ul>
-            <li>For best results, open the site in the MetaMask Mobile browser.</li>
-            <li>If Safari or Chrome does not detect your wallet, switch into MetaMask Mobile.</li>
+            <li>MetaMask users usually get the smoothest injected-wallet flow inside the MetaMask Mobile browser.</li>
+            <li>If Safari or Chrome does not detect MetaMask, switch into MetaMask Mobile.</li>
+            <li>Email / Social Wallet users should also test the normal mobile browser path.</li>
             <li>App switching and signing behavior can vary by device and browser.</li>
             <li>If mobile wallet connection fails, use the in-app feedback form from the gate.</li>
           </ul>
@@ -111,6 +112,7 @@
             <li>Explorer and advanced activity views can still feel more technical than the main app.</li>
             <li>Balances, rewards, and content can reset while we test the network.</li>
             <li>Some flows can still vary between desktop MetaMask and MetaMask Mobile.</li>
+            <li>Wallet portability matters before any future mainnet-value launch.</li>
           </ul>
         </section>
       </div>

@@ -14,7 +14,7 @@
       <button @click="goToDashboard" class="btn secondary">Open Beta App</button>
       <button v-if="showDevWalletTools" @click="generateWallet" class="btn primary">Development-Only Server Wallet</button>
       <p v-if="showDevWalletTools" class="dev-wallet-note">
-        Development-only wallet generation remains available for local testing, but verified MetaMask sessions are the normal identity path.
+        Development-only wallet generation remains available for local testing, but verified wallet sessions are the normal identity path.
       </p>
 
       <button @click="goToWhyPage" class="btn secondary why-btn">Open Beta Guide</button>

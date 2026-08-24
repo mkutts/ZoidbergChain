@@ -1,7 +1,7 @@
 import { build } from 'vite';
-import vue from '@vitejs/plugin-vue';
+import { sharedViteConfig } from './vite.shared.mjs';
 
 await build({
+  ...sharedViteConfig,
   configFile: false,
-  plugins: [vue()],
 });

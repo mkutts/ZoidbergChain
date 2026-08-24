@@ -4,10 +4,10 @@
       <p class="wallet-label">Wallet And Test ZOID</p>
       <h2>Your ZoidbergChain beta wallet</h2>
       <p class="wallet-note">
-        MetaMask proves who you are and signs actions in the beta. Test ZOID lives inside ZoidbergChain, settles in meme-mined blocks, and does not appear in normal MetaMask yet.
+        Your verified wallet proves who you are and signs actions in the beta. Test ZOID lives inside ZoidbergChain, settles in meme-mined blocks, and does not appear in normal wallet apps yet.
       </p>
       <p class="wallet-note">
-        Easier email, social, or passkey onboarding is planned, but it still has to preserve portable wallet control before mainnet-value use.
+        MetaMask remains the only live beta login today. Email / Social Wallet onboarding is planned next through a supported Privy integration path, and every wallet path still has to preserve portable wallet control before any mainnet-value use.
       </p>
       <p v-if="showPublicDemoNotice" class="wallet-demo-note">
         Controlled testnet. Test ZOID has no real monetary value, this network may reset, and it is not mainnet.
@@ -92,7 +92,7 @@
               <strong>{{ row.value }}</strong>
             </div>
           </div>
-          <p class="wallet-meta">Native ZOID does not appear in normal MetaMask yet.</p>
+          <p class="wallet-meta">Native ZOID does not appear in normal wallet apps yet.</p>
           <p class="wallet-meta">{{ balanceNote }}</p>
         </div>
 
@@ -323,7 +323,7 @@
             <p class="wallet-meta">Verify this wallet before sending test ZOID.</p>
           </template>
           <template v-else>
-            <p class="wallet-meta">Connect MetaMask first, then verify your wallet to send test ZOID.</p>
+            <p class="wallet-meta">Connect a wallet first, then verify it to send test ZOID.</p>
           </template>
         </div>
 
@@ -357,7 +357,7 @@
 
       <template v-else>
         <p class="wallet-meta">
-          MetaMask is used to sign ZoidbergChain actions. Native ZOID balances live in the ZoidbergChain app, not in the old development-only server wallet list.
+          Your connected wallet provider signs ZoidbergChain actions. Native ZOID balances live in the ZoidbergChain app, not in the old development-only server wallet list.
         </p>
         <p v-if="wallet.state.lastConnectedAddress" class="wallet-meta">
           Last connected address: {{ wallet.shortenAddress(wallet.state.lastConnectedAddress) }}
@@ -365,25 +365,32 @@
         <p v-if="mobileWalletSupport.helperText" class="wallet-meta wallet-mobile-note">
           {{ mobileWalletSupport.helperText }}
         </p>
-        <p v-if="!wallet.state.isMetaMaskAvailable" class="wallet-warning">
-          {{ mobileWalletSupport.noProviderMessage || 'MetaMask was not detected in this browser. Install it to connect a wallet here.' }}
+        <p v-if="!wallet.state.isWalletProviderAvailable && !wallet.state.availableWalletProviders.find((item) => item.availability === 'available')" class="wallet-warning">
+          {{ mobileWalletSupport.noProviderMessage || 'No wallet provider was detected in this browser yet.' }}
         </p>
         <div class="wallet-actions">
           <button
             type="button"
             class="wallet-btn primary"
             @click="connect"
-            :disabled="wallet.state.connectionStatus === 'connecting' || !wallet.state.isMetaMaskAvailable"
+            :disabled="wallet.state.connectionStatus === 'connecting' || !wallet.state.isWalletProviderAvailable"
           >
-            {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : 'Connect MetaMask' }}
+            {{ wallet.state.connectionStatus === 'connecting' ? 'Connecting...' : `Continue with ${wallet.state.providerLabel || 'Wallet'}` }}
           </button>
           <a
-            v-if="mobileWalletSupport.shouldShowOpenInMetaMask"
+            v-if="mobileWalletSupport.shouldShowOpenInMetaMask && wallet.state.providerId === 'metamask'"
             :href="mobileWalletSupport.openInMetaMaskUrl"
             class="wallet-btn secondary wallet-link-btn"
           >
             Open in MetaMask
           </a>
+        </div>
+        <div v-if="wallet.state.portabilityHelpCopy" class="access-card">
+          <span class="native-balance-label">Wallet Portability</span>
+          <p class="wallet-meta">{{ wallet.state.portabilityHelpCopy }}</p>
+          <p v-if="wallet.state.portabilityHelpUrl" class="wallet-meta">
+            Help: <a :href="wallet.state.portabilityHelpUrl" target="_blank" rel="noreferrer">Export and portability guidance</a>
+          </p>
         </div>
       </template>
 
@@ -443,6 +450,7 @@ const transferForm = ref({
 const transferService = createNativeTransferService({
   api: apiClient,
   getApiErrorMessage,
+  signMessage: (message, walletAddress) => wallet.requestSignature(message, walletAddress),
 });
 const mobileWalletSupport = ref({
   isMobileDevice: false,
@@ -622,8 +630,8 @@ const statusText = computed(() => {
   if (wallet.state.isConnected) {
     return 'Wallet Connected';
   }
-  if (!wallet.state.isMetaMaskAvailable) {
-    return 'MetaMask Not Found';
+  if (!wallet.state.isWalletProviderAvailable) {
+    return 'Wallet Provider Unavailable';
   }
   if (wallet.state.connectionStatus === 'connecting') {
     return 'Connecting Wallet';
@@ -638,7 +646,7 @@ const statusClass = computed(() => {
   if (wallet.state.connectionStatus === 'expired' || wallet.state.connectionStatus === 'verifying') {
     return 'warning';
   }
-  if (!wallet.state.isMetaMaskAvailable) {
+  if (!wallet.state.isWalletProviderAvailable) {
     return 'warning';
   }
   return 'idle';
@@ -810,6 +818,10 @@ async function admitTransferToMempool(transfer) {
 async function submitTransferIntent() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
     transferError.value = 'Verify wallet before signing a transfer.';
+    return;
+  }
+  if (!wallet.state.supportsNativeTransferSigning) {
+    transferError.value = `${wallet.state.providerLabel || 'This wallet provider'} cannot sign native test ZOID transfers yet.`;
     return;
   }
 

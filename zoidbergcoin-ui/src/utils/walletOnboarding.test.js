@@ -8,7 +8,8 @@ test('wallet onboarding options separate live MetaMask access from future altern
 
   assert.equal(options[0].title, 'Continue with MetaMask');
   assert.equal(options[0].availability, 'available');
-  assert.equal(options[1].title, 'Alternative login coming soon');
+  assert.equal(options[1].title, 'Continue with Email / Social Wallet');
   assert.equal(options[1].availability, 'coming_soon');
-  assert.match(options[1].warning, /MetaMask is currently required/i);
+  assert.match(options[1].description, /portable beta wallet/i);
+  assert.match(options[1].warning, /react island|not configured/i);
 });

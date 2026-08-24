@@ -1,5 +1,5 @@
 import { createServer } from 'vite';
-import vue from '@vitejs/plugin-vue';
+import { sharedViteConfig } from './vite.shared.mjs';
 
 const args = process.argv.slice(2);
 let host;
@@ -24,11 +24,8 @@ for (let index = 0; index < args.length; index += 1) {
 }
 
 const server = await createServer({
+  ...sharedViteConfig,
   configFile: false,
-  plugins: [vue()],
-  optimizeDeps: {
-    noDiscovery: true,
-  },
   server: {
     host,
     port,

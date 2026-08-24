@@ -13,6 +13,7 @@ test('access gate shows returning-user wallet login path', () => {
     walletState: {
       isConnected: false,
       isVerifiedSession: false,
+      providerId: 'metamask',
     },
     accessState: {
       me: null,
@@ -20,7 +21,8 @@ test('access gate shows returning-user wallet login path', () => {
     },
   });
 
-  assert.equal(state.showConnect, true);
+  assert.equal(state.showProviderChooser, true);
+  assert.equal(state.showConnect, false);
   assert.equal(state.showVerify, false);
   assert.equal(state.showBind, false);
   assert.match(
@@ -29,14 +31,110 @@ test('access gate shows returning-user wallet login path', () => {
       walletState: {
         isConnected: false,
         isVerifiedSession: false,
+        providerId: 'metamask',
       },
       accessState: {
         me: null,
         accessSessionToken: '',
       },
     }),
-    /returning tester\? connect your approved wallet/i,
+    /choose how you want to connect your approved wallet/i,
   );
+});
+
+test('invite flow keeps the provider chooser visible until a wallet method is explicitly selected', () => {
+  const state = getControlledAccessActionState({
+    mode: 'login',
+    walletState: {
+      isConnected: true,
+      isVerifiedSession: false,
+      providerId: 'metamask',
+    },
+    accessState: {
+      accessSessionToken: 'access-session-1',
+      me: {
+        invite_authenticated: true,
+        wallet_bound: false,
+        access_granted: false,
+      },
+    },
+    selectedProviderId: '',
+  });
+
+  assert.equal(state.showProviderChooser, true);
+  assert.equal(state.showConnect, false);
+  assert.equal(state.showVerify, false);
+  assert.equal(state.showBind, false);
+  assert.match(
+    getControlledAccessNextStepText({
+      mode: 'login',
+      walletState: {
+        isConnected: true,
+        isVerifiedSession: false,
+        providerId: 'metamask',
+      },
+      accessState: {
+        accessSessionToken: 'access-session-1',
+        me: {
+          invite_authenticated: true,
+          wallet_bound: false,
+          access_granted: false,
+        },
+      },
+      selectedProviderId: '',
+    }),
+    /choose how you want to connect your wallet before verifying it/i,
+  );
+});
+
+test('invite flow only advances to verification after the user selects MetaMask explicitly', () => {
+  const state = getControlledAccessActionState({
+    mode: 'login',
+    walletState: {
+      isConnected: true,
+      isVerifiedSession: false,
+      providerId: 'metamask',
+    },
+    accessState: {
+      accessSessionToken: 'access-session-1',
+      me: {
+        invite_authenticated: true,
+        wallet_bound: false,
+        access_granted: false,
+      },
+    },
+    selectedProviderId: 'metamask',
+  });
+
+  assert.equal(state.showProviderChooser, false);
+  assert.equal(state.showConnect, false);
+  assert.equal(state.showVerify, true);
+  assert.equal(state.showBind, false);
+});
+
+test('invite flow keeps Email / Social Wallet visible even when MetaMask is already connected', () => {
+  const state = getControlledAccessActionState({
+    mode: 'login',
+    walletState: {
+      isConnected: true,
+      isVerifiedSession: false,
+      providerId: 'metamask',
+    },
+    accessState: {
+      accessSessionToken: 'access-session-1',
+      me: {
+        invite_authenticated: true,
+        wallet_bound: false,
+        access_granted: false,
+      },
+    },
+    selectedProviderId: 'privy_embedded',
+  });
+
+  assert.equal(state.showProviderChooser, false);
+  assert.equal(state.showConnect, true);
+  assert.equal(state.showVerify, false);
+  assert.equal(state.showBind, false);
 });
 
 test('previously bound wallet can reconnect and unlock without invite code prompt', () => {
@@ -92,6 +190,7 @@ test('disconnect path clears wallet session locally without implying invite reus
     walletState: {
       isConnected: false,
       isVerifiedSession: false,
+      providerId: 'metamask',
     },
     accessState: {
       accessSessionToken: '',
@@ -99,7 +198,7 @@ test('disconnect path clears wallet session locally without implying invite reus
     },
   });
 
-  assert.match(nextStep, /connect your approved wallet/i);
+  assert.match(nextStep, /choose how you want to connect your approved wallet/i);
   assert.doesNotMatch(nextStep, /enter your invite code first/i);
 });
 

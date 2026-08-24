@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWalletManager } from './wallet.js';
+import { createWalletProviderRegistry } from './walletProviderAdapter.js';
 
 class MockProvider {
   constructor(accounts = [], chainId = '0x1') {
@@ -100,6 +101,49 @@ test('MetaMask unavailable state is exposed clearly', async () => {
   assert.equal(available, false);
   assert.equal(manager.state.isMetaMaskAvailable, false);
   assert.equal(manager.state.isConnected, false);
+});
+
+test('MetaMask mode still works when the embedded wallet provider is unavailable', async () => {
+  const provider = new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']);
+  let embeddedRestoreCalls = 0;
+  const manager = createWalletManager({
+    storage: createMemoryStorage(),
+    walletProviderRegistry: createWalletProviderRegistry({
+      getProvider: () => provider,
+      embeddedWalletService: {
+        getAvailability() {
+          return 'coming_soon';
+        },
+        getUnavailableMessage() {
+          return 'Email / Social Wallet is coming soon. Privy\'s supported web integration path for this Vue app is a small React island, so MetaMask remains the only live login until that path is implemented.';
+        },
+        isConfigured() {
+          return true;
+        },
+        getConnectionStatus() {
+          return 'coming_soon';
+        },
+        initialize() {
+          return false;
+        },
+        restoreConnection() {
+          embeddedRestoreCalls += 1;
+          return [];
+        },
+      },
+    }),
+  });
+
+  const detected = await manager.detectWallets();
+  assert.equal(detected, true);
+  assert.equal(embeddedRestoreCalls, 0);
+  assert.equal(manager.state.isConnected, true);
+
+  await manager.connectWallet({ providerId: 'metamask' });
+
+  assert.equal(manager.state.isMetaMaskAvailable, true);
+  assert.equal(manager.state.isConnected, true);
+  assert.equal(manager.state.providerId, 'metamask');
 });
 
 test('connect success with mocked provider', async () => {

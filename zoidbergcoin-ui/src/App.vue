@@ -63,7 +63,12 @@ const globalFeedbackEntryPoint = computed(() => {
 });
 
 onMounted(async () => {
-  await wallet.detectMetaMask();
+  try {
+    await wallet.detectMetaMask();
+  } catch (error) {
+    console.error('Wallet detection failed during app startup:', error);
+  }
+
   await access.initialize(wallet.getAuthorizationHeader());
   isAccessReady.value = true;
 });

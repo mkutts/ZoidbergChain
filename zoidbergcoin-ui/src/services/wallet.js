@@ -4,6 +4,7 @@ import { apiClient, configureWalletApiAuth, getApiErrorMessage } from '../config
 import { createWalletProviderRegistry } from './walletProviderAdapter.js';
 
 const LAST_CONNECTED_ADDRESS_KEY = 'zoidberg:last-wallet-address';
+const LAST_CONNECTED_PROVIDER_KEY = 'zoidberg:last-wallet-provider';
 const VERIFIED_SESSION_KEY = 'zoidberg:verified-wallet-session';
 
 function defaultProviderGetter() {
@@ -36,6 +37,7 @@ function createInitialState() {
     errorMessage: '',
     isVerifiedSession: false,
     lastConnectedAddress: '',
+    lastConnectedProviderId: 'metamask',
     sessionToken: '',
     sessionExpiresAt: '',
     verifiedWalletAddress: '',
@@ -44,6 +46,11 @@ function createInitialState() {
     providerLabel: 'MetaMask',
     providerType: 'injected_wallet',
     availableWalletProviders: [],
+    portabilityHelpUrl: '',
+    portabilityHelpCopy: '',
+    supportsNativeTransferSigning: true,
+    supportsMessageSigning: true,
+    supportsExportInfo: true,
     authError: '',
     connected_wallet_address: '',
     normalized_wallet_address: '',
@@ -80,8 +87,9 @@ export function createWalletManager(options = {}) {
   const storage = options.storage ?? defaultStorage();
   const walletProviderRegistry = options.walletProviderRegistry || createWalletProviderRegistry({
     getProvider: options.getProvider || defaultProviderGetter,
+    embeddedWalletService: options.embeddedWalletService,
+    embeddedWalletConfig: options.embeddedWalletConfig,
   });
-  const adapter = options.walletAdapter || walletProviderRegistry.getDefaultAdapter();
   const authApi = options.authApi || {
     async createChallenge(walletAddress) {
       const response = await apiClient.post('/auth/wallet/challenge', { wallet_address: walletAddress });
@@ -101,30 +109,29 @@ export function createWalletManager(options = {}) {
     },
   };
 
-  let provider = null;
+  let activeAdapter = walletProviderRegistry.getDefaultAdapter();
   let listenersAttached = false;
   let onAccountsChanged = null;
   let onChainChanged = null;
   let onDisconnect = null;
 
   function syncAvailableProviders() {
-    state.availableWalletProviders = walletProviderRegistry.listAdapters().map((item) => ({
-      provider_id: item.providerId,
-      provider_label: item.providerLabel,
-      provider_type: item.providerType,
-      availability: item.isAvailable() ? 'available' : 'unavailable',
-      supports_message_signing: Boolean(item.supportsMessageSigning),
-      supports_native_transfer_signing: Boolean(item.supportsNativeTransferSigning),
-      supports_export_info: Boolean(item.supportsExportInfo),
-      supports_portable_wallet_promise: Boolean(item.supportsPortableWalletPromise),
-    }));
+    state.availableWalletProviders = walletProviderRegistry.describeAdapters();
+    const activeProviderRecord = state.availableWalletProviders.find((item) => item.provider_id === activeAdapter.providerId) || null;
+    state.portabilityHelpUrl = activeProviderRecord?.portability_help_url || '';
+    state.portabilityHelpCopy = activeProviderRecord?.portability_help_copy || '';
+    state.supportsNativeTransferSigning = activeProviderRecord?.supports_native_transfer_signing !== false;
+    state.supportsMessageSigning = activeProviderRecord?.supports_message_signing !== false;
+    state.supportsExportInfo = Boolean(activeProviderRecord?.supports_export_info);
   }
 
   function syncProviderFields() {
-    state.providerId = adapter.providerId;
-    state.providerLabel = adapter.providerLabel;
-    state.providerType = adapter.providerType;
-    state.provider_id = adapter.providerId;
+    state.providerId = activeAdapter.providerId;
+    state.providerLabel = activeAdapter.providerLabel;
+    state.providerType = activeAdapter.providerType;
+    state.provider_id = activeAdapter.providerId;
+    state.isMetaMaskAvailable = Boolean(walletProviderRegistry.getAdapterById('metamask')?.isAvailable());
+    state.isWalletProviderAvailable = activeAdapter.isAvailable();
     syncAvailableProviders();
   }
 
@@ -162,6 +169,40 @@ export function createWalletManager(options = {}) {
       return;
     }
     storage.setItem(LAST_CONNECTED_ADDRESS_KEY, address);
+  }
+
+  function persistProviderId(providerId) {
+    state.lastConnectedProviderId = providerId || 'metamask';
+    if (!storage) {
+      return;
+    }
+    if (!providerId) {
+      storage.removeItem(LAST_CONNECTED_PROVIDER_KEY);
+      return;
+    }
+    storage.setItem(LAST_CONNECTED_PROVIDER_KEY, providerId);
+  }
+
+  function restorePersistedAddress() {
+    if (!storage) {
+      return '';
+    }
+    const saved = storage.getItem(LAST_CONNECTED_ADDRESS_KEY) || '';
+    const normalized = normalizeWalletAddress(saved);
+    state.lastConnectedAddress = normalized || '';
+    return state.lastConnectedAddress;
+  }
+
+  function restorePersistedProviderId() {
+    const fallback = 'metamask';
+    if (!storage) {
+      state.lastConnectedProviderId = fallback;
+      return fallback;
+    }
+    const saved = String(storage.getItem(LAST_CONNECTED_PROVIDER_KEY) || '').trim();
+    const adapter = walletProviderRegistry.getAdapterById(saved);
+    state.lastConnectedProviderId = adapter?.providerId || fallback;
+    return state.lastConnectedProviderId;
   }
 
   function sessionIsExpired(expiresAt) {
@@ -247,109 +288,41 @@ export function createWalletManager(options = {}) {
     }
   }
 
-  function restorePersistedAddress() {
-    if (!storage) {
-      return '';
-    }
-    const saved = storage.getItem(LAST_CONNECTED_ADDRESS_KEY) || '';
-    const normalized = normalizeWalletAddress(saved);
-    state.lastConnectedAddress = normalized || '';
-    return state.lastConnectedAddress;
-  }
-
-  function applyDisconnectedState() {
-    state.isConnected = false;
-    state.walletAddress = '';
-    state.normalizedWalletAddress = '';
-    clearVerifiedSession();
-    state.authError = '';
-    state.connectionStatus = state.isMetaMaskAvailable ? 'disconnected' : 'unavailable';
-    persistAddress('');
-    setIdentitySource();
-    syncIdentityFields();
-  }
-
-  async function readChainId(activeProvider) {
-    if (!activeProvider) {
-      return '';
-    }
-    if (typeof activeProvider.chainId === 'string') {
-      return activeProvider.chainId;
-    }
+  async function readChainId(adapter) {
     try {
-      const chainId = await activeProvider.request({ method: 'eth_chainId' });
-      return typeof chainId === 'string' ? chainId : '';
+      return await adapter.getChainId();
     } catch {
       return '';
     }
   }
 
-  async function syncAccounts(accounts = null) {
-    syncProviderFields();
-    provider = adapter.getProvider();
-    state.isMetaMaskAvailable = adapter.providerId === 'metamask' && adapter.isAvailable();
-    state.isWalletProviderAvailable = adapter.isAvailable();
-
-    if (!provider) {
-      state.connectionStatus = 'unavailable';
-      state.errorMessage = `${adapter.providerLabel} is not installed or the browser wallet provider is unavailable.`;
-      applyDisconnectedState();
-      return null;
+  function detachProviderListeners() {
+    if (!listenersAttached) {
+      return;
     }
-
-    const nextAccounts = Array.isArray(accounts)
-      ? accounts
-      : await adapter.getAccounts();
-
-    if (!Array.isArray(nextAccounts)) {
-      state.connectionStatus = 'error';
-      state.errorMessage = `${adapter.providerLabel} returned an unsupported account response.`;
-      applyDisconnectedState();
-      return null;
-    }
-
-    const selectedAddress = nextAccounts[0];
-    const normalized = normalizeWalletAddress(selectedAddress);
-    state.chainId = await readChainId(provider);
-
-    if (!selectedAddress || !normalized) {
-      state.errorMessage = nextAccounts.length > 0
-        ? `${adapter.providerLabel} returned an invalid wallet address.`
-        : '';
-      applyDisconnectedState();
-      return null;
-    }
-
-    state.walletAddress = selectedAddress;
-    state.normalizedWalletAddress = normalized;
-    state.isConnected = true;
-    state.connectionStatus = 'connected';
-    state.errorMessage = '';
-    state.authError = '';
-    state.verifiedWalletAddress = '';
-    persistAddress(normalized);
-    await restoreVerifiedSession();
-    setIdentitySource();
-    syncIdentityFields();
-    return normalized;
+    activeAdapter.removeListener?.('accountsChanged', onAccountsChanged);
+    activeAdapter.removeListener?.('chainChanged', onChainChanged);
+    activeAdapter.removeListener?.('disconnect', onDisconnect);
+    listenersAttached = false;
+    onAccountsChanged = null;
+    onChainChanged = null;
+    onDisconnect = null;
   }
 
   function attachProviderListeners() {
-    provider = adapter.getProvider();
-    if (!provider || listenersAttached || typeof provider.on !== 'function') {
+    if (listenersAttached) {
       return;
     }
-
     onAccountsChanged = async (accounts) => {
       try {
         if (state.sessionToken) {
           await authApi.logout();
         }
-        await syncAccounts(accounts);
+        await syncAccountsForAdapter(activeAdapter, accounts);
       } catch (error) {
         state.connectionStatus = 'error';
-        state.errorMessage = mapWalletError(error, adapter.providerLabel);
-        applyDisconnectedState();
+        state.errorMessage = mapWalletError(error, activeAdapter.providerLabel);
+        await applyDisconnectedState();
       }
     };
 
@@ -365,70 +338,157 @@ export function createWalletManager(options = {}) {
       }
     };
 
-    onDisconnect = () => {
-      state.errorMessage = `${adapter.providerLabel} disconnected from this app.`;
-      applyDisconnectedState();
+    onDisconnect = async () => {
+      state.errorMessage = `${activeAdapter.providerLabel} disconnected from this app.`;
+      await applyDisconnectedState();
     };
 
-    adapter.on('accountsChanged', onAccountsChanged);
-    adapter.on('chainChanged', onChainChanged);
-    adapter.on('disconnect', onDisconnect);
+    activeAdapter.on?.('accountsChanged', onAccountsChanged);
+    activeAdapter.on?.('chainChanged', onChainChanged);
+    activeAdapter.on?.('disconnect', onDisconnect);
     listenersAttached = true;
   }
 
-  async function detectMetaMask() {
-    restorePersistedAddress();
+  async function setActiveProvider(providerId) {
+    const nextAdapter = walletProviderRegistry.getAdapterById(providerId) || walletProviderRegistry.getDefaultAdapter();
+    if (nextAdapter.providerId === activeAdapter.providerId) {
+      syncProviderFields();
+      return activeAdapter;
+    }
+    detachProviderListeners();
+    activeAdapter = nextAdapter;
+    persistProviderId(activeAdapter.providerId);
     syncProviderFields();
-    provider = adapter.getProvider();
-    state.isMetaMaskAvailable = adapter.providerId === 'metamask' && adapter.isAvailable();
-    state.isWalletProviderAvailable = adapter.isAvailable();
-
-    if (!provider) {
-      state.connectionStatus = 'unavailable';
-      state.errorMessage = `${adapter.providerLabel} is not installed or the browser wallet provider is unavailable.`;
-      applyDisconnectedState();
-      return false;
-    }
-
-    attachProviderListeners();
-    state.connectionStatus = 'checking';
-    await syncAccounts();
-    if (!state.isConnected) {
-      state.connectionStatus = 'disconnected';
-    }
-    return state.isWalletProviderAvailable;
+    return activeAdapter;
   }
 
-  async function connectWallet() {
+  async function applyDisconnectedState() {
+    state.isConnected = false;
+    state.walletAddress = '';
+    state.normalizedWalletAddress = '';
+    state.chainId = '';
+    clearVerifiedSession();
+    state.authError = '';
+    state.connectionStatus = activeAdapter.isAvailable() ? 'disconnected' : 'idle';
+    persistAddress('');
+    persistProviderId(activeAdapter.providerId);
     syncProviderFields();
-    provider = adapter.getProvider();
-    state.isMetaMaskAvailable = adapter.providerId === 'metamask' && adapter.isAvailable();
-    state.isWalletProviderAvailable = adapter.isAvailable();
+    setIdentitySource();
+    syncIdentityFields();
+  }
 
-    if (!provider) {
-      state.connectionStatus = 'unavailable';
-      state.errorMessage = `${adapter.providerLabel} is not installed. Install ${adapter.providerLabel} to connect a wallet.`;
+  async function syncAccountsForAdapter(adapter, accounts = null) {
+    activeAdapter = adapter;
+    syncProviderFields();
+    const nextAccounts = Array.isArray(accounts)
+      ? accounts
+      : await adapter.getAccounts();
+
+    if (!Array.isArray(nextAccounts)) {
+      state.connectionStatus = 'error';
+      state.errorMessage = `${adapter.providerLabel} returned an unsupported account response.`;
+      await applyDisconnectedState();
       return null;
     }
 
+    const selectedAddress = nextAccounts[0];
+    const normalized = normalizeWalletAddress(selectedAddress);
+    state.chainId = await readChainId(adapter);
+
+    if (!selectedAddress || !normalized) {
+      state.errorMessage = '';
+      await applyDisconnectedState();
+      return null;
+    }
+
+    state.walletAddress = selectedAddress;
+    state.normalizedWalletAddress = normalized;
+    state.isConnected = true;
+    state.connectionStatus = 'connected';
+    state.errorMessage = '';
+    state.authError = '';
+    state.verifiedWalletAddress = '';
+    persistAddress(normalized);
+    persistProviderId(adapter.providerId);
+    await restoreVerifiedSession();
+    setIdentitySource();
+    syncIdentityFields();
     attachProviderListeners();
+    return normalized;
+  }
+
+  async function detectWallets() {
+    restorePersistedAddress();
+    const restoredProviderId = restorePersistedProviderId();
+    const preferred = walletProviderRegistry.getAdapterById(restoredProviderId) || walletProviderRegistry.getDefaultAdapter();
+    const defaultAdapter = walletProviderRegistry.getDefaultAdapter();
+    const adapters = [
+      preferred,
+      ...walletProviderRegistry.listAdapters().filter(
+        (adapter) => adapter.providerId !== preferred.providerId
+          && adapter.providerId === defaultAdapter.providerId,
+      ),
+    ];
+
+    for (const adapter of adapters) {
+      try {
+        const restoredAccounts = await adapter.restoreConnection?.();
+        if (Array.isArray(restoredAccounts) && restoredAccounts.length > 0) {
+          await setActiveProvider(adapter.providerId);
+          await syncAccountsForAdapter(adapter, restoredAccounts);
+          return true;
+        }
+      } catch {
+        // Ignore restore failures while scanning providers.
+      }
+    }
+
+    await setActiveProvider(restoredProviderId);
+    syncProviderFields();
+    state.connectionStatus = activeAdapter.isAvailable() ? 'disconnected' : 'idle';
+    state.errorMessage = '';
+    state.authError = '';
+    syncIdentityFields();
+    return false;
+  }
+
+  async function connectWallet(options = {}) {
+    const providerId = options.providerId || state.providerId || 'metamask';
+    const adapter = await setActiveProvider(providerId);
+    syncProviderFields();
     state.connectionStatus = 'connecting';
     state.errorMessage = '';
+    state.authError = '';
 
     try {
-      const accounts = await adapter.connect();
-      const normalized = await syncAccounts(accounts);
-      if (!normalized) {
-        state.connectionStatus = 'error';
-        state.errorMessage = `${adapter.providerLabel} did not return a usable wallet address.`;
+      const accounts = await adapter.connect(options);
+      if (!Array.isArray(accounts) || accounts.length === 0) {
+        state.connectionStatus = adapter.getConnectionStatus();
+        return null;
       }
-      return normalized;
+      return syncAccountsForAdapter(adapter, accounts);
     } catch (error) {
-      applyDisconnectedState();
+      await applyDisconnectedState();
       state.connectionStatus = 'error';
       state.errorMessage = mapWalletError(error, adapter.providerLabel);
       return null;
     }
+  }
+
+  async function sendEmbeddedWalletEmailCode(email) {
+    const adapter = await setActiveProvider('privy_embedded');
+    if (typeof adapter.sendEmailCode !== 'function') {
+      throw new Error('Embedded wallet email login is not available.');
+    }
+    return adapter.sendEmailCode(email);
+  }
+
+  async function startEmbeddedWalletOAuthLogin(providerId = '') {
+    const adapter = await setActiveProvider('privy_embedded');
+    if (typeof adapter.startOAuthLogin !== 'function') {
+      throw new Error('Embedded wallet social login is not available.');
+    }
+    return adapter.startOAuthLogin(providerId);
   }
 
   async function disconnectWallet() {
@@ -441,13 +501,17 @@ export function createWalletManager(options = {}) {
         // Ignore logout errors during local state cleanup.
       }
     }
-    applyDisconnectedState();
+    try {
+      await activeAdapter.disconnect?.();
+    } catch {
+      // Ignore provider logout failures during app disconnect.
+    }
+    await applyDisconnectedState();
   }
 
   async function verifyWallet() {
-    provider = adapter.getProvider();
-    if (!provider || !state.isConnected || !state.normalizedWalletAddress) {
-      state.errorMessage = `Connect ${adapter.providerLabel} before verifying this wallet.`;
+    if (!state.isConnected || !state.normalizedWalletAddress) {
+      state.errorMessage = `Connect ${activeAdapter.providerLabel} before verifying this wallet.`;
       return null;
     }
 
@@ -458,7 +522,7 @@ export function createWalletManager(options = {}) {
 
     try {
       const challenge = await authApi.createChallenge(state.normalizedWalletAddress);
-      const signature = await adapter.requestSignature(challenge.message, state.walletAddress);
+      const signature = await activeAdapter.requestSignature(challenge.message, state.walletAddress);
       const verification = await authApi.verifyChallenge({
         wallet_address: state.normalizedWalletAddress,
         message: challenge.message,
@@ -480,7 +544,7 @@ export function createWalletManager(options = {}) {
       state.connectionStatus = 'error';
       clearVerifiedSession();
       if (error?.code === 4001) {
-        state.errorMessage = `Signature request was rejected in ${adapter.providerLabel}.`;
+        state.errorMessage = `Signature request was rejected in ${activeAdapter.providerLabel}.`;
       } else {
         state.errorMessage = getApiErrorMessage(error, 'Wallet verification failed.');
       }
@@ -490,8 +554,15 @@ export function createWalletManager(options = {}) {
     }
   }
 
+  async function requestSignature(message, walletAddress = '') {
+    if (!state.isConnected || !state.walletAddress) {
+      throw new Error(`Connect ${activeAdapter.providerLabel} before requesting a signature.`);
+    }
+    return activeAdapter.requestSignature(message, walletAddress || state.walletAddress);
+  }
+
   function handleAccountsChanged(accounts) {
-    return onAccountsChanged ? onAccountsChanged(accounts) : syncAccounts(accounts);
+    return onAccountsChanged ? onAccountsChanged(accounts) : syncAccountsForAdapter(activeAdapter, accounts);
   }
 
   function handleChainChanged(chainId) {
@@ -509,8 +580,6 @@ export function createWalletManager(options = {}) {
     clearVerifiedSession(getApiErrorMessage(error, 'Session expired - verify again.'));
   }
 
-  syncProviderFields();
-
   configureWalletApiAuth({
     getAuthHeaders() {
       if (!state.isVerifiedSession || !state.sessionToken || sessionIsExpired(state.sessionExpiresAt)) {
@@ -523,16 +592,23 @@ export function createWalletManager(options = {}) {
     },
   });
 
+  syncProviderFields();
+
   return {
     state: readonly(state),
-    detectMetaMask,
+    detectMetaMask: detectWallets,
+    detectWallets,
     connectWallet,
     disconnectWallet,
     verifyWallet,
-    normalizeAddress: normalizeWalletAddress,
-    shortenAddress: shortenWalletAddress,
+    requestSignature,
+    sendEmbeddedWalletEmailCode,
+    startEmbeddedWalletOAuthLogin,
+    setActiveProvider,
     handleAccountsChanged,
     handleChainChanged,
+    normalizeAddress: normalizeWalletAddress,
+    shortenAddress: shortenWalletAddress,
     getAuthorizationHeader() {
       if (!state.isVerifiedSession || !state.sessionToken || sessionIsExpired(state.sessionExpiresAt)) {
         return {};

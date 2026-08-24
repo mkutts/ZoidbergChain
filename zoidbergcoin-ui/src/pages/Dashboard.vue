@@ -67,7 +67,7 @@
 
       <section class="navigation-card helper-strip">
         <p class="hint">
-          Need the walkthrough again? Open the Beta Guide for access, MetaMask, submission, voting, rewards, mobile tips, and safety reminders.
+          Need the walkthrough again? Open the Beta Guide for access, wallet setup, submission, voting, rewards, mobile tips, and safety reminders.
         </p>
       </section>
 
@@ -244,7 +244,7 @@
             <label>Submitting Wallet</label>
             <div class="derived-wallet-panel">
               <strong v-if="submissionWalletAddress">{{ submissionWalletAddress }}</strong>
-              <strong v-else>Connect and verify MetaMask before you submit.</strong>
+              <strong v-else>Connect and verify your wallet before you submit.</strong>
               <span class="meta">Your verified wallet is used as your submission identity in the beta.</span>
             </div>
           </div>
@@ -393,7 +393,7 @@
             <label>Voting Wallet</label>
             <div class="derived-wallet-panel">
               <strong v-if="voteWalletAddress">{{ voteWalletAddress }}</strong>
-              <strong v-else>Connect and verify MetaMask before you vote.</strong>
+              <strong v-else>Connect and verify your wallet before you vote.</strong>
               <span class="meta">Your verified wallet is used as your voting identity in the beta.</span>
             </div>
           </div>
@@ -974,9 +974,9 @@
 
         <div class="page-help-grid">
           <article class="quickstart-item">
-            <p class="section-label">MetaMask</p>
+            <p class="section-label">Wallet Setup</p>
             <strong>Connect the same approved wallet each time.</strong>
-            <p class="hint">Use MetaMask on desktop or the MetaMask Mobile browser on phones before trying to submit, vote, or send test ZOID.</p>
+            <p class="hint">Use your verified wallet before trying to submit, vote, or send test ZOID. MetaMask users on phones may still need the MetaMask Mobile browser.</p>
           </article>
           <article class="quickstart-item">
             <p class="section-label">How Beta Works</p>
@@ -1156,7 +1156,7 @@ export default {
         vote: 'Review the current queue, confirm voting eligibility, and help decide what becomes certified.',
         rewards: 'See your balance, reward history, transfer tools, and wallet verification details in one place.',
         activity: 'Keep the more technical submission, certificate, and recent block details off the main dashboard but easy to reach.',
-        help: 'Find setup reminders, MetaMask guidance, beta rules, feedback entry points, and safety warnings.',
+        help: 'Find setup reminders, wallet guidance, beta rules, feedback entry points, and safety warnings.',
         feedback: 'Feedback stays easy to find before and after login so beta testers can report issues quickly.',
       };
       return labels[this.appSection] || 'This is the main beta workspace for submitting content, voting on originality, and following your rewards.';
@@ -1273,7 +1273,7 @@ export default {
         {
           kicker: 'Support',
           title: 'Read beta guide',
-          copy: 'Open setup help, MetaMask instructions, safety reminders, and feedback guidance.',
+          copy: 'Open setup help, wallet instructions, safety reminders, and feedback guidance.',
           to: '/help',
         },
       ];
@@ -1310,7 +1310,7 @@ export default {
     identityWalletLabel() {
       return this.hasVerifiedWalletIdentity
         ? 'Verified wallet identity'
-        : 'Connected MetaMask address';
+        : `Connected ${this.walletManager.state.providerLabel || 'wallet'} address`;
     },
     shortenIdentityWallet() {
       return this.walletManager.shortenAddress(this.identityWalletAddress);
@@ -1329,7 +1329,7 @@ export default {
         return 'Submitting...';
       }
       if (!this.walletManager.state.isConnected) {
-        return 'Connect MetaMask To Submit';
+        return `Connect ${this.walletManager.state.providerLabel || 'Wallet'} To Submit`;
       }
       if (!this.hasVerifiedWalletIdentity) {
         return 'Verify Wallet Before Submitting';
@@ -1344,7 +1344,7 @@ export default {
         return 'Your verified wallet will sign this submission before it enters community voting.';
       }
       if (!this.walletManager.state.isConnected) {
-        return 'Connect MetaMask first so the app knows which wallet should own this submission.';
+        return `Connect ${this.walletManager.state.providerLabel || 'your wallet'} first so the app knows which wallet should own this submission.`;
       }
       return 'Verify your wallet before submitting. Every new submission needs a fresh wallet signature.';
     },
@@ -1353,7 +1353,7 @@ export default {
         return 'Your verified wallet signs each originality vote before it is recorded.';
       }
       if (!this.walletManager.state.isConnected) {
-        return 'Connect MetaMask first so you can review and vote with your wallet.';
+        return `Connect ${this.walletManager.state.providerLabel || 'your wallet'} first so you can review and vote with your wallet.`;
       }
       return 'Verify your wallet before voting. Each vote needs a fresh wallet signature.';
     },
@@ -1499,7 +1499,7 @@ export default {
       this.lastSubmission = null;
 
       if (!this.walletManager.state.isConnected) {
-        this.errorMessage = 'Connect MetaMask to submit content.';
+        this.errorMessage = `Connect ${this.walletManager.state.providerLabel || 'your wallet'} to submit content.`;
         return;
       }
 
@@ -1538,20 +1538,15 @@ export default {
           caption: this.textContent || preparedContent?.caption || this.contentCaption || null,
         });
 
-        if (typeof window === 'undefined' || !window.ethereum?.request) {
-          this.errorMessage = 'MetaMask is unavailable for signing right now.';
-          return;
-        }
-
         let signature;
         try {
-          signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [challengeResponse.data.message, this.walletManager.state.walletAddress],
-          });
+          signature = await this.walletManager.requestSignature(
+            challengeResponse.data.message,
+            this.walletManager.state.walletAddress,
+          );
         } catch (error) {
           if (error?.code === 4001) {
-            this.errorMessage = 'Signature request was rejected in MetaMask.';
+            this.errorMessage = `Signature request was rejected in ${this.walletManager.state.providerLabel || 'the wallet provider'}.`;
             return;
           }
           throw error;
@@ -1593,7 +1588,7 @@ export default {
       this.contentUploadError = '';
 
       if (!this.walletManager.state.isConnected) {
-        this.contentUploadError = 'Connect MetaMask before uploading content.';
+        this.contentUploadError = `Connect ${this.walletManager.state.providerLabel || 'your wallet'} before uploading content.`;
         return;
       }
 
@@ -1999,7 +1994,7 @@ export default {
       this.voteError = '';
 
       if (!this.walletManager.state.isConnected) {
-        this.voteError = 'Connect MetaMask to vote.';
+        this.voteError = `Connect ${this.walletManager.state.providerLabel || 'your wallet'} to vote.`;
         return;
       }
       if (!this.hasVerifiedWalletIdentity || !this.voteWalletAddress) {
@@ -2032,20 +2027,15 @@ export default {
           vote: voteType,
         });
 
-        if (typeof window === 'undefined' || !window.ethereum?.request) {
-          this.voteError = 'MetaMask is unavailable for signing right now.';
-          return;
-        }
-
         let signature;
         try {
-          signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [challengeResponse.data.message, this.walletManager.state.walletAddress],
-          });
+          signature = await this.walletManager.requestSignature(
+            challengeResponse.data.message,
+            this.walletManager.state.walletAddress,
+          );
         } catch (error) {
           if (error?.code === 4001) {
-            this.voteError = 'Signature request was rejected in MetaMask.';
+            this.voteError = `Signature request was rejected in ${this.walletManager.state.providerLabel || 'the wallet provider'}.`;
             return;
           }
           throw error;

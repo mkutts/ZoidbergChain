@@ -60,11 +60,14 @@ export function createNativeTransferService(options = {}) {
   const walletAdapter = options.walletAdapter || createMetaMaskAdapter({
     getProvider: options.getProvider,
   });
+  const signMessage = typeof options.signMessage === 'function'
+    ? options.signMessage
+    : (message, walletAddress) => walletAdapter.requestSignature(message, walletAddress);
   const getApiErrorMessage = options.getApiErrorMessage || ((error, fallback) => error?.message || fallback);
 
   return {
     async submitSignedTransferIntent({ fromAddress, walletAddressForSigning, toAddress, amount, memo = '', availableBalance = null }) {
-      if (!walletAdapter.isAvailable()) {
+      if (!walletAdapter.isAvailable() && !options.signMessage) {
         throw new Error(`${walletAdapter.providerLabel} is not available in this browser.`);
       }
 
@@ -85,7 +88,7 @@ export function createNativeTransferService(options = {}) {
           memo: draft.memo || null,
         });
         const challenge = challengeResponse.data;
-        const signature = await walletAdapter.requestSignature(challenge.message, walletAddressForSigning);
+        const signature = await signMessage(challenge.message, walletAddressForSigning);
         const submitResponse = await api.post('/transfers/submit', {
           from_address: draft.fromAddress,
           to_address: draft.toAddress,

@@ -2220,7 +2220,7 @@ def _build_access_rule_checks(
     checks.append(_eligibility_rule_check(
         rule_id="wallet_verified",
         label="Connect and verify a wallet",
-        description="You need to connect MetaMask and sign a wallet verification message before gated beta checks can run.",
+        description="You need to connect a supported wallet and sign a wallet verification message before gated beta checks can run.",
         passed=bool(wallet_session_authenticated and wallet_address),
         required=True,
         scope="access",
@@ -2936,7 +2936,7 @@ def _enforce_access_for_feature(wallet_address: str | None, *, feature: str):
             "A bound active controlled-testnet access account or approved access override is required for this action.",
         ),
         "access_control_mode": ACCESS_CONTROL_MODE,
-        "recommended_action": "Enter an invite code or request access, then bind the verified MetaMask wallet.",
+        "recommended_action": "Enter an invite code or request access, then bind the verified wallet.",
         "allowlist_override_applied": decision.allowlist_override_applied,
         "allowlist_scope": decision.allowlist_scope,
     }
@@ -3214,7 +3214,7 @@ async def login_with_access_code(request: Request, payload: AccessLoginRequest):
     blockchain.mark_access_account_login(account["access_account_id"])
     blockchain.save_blockchain()
     return {
-        "message": "Invite accepted. Connect and verify MetaMask to bind the wallet.",
+        "message": "Invite accepted. Connect and verify your wallet to bind it.",
         "access_account": _public_access_account(account),
         **session,
     }
@@ -3238,7 +3238,7 @@ async def bind_access_wallet(
                 detail={
                     "error": "verified_wallet_mismatch",
                     "reason": "verified_wallet_session_does_not_match_requested_wallet",
-                    "message": "The verified MetaMask wallet session does not match the requested wallet binding.",
+                    "message": "The verified wallet session does not match the requested wallet binding.",
                 },
             )
         binding = blockchain.bind_wallet_to_access_account(
@@ -5067,7 +5067,7 @@ async def get_wallets(request: Request):
     try:
         return {
             "message": "Development-only server wallets retrieved successfully.",
-            "warning": "Development-only server wallets are local test tools and are not the native ZoidbergChain account registry for MetaMask users.",
+            "warning": "Development-only server wallets are local test tools and are not the native ZoidbergChain account registry for verified wallet users.",
             "wallets": [
                 _wallet_public_response(key, wallet)
                 for key, wallet in blockchain.wallets.items()
@@ -5366,7 +5366,7 @@ async def submit_content(
         if not is_development():
             raise HTTPException(
                 status_code=401,
-                detail="MetaMask-signed submissions are required outside development mode.",
+                detail="Wallet-signed submissions are required outside development mode.",
             )
         if not submitter:
             raise HTTPException(status_code=422, detail="submitter is required for the development-only submission path.")
@@ -5682,7 +5682,7 @@ async def vote_on_submission(
         if not is_development():
             raise HTTPException(
                 status_code=401,
-                detail="MetaMask-signed votes are required outside development mode.",
+                detail="Wallet-signed votes are required outside development mode.",
             )
         if not voter:
             raise HTTPException(status_code=422, detail="voter is required for the development-only vote path.")
@@ -5937,7 +5937,7 @@ async def generate_wallet(request: Request):  # ✅ No more API key validation
 
     response = {
         "message": "Development-only server wallet generated successfully.",
-        "warning": "This endpoint creates local test wallets only. MetaMask-backed 0x addresses are the normal native ZoidbergChain account model.",
+        "warning": "This endpoint creates local test wallets only. Verified 0x wallet addresses are the normal native ZoidbergChain account model.",
         "wallet": _wallet_public_response(wallet.public_key, wallet),
     }
     if _dev_private_key_export_enabled():
@@ -6079,7 +6079,7 @@ async def get_native_account_transactions(request: Request, wallet_address: str)
             "account_type": "metamask_native",
             "network_name": NETWORK_NAME,
             "transactions": _get_account_transactions(normalized_wallet),
-            "note": "Canonical native ZOID transaction history for this MetaMask-backed ZoidbergChain account.",
+            "note": "Canonical native ZOID transaction history for this wallet-backed ZoidbergChain account.",
         }
     except HTTPException:
         raise

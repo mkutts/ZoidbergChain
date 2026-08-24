@@ -9,7 +9,7 @@ ZoidbergChain is an experimental meme-focused blockchain where the community rev
 This beta is a small controlled rollout for testing:
 
 - access requests and invite codes
-- MetaMask connection and wallet binding
+- wallet connection and wallet binding
 - returning approved-wallet login
 - content submission
 - originality voting
@@ -28,7 +28,7 @@ This beta is a small controlled rollout for testing:
 
 ## What you need before starting
 
-- MetaMask on desktop, or MetaMask Mobile on mobile
+- either MetaMask or the Email / Social Wallet path if it is enabled on your deployment
 - a wallet you can reconnect with later
 - a stable internet connection
 - time to test both the happy path and anything confusing you notice
@@ -49,17 +49,22 @@ This beta is a small controlled rollout for testing:
 
 Invite codes are one-time and should not be shared.
 
-## How to connect MetaMask
+## Login options at the access gate
 
-1. Press the MetaMask connect button when prompted.
-2. Choose the wallet account you want to use for this beta.
-3. Approve the connection in MetaMask.
+Path A: `Continue with MetaMask`
 
-If MetaMask is not detected on mobile, open the site inside the MetaMask Mobile browser and try again.
+- Use this if you already have a crypto wallet.
+- On mobile, if MetaMask is not detected, open the site inside the MetaMask Mobile browser and try again.
+
+Path B: `Continue with Email / Social Wallet`
+
+- Use this if you are new to wallets.
+- This creates or reconnects a portable beta wallet when the deployment is configured for it.
+- If this option is disabled, that deployment is still MetaMask-only.
 
 ## How to bind your wallet
 
-1. After your invite is accepted, connect MetaMask.
+1. After your invite is accepted, connect with MetaMask or Email / Social Wallet.
 2. Sign the verification message.
 3. Finish the `Bind Verified Wallet` step.
 
@@ -108,14 +113,15 @@ Vote carefully and do not vote on your own submission.
 1. Refresh the page.
 2. Reconnect the same approved wallet.
 3. Retry the wallet signature step if it was interrupted.
-4. On mobile, reopen the site in MetaMask Mobile.
+4. If you are using MetaMask on mobile, reopen the site in MetaMask Mobile.
 5. Send feedback from inside the app if the problem continues.
 
 ## Mobile instructions
 
-- For best results, open the site in the MetaMask Mobile browser.
-- If using Safari or Chrome and the wallet is not detected, open the site in MetaMask Mobile instead.
-- App switching and wallet signing can vary by device and browser.
+- MetaMask users usually get the smoothest injected-wallet flow inside the MetaMask Mobile browser.
+- If using Safari or Chrome and MetaMask is not detected, open the site in MetaMask Mobile instead.
+- Embedded-wallet users should also test the normal mobile browser path.
+- App switching and wallet signing can vary across browsers and devices.
 - Use the in-app feedback form if mobile wallet connection fails.
 
 ## Things not to share
@@ -133,3 +139,5 @@ Never share:
 - Explorer and advanced activity views are still more technical than the main app.
 - Content, votes, balances, and rewards may reset during testing.
 - Mobile signing behavior can vary across browsers and devices.
+- Wallet portability and export details matter before any future mainnet-value use.
+- Test ZOID has no real monetary value, and this beta does not promise future sale or exchange support.

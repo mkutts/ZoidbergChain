@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "node ./scripts/dev.mjs",
     "build": "node ./scripts/build.mjs",
-    "test": "node --test src/config/api.test.js src/config/viteInterop.test.js src/utils/walletAddress.test.js src/utils/nativeWalletUi.test.js src/utils/voterRewards.test.js src/utils/runtimeConfig.test.js src/utils/reviewPolicy.test.js src/utils/accessGate.test.js src/utils/adminUi.test.js src/utils/controlledAccessUi.test.js src/utils/mobileWallet.test.js src/utils/submissionEligibility.test.js src/utils/eligibilityChecklist.test.js src/utils/feedback.test.js src/utils/embeddedWalletConfig.test.js src/utils/walletOnboarding.test.js src/services/wallet.test.js src/services/walletProviderAdapter.test.js src/services/privyEmbeddedWallet.test.js src/services/nativeTransfer.test.js src/services/access.test.js src/services/admin.test.js src/services/feedback.test.js src/components/feedbackPanel.test.js src/pages/dashboardNavigation.test.js",
+    "test": "node --test src/config/api.test.js src/config/viteInterop.test.js src/utils/walletAddress.test.js src/utils/nativeWalletUi.test.js src/utils/voterRewards.test.js src/utils/runtimeConfig.test.js src/utils/reviewPolicy.test.js src/utils/accessGate.test.js src/utils/adminUi.test.js src/utils/controlledAccessUi.test.js src/utils/mobileWallet.test.js src/utils/submissionEligibility.test.js src/utils/eligibilityChecklist.test.js src/utils/feedback.test.js src/utils/embeddedWalletConfig.test.js src/utils/walletOnboarding.test.js src/services/wallet.test.js src/services/walletProviderAdapter.test.js src/services/privyEmbeddedWallet.test.js src/services/privyReactIsland.test.js src/services/nativeTransfer.test.js src/services/access.test.js src/services/admin.test.js src/services/feedback.test.js src/components/feedbackPanel.test.js src/pages/dashboardNavigation.test.js",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@privy-io/react-auth": "^3.7.6",
     "axios": "^1.7.9",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },

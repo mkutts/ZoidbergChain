@@ -143,6 +143,30 @@ test('submitSignedTransferIntent surfaces MetaMask rejection clearly', async () 
   );
 });
 
+test('submitSignedTransferIntent can sign through an injected adapter callback', async () => {
+  const api = createApi();
+  let signedMessage = '';
+  const service = createNativeTransferService({
+    api,
+    getProvider: () => null,
+    signMessage(message) {
+      signedMessage = message;
+      return '0xembedded-signature';
+    },
+    getApiErrorMessage: (error, fallback) => error?.message || fallback,
+  });
+
+  const result = await service.submitSignedTransferIntent({
+    fromAddress: '0x1111111111111111111111111111111111111111',
+    toAddress: '0x2222222222222222222222222222222222222222',
+    amount: '1',
+    providerLabel: 'Email / Social Wallet',
+  });
+
+  assert.equal(signedMessage, 'Exact backend transfer message');
+  assert.equal(result.status, 'signed_pending');
+});
+
 test('pending warning copy stays non-final and mentions meme-mined settlement', () => {
   assert.match(TRANSFER_PENDING_WARNING, /final balance changes only when/i);
   assert.match(TRANSFER_PENDING_WARNING, /meme-mined block/i);

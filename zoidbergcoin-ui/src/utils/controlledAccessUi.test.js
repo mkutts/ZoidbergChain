@@ -261,16 +261,36 @@ test('wallet status text stays friendly for connected and verified returning use
     getAccessGateWalletStatusText({
       isConnected: true,
       isVerifiedSession: false,
+      providerLabel: 'MetaMask',
       normalizedWalletAddress: '0x1234',
     }),
-    /wallet connected: 0x1234/i,
+    /metamask connected: 0x1234/i,
   );
   assert.match(
     getAccessGateWalletStatusText({
       isConnected: true,
       isVerifiedSession: true,
+      providerLabel: 'Email \/ Social Wallet',
       verifiedWalletAddress: '0x5678',
     }),
-    /wallet verified: 0x5678/i,
+    /email \/ social wallet verified: 0x5678/i,
   );
+});
+
+test('invite-authenticated users are prompted to choose either wallet path', () => {
+  const nextStep = getControlledAccessNextStepText({
+    mode: 'login',
+    walletState: {
+      isConnected: false,
+      isVerifiedSession: false,
+    },
+    accessState: {
+      accessSessionToken: 'invite-session',
+      me: {
+        invite_authenticated: true,
+      },
+    },
+  });
+
+  assert.match(nextStep, /choose how you want to connect your wallet/i);
 });

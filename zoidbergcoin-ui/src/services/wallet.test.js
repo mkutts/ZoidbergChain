@@ -266,6 +266,7 @@ test('verify wallet calls challenge and personal_sign and marks session verified
   assert.equal(provider.lastPersonalSignParams[1], '0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234');
   assert.equal(authCalls[0][0], 'challenge');
   assert.equal(authCalls[1][0], 'verify');
+  assert.equal(authCalls[1][1].provider_id, 'metamask');
   assert.equal(verification.verified, true);
   assert.equal(manager.state.isVerifiedSession, true);
 });
@@ -344,6 +345,7 @@ test('persisted verified session is restored through backend session introspecti
     'zoidberg:verified-wallet-session',
     JSON.stringify({
       walletAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdef1234',
+      providerId: 'metamask',
       sessionToken: 'session-token-1',
       expiresAt: '2099-01-01T00:00:00+00:00',
     }),

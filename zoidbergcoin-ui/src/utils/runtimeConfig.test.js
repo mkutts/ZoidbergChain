@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  getEmbeddedWalletConfig,
   getAppEnvironment,
   isPublicDemoMode,
   publicDemoBannerLines,
@@ -68,4 +69,24 @@ test('public demo banner includes required controlled-testnet labels', () => {
   assert.ok(lines.includes('Wallets are used for identity and signatures'));
   assert.ok(lines.includes('Native ZOID lives on ZoidbergChain, not Ethereum'));
   assert.ok(lines.includes('Never enter a seed phrase or private key in this app'));
+});
+
+test('embedded wallet config stays disabled by default', () => {
+  const config = getEmbeddedWalletConfig({ MODE: 'development', PROD: false });
+
+  assert.equal(config.enabled, false);
+  assert.equal(config.configured, false);
+});
+
+test('embedded wallet config enables Privy when app id is present', () => {
+  const config = getEmbeddedWalletConfig({
+    MODE: 'development',
+    PROD: false,
+    VITE_EMBEDDED_WALLET_PROVIDER: 'privy',
+    VITE_PRIVY_APP_ID: 'privy-app-id',
+  });
+
+  assert.equal(config.enabled, true);
+  assert.equal(config.configured, true);
+  assert.equal(config.privy.appId, 'privy-app-id');
 });

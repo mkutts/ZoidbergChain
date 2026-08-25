@@ -64,13 +64,22 @@ export function createNativeTransferService(options = {}) {
     ? options.signMessage
     : (message, walletAddress) => walletAdapter.requestSignature(message, walletAddress);
   const getApiErrorMessage = options.getApiErrorMessage || ((error, fallback) => error?.message || fallback);
+  const defaultSignMessage = options.signMessage || null;
 
   return {
-    async submitSignedTransferIntent({ fromAddress, walletAddressForSigning, toAddress, amount, memo = '', availableBalance = null }) {
+    async submitSignedTransferIntent({
+      fromAddress,
+      walletAddressForSigning,
+      toAddress,
+      amount,
+      memo = '',
+      availableBalance = null,
+      providerLabel = walletAdapter.providerLabel || 'wallet',
+      signMessage: runtimeSignMessage = defaultSignMessage,
+    }) {
       if (!walletAdapter.isAvailable() && !options.signMessage) {
         throw new Error(`${walletAdapter.providerLabel} is not available in this browser.`);
       }
-
       const draft = validateNativeTransferDraft({
         fromAddress,
         toAddress,
@@ -88,7 +97,7 @@ export function createNativeTransferService(options = {}) {
           memo: draft.memo || null,
         });
         const challenge = challengeResponse.data;
-        const signature = await signMessage(challenge.message, walletAddressForSigning);
+        const signature = await (runtimeSignMessage || signMessage)(challenge.message, walletAddressForSigning);
         const submitResponse = await api.post('/transfers/submit', {
           from_address: draft.fromAddress,
           to_address: draft.toAddress,
@@ -101,7 +110,7 @@ export function createNativeTransferService(options = {}) {
         return submitResponse.data;
       } catch (error) {
         if (error?.code === 4001) {
-          throw new Error(`Signature request was rejected in ${walletAdapter.providerLabel}.`);
+          throw new Error(`Signature request was rejected in ${providerLabel}.`);
         }
         throw new Error(getApiErrorMessage(error, 'Native transfer intent submission failed.'));
       }

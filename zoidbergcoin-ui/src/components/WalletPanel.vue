@@ -836,6 +836,8 @@ async function submitTransferIntent() {
       amount: transferForm.value.amount,
       memo: transferForm.value.memo,
       availableBalance: accountSummary.value?.available_balance ?? null,
+      providerLabel: wallet.state.providerLabel || 'wallet',
+      signMessage: (message) => wallet.requestSignature(message),
     });
     if (result.duplicate) {
       transferSuccessMessage.value = `Signed native ZOID transfer already recorded at nonce ${result.nonce || result.transfer_nonce}. Not settled yet.`;

@@ -5,6 +5,9 @@ const IMPORT_META_ENV = {
   VITE_APP_ENVIRONMENT: import.meta.env?.VITE_APP_ENVIRONMENT,
   VITE_PUBLIC_DEMO_MODE: import.meta.env?.VITE_PUBLIC_DEMO_MODE,
   VITE_ENABLE_DEV_TOOLS: import.meta.env?.VITE_ENABLE_DEV_TOOLS,
+  VITE_EMBEDDED_WALLET_PROVIDER: import.meta.env?.VITE_EMBEDDED_WALLET_PROVIDER,
+  VITE_PRIVY_APP_ID: import.meta.env?.VITE_PRIVY_APP_ID,
+  VITE_PRIVY_CLIENT_ID: import.meta.env?.VITE_PRIVY_CLIENT_ID,
 };
 
 function normalizeEnvironment(rawEnvironment, env = IMPORT_META_ENV) {
@@ -67,4 +70,27 @@ export function publicDemoBannerLines() {
     'Native ZOID lives on ZoidbergChain, not Ethereum',
     'Never enter a seed phrase or private key in this app',
   ];
+}
+
+function normalizeToken(value) {
+  return String(value || '').trim();
+}
+
+export function getEmbeddedWalletConfig(env = IMPORT_META_ENV) {
+  const provider = normalizeToken(env.VITE_EMBEDDED_WALLET_PROVIDER).toLowerCase();
+  const privyAppId = normalizeToken(env.VITE_PRIVY_APP_ID);
+  const privyClientId = normalizeToken(env.VITE_PRIVY_CLIENT_ID);
+  const enabled = provider === 'privy';
+  const configured = enabled && Boolean(privyAppId);
+
+  return {
+    provider,
+    enabled,
+    configured,
+    label: enabled ? 'Email / Social Wallet' : 'Embedded Wallet',
+    privy: {
+      appId: privyAppId,
+      clientId: privyClientId || '',
+    },
+  };
 }

@@ -2,526 +2,515 @@
   <div class="access-shell">
     <PublicDemoBanner />
     <section class="access-card">
-      <p class="eyebrow">Controlled Testnet Access</p>
-      <p v-if="accessLabel" class="access-label">{{ accessLabel }}</p>
-      <h1>Join the ZoidbergChain beta</h1>
-      <p class="lead">
-        ZoidbergChain is in controlled beta while we test submissions, originality voting, rewards, and wallet safety. Test ZOID has no real monetary value, and this is not mainnet.
-      </p>
-      <div class="top-feedback-cta">
-        <button type="button" class="ghost-btn feedback-shortcut" @click="openFeedbackPanel">Send Feedback</button>
-        <router-link to="/why-zoidbergcoin" class="ghost-btn feedback-shortcut">Beta Guide</router-link>
-        <p class="wallet-note">Open the Beta Guide for setup help, or send feedback directly from this screen if something is broken or confusing.</p>
-      </div>
-
-      <div class="journey-grid">
-        <article class="journey-card">
-          <p class="section-label">I&apos;m New</p>
-          <strong>Request beta access.</strong>
-          <p class="wallet-note">Tell us why you want in, wait for approval, then use your invite once.</p>
-        </article>
-        <article class="journey-card">
-          <p class="section-label">I Have an Invite</p>
-          <strong>Use the code, then bind your wallet.</strong>
-          <p class="wallet-note">Invite codes are one-time. After that, your approved wallet becomes your normal return path.</p>
-        </article>
-        <article class="journey-card">
-          <p class="section-label">I&apos;m Returning</p>
-          <strong>Connect your approved wallet.</strong>
-          <p class="wallet-note">Reconnect the same wallet and sign a quick verification message to continue.</p>
-        </article>
-      </div>
-
-      <div class="rules-panel">
-        <p class="section-label">How Beta Access Works</p>
-        <p class="wallet-note">
-          Some actions need approval while the beta is small. Your invite, verified wallet, and account standing decide what you can do next.
-        </p>
-        <ul class="rules-list">
-          <li>New testers can request access or use an invite code from the team.</li>
-          <li>Approved testers receive a one-time invite code before binding their wallet.</li>
-          <li>Returning testers usually only need their approved wallet and a fresh verification signature.</li>
-          <li>Submitting content requires beta access plus a verified wallet.</li>
-          <li>Voting and rewards can still have separate approval rules while we reduce spam.</li>
-          <li>Test ZOID stays testnet-only and has no real monetary value.</li>
-          <li>Wallets control your ZoidbergChain identity.</li>
-          <li>On mobile, use the MetaMask Mobile browser if your wallet is not detected.</li>
-          <li>Never enter a seed phrase or private key anywhere in this app.</li>
-          <li>Before any mainnet-value launch, accounts must have a portable wallet, export path, or migration path.</li>
-        </ul>
-      </div>
-
-      <div class="rules-panel">
-        <p class="section-label">Login Options</p>
-        <div class="journey-grid onboarding-grid">
-          <article
-            v-for="option in onboardingOptions"
-            :key="option.id"
-            class="journey-card"
-          >
-            <p class="section-label">{{ option.availability === 'available' ? 'Available Now' : 'Coming Soon' }}</p>
-            <strong>{{ option.title }}</strong>
-            <p class="wallet-note">{{ option.description }}</p>
-            <p v-if="option.warning" class="wallet-note">{{ option.warning }}</p>
-          </article>
-        </div>
-      </div>
-
-      <div class="entry-switch">
-        <button
-          type="button"
-          class="entry-btn"
-          :class="{ active: entryMode === 'new' }"
-          @click="setEntryMode('new')"
-        >
-          I&apos;m New
-        </button>
-        <button
-          type="button"
-          class="entry-btn"
-          :class="{ active: entryMode === 'returning' }"
-          @click="setEntryMode('returning')"
-        >
-          Returning With My Approved Wallet
-        </button>
-      </div>
-
-      <p v-if="mobileWalletSupport.helperText" class="status info">{{ mobileWalletSupport.helperText }}</p>
-      <p v-if="mobileWalletSupport.noProviderMessage" class="status warning">{{ mobileWalletSupport.noProviderMessage }}</p>
-
-      <div v-if="mobileWalletSupport.shouldShowOpenInMetaMask" class="mobile-open-card">
-        <a
-          :href="mobileWalletSupport.openInMetaMaskUrl"
-          class="secondary-btn meta-mask-link"
-          @click="persistGateState"
-        >
-          Open in MetaMask
-        </a>
-        <p class="mobile-open-note">
-          Open the current page in MetaMask Mobile so wallet connection and signing can continue there.
-        </p>
-      </div>
-
-      <div v-if="entryMode === 'returning'" class="panel-stack">
-        <div class="returning-panel">
-          <p class="section-label">Returning Approved Wallet</p>
-          <h2>{{ returningWalletGuidance.headline }}</h2>
-          <p class="wallet-note">{{ returningWalletGuidance.detail }}</p>
-          <p v-if="accessActionState.showProviderChooser" class="wallet-note">
-            Choose how to connect your approved wallet before you verify it.
+      <div class="access-hero-grid">
+        <div class="access-intro-panel">
+          <p class="eyebrow">ZoidbergChain</p>
+          <p v-if="accessLabel" class="access-label">{{ accessLabel }}</p>
+          <div class="hero-heading">
+            <h1>Join the beta</h1>
+            <span class="beta-badge">Controlled Beta</span>
+          </div>
+          <p class="lead">
+            A controlled beta for testing meme originality, voting, and native test ZOID rewards.
           </p>
-          <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with MetaMask. Use this if you already have a crypto wallet.</p>
-          <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with Email / Social Wallet. This is the planned easier-onboarding path for new users, but it is still coming soon in this Vue app.</p>
-          <p v-if="shouldShowWalletStatus" class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
-          <p class="wallet-note">{{ walletNextStepText }}</p>
 
-          <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
-          <p v-if="returningStatusMessage" class="status" :class="returningStatusClass">{{ returningStatusMessage }}</p>
+          <div class="journey-grid access-paths responsive-access-grid">
+            <article class="journey-card">
+              <p class="section-label">I&apos;m New</p>
+              <strong>Request beta access</strong>
+            </article>
+            <article class="journey-card">
+              <p class="section-label">I Have an Invite</p>
+              <strong>Enter your invite code</strong>
+            </article>
+            <article class="journey-card">
+              <p class="section-label">I&apos;m Returning</p>
+              <strong>Reconnect your approved wallet</strong>
+            </article>
+            <article v-if="requestsEnabled" class="journey-card">
+              <p class="section-label">Request Access</p>
+              <strong>Ask for beta access</strong>
+            </article>
+          </div>
 
-          <div class="wallet-actions">
-            <button
-              v-if="showMetaMaskButton"
-              type="button"
-              class="primary-btn"
-              @click="connectMetaMaskWallet"
-              :disabled="wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask'"
-            >
-              {{ wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask' ? 'Connecting...' : 'Continue with MetaMask' }}
-            </button>
-            <button
-              v-if="showEmbeddedWalletConnectButton"
-              type="button"
-              class="secondary-btn"
-              @click="connectEmbeddedWalletFromExistingSession"
-              :disabled="isConnectingEmbeddedWallet"
-            >
-              {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Continue with Email / Social Wallet' }}
-            </button>
-            <button
-              v-if="showEmbeddedWalletUnavailableButton"
-              type="button"
-              class="ghost-btn"
-              disabled
-            >
-              {{ embeddedWalletDisabledButtonLabel }}
-            </button>
-            <button
-              v-else-if="accessActionState.showVerify"
-              type="button"
-              class="primary-btn"
-              @click="continueReturningFlow"
-              :disabled="wallet.state.connectionStatus === 'verifying'"
-            >
-              {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : returningWalletGuidance.actionLabel }}
-            </button>
-            <button
-              v-else-if="wallet.state.isVerifiedSession && !access.state.me?.access_granted"
-              type="button"
-              class="secondary-btn"
-              @click="refreshReturningAccess"
-            >
-              {{ returningWalletGuidance.actionLabel }}
-            </button>
-            <button
-              v-if="showRetryButton"
-              type="button"
-              class="secondary-btn"
-              @click="retryPendingWalletAction"
-            >
-              Retry Wallet Step
-            </button>
-            <button
-              v-if="shouldShowChangeWalletMethod"
-              type="button"
-              class="ghost-btn"
-              @click="changeWalletMethod"
-            >
-              Change Wallet Method
-            </button>
+          <div class="entry-switch">
             <button
               type="button"
-              class="ghost-btn"
+              class="entry-btn"
+              :class="{ active: entryMode === 'new' }"
               @click="setEntryMode('new')"
             >
-              I&apos;m New Here
-            </button>
-          </div>
-        <p
-          v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletUnavailableMessage"
-          class="status"
-          :class="embeddedWalletTemporarilyUnavailable ? 'warning' : 'info'"
-        >
-          {{ embeddedWalletUnavailableMessage }}
-        </p>
-        <details v-if="shouldShowEmbeddedWalletDiagnostics" class="diagnostic-panel">
-          <summary>Email / Social Wallet diagnostics (development only)</summary>
-          <p class="wallet-note">Unavailable reason: {{ embeddedWalletDiagnosticReasonLabel }}</p>
-          <ul class="diagnostic-list">
-            <li>providerConfigured: {{ embeddedWalletDiagnostics?.providerConfigured ? 'true' : 'false' }}</li>
-            <li>appIdPresent: {{ embeddedWalletDiagnostics?.appIdPresent ? 'true' : 'false' }}</li>
-            <li>providerName: {{ embeddedWalletDiagnostics?.providerName || '(not set)' }}</li>
-            <li>sdkImportAttempted: {{ embeddedWalletDiagnostics?.sdkImportAttempted ? 'true' : 'false' }}</li>
-            <li>sdkImportSucceeded: {{ embeddedWalletDiagnostics?.sdkImportSucceeded ? 'true' : 'false' }}</li>
-            <li>initAttempted: {{ embeddedWalletDiagnostics?.initAttempted ? 'true' : 'false' }}</li>
-            <li>initSucceeded: {{ embeddedWalletDiagnostics?.initSucceeded ? 'true' : 'false' }}</li>
-            <li>origin: {{ embeddedWalletDiagnostics?.origin || '(not available)' }}</li>
-            <li>isSecureContext: {{ embeddedWalletDiagnostics?.isSecureContext ? 'true' : 'false' }}</li>
-            <li>lastErrorMessage: {{ embeddedWalletDiagnostics?.lastErrorMessage || '(none)' }}</li>
-          </ul>
-        </details>
-        <div v-if="shouldShowEmbeddedAuthPanel" class="panel-stack embedded-auth-panel">
-          <label class="field">
-            <span>Email</span>
-            <input v-model.trim="embeddedWalletEmail" type="email" placeholder="you@example.com" autocomplete="email" />
-          </label>
-          <div class="wallet-actions">
-            <button
-              type="button"
-              class="secondary-btn"
-              @click="sendEmbeddedWalletCode"
-              :disabled="isSendingEmbeddedWalletCode || !embeddedWalletEmail"
-            >
-              {{ isSendingEmbeddedWalletCode ? 'Sending Code...' : 'Email Me A Code' }}
+              I&apos;m New
             </button>
             <button
-              v-if="supportsEmbeddedSocialLogin"
               type="button"
-              class="ghost-btn"
-              @click="startEmbeddedWalletSocialLogin"
+              class="entry-btn"
+              :class="{ active: entryMode === 'returning' }"
+              @click="setEntryMode('returning')"
             >
-              Continue with {{ embeddedWalletSocialProviderLabel }}
+              Returning With My Approved Wallet
             </button>
           </div>
-          <label class="field">
-            <span>Verification Code</span>
-            <input v-model.trim="embeddedWalletCode" type="text" placeholder="123123" inputmode="numeric" autocomplete="one-time-code" />
-          </label>
-          <button
-            type="button"
-            class="primary-btn"
-            @click="connectEmbeddedWalletWithCode"
-            :disabled="isConnectingEmbeddedWallet || !embeddedWalletEmail || !embeddedWalletCode"
-          >
-            {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Verify Email And Connect Wallet' }}
-          </button>
-          <p class="wallet-note">{{ embeddedWalletOption?.portability_help_copy || 'Embedded wallets must stay portable before any mainnet-value launch.' }}</p>
-          <p v-if="embeddedWalletMessage" class="status success">{{ embeddedWalletMessage }}</p>
-          <p v-if="embeddedWalletError" class="status error">{{ embeddedWalletError }}</p>
-        </div>
-      </div>
-      </div>
 
-      <template v-else>
-        <div class="mode-switch">
-          <button
-            type="button"
-            class="mode-btn"
-            :class="{ active: newUserMode === 'invite' }"
-            @click="setNewUserMode('invite')"
-          >
-            I Have an Invite
-          </button>
-          <button
-            v-if="requestsEnabled"
-            type="button"
-            class="mode-btn"
-            :class="{ active: newUserMode === 'request' }"
-            @click="setNewUserMode('request')"
-          >
-            Request Beta Access
-          </button>
-        </div>
+          <p v-if="mobileWalletSupport.helperText" class="status info">{{ mobileWalletSupport.helperText }}</p>
+          <p v-if="mobileWalletSupport.noProviderMessage" class="status warning">{{ mobileWalletSupport.noProviderMessage }}</p>
 
-        <div v-if="newUserMode === 'invite'" class="panel-stack">
-          <label class="field">
-            <span>Invite Code</span>
-            <input v-model.trim="inviteCode" type="text" placeholder="ZC-..." autocomplete="one-time-code" />
-          </label>
-          <button type="button" class="primary-btn" @click="login" :disabled="access.state.isLoggingIn || !inviteCode">
-            {{ access.state.isLoggingIn ? 'Checking Invite...' : 'Continue With Invite' }}
-          </button>
-          <p v-if="inviteAcceptedMessage" class="status success">{{ inviteAcceptedMessage }}</p>
-
-          <div class="wallet-box">
-            <p class="section-label">Connect And Verify Your Wallet</p>
-            <h2 v-if="accessActionState.showProviderChooser" class="wallet-box-heading">Choose how to connect your wallet</h2>
-            <p v-if="accessActionState.showProviderChooser" class="wallet-note">
-              Continue with MetaMask if you already have a wallet, or use Email / Social Wallet if you are new to wallets.
+          <div v-if="mobileWalletSupport.shouldShowOpenInMetaMask" class="mobile-open-card">
+            <a
+              :href="mobileWalletSupport.openInMetaMaskUrl"
+              class="secondary-btn meta-mask-link"
+              @click="persistGateState"
+            >
+              Open in MetaMask
+            </a>
+            <p class="mobile-open-note">
+              Open the current page in MetaMask Mobile so wallet connection and signing can continue there.
             </p>
-            <p v-if="shouldShowWalletStatus" class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
-            <p class="wallet-note">{{ walletNextStepText }}</p>
-            <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with MetaMask. Use this if you already have a crypto wallet.</p>
-            <p v-if="accessActionState.showProviderChooser" class="wallet-note">Continue with Email / Social Wallet. This is the planned easier-onboarding path for new users, but it is still coming soon in this Vue app.</p>
-            <p v-if="accessActionState.showBind" class="status success">Wallet verified. Bind this wallet to your approved beta access.</p>
-            <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
-            <div class="wallet-actions">
-              <button
-                v-if="showMetaMaskButton"
-                type="button"
-                class="secondary-btn"
-                @click="connectMetaMaskWallet"
-                :disabled="wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask'"
-              >
-                {{ wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask' ? 'Connecting...' : 'Continue with MetaMask' }}
-              </button>
-              <button
-                v-if="showEmbeddedWalletConnectButton"
-                type="button"
-                class="secondary-btn"
-                @click="connectEmbeddedWalletFromExistingSession"
-                :disabled="isConnectingEmbeddedWallet"
-              >
-                {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Continue with Email / Social Wallet' }}
-              </button>
-              <button
-                v-if="showEmbeddedWalletUnavailableButton"
-                type="button"
-                class="ghost-btn"
-                disabled
-              >
-                {{ embeddedWalletDisabledButtonLabel }}
-              </button>
-              <button
-                v-else-if="accessActionState.showVerify"
-                type="button"
-                class="secondary-btn"
-                @click="verifyWallet"
-                :disabled="wallet.state.connectionStatus === 'verifying'"
-              >
-                {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Wallet' }}
-              </button>
-              <button
-                v-else-if="accessActionState.showBind"
-                type="button"
-                class="primary-btn"
-                @click="bindWallet"
-                :disabled="access.state.isBindingWallet"
-              >
-                {{ access.state.isBindingWallet ? 'Binding Wallet...' : 'Bind Verified Wallet' }}
-              </button>
-              <button
-                v-if="showRetryButton"
-                type="button"
-                class="secondary-btn"
-                @click="retryPendingWalletAction"
-              >
-                Retry Wallet Step
-              </button>
-              <button
-                v-if="shouldShowChangeWalletMethod"
-                type="button"
-                class="ghost-btn"
-                @click="changeWalletMethod"
-              >
-                Change Wallet Method
-              </button>
+          </div>
+
+          <div class="active-flow-shell">
+            <div v-if="entryMode === 'returning'" class="panel-stack">
+              <div class="returning-panel">
+                <p class="section-label">Returning Approved Wallet</p>
+                <h2>{{ returningWalletGuidance.headline }}</h2>
+                <p class="wallet-note">{{ returningWalletGuidance.detail }}</p>
+                <p v-if="accessActionState.showProviderChooser" class="wallet-note">Choose how to connect your approved wallet.</p>
+                <p v-if="shouldShowWalletStatus" class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
+                <p class="wallet-note">{{ walletNextStepText }}</p>
+
+                <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
+                <p v-if="returningStatusMessage" class="status" :class="returningStatusClass">{{ returningStatusMessage }}</p>
+
+                <div class="wallet-actions">
+                  <button
+                    v-if="showMetaMaskButton"
+                    type="button"
+                    class="primary-btn"
+                    @click="connectMetaMaskWallet"
+                    :disabled="wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask'"
+                  >
+                    {{ wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask' ? 'Connecting...' : 'Continue with MetaMask' }}
+                  </button>
+                  <button
+                    v-if="showEmbeddedWalletConnectButton"
+                    type="button"
+                    class="secondary-btn"
+                    @click="connectEmbeddedWalletFromExistingSession"
+                    :disabled="isConnectingEmbeddedWallet"
+                  >
+                    {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Continue with Email / Social Wallet' }}
+                  </button>
+                  <button
+                    v-if="showEmbeddedWalletUnavailableButton"
+                    type="button"
+                    class="ghost-btn"
+                    disabled
+                  >
+                    {{ embeddedWalletDisabledButtonLabel }}
+                  </button>
+                  <button
+                    v-else-if="accessActionState.showVerify"
+                    type="button"
+                    class="primary-btn"
+                    @click="continueReturningFlow"
+                    :disabled="wallet.state.connectionStatus === 'verifying'"
+                  >
+                    {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : returningWalletGuidance.actionLabel }}
+                  </button>
+                  <button
+                    v-else-if="wallet.state.isVerifiedSession && !access.state.me?.access_granted"
+                    type="button"
+                    class="secondary-btn"
+                    @click="refreshReturningAccess"
+                  >
+                    {{ returningWalletGuidance.actionLabel }}
+                  </button>
+                  <button
+                    v-if="showRetryButton"
+                    type="button"
+                    class="secondary-btn"
+                    @click="retryPendingWalletAction"
+                  >
+                    Retry Wallet Step
+                  </button>
+                  <button
+                    v-if="shouldShowChangeWalletMethod"
+                    type="button"
+                    class="ghost-btn"
+                    @click="changeWalletMethod"
+                  >
+                    Change Wallet Method
+                  </button>
+                  <button
+                    type="button"
+                    class="ghost-btn"
+                    @click="setEntryMode('new')"
+                  >
+                    I&apos;m New Here
+                  </button>
+                </div>
+                <p
+                  v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletPublicMessage"
+                  class="status"
+                  :class="embeddedWalletTemporarilyUnavailable ? 'warning' : 'info'"
+                >
+                  {{ embeddedWalletPublicMessage }}
+                </p>
+                <details v-if="shouldShowEmbeddedWalletDiagnostics" class="diagnostic-panel">
+                  <summary>Email / Social Wallet diagnostics (development only)</summary>
+                  <p v-if="embeddedWalletUnavailableMessage" class="wallet-note">{{ embeddedWalletUnavailableMessage }}</p>
+                  <p class="wallet-note">Unavailable reason: {{ embeddedWalletDiagnosticReasonLabel }}</p>
+                  <ul class="diagnostic-list">
+                    <li>providerConfigured: {{ embeddedWalletDiagnostics?.providerConfigured ? 'true' : 'false' }}</li>
+                    <li>appIdPresent: {{ embeddedWalletDiagnostics?.appIdPresent ? 'true' : 'false' }}</li>
+                    <li>providerName: {{ embeddedWalletDiagnostics?.providerName || '(not set)' }}</li>
+                    <li>sdkImportAttempted: {{ embeddedWalletDiagnostics?.sdkImportAttempted ? 'true' : 'false' }}</li>
+                    <li>sdkImportSucceeded: {{ embeddedWalletDiagnostics?.sdkImportSucceeded ? 'true' : 'false' }}</li>
+                    <li>initAttempted: {{ embeddedWalletDiagnostics?.initAttempted ? 'true' : 'false' }}</li>
+                    <li>initSucceeded: {{ embeddedWalletDiagnostics?.initSucceeded ? 'true' : 'false' }}</li>
+                    <li>origin: {{ embeddedWalletDiagnostics?.origin || '(not available)' }}</li>
+                    <li>isSecureContext: {{ embeddedWalletDiagnostics?.isSecureContext ? 'true' : 'false' }}</li>
+                    <li>lastErrorMessage: {{ embeddedWalletDiagnostics?.lastErrorMessage || '(none)' }}</li>
+                  </ul>
+                </details>
+                <div v-if="shouldShowEmbeddedAuthPanel" class="panel-stack embedded-auth-panel">
+                  <label class="field">
+                    <span>Email</span>
+                    <input v-model.trim="embeddedWalletEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+                  </label>
+                  <div class="wallet-actions">
+                    <button
+                      type="button"
+                      class="secondary-btn"
+                      @click="sendEmbeddedWalletCode"
+                      :disabled="isSendingEmbeddedWalletCode || !embeddedWalletEmail"
+                    >
+                      {{ isSendingEmbeddedWalletCode ? 'Sending Code...' : 'Email Me A Code' }}
+                    </button>
+                    <button
+                      v-if="supportsEmbeddedSocialLogin"
+                      type="button"
+                      class="ghost-btn"
+                      @click="startEmbeddedWalletSocialLogin"
+                    >
+                      Continue with {{ embeddedWalletSocialProviderLabel }}
+                    </button>
+                  </div>
+                  <label class="field">
+                    <span>Verification Code</span>
+                    <input v-model.trim="embeddedWalletCode" type="text" placeholder="123123" inputmode="numeric" autocomplete="one-time-code" />
+                  </label>
+                  <button
+                    type="button"
+                    class="primary-btn"
+                    @click="connectEmbeddedWalletWithCode"
+                    :disabled="isConnectingEmbeddedWallet || !embeddedWalletEmail || !embeddedWalletCode"
+                  >
+                    {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Verify Email And Connect Wallet' }}
+                  </button>
+                  <p class="wallet-note">{{ embeddedWalletOption?.portability_help_copy || 'Use a wallet you can reconnect with later.' }}</p>
+                  <p v-if="embeddedWalletMessage" class="status success">{{ embeddedWalletMessage }}</p>
+                  <p v-if="embeddedWalletError" class="status error">{{ embeddedWalletError }}</p>
+                </div>
+              </div>
             </div>
-            <p
-              v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletUnavailableMessage"
-              class="status"
-              :class="embeddedWalletTemporarilyUnavailable ? 'warning' : 'info'"
-            >
-              {{ embeddedWalletUnavailableMessage }}
-            </p>
-            <details v-if="shouldShowEmbeddedWalletDiagnostics" class="diagnostic-panel">
-              <summary>Email / Social Wallet diagnostics (development only)</summary>
-              <p class="wallet-note">Unavailable reason: {{ embeddedWalletDiagnosticReasonLabel }}</p>
-              <ul class="diagnostic-list">
-                <li>providerConfigured: {{ embeddedWalletDiagnostics?.providerConfigured ? 'true' : 'false' }}</li>
-                <li>appIdPresent: {{ embeddedWalletDiagnostics?.appIdPresent ? 'true' : 'false' }}</li>
-                <li>providerName: {{ embeddedWalletDiagnostics?.providerName || '(not set)' }}</li>
-                <li>sdkImportAttempted: {{ embeddedWalletDiagnostics?.sdkImportAttempted ? 'true' : 'false' }}</li>
-                <li>sdkImportSucceeded: {{ embeddedWalletDiagnostics?.sdkImportSucceeded ? 'true' : 'false' }}</li>
-                <li>initAttempted: {{ embeddedWalletDiagnostics?.initAttempted ? 'true' : 'false' }}</li>
-                <li>initSucceeded: {{ embeddedWalletDiagnostics?.initSucceeded ? 'true' : 'false' }}</li>
-                <li>origin: {{ embeddedWalletDiagnostics?.origin || '(not available)' }}</li>
-                <li>isSecureContext: {{ embeddedWalletDiagnostics?.isSecureContext ? 'true' : 'false' }}</li>
-                <li>lastErrorMessage: {{ embeddedWalletDiagnostics?.lastErrorMessage || '(none)' }}</li>
-              </ul>
-            </details>
-            <div v-if="shouldShowEmbeddedAuthPanel" class="panel-stack embedded-auth-panel">
-              <label class="field">
-                <span>Email</span>
-                <input v-model.trim="embeddedWalletEmail" type="email" placeholder="you@example.com" autocomplete="email" />
-              </label>
-              <div class="wallet-actions">
+
+            <template v-else>
+              <div class="mode-switch">
                 <button
                   type="button"
-                  class="secondary-btn"
-                  @click="sendEmbeddedWalletCode"
-                  :disabled="isSendingEmbeddedWalletCode || !embeddedWalletEmail"
+                  class="mode-btn"
+                  :class="{ active: newUserMode === 'invite' }"
+                  @click="setNewUserMode('invite')"
                 >
-                  {{ isSendingEmbeddedWalletCode ? 'Sending Code...' : 'Email Me A Code' }}
+                  I Have an Invite
                 </button>
                 <button
-                  v-if="supportsEmbeddedSocialLogin"
+                  v-if="requestsEnabled"
                   type="button"
-                  class="ghost-btn"
-                  @click="startEmbeddedWalletSocialLogin"
+                  class="mode-btn"
+                  :class="{ active: newUserMode === 'request' }"
+                  @click="setNewUserMode('request')"
                 >
-                  Continue with {{ embeddedWalletSocialProviderLabel }}
+                  Request Beta Access
                 </button>
               </div>
-              <label class="field">
-                <span>Verification Code</span>
-                <input v-model.trim="embeddedWalletCode" type="text" placeholder="123123" inputmode="numeric" autocomplete="one-time-code" />
-              </label>
-              <button
-                type="button"
-                class="primary-btn"
-                @click="connectEmbeddedWalletWithCode"
-                :disabled="isConnectingEmbeddedWallet || !embeddedWalletEmail || !embeddedWalletCode"
-              >
-                {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Verify Email And Connect Wallet' }}
-              </button>
-              <p class="wallet-note">{{ embeddedWalletOption?.portability_help_copy || 'Embedded wallets must stay portable before any mainnet-value launch.' }}</p>
-              <p v-if="embeddedWalletMessage" class="status success">{{ embeddedWalletMessage }}</p>
-              <p v-if="embeddedWalletError" class="status error">{{ embeddedWalletError }}</p>
+
+              <div v-if="newUserMode === 'invite'" class="panel-stack flow-panel">
+                <label class="field">
+                  <span>Invite Code</span>
+                  <input v-model.trim="inviteCode" type="text" placeholder="ZC-..." autocomplete="one-time-code" />
+                </label>
+                <button type="button" class="primary-btn" @click="login" :disabled="access.state.isLoggingIn || !inviteCode">
+                  {{ access.state.isLoggingIn ? 'Checking Invite...' : 'Continue With Invite' }}
+                </button>
+                <p v-if="inviteAcceptedMessage" class="status success">{{ inviteAcceptedMessage }}</p>
+
+                <div class="wallet-box">
+                  <p class="section-label">Connect And Verify Your Wallet</p>
+                  <h2 v-if="accessActionState.showProviderChooser" class="wallet-box-heading">Choose how to connect your wallet</h2>
+                  <p v-if="shouldShowWalletStatus" class="wallet-line"><strong>Wallet status:</strong> {{ walletStatusText }}</p>
+                  <p class="wallet-note">{{ walletNextStepText }}</p>
+                  <p v-if="accessActionState.showBind" class="status success">Wallet verified. Bind this wallet to your approved beta access.</p>
+                  <p v-if="interruptedWalletMessage" class="status warning">{{ interruptedWalletMessage }}</p>
+                  <div class="wallet-actions">
+                    <button
+                      v-if="showMetaMaskButton"
+                      type="button"
+                      class="secondary-btn"
+                      @click="connectMetaMaskWallet"
+                      :disabled="wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask'"
+                    >
+                      {{ wallet.state.connectionStatus === 'connecting' && wallet.state.providerId === 'metamask' ? 'Connecting...' : 'Continue with MetaMask' }}
+                    </button>
+                    <button
+                      v-if="showEmbeddedWalletConnectButton"
+                      type="button"
+                      class="secondary-btn"
+                      @click="connectEmbeddedWalletFromExistingSession"
+                      :disabled="isConnectingEmbeddedWallet"
+                    >
+                      {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Continue with Email / Social Wallet' }}
+                    </button>
+                    <button
+                      v-if="showEmbeddedWalletUnavailableButton"
+                      type="button"
+                      class="ghost-btn"
+                      disabled
+                    >
+                      {{ embeddedWalletDisabledButtonLabel }}
+                    </button>
+                    <button
+                      v-else-if="accessActionState.showVerify"
+                      type="button"
+                      class="secondary-btn"
+                      @click="verifyWallet"
+                      :disabled="wallet.state.connectionStatus === 'verifying'"
+                    >
+                      {{ wallet.state.connectionStatus === 'verifying' ? 'Verifying...' : 'Verify Wallet' }}
+                    </button>
+                    <button
+                      v-else-if="accessActionState.showBind"
+                      type="button"
+                      class="primary-btn"
+                      @click="bindWallet"
+                      :disabled="access.state.isBindingWallet"
+                    >
+                      {{ access.state.isBindingWallet ? 'Binding Wallet...' : 'Bind Verified Wallet' }}
+                    </button>
+                    <button
+                      v-if="showRetryButton"
+                      type="button"
+                      class="secondary-btn"
+                      @click="retryPendingWalletAction"
+                    >
+                      Retry Wallet Step
+                    </button>
+                    <button
+                      v-if="shouldShowChangeWalletMethod"
+                      type="button"
+                      class="ghost-btn"
+                      @click="changeWalletMethod"
+                    >
+                      Change Wallet Method
+                    </button>
+                  </div>
+                  <p
+                    v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletPublicMessage"
+                    class="status"
+                    :class="embeddedWalletTemporarilyUnavailable ? 'warning' : 'info'"
+                  >
+                    {{ embeddedWalletPublicMessage }}
+                  </p>
+                  <details v-if="shouldShowEmbeddedWalletDiagnostics" class="diagnostic-panel">
+                    <summary>Email / Social Wallet diagnostics (development only)</summary>
+                    <p v-if="embeddedWalletUnavailableMessage" class="wallet-note">{{ embeddedWalletUnavailableMessage }}</p>
+                    <p class="wallet-note">Unavailable reason: {{ embeddedWalletDiagnosticReasonLabel }}</p>
+                    <ul class="diagnostic-list">
+                      <li>providerConfigured: {{ embeddedWalletDiagnostics?.providerConfigured ? 'true' : 'false' }}</li>
+                      <li>appIdPresent: {{ embeddedWalletDiagnostics?.appIdPresent ? 'true' : 'false' }}</li>
+                      <li>providerName: {{ embeddedWalletDiagnostics?.providerName || '(not set)' }}</li>
+                      <li>sdkImportAttempted: {{ embeddedWalletDiagnostics?.sdkImportAttempted ? 'true' : 'false' }}</li>
+                      <li>sdkImportSucceeded: {{ embeddedWalletDiagnostics?.sdkImportSucceeded ? 'true' : 'false' }}</li>
+                      <li>initAttempted: {{ embeddedWalletDiagnostics?.initAttempted ? 'true' : 'false' }}</li>
+                      <li>initSucceeded: {{ embeddedWalletDiagnostics?.initSucceeded ? 'true' : 'false' }}</li>
+                      <li>origin: {{ embeddedWalletDiagnostics?.origin || '(not available)' }}</li>
+                      <li>isSecureContext: {{ embeddedWalletDiagnostics?.isSecureContext ? 'true' : 'false' }}</li>
+                      <li>lastErrorMessage: {{ embeddedWalletDiagnostics?.lastErrorMessage || '(none)' }}</li>
+                    </ul>
+                  </details>
+                  <div v-if="shouldShowEmbeddedAuthPanel" class="panel-stack embedded-auth-panel">
+                    <label class="field">
+                      <span>Email</span>
+                      <input v-model.trim="embeddedWalletEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+                    </label>
+                    <div class="wallet-actions">
+                      <button
+                        type="button"
+                        class="secondary-btn"
+                        @click="sendEmbeddedWalletCode"
+                        :disabled="isSendingEmbeddedWalletCode || !embeddedWalletEmail"
+                      >
+                        {{ isSendingEmbeddedWalletCode ? 'Sending Code...' : 'Email Me A Code' }}
+                      </button>
+                      <button
+                        v-if="supportsEmbeddedSocialLogin"
+                        type="button"
+                        class="ghost-btn"
+                        @click="startEmbeddedWalletSocialLogin"
+                      >
+                        Continue with {{ embeddedWalletSocialProviderLabel }}
+                      </button>
+                    </div>
+                    <label class="field">
+                      <span>Verification Code</span>
+                      <input v-model.trim="embeddedWalletCode" type="text" placeholder="123123" inputmode="numeric" autocomplete="one-time-code" />
+                    </label>
+                    <button
+                      type="button"
+                      class="primary-btn"
+                      @click="connectEmbeddedWalletWithCode"
+                      :disabled="isConnectingEmbeddedWallet || !embeddedWalletEmail || !embeddedWalletCode"
+                    >
+                      {{ isConnectingEmbeddedWallet ? 'Connecting...' : 'Verify Email And Connect Wallet' }}
+                    </button>
+                    <p class="wallet-note">{{ embeddedWalletOption?.portability_help_copy || 'Use a wallet you can reconnect with later.' }}</p>
+                    <p v-if="embeddedWalletMessage" class="status success">{{ embeddedWalletMessage }}</p>
+                    <p v-if="embeddedWalletError" class="status error">{{ embeddedWalletError }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <form v-else-if="requestsEnabled" class="panel-stack flow-panel request-panel" @submit.prevent="submitRequest">
+                <label class="field">
+                  <span>Name</span>
+                  <input v-model.trim="requestForm.name" type="text" required />
+                </label>
+                <label class="field">
+                  <span>Email</span>
+                  <input v-model.trim="requestForm.email" type="email" required />
+                </label>
+                <label class="field">
+                  <span>Organization Or Social Handle (Optional)</span>
+                  <input v-model.trim="requestForm.handle" type="text" />
+                </label>
+                <label class="field">
+                  <span>Why Would You Like Access?</span>
+                  <textarea v-model.trim="requestForm.reason" rows="3" required />
+                </label>
+                <label class="field">
+                  <span>Anything Else We Should Know? (Optional)</span>
+                  <textarea v-model.trim="requestForm.notes" rows="3" />
+                </label>
+                <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingRequest">
+                  {{ access.state.isSubmittingRequest ? 'Sending Request...' : 'Send Access Request' }}
+                </button>
+              </form>
+
+              <div v-else class="panel-stack flow-panel">
+                <p class="status">
+                  New requests are paused on this node right now. If you already have approval, use your invite code or return with your approved wallet.
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="rules-panel main-access-card">
+          <div class="card-heading-inline">
+            <div>
+              <p class="section-label">Wallet Login</p>
+              <h2>Choose a wallet method</h2>
             </div>
+            <p class="wallet-note card-aside">Want details? Read the Beta Guide.</p>
           </div>
-        </div>
-
-        <form v-else-if="requestsEnabled" class="panel-stack" @submit.prevent="submitRequest">
-          <label class="field">
-            <span>Name</span>
-            <input v-model.trim="requestForm.name" type="text" required />
-          </label>
-          <label class="field">
-            <span>Email</span>
-            <input v-model.trim="requestForm.email" type="email" required />
-          </label>
-          <label class="field">
-            <span>Organization Or Social Handle (Optional)</span>
-            <input v-model.trim="requestForm.handle" type="text" />
-          </label>
-          <label class="field">
-            <span>Why Would You Like Access?</span>
-            <textarea v-model.trim="requestForm.reason" rows="3" required />
-          </label>
-          <label class="field">
-            <span>Anything Else We Should Know? (Optional)</span>
-            <textarea v-model.trim="requestForm.notes" rows="3" />
-          </label>
-          <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingRequest">
-            {{ access.state.isSubmittingRequest ? 'Sending Request...' : 'Send Access Request' }}
-          </button>
-        </form>
-
-        <div v-else class="panel-stack">
-          <p class="status">
-            New requests are paused on this node right now. If you already have approval, use your invite code or return with your approved wallet.
-          </p>
-        </div>
-      </template>
-
-      <section v-if="shouldShowEligibilityStatus" class="rules-panel">
-        <p class="section-label">What Is Blocking Me?</p>
-        <p v-if="eligibilityHeadline" class="status" :class="eligibilityTone">{{ eligibilityHeadline }}</p>
-        <p v-if="primaryBlockedReason" class="wallet-note">{{ primaryBlockedReason }}</p>
-        <div v-if="accessRuleChecks.length" class="eligibility-checklist">
-          <div
-            v-for="rule in accessRuleChecks"
-            :key="`${rule.scope}-${rule.rule_id}`"
-            class="eligibility-rule"
-            :class="{ pass: rule.passed, fail: rule.required && !rule.passed }"
-          >
-            <strong>{{ rule.label }}</strong>
-            <p class="wallet-note">{{ rule.description }}</p>
-            <p class="wallet-note eligibility-rule-value">
-              Current: {{ rule.current_value ?? 'Not available' }}
-              <span v-if="rule.required_value !== null && rule.required_value !== undefined"> | Needed: {{ rule.required_value }}</span>
-            </p>
+          <div class="journey-grid onboarding-grid compact-options responsive-wallet-grid">
+            <article
+              v-for="option in onboardingOptions"
+              :key="option.id"
+              class="journey-card"
+            >
+              <p class="section-label">{{ option.availability === 'available' ? 'Available Now' : 'Coming Soon' }}</p>
+              <strong>{{ option.title }}</strong>
+              <p class="wallet-note compact-copy">{{ option.description }}</p>
+              <p v-if="option.warning" class="wallet-note">{{ option.warning }}</p>
+            </article>
           </div>
-        </div>
-        <p v-for="step in nextSteps" :key="step" class="wallet-note">{{ step }}</p>
-        <p v-if="activeOverrideMessage" class="status success">{{ activeOverrideMessage }}</p>
-      </section>
-
-      <section v-if="canRequestOverride" class="rules-panel">
-        <div class="card-heading-inline">
-          <div>
-            <p class="section-label">Still Blocked?</p>
-            <p class="wallet-note">
-              If you believe this wallet should already work, send a quick beta help request so an operator can review it.
-            </p>
+          <div class="helper-links-inline">
+            <router-link to="/why-zoidbergcoin" class="ghost-btn feedback-shortcut">Beta Guide</router-link>
+            <button type="button" class="ghost-btn feedback-shortcut" @click="openFeedbackPanel">Send Feedback</button>
           </div>
-          <button type="button" class="ghost-btn" @click="showOverrideForm = !showOverrideForm">
-            {{ showOverrideForm ? 'Hide Beta Help Form' : 'Request Beta Help' }}
-          </button>
+          <details class="mini-help top-help">
+            <summary>Need help?</summary>
+            <p class="wallet-note">Use your invite code, request access, or return with your approved wallet. Want details? Read the Beta Guide.</p>
+            <p class="wallet-note">If MetaMask is not detected on mobile, open this page in the MetaMask Mobile browser.</p>
+            <p v-if="eligibilityHeadline" class="status compact-help-status" :class="eligibilityTone">{{ eligibilityHeadline }}</p>
+            <p v-if="primaryBlockedReason" class="wallet-note">{{ primaryBlockedReason }}</p>
+            <p v-if="blockedSummaryCallToAction" class="wallet-note">{{ blockedSummaryCallToAction }}</p>
+            <p v-if="activeOverrideMessage" class="status success">{{ activeOverrideMessage }}</p>
+            <details v-if="hasEligibilityDetails" class="diagnostic-panel compact-help-panel">
+              <summary>Why am I blocked?</summary>
+              <div v-if="accessRuleChecks.length" class="eligibility-checklist">
+                <div
+                  v-for="rule in accessRuleChecks"
+                  :key="`${rule.scope}-${rule.rule_id}`"
+                  class="eligibility-rule"
+                  :class="{ pass: rule.passed, fail: rule.required && !rule.passed }"
+                >
+                  <strong>{{ rule.label }}</strong>
+                  <p class="wallet-note">{{ rule.description }}</p>
+                  <p class="wallet-note eligibility-rule-value">
+                    Current: {{ rule.current_value ?? 'Not available' }}
+                    <span v-if="rule.required_value !== null && rule.required_value !== undefined"> | Needed: {{ rule.required_value }}</span>
+                  </p>
+                </div>
+              </div>
+              <p v-for="step in nextSteps" :key="step" class="wallet-note">{{ step }}</p>
+              <p class="wallet-note">More details are available in the Beta Guide.</p>
+            </details>
+            <details v-if="canRequestOverride" class="diagnostic-panel compact-help-panel">
+              <summary>Request Beta Help</summary>
+              <p class="wallet-note">
+                If you believe this wallet should already work, send a quick beta help request so an operator can review it.
+              </p>
+              <button type="button" class="ghost-btn compact-help-button" @click="showOverrideForm = !showOverrideForm">
+                {{ showOverrideForm ? 'Hide Beta Help Form' : 'Open Beta Help Form' }}
+              </button>
+              <form v-if="showOverrideForm" class="panel-stack compact-help-form" @submit.prevent="submitOverride">
+                <label class="field">
+                  <span>Requested Scope</span>
+                  <select v-model="overrideForm.requested_scope" class="field-select">
+                    <option value="access">App Access</option>
+                    <option value="review">Review Access</option>
+                    <option value="voting">Voting Access</option>
+                    <option value="rewards">Rewards Access</option>
+                    <option value="all_beta">Full Beta Access</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Name (Optional)</span>
+                  <input v-model.trim="overrideForm.name" type="text" />
+                </label>
+                <label class="field">
+                  <span>Email (Optional)</span>
+                  <input v-model.trim="overrideForm.email" type="email" />
+                </label>
+                <label class="field">
+                  <span>Handle (Optional)</span>
+                  <input v-model.trim="overrideForm.handle" type="text" />
+                </label>
+                <label class="field">
+                  <span>Why do you need an override?</span>
+                  <textarea v-model.trim="overrideForm.reason" rows="3" required />
+                </label>
+                <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingOverrideRequest || !overrideForm.reason">
+                  {{ access.state.isSubmittingOverrideRequest ? 'Sending Beta Help Request...' : 'Send Beta Help Request' }}
+                </button>
+              </form>
+            </details>
+          </details>
         </div>
-
-        <form v-if="showOverrideForm" class="panel-stack" @submit.prevent="submitOverride">
-          <label class="field">
-              <span>Requested Scope</span>
-              <select v-model="overrideForm.requested_scope" class="field-select">
-              <option value="access">App Access</option>
-              <option value="review">Review Access</option>
-              <option value="voting">Voting Access</option>
-              <option value="rewards">Rewards Access</option>
-              <option value="all_beta">Full Beta Access</option>
-              </select>
-            </label>
-          <label class="field">
-            <span>Name (Optional)</span>
-            <input v-model.trim="overrideForm.name" type="text" />
-          </label>
-          <label class="field">
-            <span>Email (Optional)</span>
-            <input v-model.trim="overrideForm.email" type="email" />
-          </label>
-          <label class="field">
-            <span>Handle (Optional)</span>
-            <input v-model.trim="overrideForm.handle" type="text" />
-          </label>
-          <label class="field">
-            <span>Why do you need an override?</span>
-            <textarea v-model.trim="overrideForm.reason" rows="3" required />
-          </label>
-          <button type="submit" class="primary-btn" :disabled="access.state.isSubmittingOverrideRequest || !overrideForm.reason">
-            {{ access.state.isSubmittingOverrideRequest ? 'Sending Beta Help Request...' : 'Send Beta Help Request' }}
-          </button>
-        </form>
-      </section>
+      </div>
 
       <FeedbackPanel
         headline="Blocked or stuck? Send feedback."
@@ -535,6 +524,11 @@
       <p v-if="access.state.successMessage" class="status success">{{ access.state.successMessage }}</p>
       <p v-if="wallet.state.errorMessage" class="status error">{{ wallet.state.errorMessage }}</p>
       <p v-if="access.state.errorMessage" class="status error">{{ access.state.errorMessage }}</p>
+
+      <div class="disclaimer-row">
+        <p class="wallet-note">Test ZOID has no real monetary value.</p>
+        <p class="wallet-note">Never share seed phrases or private keys.</p>
+      </div>
     </section>
   </div>
 </template>
@@ -829,6 +823,16 @@ const embeddedWalletUnavailableMessage = computed(
   () => embeddedWalletOption.value?.availability_message || '',
 );
 
+const embeddedWalletPublicMessage = computed(() => {
+  if (embeddedWalletAvailable.value) {
+    return '';
+  }
+  if (embeddedWalletTemporarilyUnavailable.value) {
+    return 'Email / Social Wallet is temporarily unavailable. Continue with MetaMask for now.';
+  }
+  return 'Email / Social Wallet is coming soon.';
+});
+
 const embeddedWalletDiagnostics = computed(
   () => embeddedWalletOption.value?.diagnostics || null,
 );
@@ -945,6 +949,9 @@ const primaryBlockedReason = computed(
 const nextSteps = computed(
   () => Array.isArray(access.state.eligibility?.possible_next_steps) ? access.state.eligibility.possible_next_steps : [],
 );
+const hasEligibilityDetails = computed(
+  () => accessRuleChecks.value.length > 0 || nextSteps.value.length > 0,
+);
 const activeOverrideMessage = computed(() => {
   const accessOverride = (access.state.eligibility?.allowlist_overrides_applied || []).find((item) => item.scope === 'access');
   if (!accessOverride) {
@@ -971,6 +978,15 @@ const eligibilityHeadline = computed(() => {
   return 'You may still need approval before this wallet can continue.';
 });
 const eligibilityTone = computed(() => (access.state.me?.access_granted || activeOverrideMessage.value ? 'success' : 'warning'));
+const blockedSummaryCallToAction = computed(() => {
+  if (access.state.me?.access_granted) {
+    return '';
+  }
+  if (wallet.state.isVerifiedSession) {
+    return 'Request access or use an invite code. More details are available in the Beta Guide.';
+  }
+  return 'Request access or use an invite code. More details are available in the Beta Guide.';
+});
 const canRequestOverride = computed(
   () => !access.state.me?.access_granted && Boolean(requestsEnabled.value || wallet.state.isVerifiedSession || inviteAuthenticated.value),
 );
@@ -1225,14 +1241,34 @@ onMounted(() => {
 }
 
 .access-card {
-  width: min(760px, 100%);
+  width: min(1160px, 100%);
   margin: 0 auto;
-  padding: 28px;
+  padding: 30px 32px;
   border-radius: 24px;
   border: 1px solid rgba(255, 205, 115, 0.22);
   background: rgba(8, 12, 20, 0.92);
   color: #f7f0de;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.access-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.access-intro-panel {
+  display: grid;
+  gap: 0;
+  align-content: start;
+}
+
+.active-flow-shell {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
 }
 
 .eyebrow,
@@ -1248,6 +1284,29 @@ onMounted(() => {
   margin: 0 0 10px;
   color: #9fd3ff;
   font-size: 0.95rem;
+}
+
+.hero-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.beta-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 205, 115, 0.12);
+  border: 1px solid rgba(255, 205, 115, 0.22);
+  color: #ffcd73;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 h1,
@@ -1275,16 +1334,6 @@ h2 {
   margin: 0 0 22px;
 }
 
-.top-feedback-cta {
-  display: grid;
-  gap: 10px;
-  margin: 0 0 20px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 205, 115, 0.16);
-  background: rgba(255, 205, 115, 0.06);
-}
-
 .journey-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1292,8 +1341,24 @@ h2 {
   margin: 0 0 20px;
 }
 
+.access-paths {
+  margin-bottom: 10px;
+}
+
+.responsive-access-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .onboarding-grid {
-  margin: 12px 0 0;
+  margin: 4px 0 0;
+}
+
+.compact-options {
+  margin-bottom: 0;
+}
+
+.responsive-wallet-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 .journey-card {
@@ -1307,6 +1372,10 @@ h2 {
 
 .journey-card strong {
   color: #f7f0de;
+}
+
+.compact-copy {
+  min-height: 0;
 }
 
 .diagnostic-panel {
@@ -1332,6 +1401,21 @@ h2 {
 .feedback-shortcut {
   text-decoration: none;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+}
+
+.main-access-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.card-aside {
+  max-width: 220px;
+  text-align: right;
 }
 
 .eligibility-checklist {
@@ -1371,6 +1455,11 @@ h2 {
 .entry-switch,
 .mode-switch {
   margin-bottom: 18px;
+}
+
+.entry-switch {
+  justify-content: flex-start;
+  margin-top: 10px;
 }
 
 .entry-btn,
@@ -1422,6 +1511,13 @@ h2 {
   gap: 16px;
 }
 
+.flow-panel {
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 115, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -1453,7 +1549,7 @@ h2 {
 .returning-panel,
 .mobile-open-card,
 .rules-panel {
-  padding: 16px;
+  padding: 20px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
 }
@@ -1475,6 +1571,13 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
+}
+
+.helper-links-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
 }
 
 .field-select {
@@ -1499,6 +1602,77 @@ h2 {
   align-items: center;
   justify-content: center;
   width: fit-content;
+}
+
+.mini-help {
+  flex: 1 1 220px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 205, 115, 0.18);
+  background: rgba(255, 205, 115, 0.05);
+  overflow: hidden;
+}
+
+.mini-help summary {
+  cursor: pointer;
+  color: #f7f0de;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 14px;
+}
+
+.mini-help[open] {
+  padding-bottom: 14px;
+}
+
+.mini-help[open] summary {
+  margin-bottom: 10px;
+}
+
+.mini-help > :not(summary) {
+  padding-inline: 14px;
+}
+
+.mini-help summary:focus-visible {
+  outline: 2px solid rgba(159, 211, 255, 0.9);
+  outline-offset: -2px;
+}
+
+.mini-help .wallet-note + .wallet-note {
+  margin-top: 8px;
+}
+
+.top-help {
+  margin-top: 0;
+}
+
+.compact-help-status {
+  margin-top: 4px;
+}
+
+.compact-help-panel {
+  margin-top: 10px;
+}
+
+.compact-help-button {
+  margin-top: 10px;
+}
+
+.compact-help-form {
+  margin-top: 12px;
+}
+
+.disclaimer-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .wallet-line,
@@ -1531,6 +1705,21 @@ h2 {
   color: #9fd3ff;
 }
 
+@media (max-width: 1024px) {
+  .access-card {
+    padding: 24px;
+  }
+
+  .access-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .responsive-wallet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .access-shell {
     padding: 22px 12px 34px;
@@ -1539,6 +1728,19 @@ h2 {
   .access-card {
     padding: 20px 16px;
     border-radius: 20px;
+  }
+
+  .flow-panel,
+  .wallet-box,
+  .returning-panel,
+  .mobile-open-card,
+  .rules-panel {
+    padding: 16px;
+  }
+
+  .hero-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   h1 {
@@ -1552,8 +1754,15 @@ h2 {
   .entry-switch,
   .mode-switch,
   .wallet-actions,
-  .journey-grid {
+  .journey-grid,
+  .helper-links-inline,
+  .disclaimer-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .responsive-access-grid,
+  .responsive-wallet-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -1569,6 +1778,11 @@ h2 {
 
   .meta-mask-link {
     justify-content: center;
+  }
+
+  .card-aside {
+    max-width: none;
+    text-align: left;
   }
 }
 

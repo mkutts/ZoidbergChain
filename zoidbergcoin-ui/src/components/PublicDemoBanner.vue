@@ -15,7 +15,7 @@
 
 <style scoped>
 .public-demo-banner {
-  width: min(1080px, 100%);
+  width: min(1160px, 100%);
   margin: 0 auto 24px;
   padding: 18px 20px;
   border: 1px solid rgba(255, 190, 92, 0.4);

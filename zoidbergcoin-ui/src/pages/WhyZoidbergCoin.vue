@@ -54,9 +54,19 @@
         </section>
 
         <section class="detail-panel">
+          <p class="section-label">Why Access Is Controlled</p>
+          <ul>
+            <li>The beta is intentionally small while we test onboarding, moderation, originality review, and rewards.</li>
+            <li>Allowlist rules help us slow spam, watch for abuse, and support invited testers directly.</li>
+            <li>Some actions can stay approval-gated even after basic app access is granted.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
           <p class="section-label">Connect And Reconnect</p>
           <ol>
-            <li>Choose MetaMask if you already have a crypto wallet, or Email / Social Wallet if you are new to wallets and that option is enabled.</li>
+            <li>Choose MetaMask if you already have a crypto wallet.</li>
+            <li>Email / Social Wallet is planned as a simpler path, but it is still coming soon in this app.</li>
             <li>Sign the verification message so the app knows this wallet is really yours.</li>
             <li>Bind the verified wallet once during your first approved invite flow.</li>
             <li>When you return later, reconnect the same approved wallet and sign again.</li>
@@ -95,6 +105,15 @@
         </section>
 
         <section class="detail-panel">
+          <p class="section-label">What Can Block Access</p>
+          <ul>
+            <li>A wallet may be blocked if it was never approved, the invite was not completed, or the wallet binding was revoked.</li>
+            <li>Voting and rewards can have their own approval rules even when app access works.</li>
+            <li>If you think your wallet should already work, use the beta help or feedback option from the gate.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
           <p class="section-label">Mobile Tips</p>
           <ul>
             <li>MetaMask users usually get the smoothest injected-wallet flow inside the MetaMask Mobile browser.</li>
@@ -113,6 +132,15 @@
             <li>Balances, rewards, and content can reset while we test the network.</li>
             <li>Some flows can still vary between desktop MetaMask and MetaMask Mobile.</li>
             <li>Wallet portability matters before any future mainnet-value launch.</li>
+          </ul>
+        </section>
+
+        <section class="detail-panel">
+          <p class="section-label">How Originality Review Works</p>
+          <ul>
+            <li>Testers review submitted content and vote based on whether it appears original.</li>
+            <li>Use <strong>ORIGINAL</strong>, <strong>NOT ORIGINAL</strong>, or <strong>UNSURE</strong> based on your confidence.</li>
+            <li>Final results can affect visibility, certification, and beta reward outcomes.</li>
           </ul>
         </section>
       </div>

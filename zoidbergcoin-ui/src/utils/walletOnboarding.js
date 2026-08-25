@@ -1,11 +1,9 @@
 import { EMBEDDED_WALLET_CONFIG } from './embeddedWalletConfig.js';
 
 export function getWalletOnboardingOptions(config = EMBEDDED_WALLET_CONFIG) {
-  const embeddedWalletWarning = !config?.isPrivySelected
-    ? 'Email / Social Wallet is not configured on this deployment yet. MetaMask is currently required.'
-    : (!config?.privyAppId
-      ? 'Email / Social Wallet is selected for this deployment, but the public Privy app id is missing. MetaMask is currently required.'
-      : 'Email / Social Wallet is coming soon. Privy\'s supported web path for this Vue app is a small React island, so MetaMask remains the only live login for now.');
+  const embeddedWalletWarning = !config?.isPrivySelected || !config?.privyAppId
+    ? 'More login options are coming soon. MetaMask is currently the live beta login.'
+    : 'Email / Social Wallet is coming soon. MetaMask remains the live beta login for now.';
 
   return [
     {
@@ -16,8 +14,8 @@ export function getWalletOnboardingOptions(config = EMBEDDED_WALLET_CONFIG) {
     },
     {
       id: 'privy_embedded',
-      title: 'Continue with Email / Social Wallet',
-      description: 'Use this if you are new to wallets. This creates or connects a portable beta wallet.',
+      title: 'Email / Social Wallet',
+      description: 'A simpler wallet option for new testers.',
       availability: 'coming_soon',
       warning: embeddedWalletWarning,
     },

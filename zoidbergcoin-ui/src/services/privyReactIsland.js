@@ -2,6 +2,7 @@ import { getEmbeddedWalletConfig } from '../utils/runtimeConfig.js';
 
 let islandModuleLoader = () => import('../privy/PrivyLoginIsland.jsx');
 let reactModuleLoader = () => import('react');
+let reactDomClientModuleLoader = () => import('react-dom/client');
 
 function createDeferred() {
   let resolve;
@@ -13,6 +14,30 @@ function createDeferred() {
   return { promise, resolve, reject };
 }
 
+function normalizeBridgeConfig(config = {}) {
+  if (config?.privy?.appId || Object.prototype.hasOwnProperty.call(config, 'enabled')) {
+    return {
+      enabled: Boolean(config.enabled),
+      configured: Boolean(config.configured && config?.privy?.appId),
+      label: config.label || 'Email / Social Wallet',
+      privy: {
+        appId: String(config?.privy?.appId || '').trim(),
+        clientId: String(config?.privy?.clientId || '').trim(),
+      },
+    };
+  }
+
+  return {
+    enabled: Boolean(config?.isPrivySelected),
+    configured: Boolean(config?.isConfigured && config?.privyAppId),
+    label: config?.authOptionLabel || 'Email / Social Wallet',
+    privy: {
+      appId: String(config?.privyAppId || '').trim(),
+      clientId: String(config?.privyClientId || '').trim(),
+    },
+  };
+}
+
 export function setPrivyIslandModuleLoader(loader) {
   islandModuleLoader = typeof loader === 'function' ? loader : islandModuleLoader;
 }
@@ -21,16 +46,21 @@ export function setPrivyReactModuleLoader(loader) {
   reactModuleLoader = typeof loader === 'function' ? loader : reactModuleLoader;
 }
 
+export function setPrivyReactDomClientModuleLoader(loader) {
+  reactDomClientModuleLoader = typeof loader === 'function' ? loader : reactDomClientModuleLoader;
+}
+
 export async function canLoadPrivyReactIsland() {
   await Promise.all([
     reactModuleLoader(),
+    reactDomClientModuleLoader(),
     islandModuleLoader(),
   ]);
   return true;
 }
 
 export function createPrivyReactBridge(options = {}) {
-  const config = options.config || getEmbeddedWalletConfig(options.env);
+  const config = normalizeBridgeConfig(options.config || getEmbeddedWalletConfig(options.env));
   const documentRef = options.document || (typeof document === 'undefined' ? null : document);
   const bodyRef = documentRef?.body || null;
   let root = null;
@@ -75,7 +105,7 @@ export function createPrivyReactBridge(options = {}) {
     mountPromise = (async () => {
       const [reactModule, reactDomClient, islandModule] = await Promise.all([
         reactModuleLoader(),
-        import('react-dom/client'),
+        reactDomClientModuleLoader(),
         islandModuleLoader(),
       ]);
 
@@ -125,12 +155,12 @@ export function createPrivyReactBridge(options = {}) {
   }
 
   return {
-    async connect() {
+    async connect(options = {}) {
       const controller = await ensureMounted();
       const currentState = controller.getState?.() || bridgeState;
       handleStateChange(currentState);
       if (!bridgeState.authenticated || !bridgeState.walletAddress) {
-        await controller.connect();
+        await controller.connect(options);
         await waitFor((state) => state.authenticated && state.walletAddress);
       }
       return {
@@ -140,8 +170,16 @@ export function createPrivyReactBridge(options = {}) {
       };
     },
     async disconnect() {
-      const controller = await ensureMounted();
-      await controller.disconnect();
+      if (!bridgeController) {
+        bridgeState = {
+          ready: false,
+          authenticated: false,
+          walletAddress: '',
+          loginMetadata: null,
+        };
+        return true;
+      }
+      await bridgeController.disconnect();
       await waitFor((state) => !state.authenticated, 10000).catch(() => null);
       bridgeState = {
         ready: bridgeState.ready,
@@ -151,8 +189,12 @@ export function createPrivyReactBridge(options = {}) {
       };
       return true;
     },
+    getState() {
+      return {
+        ...bridgeState,
+      };
+    },
     async getAddress() {
-      await ensureMounted();
       return bridgeState.walletAddress || '';
     },
     getConnectionStatus() {
@@ -167,12 +209,13 @@ export function createPrivyReactBridge(options = {}) {
       }
       return 'connected';
     },
-    async requestSignature(message) {
+    async requestSignature(message, walletAddress = '') {
       const controller = await ensureMounted();
-      if (!bridgeState.walletAddress) {
+      const targetAddress = String(walletAddress || bridgeState.walletAddress || '').trim();
+      if (!targetAddress) {
         throw new Error('Email / Social Wallet is not connected.');
       }
-      return controller.signMessage(message);
+      return controller.signMessage(message, targetAddress);
     },
     async probeAvailability() {
       ensureConfigured();

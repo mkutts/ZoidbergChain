@@ -1,6 +1,7 @@
 import { reactive, readonly } from 'vue';
 import { normalizeWalletAddress, shortenWalletAddress } from '../utils/walletAddress.js';
 import { apiClient, configureWalletApiAuth, getApiErrorMessage } from '../config/api.js';
+import { showDevelopmentTools } from '../utils/runtimeConfig.js';
 import { createWalletProviderRegistry } from './walletProviderAdapter.js';
 
 const LAST_CONNECTED_ADDRESS_KEY = 'zoidberg:last-wallet-address';
@@ -83,9 +84,34 @@ function mapWalletError(error, providerLabel = 'wallet provider') {
   return `Unable to connect to ${providerLabel} right now.`;
 }
 
+function normalizeSignatureForBackend(signatureValue) {
+  if (signatureValue == null) {
+    return '';
+  }
+  if (typeof signatureValue === 'string') {
+    return signatureValue.trim();
+  }
+  if (typeof signatureValue === 'object') {
+    const candidates = [
+      signatureValue.signature,
+      signatureValue.rawSignature,
+      signatureValue.data?.signature,
+      signatureValue.result?.signature,
+    ];
+    for (const candidate of candidates) {
+      const normalized = normalizeSignatureForBackend(candidate);
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+  return '';
+}
+
 export function createWalletManager(options = {}) {
   const state = reactive(createInitialState());
   const storage = options.storage ?? defaultStorage();
+  const developmentToolsEnabled = showDevelopmentTools();
   const walletProviderRegistry = options.walletProviderRegistry || createWalletProviderRegistry({
     getProvider: options.getProvider || defaultProviderGetter,
     embeddedWalletService: options.embeddedWalletService,
@@ -204,6 +230,13 @@ export function createWalletManager(options = {}) {
     const adapter = walletProviderRegistry.getAdapterById(saved);
     state.lastConnectedProviderId = adapter?.providerId || fallback;
     return state.lastConnectedProviderId;
+  }
+
+  function logWalletDebug(step, payload = {}) {
+    if (!developmentToolsEnabled) {
+      return;
+    }
+    console.debug(`[ZoidbergChain][wallet] ${step}`, payload);
   }
 
   function sessionIsExpired(expiresAt) {
@@ -514,11 +547,30 @@ export function createWalletManager(options = {}) {
     await applyDisconnectedState();
   }
 
-  async function verifyWallet() {
+  async function verifyWallet(options = {}) {
+    const providerHint = String(options.providerId || state.providerId || activeAdapter.providerId || 'metamask').trim();
+    if (providerHint && providerHint !== state.providerId) {
+      await setActiveProvider(providerHint);
+    }
+
     if (!state.isConnected || !state.normalizedWalletAddress) {
       state.errorMessage = `Connect ${activeAdapter.providerLabel} before verifying this wallet.`;
+      logWalletDebug('verify-wallet-skipped', {
+        isConnected: state.isConnected,
+        providerId: state.providerId,
+        normalizedWalletAddress: state.normalizedWalletAddress,
+      });
       return null;
     }
+
+    const signMethodAvailable = typeof activeAdapter.requestSignature === 'function';
+    logWalletDebug('verify-wallet-start', {
+      providerId: state.providerId,
+      walletAddress: state.normalizedWalletAddress,
+      signMethodAvailable,
+      usesMetaMask: state.providerId === 'metamask',
+      usesPrivy: state.providerId === 'privy_embedded' || state.providerId === 'privy',
+    });
 
     state.connectionStatus = 'verifying';
     state.errorMessage = '';
@@ -527,12 +579,42 @@ export function createWalletManager(options = {}) {
 
     try {
       const challenge = await authApi.createChallenge(state.normalizedWalletAddress);
+      logWalletDebug('wallet-challenge-requested', {
+        providerId: state.providerId,
+        walletAddress: state.normalizedWalletAddress,
+        challengeMessageLength: String(challenge?.message || '').length,
+      });
+
       const signature = await activeAdapter.requestSignature(challenge.message, state.walletAddress);
-      const verification = await authApi.verifyChallenge({
+      const normalizedSignature = normalizeSignatureForBackend(signature);
+      if (!normalizedSignature) {
+        throw new Error('Wallet provider did not return a valid signature value.');
+      }
+      logWalletDebug('wallet-signature-received', {
+        providerId: state.providerId,
+        walletAddress: state.normalizedWalletAddress,
+        received: Boolean(normalizedSignature),
+        signatureLength: normalizedSignature.length,
+      });
+
+      const verificationPayload = {
         wallet_address: state.normalizedWalletAddress,
         message: challenge.message,
-        signature,
-        provider_id: state.providerId,
+        signature: normalizedSignature,
+      };
+      logWalletDebug('wallet-verify-sent', {
+        providerId: state.providerId,
+        walletAddress: state.normalizedWalletAddress,
+        endpoint: '/auth/wallet/verify',
+        payloadKeys: Object.keys(verificationPayload),
+      });
+
+      const verification = await authApi.verifyChallenge(verificationPayload);
+      logWalletDebug('wallet-verify-result', {
+        providerId: state.providerId,
+        verified: Boolean(verification?.verified),
+        walletAddressVerified: Boolean(verification?.normalized_wallet_address || verification?.wallet_address),
+        status: verification?.status || 'unknown',
       });
 
       persistVerifiedSession({
@@ -545,16 +627,27 @@ export function createWalletManager(options = {}) {
       state.verifiedWalletAddress = verification.normalized_wallet_address || state.normalizedWalletAddress;
       setIdentitySource();
       syncIdentityFields();
+      logWalletDebug('wallet-verify-complete', {
+        providerId: state.providerId,
+        walletAddress: state.normalizedWalletAddress,
+        nextStep: 'access-check',
+      });
       return verification;
     } catch (error) {
       state.connectionStatus = 'error';
       clearVerifiedSession();
-      if (error?.code === 4001) {
-        state.errorMessage = `Signature request was rejected in ${activeAdapter.providerLabel}.`;
-      } else {
-        state.errorMessage = getApiErrorMessage(error, 'Wallet verification failed.');
-      }
+      const message = error?.code === 4001
+        ? `Signature request was rejected in ${activeAdapter.providerLabel}.`
+        : getApiErrorMessage(error, 'Wallet verification failed.');
+      state.errorMessage = message;
       state.authError = state.errorMessage;
+      logWalletDebug('wallet-verify-error', {
+        providerId: state.providerId,
+        walletAddress: state.normalizedWalletAddress,
+        errorMessage: message,
+        code: error?.code,
+        status: error?.response?.status,
+      });
       syncIdentityFields();
       return null;
     }

@@ -30,16 +30,16 @@ export function resolveEmbeddedWalletConfig(importMetaEnv = {}) {
     isPrivySelected,
     isConfigured: hasRequiredPrivyPublicConfig,
     hasRequiredPrivyPublicConfig,
-    isSupportedInVueApp: false,
-    integrationStatus: isPrivySelected ? 'deferred' : 'disabled',
-    providerLabel: isPrivySelected ? 'Privy Embedded Wallet' : '',
+    isSupportedInVueApp: isPrivySelected,
+    integrationStatus: isPrivySelected ? 'react_island' : 'disabled',
+    providerLabel: isPrivySelected ? 'Email / Social Wallet' : '',
     authOptionLabel: 'Email / Social Wallet',
     privyAppId,
     privyClientId,
     socialProvider,
     supportsSocialLogin: Boolean(socialProvider),
     portabilityHelpUrl: 'https://docs.privy.io/wallets/wallets/export',
-    portabilityHelpCopy: 'Privy supports embedded wallet export and recovery flows. Use the provider portability flow before any mainnet-value launch.',
+    portabilityHelpCopy: 'Use this if you are new to wallets. This creates or connects a portable beta wallet.',
   };
 }
 

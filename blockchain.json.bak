@@ -1310,7 +1310,7 @@
                 "original_filename": "images.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787603758.4048057,
+            "verified_at": 1787708290.7185986,
             "verification_error": null
         },
         {
@@ -1332,7 +1332,7 @@
                 "original_filename": "image-1-8-6a26c8c34355c__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787603758.4050136,
+            "verified_at": 1787708290.7187936,
             "verification_error": null
         },
         {
@@ -1377,7 +1377,7 @@
                 "original_filename": "image-1-2-6a2f98fe763a8__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787603758.405353,
+            "verified_at": 1787708290.7191226,
             "verification_error": null
         },
         {
@@ -1399,7 +1399,7 @@
                 "original_filename": "870740530199752705-png__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787603758.4055598,
+            "verified_at": 1787708290.7192714,
             "verification_error": null
         },
         {
@@ -1421,7 +1421,7 @@
                 "original_filename": "6a2f984602a33_random-memes-tiedyehomie__700.jpg"
             },
             "hash_scheme": "sha256_bytes",
-            "verified_at": 1787603758.4058025,
+            "verified_at": 1787708290.71943,
             "verification_error": null
         }
     ],
@@ -2325,6 +2325,20 @@
             "reviewed_by": null,
             "operator_notes": "",
             "approved_access_account_id": null
+        },
+        {
+            "request_id": "5dbf428aa7005275fa5e8ff158a942cc",
+            "name": "privy test",
+            "email": "privy@com.com",
+            "handle": "",
+            "reason": "privy test",
+            "notes": "",
+            "status": "approved",
+            "created_at": "2026-08-26T01:25:41.432886+00:00",
+            "reviewed_at": "2026-08-26T01:38:37.909430+00:00",
+            "reviewed_by": "operator",
+            "operator_notes": "",
+            "approved_access_account_id": "2bc054b1342b32a3d6137b4c7275466f"
         }
     ],
     "access_accounts": [
@@ -2523,8 +2537,30 @@
             "notes": "",
             "operator_notes": "",
             "reviewed_by": "operator",
-            "last_login_at": null,
+            "last_login_at": "2026-08-24T21:03:06.815426+00:00",
             "status_updated_at": "2026-08-24T21:02:57.183348+00:00",
+            "status_updated_by": "operator",
+            "status_reason": ""
+        },
+        {
+            "access_account_id": "2bc054b1342b32a3d6137b4c7275466f",
+            "name": "privy test",
+            "email": "privy@com.com",
+            "handle": "",
+            "status": "active",
+            "created_at": "2026-08-26T01:38:37.909412+00:00",
+            "approved_at": "2026-08-26T01:38:37.909401+00:00",
+            "invite_code_generated_at": "2026-08-26T01:38:37.909401+00:00",
+            "invite_code_hash": "0d1dc93e539d200d92652a4ac03d82ccdd4c8021428c55874ce4fc9c5e101d5b",
+            "redeemed_invite_code_hash": null,
+            "invite_code_redeemed_at": null,
+            "bound_wallets": [],
+            "max_wallets": 1,
+            "notes": "",
+            "operator_notes": "",
+            "reviewed_by": "operator",
+            "last_login_at": null,
+            "status_updated_at": "2026-08-26T01:38:37.909401+00:00",
             "status_updated_by": "operator",
             "status_reason": ""
         }
@@ -3051,6 +3087,57 @@
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
             "audit_id": "cc324d8ea6cf98a24b5819f1c816dc47",
             "timestamp": "2026-08-24T21:02:57.707462+00:00"
+        },
+        {
+            "action": "admin_login_success",
+            "result": "ok",
+            "actor_session_id": "21bb089ad9c5",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "ab9f616e163b1cb192e0f9a10bcef7f7",
+            "timestamp": "2026-08-26T01:38:22.087680+00:00"
+        },
+        {
+            "action": "admin_ops_viewed",
+            "result": "ok",
+            "actor_session_id": "21bb089ad9c5",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "90e7d2969cccb6976c15a4c48ca31907",
+            "timestamp": "2026-08-26T01:38:22.214981+00:00"
+        },
+        {
+            "action": "access_request_approved",
+            "result": "ok",
+            "actor_session_id": "21bb089ad9c5",
+            "request_id": "5dbf428aa7005275fa5e8ff158a942cc",
+            "override_request_id": null,
+            "feedback_id": "",
+            "access_account_id": "2bc054b1342b32a3d6137b4c7275466f",
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "3edda89a224ab3dfb5368fff5d41b526",
+            "timestamp": "2026-08-26T01:38:37.935533+00:00"
         }
     ],
     "wallets": {
@@ -3313,6 +3400,30 @@
         "0227b6879923512a36de9d1511bc39cb03c82bc2d909ddbf571dbcb3612a801044": {
             "public_key": "0227b6879923512a36de9d1511bc39cb03c82bc2d909ddbf571dbcb3612a801044",
             "private_key": "1501de5c5acaad238f6511862ca31439937feae4493b955257199edbf139e389"
+        },
+        "02bc8ed8648353d1ab30908f472a60c648ea680b24198720f415bfde08db069343": {
+            "public_key": "02bc8ed8648353d1ab30908f472a60c648ea680b24198720f415bfde08db069343",
+            "private_key": "31e1d2e6d5886cc5272aff90c7c11a3fb534a50645e2958a6c577f65fb6d533b"
+        },
+        "028c8c9d1dd4cfdabdd0a4487980d95998b39b05cc112fbbdf7faa8af3efd65431": {
+            "public_key": "028c8c9d1dd4cfdabdd0a4487980d95998b39b05cc112fbbdf7faa8af3efd65431",
+            "private_key": "103b96edad7463fe325a660f682b76d7ebe7cb9bc746399b3aa151d4ae0104a7"
+        },
+        "02bf48834ef3d1a1a166bf90f3ebaaa4cb297c02551b5e146e8d61049bf328e155": {
+            "public_key": "02bf48834ef3d1a1a166bf90f3ebaaa4cb297c02551b5e146e8d61049bf328e155",
+            "private_key": "048016e5a7ec5b9228bdc132eb0d6b60f7d1b3f1b8198244dc840a771bda95dd"
+        },
+        "0201f89f002ef9cba768f5e5f5d22c14416669797e0dc713bff9a58c3bd50cb41c": {
+            "public_key": "0201f89f002ef9cba768f5e5f5d22c14416669797e0dc713bff9a58c3bd50cb41c",
+            "private_key": "4839a19bbf36fa275fcc3527f72eeb0d2127c5f356b44b198da92dce5c5d2372"
+        },
+        "02b22eeb15beebd526dcf011082e20c396b0415011a1d89b32b67f73e4f832b478": {
+            "public_key": "02b22eeb15beebd526dcf011082e20c396b0415011a1d89b32b67f73e4f832b478",
+            "private_key": "ad341013f37319c131de1018867cf98c990d9d4d7d3fe3306d514652b355836a"
+        },
+        "039d6ea148c6fd5c0ada54e70e7af96b98ef42ab8c37b15a4d241d73df5493a6b7": {
+            "public_key": "039d6ea148c6fd5c0ada54e70e7af96b98ef42ab8c37b15a4d241d73df5493a6b7",
+            "private_key": "941825d0625be1bd52a6ca2abf374b1fc61e94ddd9b22c573671a128fc45706a"
         }
     },
     "peers": []

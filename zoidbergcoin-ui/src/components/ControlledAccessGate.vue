@@ -149,6 +149,9 @@
                     I&apos;m New Here
                   </button>
                 </div>
+                <p v-if="showEmbeddedWalletConnectButton" class="wallet-note provider-helper">
+                  {{ embeddedWalletConfiguredHelperText }}
+                </p>
                 <p
                   v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletPublicMessage"
                   class="status"
@@ -315,6 +318,9 @@
                       Change Wallet Method
                     </button>
                   </div>
+                  <p v-if="showEmbeddedWalletConnectButton" class="wallet-note provider-helper">
+                    {{ embeddedWalletConfiguredHelperText }}
+                  </p>
                   <p
                     v-if="(accessActionState.showProviderChooser || selectedWalletProvider === 'privy_embedded') && embeddedWalletPublicMessage"
                     class="status"
@@ -873,6 +879,10 @@ const embeddedWalletDisabledButtonLabel = computed(() => {
   return 'Email / Social Wallet Coming Soon';
 });
 
+const embeddedWalletConfiguredHelperText = computed(
+  () => 'Use this if you are new to wallets. This creates or connects a portable beta wallet.',
+);
+
 const supportsEmbeddedSocialLogin = computed(
   () => EMBEDDED_WALLET_CONFIG.supportsSocialLogin,
 );
@@ -997,13 +1007,96 @@ const shouldShowEmbeddedAuthPanel = computed(
     && embeddedWalletAvailable.value,
 );
 
-async function refreshAccessAndUnlock() {
-  await access.refreshMe(wallet.getAuthorizationHeader());
-  await access.refreshEligibility(wallet.getAuthorizationHeader());
-  if (access.isAppUnlocked()) {
-    clearPendingWalletAction();
-    emit('unlocked');
+function logAccessFlow(step, payload = {}) {
+  if (!developmentToolsEnabled) {
+    return;
   }
+  console.debug(`[ZoidbergChain][access] ${step}`, payload);
+}
+
+async function completeVerifiedWalletLogin(options = {}) {
+  const {
+    bindIfMissing = false,
+    routeOnUnlock = true,
+  } = options;
+
+  if (!wallet.state.isVerifiedSession) {
+    logAccessFlow('verified-wallet-session-missing', {
+      providerId: wallet.state.providerId,
+      isConnected: wallet.state.isConnected,
+      isVerifiedSession: wallet.state.isVerifiedSession,
+    });
+    return {
+      ok: false,
+      shouldUnlock: false,
+      reason: 'wallet_not_verified',
+    };
+  }
+
+  const authHeaders = wallet.getAuthorizationHeader();
+  logAccessFlow('verified-wallet-session-start', {
+    providerId: wallet.state.providerId,
+    walletAddress: wallet.state.normalizedWalletAddress || wallet.state.walletAddress,
+    hasWalletSession: Boolean(authHeaders.Authorization),
+  });
+
+  const me = await access.refreshMe(authHeaders);
+  logAccessFlow('/access/me response', {
+    accessGranted: Boolean(access.state.me?.access_granted),
+    inviteAuthenticated: Boolean(access.state.me?.invite_authenticated),
+    walletBound: Boolean(access.state.me?.wallet_bound || access.state.me?.wallet_binding?.wallet_address),
+    me,
+  });
+
+  await access.refreshEligibility(authHeaders);
+  logAccessFlow('/eligibility/status response', {
+    eligibility: access.state.eligibility,
+  });
+
+  const accessGranted = Boolean(access.state.me?.access_granted);
+  const walletBound = Boolean(access.state.me?.wallet_bound || access.state.me?.wallet_binding?.wallet_address);
+  const shouldUnlock = access.isAppUnlocked();
+  logAccessFlow('unlock-decision', {
+    providerId: wallet.state.providerId,
+    accessGranted,
+    walletBound,
+    shouldUnlock,
+    requireAccess: access.requiresAppAccess(),
+  });
+
+  if (bindIfMissing && access.state.me && access.state.me.invite_authenticated && !walletBound && !accessGranted) {
+    logAccessFlow('bind-wallet-after-verification', {
+      providerId: wallet.state.providerId,
+      walletAddress: wallet.state.normalizedWalletAddress || wallet.state.walletAddress,
+    });
+    const bindResult = await access.bindWallet(authHeaders);
+    if (bindResult) {
+      await access.refreshMe(authHeaders);
+      await access.refreshEligibility(authHeaders);
+    }
+  }
+
+  if (shouldUnlock) {
+    clearPendingWalletAction();
+    if (routeOnUnlock) {
+      emit('unlocked');
+    }
+  }
+
+  return {
+    ok: shouldUnlock,
+    shouldUnlock,
+    accessGranted,
+    walletBound,
+    me,
+  };
+}
+
+async function refreshAccessAndUnlock() {
+  return completeVerifiedWalletLogin({
+    bindIfMissing: false,
+    routeOnUnlock: true,
+  });
 }
 
 async function connectWallet(providerId = 'metamask', options = {}) {
@@ -1089,8 +1182,7 @@ async function connectEmbeddedWalletFromExistingSession() {
       authMethod: 'restore',
     });
     if (!result) {
-      showEmbeddedWalletForm.value = true;
-      embeddedWalletMessage.value = 'Email / Social Wallet is coming soon. Continue with MetaMask for the current beta.';
+      embeddedWalletError.value = 'Email / Social Wallet is temporarily unavailable. Continue with MetaMask or try again later.';
       return;
     }
     embeddedWalletMessage.value = 'Embedded wallet connected. Sign the wallet verification message to continue.';
@@ -1116,13 +1208,14 @@ async function startEmbeddedWalletSocialLogin() {
 }
 
 async function verifyWallet() {
+  const providerId = selectedWalletProvider.value || wallet.state.providerId || 'metamask';
   setPendingWalletAction(
     'verify_wallet',
     'Wallet verification was interrupted. Reconnect the same approved wallet and try the signature again.',
   );
-  const result = await wallet.verifyWallet();
+  const result = await wallet.verifyWallet({ providerId });
   if (result && wallet.state.isVerifiedSession) {
-    await refreshAccessAndUnlock();
+    await completeVerifiedWalletLogin({ bindIfMissing: false });
   }
 }
 
@@ -1131,9 +1224,10 @@ async function bindWallet() {
     'bind_wallet',
     'Wallet binding was interrupted. Return to this page, verify the same wallet again if needed, then retry binding.',
   );
-  const result = await access.bindWallet(wallet.getAuthorizationHeader());
+  const authHeaders = wallet.getAuthorizationHeader();
+  const result = await access.bindWallet(authHeaders);
   if (result) {
-    await refreshAccessAndUnlock();
+    await completeVerifiedWalletLogin({ bindIfMissing: false });
   }
 }
 

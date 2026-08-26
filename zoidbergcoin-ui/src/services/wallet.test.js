@@ -266,8 +266,274 @@ test('verify wallet calls challenge and personal_sign and marks session verified
   assert.equal(provider.lastPersonalSignParams[1], '0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234');
   assert.equal(authCalls[0][0], 'challenge');
   assert.equal(authCalls[1][0], 'verify');
-  assert.equal(authCalls[1][1].provider_id, 'metamask');
+  assert.equal('provider_id' in authCalls[1][1], false);
+  assert.equal(authCalls[1][1].signature, '0xsigned-message');
   assert.equal(verification.verified, true);
+  assert.equal(manager.state.isVerifiedSession, true);
+});
+
+test('verification normalizes wrapped signature values before sending the backend payload', async () => {
+  const provider = new MockProvider(['0xAbCdEfabcdefABCDEFabcdefabcdefABCDEF1234']);
+  provider.signatureResult = { signature: '0xwrapped-signature' };
+  const manager = createWalletManager({
+    getProvider: () => provider,
+    storage: createMemoryStorage(),
+    authApi: createAuthApi({
+      async verifyChallenge(payload) {
+        assert.equal(payload.signature, '0xwrapped-signature');
+        assert.equal('provider_id' in payload, false);
+        return {
+          verified: true,
+          wallet_address: payload.wallet_address,
+          normalized_wallet_address: payload.wallet_address,
+          session_token: 'session-token-normalized',
+          expires_at: '2099-01-01T00:00:00+00:00',
+        };
+      },
+    }),
+  });
+
+  await manager.connectWallet();
+  const verification = await manager.verifyWallet();
+
+  assert.equal(verification.verified, true);
+  assert.equal(manager.state.isVerifiedSession, true);
+});
+
+test('embedded wallet verification uses the backend-compatible payload schema', async () => {
+  const authCalls = [];
+  const embeddedWalletService = {
+    getAvailability() {
+      return 'available';
+    },
+    getUnavailableMessage() {
+      return '';
+    },
+    isConfigured() {
+      return true;
+    },
+    getConnectionStatus() {
+      return 'available';
+    },
+    async initialize() {
+      return true;
+    },
+    async restoreConnection() {
+      return [];
+    },
+    async connect() {
+      return ['0x9999999999999999999999999999999999999999'];
+    },
+    async getAccounts() {
+      return ['0x9999999999999999999999999999999999999999'];
+    },
+    async getAddress() {
+      return '0x9999999999999999999999999999999999999999';
+    },
+    async getChainId() {
+      return '';
+    },
+    async requestSignature(message) {
+      authCalls.push(['sign', message]);
+      return '0xprivy-signature';
+    },
+    async disconnect() {
+      return true;
+    },
+    getPortabilityInfo() {
+      return {};
+    },
+  };
+
+  const manager = createWalletManager({
+    storage: createMemoryStorage(),
+    walletProviderRegistry: createWalletProviderRegistry({
+      getProvider: () => null,
+      embeddedWalletService,
+    }),
+    authApi: createAuthApi({
+      async createChallenge(walletAddress) {
+        authCalls.push(['challenge', walletAddress]);
+        return {
+          wallet_address: walletAddress,
+          normalized_wallet_address: walletAddress,
+          nonce: 'nonce-1',
+          message: 'Privy exact challenge message',
+          expires_at: '2099-01-01T00:00:00+00:00',
+        };
+      },
+      async verifyChallenge(payload) {
+        authCalls.push(['verify', payload]);
+        return {
+          verified: true,
+          wallet_address: payload.wallet_address,
+          normalized_wallet_address: payload.wallet_address,
+          session_token: 'session-token-privy',
+          expires_at: '2099-01-01T00:00:00+00:00',
+        };
+      },
+    }),
+  });
+
+  await manager.connectWallet({ providerId: 'privy_embedded' });
+  const verification = await manager.verifyWallet();
+
+  assert.equal(manager.state.providerId, 'privy_embedded');
+  assert.equal(authCalls[0][0], 'challenge');
+  assert.deepEqual(authCalls[1], ['sign', 'Privy exact challenge message']);
+  assert.equal(authCalls[2][0], 'verify');
+  assert.equal('provider_id' in authCalls[2][1], false);
+  assert.equal(authCalls[2][1].signature, '0xprivy-signature');
+  assert.equal(verification.verified, true);
+  assert.equal(manager.state.isVerifiedSession, true);
+});
+
+test('Privy auth alone does not unlock the app before a verified wallet session is accepted', async () => {
+  const embeddedWalletService = {
+    getAvailability() {
+      return 'available';
+    },
+    getUnavailableMessage() {
+      return '';
+    },
+    isConfigured() {
+      return true;
+    },
+    getConnectionStatus() {
+      return 'available';
+    },
+    async initialize() {
+      return true;
+    },
+    async restoreConnection() {
+      return [];
+    },
+    async connect() {
+      return ['0x2222222222222222222222222222222222222222'];
+    },
+    async getAccounts() {
+      return ['0x2222222222222222222222222222222222222222'];
+    },
+    async getAddress() {
+      return '0x2222222222222222222222222222222222222222';
+    },
+    async getChainId() {
+      return '';
+    },
+    async requestSignature() {
+      return '0xprivy-signature';
+    },
+    async disconnect() {
+      return true;
+    },
+    getPortabilityInfo() {
+      return {};
+    },
+  };
+
+  const manager = createWalletManager({
+    storage: createMemoryStorage(),
+    walletProviderRegistry: createWalletProviderRegistry({
+      getProvider: () => null,
+      embeddedWalletService,
+    }),
+    authApi: createAuthApi(),
+  });
+
+  const connected = await manager.connectWallet({ providerId: 'privy_embedded' });
+
+  assert.equal(connected, '0x2222222222222222222222222222222222222222');
+  assert.equal(manager.state.providerId, 'privy_embedded');
+  assert.equal(manager.state.isConnected, true);
+  assert.equal(manager.state.isVerifiedSession, false);
+  assert.equal(manager.state.connectionStatus, 'connected');
+});
+
+test('verifyWallet respects an explicit provider override and calls the selected adapter', async () => {
+  const log = [];
+  const provider = new MockProvider(['0x1111111111111111111111111111111111111111']);
+  const embeddedWalletService = {
+    getAvailability() {
+      return 'available';
+    },
+    getUnavailableMessage() {
+      return '';
+    },
+    isConfigured() {
+      return true;
+    },
+    getConnectionStatus() {
+      return 'available';
+    },
+    async initialize() {
+      return true;
+    },
+    async restoreConnection() {
+      return [];
+    },
+    async connect() {
+      return ['0x9999999999999999999999999999999999999999'];
+    },
+    async getAccounts() {
+      return ['0x9999999999999999999999999999999999999999'];
+    },
+    async getAddress() {
+      return '0x9999999999999999999999999999999999999999';
+    },
+    async getChainId() {
+      return '';
+    },
+    async requestSignature(message) {
+      log.push(['privy-sign', message]);
+      return '0xprivy-signature';
+    },
+    async disconnect() {
+      return true;
+    },
+    getPortabilityInfo() {
+      return {};
+    },
+  };
+
+  const manager = createWalletManager({
+    getProvider: () => provider,
+    storage: createMemoryStorage(),
+    walletProviderRegistry: createWalletProviderRegistry({
+      getProvider: () => provider,
+      embeddedWalletService,
+    }),
+    authApi: createAuthApi({
+      async createChallenge(walletAddress) {
+        log.push(['challenge', walletAddress]);
+        return {
+          wallet_address: walletAddress,
+          normalized_wallet_address: walletAddress,
+          nonce: 'nonce-override',
+          message: 'Override challenge message',
+          expires_at: '2099-01-01T00:00:00+00:00',
+        };
+      },
+      async verifyChallenge(payload) {
+        log.push(['verify', payload.provider_id, payload.wallet_address]);
+        assert.equal('provider_id' in payload, false);
+        return {
+          verified: true,
+          wallet_address: payload.wallet_address,
+          normalized_wallet_address: payload.wallet_address,
+          session_token: 'session-override',
+          expires_at: '2099-01-01T00:00:00+00:00',
+        };
+      },
+    }),
+  });
+
+  await manager.connectWallet({ providerId: 'privy_embedded' });
+  await manager.verifyWallet({ providerId: 'privy_embedded' });
+
+  assert.equal(manager.state.providerId, 'privy_embedded');
+  assert.deepEqual(log[1], ['privy-sign', 'Override challenge message']);
+  assert.equal(log[2][0], 'verify');
+  assert.equal(log[2][1], undefined);
   assert.equal(manager.state.isVerifiedSession, true);
 });
 

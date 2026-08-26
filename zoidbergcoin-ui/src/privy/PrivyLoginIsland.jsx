@@ -1,11 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   PrivyProvider,
   useLogin,
   usePrivy,
   useSignMessage,
   useWallets,
-} from '../../node_modules/@privy-io/react-auth/dist/esm/index.mjs';
+} from '@privy-io/react-auth';
 
 function buildSafeLoginMetadata(user) {
   if (!user || typeof user !== 'object') {
@@ -27,10 +27,32 @@ function pickPrivyWallet(wallets = []) {
     || null;
 }
 
+function extractSignatureValue(result) {
+  if (result == null) {
+    return '';
+  }
+  if (typeof result === 'string') {
+    return result;
+  }
+  if (typeof result?.signature === 'string') {
+    return result.signature;
+  }
+  if (typeof result?.rawSignature === 'string') {
+    return result.rawSignature;
+  }
+  if (typeof result?.data?.signature === 'string') {
+    return result.data.signature;
+  }
+  if (typeof result?.result?.signature === 'string') {
+    return result.result.signature;
+  }
+  return '';
+}
+
 function PrivyLoginController({ onReady, onStateChange, onError }) {
   const { ready, authenticated, user, logout } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
-  const { signMessage } = useSignMessage();
+  const { signMessage: usePrivySignMessage } = useSignMessage();
   const { login } = useLogin({
     onError(error) {
       onError?.(error);
@@ -50,8 +72,15 @@ function PrivyLoginController({ onReady, onStateChange, onError }) {
 
   useEffect(() => {
     onReady?.({
-      async connect() {
-        return login();
+      async connect(options = {}) {
+        const loginOptions = {};
+        if (options?.disableSignup === true) {
+          loginOptions.disableSignup = true;
+        }
+        if (Array.isArray(options?.loginMethods) && options.loginMethods.length > 0) {
+          loginOptions.loginMethods = options.loginMethods;
+        }
+        return login(loginOptions);
       },
       async disconnect() {
         return logout();
@@ -64,18 +93,37 @@ function PrivyLoginController({ onReady, onStateChange, onError }) {
           loginMetadata: buildSafeLoginMetadata(user),
         };
       },
-      async signMessage(message) {
-        if (!activeWallet?.address) {
+      async signMessage(message, walletAddress = '') {
+        const targetAddress = String(walletAddress || activeWallet?.address || '').trim();
+        if (!targetAddress) {
           throw new Error('Privy did not return an embedded wallet address.');
         }
-        const result = await signMessage(
-          { message },
-          { address: activeWallet.address },
-        );
-        return result?.signature || result;
+
+        if (typeof activeWallet?.signMessage === 'function') {
+          const result = await activeWallet.signMessage({ message, address: targetAddress });
+          const signature = extractSignatureValue(result);
+          if (signature) {
+            return signature;
+          }
+          throw new Error('Privy embedded wallet did not return a signature value.');
+        }
+
+        if (typeof usePrivySignMessage === 'function') {
+          const result = await usePrivySignMessage(
+            { message },
+            { address: targetAddress },
+          );
+          const signature = extractSignatureValue(result);
+          if (signature) {
+            return signature;
+          }
+          throw new Error('Privy signMessage hook did not return a signature value.');
+        }
+
+        throw new Error('Privy embedded wallet does not expose a signing method.');
       },
     });
-  }, [activeWallet?.address, authenticated, login, logout, onReady, ready, signMessage, user, walletsReady]);
+  }, [activeWallet, authenticated, login, logout, onReady, ready, usePrivySignMessage, user, walletsReady]);
 
   return null;
 }
@@ -90,7 +138,7 @@ export default function PrivyLoginIsland({
   return (
     <PrivyProvider
       appId={appId}
-      clientId={clientId}
+      clientId={clientId || undefined}
       config={{
         embeddedWallets: {
           ethereum: {

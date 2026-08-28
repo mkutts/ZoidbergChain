@@ -1,5 +1,5 @@
 from originality_certificate import OriginalityCertificate, calculate_originality_score
-from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
+from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 
 
 def _certified_submission(blockchain, submission_image, wallets):
@@ -153,7 +153,7 @@ def test_block_validation_rejects_wrong_network_certificate(
         submission_image,
         wallets,
     )
-    certificate.network_name = "wrong-network"
+    certificate.network_id = "zoidberg-devnet-v1"
 
     assert blockchain.is_chain_valid([block.to_dict() for block in blockchain.chain]) is False
 
@@ -207,7 +207,7 @@ def test_validate_certificate_for_submission_rejects_wrong_network(
     wrong_network_certificate = OriginalityCertificate.from_dict({
         **certificate.to_dict(),
         "certificate_id": "",
-        "network_name": "wrong-network",
+        "network_id": "zoidberg-devnet-v1",
     })
 
     try:
@@ -217,3 +217,51 @@ def test_validate_certificate_for_submission_rejects_wrong_network(
         assert str(error) == "Originality certificate belongs to a different network."
     else:
         raise AssertionError("Expected wrong-network certificate to fail validation.")
+
+
+def test_protocol_v1_block_validation_accepts_explicit_legacy_certificate_record(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    submission = blockchain.submit_content(
+        image_path=str(submission_image),
+        text_content="Legacy certificate compatibility block",
+        submitter=wallets["owner"].public_key,
+    )
+    for index, vote_type in enumerate([
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_ORIGINAL,
+        VOTE_NOT_ORIGINAL,
+    ]):
+        blockchain.cast_submission_vote(
+            submission_id=submission.submission_id,
+            voter=f"legacy-cert-block-voter-{index}",
+            vote_type=vote_type,
+            created_at=1_100_000 + index,
+        )
+    blockchain._promote_submission_content_for_protocol_v1(submission)
+    submission.transition_to(APPROVED)
+    legacy_certificate = OriginalityCertificate.from_approved_submission(
+        submission=submission,
+        votes=blockchain.get_submission_votes(submission.submission_id)["votes"],
+        minimum_votes_required=5,
+        approved_at=1_100_100,
+        network_name="zoidberg-testnet",
+        issuing_node_id="node-certifier",
+        certificate_version=None,
+    )
+    blockchain.originality_certificates.append(legacy_certificate)
+    submission.certificate_id = legacy_certificate.certificate_id
+    blockchain.add_to_mint_queue(submission.submission_id)
+
+    assert blockchain.mint_next_queued_submission(
+        miner=wallets["contributor_one"].public_key,
+        validate_meme=False,
+    ) is True
+
+    block = blockchain.get_latest_block()
+    assert block.certificate_id == legacy_certificate.certificate_id
+    assert blockchain.is_chain_valid([stored_block.to_dict() for stored_block in blockchain.chain]) is True

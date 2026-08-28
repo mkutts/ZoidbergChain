@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
+from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID
 from wallet_auth import WalletAuthManager
 from submission import (
     APPROVED,
@@ -698,9 +699,13 @@ def test_signed_vote_derives_voter_from_verified_wallet(blockchain):
 
     assert vote["voter"] == voter_account.address.lower()
     assert vote["voter_wallet_address"] == voter_account.address.lower()
+    assert vote["vote_version"] == 1
+    assert vote["protocol_version"] == 1
+    assert vote["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
     assert vote["identity_source"] == "metamask_signed"
     assert vote["signature_scheme"] == "personal_sign"
     assert vote["signed_message_hash"]
+    assert '"domain":"zoidbergchain/vote/v1"' in vote["vote_message"]
 
 
 def test_signed_vote_rejects_duplicate_vote(blockchain):

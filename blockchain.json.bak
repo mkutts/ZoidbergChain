@@ -2590,6 +2590,23 @@
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
             "audit_id": "86d6f25be864ed49077bf965fb49dd65",
             "timestamp": "2026-08-21T17:04:19.320192+00:00"
+        },
+        {
+            "action": "feedback_status_changed",
+            "result": "ok",
+            "actor_session_id": "1bb54b3f6858",
+            "request_id": null,
+            "override_request_id": null,
+            "feedback_id": "42ee0ac0ddc4bb47fa9e58d8db6185da",
+            "access_account_id": null,
+            "allowlist_entry_id": null,
+            "wallet_address": null,
+            "reason": "dismissed",
+            "operator_note": "",
+            "remote_ip": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+            "audit_id": "ee9180f449c6671bcc3aa5d0167cdbb4",
+            "timestamp": "2026-08-21T17:04:25.637037+00:00"
         }
     ],
     "wallets": {

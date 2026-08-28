@@ -6,7 +6,12 @@ from datetime import timedelta
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-from wallet_auth import WalletAuthManager, resolve_verified_wallet_from_authorization
+from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID
+from wallet_auth import (
+    WalletAuthManager,
+    hash_wallet_message,
+    resolve_verified_wallet_from_authorization,
+)
 
 
 def _client(blockchain):
@@ -471,7 +476,11 @@ def test_verified_session_can_request_vote_challenge(blockchain):
     assert body["submission_id"] == submission_id
     assert body["content_hash"] == uploaded["content_hash"]
     assert body["vote"] == "original"
-    assert "Action: vote_originality" in body["message"]
+    assert body["vote_version"] == 1
+    assert body["protocol_version"] == 1
+    assert body["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
+    assert body["signed_message_hash"] == hash_wallet_message(body["message"])
+    assert '"domain":"zoidbergchain/vote/v1"' in body["message"]
 
 
 def test_vote_challenge_rejects_wallet_mismatch(blockchain):

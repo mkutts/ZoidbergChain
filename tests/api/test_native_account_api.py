@@ -1,3 +1,4 @@
+from native_transfer import hash_transfer_signing_message
 from test_submission_lifecycle_api import (
     VOTE_ORIGINAL,
     _client,
@@ -89,6 +90,7 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
     assert mint_response.status_code == 200
 
     recipient = _create_metamask_account()
+    signed_message = "native account test signed message"
     blockchain.create_signed_transfer_intent(
         from_address=creator.address,
         to_address=recipient.address,
@@ -98,8 +100,8 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
         network="zoidberg-testnet",
         signature_scheme="personal_sign",
         signature="0xdeadbeef",
-        signed_message="native account test signed message",
-        signed_message_hash="a" * 64,
+        signed_message=signed_message,
+        signed_message_hash=hash_transfer_signing_message(signed_message),
         transfer_nonce="1",
         signed_at="2026-07-23T12:00:00+00:00",
     )

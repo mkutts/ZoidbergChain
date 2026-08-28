@@ -362,6 +362,40 @@ def _resolve_mime_type(data: bytes, declared_mime_type: str | None) -> str:
     raise ValueError("Could not determine a supported mime_type for content bytes.")
 
 
+def resolve_declared_payload_hash(
+    data: bytes,
+    mime_type: str,
+) -> dict[str, Any]:
+    payload = bytes(data)
+    normalized_mime_type = validate_mime_type(mime_type)
+    validate_content_size(
+        len(payload),
+        mime_type=normalized_mime_type if normalized_mime_type in SUPPORTED_TEXT_MIME_TYPES else None,
+    )
+    if normalized_mime_type == TEXT_MIME_TYPE:
+        normalized_text = validate_text_content(payload.decode("utf-8"))
+        normalized_bytes = normalized_text.encode("utf-8")
+        content_hash = compute_content_hash_bytes(normalized_bytes)
+        return {
+            "mime_type": normalized_mime_type,
+            "content_hash": content_hash,
+            "hash_scheme": HASH_SCHEME_SHA256_TEXT,
+            "text_content": normalized_text,
+            "stored_bytes": normalized_bytes,
+            "byte_hash": content_hash,
+        }
+
+    content_hash = compute_content_hash_bytes(payload)
+    return {
+        "mime_type": normalized_mime_type,
+        "content_hash": content_hash,
+        "hash_scheme": HASH_SCHEME_SHA256_BYTES,
+        "text_content": None,
+        "stored_bytes": payload,
+        "byte_hash": content_hash,
+    }
+
+
 def resolve_payload_hash(
     data: bytes,
     mime_type: str | None,
@@ -369,25 +403,7 @@ def resolve_payload_hash(
     payload = bytes(data)
     validate_content_size(len(payload), mime_type=mime_type if mime_type in SUPPORTED_TEXT_MIME_TYPES else None)
     resolved_mime_type = _resolve_mime_type(payload, mime_type)
-    if resolved_mime_type == TEXT_MIME_TYPE:
-        normalized_text = validate_text_content(payload.decode("utf-8"))
-        normalized_bytes = normalized_text.encode("utf-8")
-        return {
-            "mime_type": resolved_mime_type,
-            "content_hash": compute_content_hash_bytes(normalized_bytes),
-            "hash_scheme": HASH_SCHEME_SHA256_TEXT,
-            "text_content": normalized_text,
-            "stored_bytes": normalized_bytes,
-            "byte_hash": compute_content_hash_bytes(normalized_bytes),
-        }
-    return {
-        "mime_type": resolved_mime_type,
-        "content_hash": compute_content_hash_bytes(payload),
-        "hash_scheme": HASH_SCHEME_SHA256_BYTES,
-        "text_content": None,
-        "stored_bytes": payload,
-        "byte_hash": compute_content_hash_bytes(payload),
-    }
+    return resolve_declared_payload_hash(payload, resolved_mime_type)
 
 
 def verify_content_hash_bytes(content_hash: str, data_bytes: bytes) -> dict[str, Any]:

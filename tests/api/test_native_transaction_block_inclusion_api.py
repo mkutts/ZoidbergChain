@@ -7,7 +7,14 @@ from fastapi.testclient import TestClient
 
 import blockchain as blockchain_module
 from block import Block
+from native_transfer import (
+    NativeTransferMessage,
+    build_native_transaction,
+    build_transfer_signing_message,
+    hash_transfer_signing_message,
+)
 from peers import PeerStore
+from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID
 from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 from wallet_auth import WalletAuthManager
@@ -56,6 +63,41 @@ def _fund_native_wallet(blockchain, wallet_address, amount="25"):
     blockchain.chain[0].transactions.append(
         Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
     )
+
+
+def _build_legacy_signed_transaction(account, *, to_address=None, amount="4", fee="0", nonce="1", memo="legacy block tx"):
+    recipient_address = (to_address or _create_account().address).lower()
+    transfer_message = NativeTransferMessage(
+        action="transfer_zoid",
+        network="zoidberg-testnet",
+        from_address=account.address.lower(),
+        to_address=recipient_address,
+        amount=amount,
+        nonce=str(nonce),
+        fee=fee,
+        timestamp="2026-07-26T00:00:00+00:00",
+        memo=memo,
+        status="signed_pending",
+    )
+    signed_message = build_transfer_signing_message(transfer_message)
+    signature = _sign_message(signed_message, account)
+    return build_native_transaction(
+        network="zoidberg-testnet",
+        from_address=transfer_message.from_address,
+        to_address=transfer_message.to_address,
+        amount=transfer_message.amount,
+        fee=transfer_message.fee,
+        nonce=transfer_message.nonce,
+        memo=transfer_message.memo,
+        timestamp=transfer_message.timestamp,
+        signature=signature,
+        signature_scheme="personal_sign",
+        signed_message=signed_message,
+        signed_message_hash=hash_transfer_signing_message(signed_message),
+        status="signed_pending",
+        created_at="2026-07-26T00:00:00+00:00",
+        updated_at="2026-07-26T00:00:00+00:00",
+    ).to_dict()
 
 
 def _submit_transfer_intent(client, account, headers, **overrides):
@@ -164,6 +206,9 @@ def test_mint_includes_and_settles_one_mempool_transaction(blockchain, submissio
     assert body["block"]["transaction_count"] == 1
     assert body["block"]["transaction_ids"] == [tx_id]
     assert body["block"]["native_transactions"][0]["tx_id"] == tx_id
+    assert body["block"]["native_transactions"][0]["transaction_version"] == 1
+    assert body["block"]["native_transactions"][0]["protocol_version"] == 1
+    assert body["block"]["native_transactions"][0]["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
 
     transaction_response = client.get(f"/transactions/{tx_id}")
     sender_history = client.get(f"/accounts/{sender.address.lower()}/transactions").json()
@@ -404,3 +449,34 @@ def test_receive_peer_block_with_native_transaction_settles_local_mempool_transa
     transaction = client.get(f"/transactions/{tx_id}").json()["transaction"]
     assert transaction["status"] == "settled"
     assert client.get("/mempool").json()["count"] == 0
+
+
+def test_receive_peer_block_rejects_legacy_native_transaction_on_protocol_v1_block(blockchain):
+    client, _api = _client(blockchain)
+    sender = _create_account()
+    recipient = _create_account()
+    _fund_native_wallet(blockchain, sender.address, "10")
+    legacy_transaction = _build_legacy_signed_transaction(
+        sender,
+        to_address=recipient.address,
+        amount="4",
+    )
+    legacy_snapshot = blockchain._serialize_native_transaction_for_block(legacy_transaction)
+    submission = _prepare_mintable_submission(blockchain, "zoidberg.jpg", recipient.address.lower())
+    mint_response = client.post(
+        f"/mint-queue/{submission.submission_id}/mint",
+        data={"miner": recipient.address.lower()},
+    )
+    assert mint_response.status_code == 200
+
+    block = dict(mint_response.json()["block"])
+    block["native_transactions"] = [legacy_snapshot]
+    block["transaction_ids"] = [legacy_snapshot["tx_id"]]
+    block["transaction_count"] = 1
+    block["transactions_hash"] = blockchain._compute_block_native_transactions_hash([legacy_snapshot])
+
+    with pytest.raises(ValueError, match="Protocol v1 blocks cannot include legacy native transactions."):
+        blockchain.validate_block_native_transactions(
+            block,
+            prior_chain=blockchain.chain_to_dicts(blockchain.chain[:-1]),
+        )

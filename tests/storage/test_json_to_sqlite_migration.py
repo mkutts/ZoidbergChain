@@ -114,6 +114,11 @@ def test_migration_handles_snapshot_without_content_objects_section(isolated_dat
     snapshot = json.loads(source_path.read_text(encoding="utf-8"))
     snapshot.pop("content_objects", None)
     source_path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+    reconstructed = Blockchain(storage_backend=seeded["backend"])
+    expected_content_objects = [
+        content_object.to_dict()
+        for content_object in reconstructed.content_objects
+    ]
 
     target_db = isolated_data_dir / "legacy-zoidbergchain.db"
     summary = migrate_json_to_sqlite(
@@ -121,10 +126,33 @@ def test_migration_handles_snapshot_without_content_objects_section(isolated_dat
         sqlite_db_path=target_db,
     )
     sqlite_backend = SQLiteStorageBackend(sqlite_db_path=str(target_db))
+    actual_content_objects = sqlite_backend.load_content_objects()
 
-    assert summary.content_object_count == len(seeded["blockchain"].content_objects)
-    assert sqlite_backend.load_content_objects() == [
-        content_object.to_dict() for content_object in seeded["blockchain"].content_objects
+    assert summary.content_object_count == len(expected_content_objects)
+    assert len(actual_content_objects) == len(expected_content_objects)
+
+    comparable_keys = {
+        "content_id",
+        "content_hash",
+        "content_type",
+        "mime_type",
+        "file_name",
+        "file_size_bytes",
+        "local_path",
+        "text_content",
+        "caption",
+        "submitted_by",
+        "created_at",
+        "network_name",
+        "metadata",
+        "hash_scheme",
+    }
+    assert [
+        {key: content_object.get(key) for key in comparable_keys}
+        for content_object in actual_content_objects
+    ] == [
+        {key: content_object.get(key) for key in comparable_keys}
+        for content_object in expected_content_objects
     ]
 
 

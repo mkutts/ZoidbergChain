@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import hmac
+import json
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 from contextlib import asynccontextmanager
@@ -128,6 +129,33 @@ from native_transfer import (
     hash_transfer_signing_message,
     parse_native_zoid_amount,
     parse_transfer_signing_message,
+)
+from protocol_v1_native_transfer import (
+    looks_like_protocol_v1_native_transfer_message,
+    parse_protocol_v1_native_transfer_message,
+    resolve_protocol_v1_network_id,
+)
+from protocol_v1_peer_message import (
+    ExpiredPeerMessageError,
+    InvalidPeerMessageIdError,
+    InvalidPeerMessageTypeError,
+    InvalidPeerNonceError,
+    InvalidPeerSenderError,
+    InvalidPeerSignatureError as ProtocolV1InvalidPeerSignatureError,
+    InvalidPeerTimestampError as ProtocolV1InvalidPeerTimestampError,
+    MissingProtocolV1PeerHeadersError,
+    ProtocolV1PeerAuthContext,
+    ProtocolV1PeerMessageError,
+    ReplayStateUnavailableError,
+    ReplayedPeerMessageError,
+    UnsupportedPeerMessageVersionError,
+    UnsupportedPeerProtocolVersionError,
+    WrongPeerNetworkError,
+    build_protocol_v1_peer_request_payload,
+    get_protocol_v1_peer_replay_store,
+    looks_like_protocol_v1_peer_headers,
+    resolve_protocol_v1_peer_network_id,
+    verify_protocol_v1_peer_request,
 )
 from access_control import (
     AccessSessionManager,
@@ -269,6 +297,9 @@ class PeerSubmissionPayload(_StrictBodyModel):
 
 
 class PeerVotePayload(_StrictBodyModel):
+    vote_version: Annotated[int, Field(ge=1)] | None = None
+    protocol_version: Annotated[int, Field(ge=1)] | None = None
+    network_id: Annotated[str, Field(min_length=3, max_length=128)] | None = None
     submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_type: str | None = None
@@ -280,6 +311,8 @@ class PeerVotePayload(_StrictBodyModel):
     vote_message: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
     signed_message_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_nonce: Annotated[str, Field(min_length=1, max_length=256)] | None = None
+    vote_issued_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_expires_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     signed_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     created_at: Annotated[float, Field(ge=0)] | None = None
@@ -287,6 +320,9 @@ class PeerVotePayload(_StrictBodyModel):
 
 
 class PeerCertificatePayload(_StrictBodyModel):
+    certificate_version: Annotated[int, Field(ge=1)] | None = None
+    protocol_version: Annotated[int, Field(ge=1)] | None = None
+    network_id: Annotated[str, Field(min_length=3, max_length=128)] | None = None
     certificate_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
@@ -304,9 +340,14 @@ class PeerCertificatePayload(_StrictBodyModel):
     issuing_node_id: NodeIdValue | None = None
     vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
+    approval_threshold: Annotated[float, Field(ge=0)] | None = None
 
 
 class PeerBlockPayload(_StrictBodyModel):
+    block_version: Annotated[int, Field(ge=1)] | None = None
+    network_id: Annotated[str, Field(min_length=3, max_length=128)] | None = None
+    media_hash: Annotated[str, Field(min_length=64, max_length=64)] | None = None
+    media_bytes: dict[str, Any] | None = None
     index: Annotated[int, Field(ge=0)] | None = None
     previous_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     timestamp: Annotated[float, Field(ge=0)] | None = None
@@ -370,6 +411,9 @@ class PeerVoteReceive(BaseModel):
 
     origin_node_id: NodeIdValue
     network_name: NetworkNameValue
+    vote_version: Annotated[int, Field(ge=1)] | None = None
+    protocol_version: Annotated[int, Field(ge=1)] | None = None
+    network_id: Annotated[str, Field(min_length=3, max_length=128)] | None = None
     submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_type: str | None = None
@@ -381,6 +425,8 @@ class PeerVoteReceive(BaseModel):
     vote_message: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
     signed_message_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_nonce: Annotated[str, Field(min_length=1, max_length=256)] | None = None
+    vote_issued_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    vote_expires_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     signed_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     created_at: Annotated[float, Field(ge=0)] | None = None
@@ -699,10 +745,13 @@ def _serialize_certificate(certificate):
     return body
 
 
-def _serialize_block(block):
-    body = block.to_dict()
+def _serialize_block(block, *, include_media_bytes=False):
+    body = block.to_dict(include_media_bytes=include_media_bytes)
     body["transaction_count"] = body.get("transaction_count", len(body.get("native_transactions", []) or []))
     body["transaction_ids"] = body.get("transaction_ids", [tx.get("tx_id") for tx in body.get("native_transactions", []) if tx.get("tx_id")])
+    if not include_media_bytes and getattr(block, "media_bytes", None) is not None:
+        body["media_embedded"] = True
+        body["media_size_bytes"] = len(block.media_bytes)
     content_hash = body.get("content_hash")
     content_object = blockchain.get_content_object_by_hash(content_hash) if content_hash else None
     if content_object is not None:
@@ -742,6 +791,9 @@ def _serialize_transfer_intent(transfer_intent):
         "fee": transfer_intent.get("fee"),
         "memo": transfer_intent.get("memo"),
         "network": transfer_intent.get("network"),
+        "transaction_version": transfer_intent.get("transaction_version"),
+        "protocol_version": transfer_intent.get("protocol_version"),
+        "network_id": transfer_intent.get("network_id"),
         "signature_scheme": transfer_intent.get("signature_scheme"),
         "signed_message_hash": transfer_intent.get("signed_message_hash"),
         "transfer_nonce": transfer_intent.get("transfer_nonce"),
@@ -778,6 +830,9 @@ def _serialize_native_transaction(transaction):
         "nonce": transaction.get("nonce"),
         "memo": transaction.get("memo"),
         "network": transaction.get("network"),
+        "transaction_version": transaction.get("transaction_version"),
+        "protocol_version": transaction.get("protocol_version"),
+        "network_id": transaction.get("network_id"),
         "timestamp": transaction.get("timestamp"),
         "created_at": transaction.get("created_at"),
         "updated_at": transaction.get("updated_at"),
@@ -804,36 +859,56 @@ def _peer_transaction_error_response(status_code: int, *, tx_id=None, reason: st
 
 
 def _build_submitted_native_transaction_preview(payload: WalletTransferSubmitRequest):
-    signed_transfer = parse_transfer_signing_message(
-        payload.message,
-        network_name=NETWORK_NAME,
-    )
+    if looks_like_protocol_v1_native_transfer_message(payload.message):
+        signed_transfer = parse_protocol_v1_native_transfer_message(
+            payload.message,
+            expected_network_id=resolve_protocol_v1_network_id(network_name=NETWORK_NAME),
+        )
+    else:
+        signed_transfer = parse_transfer_signing_message(
+            payload.message,
+            network_name=NETWORK_NAME,
+        )
     normalized_from = normalize_wallet_address(payload.from_address)
     normalized_to = normalize_wallet_address(payload.to_address)
     normalized_memo = str(payload.memo or "").strip() or None
     normalized_amount = parse_native_zoid_amount(payload.amount, allow_zero=False)
     normalized_fee = parse_native_zoid_amount(payload.fee, allow_zero=True)
 
-    if normalized_from != signed_transfer.from_address:
+    signed_from = signed_transfer["from_address"] if isinstance(signed_transfer, dict) else signed_transfer.from_address
+    signed_to = signed_transfer["to_address"] if isinstance(signed_transfer, dict) else signed_transfer.to_address
+    signed_amount = signed_transfer["amount"] if isinstance(signed_transfer, dict) else signed_transfer.amount
+    signed_fee = signed_transfer["fee"] if isinstance(signed_transfer, dict) else signed_transfer.fee
+    signed_memo = signed_transfer["memo"] if isinstance(signed_transfer, dict) else signed_transfer.memo
+    signed_nonce = signed_transfer["nonce"] if isinstance(signed_transfer, dict) else signed_transfer.nonce
+    signed_timestamp = signed_transfer["timestamp"] if isinstance(signed_transfer, dict) else signed_transfer.timestamp
+    signed_transaction_version = signed_transfer.get("transaction_version") if isinstance(signed_transfer, dict) else signed_transfer.transaction_version
+    signed_protocol_version = signed_transfer.get("protocol_version") if isinstance(signed_transfer, dict) else signed_transfer.protocol_version
+    signed_network_id = signed_transfer.get("network_id") if isinstance(signed_transfer, dict) else signed_transfer.network_id
+
+    if normalized_from != signed_from:
         raise ValueError("from_address does not match the signed transfer message.")
-    if normalized_to != signed_transfer.to_address:
+    if normalized_to != signed_to:
         raise ValueError("to_address does not match the signed transfer message.")
-    if normalized_amount != signed_transfer.amount:
+    if normalized_amount != signed_amount:
         raise ValueError("amount does not match the signed transfer message.")
-    if normalized_fee != signed_transfer.fee:
+    if normalized_fee != signed_fee:
         raise ValueError("fee does not match the signed transfer message.")
-    if normalized_memo != signed_transfer.memo:
+    if normalized_memo != signed_memo:
         raise ValueError("memo does not match the signed transfer message.")
 
     return build_native_transaction(
         network=NETWORK_NAME,
-        from_address=signed_transfer.from_address,
-        to_address=signed_transfer.to_address,
-        amount=signed_transfer.amount,
-        fee=signed_transfer.fee,
-        nonce=signed_transfer.nonce,
-        memo=signed_transfer.memo,
-        timestamp=signed_transfer.timestamp,
+        transaction_version=signed_transaction_version,
+        protocol_version=signed_protocol_version,
+        network_id=signed_network_id,
+        from_address=signed_from,
+        to_address=signed_to,
+        amount=signed_amount,
+        fee=signed_fee,
+        nonce=signed_nonce,
+        memo=signed_memo,
+        timestamp=signed_timestamp,
         signature=payload.signature,
         signature_scheme=NATIVE_TRANSFER_SIGNATURE_SCHEME,
         signed_message=payload.message,
@@ -871,6 +946,9 @@ def _serialize_account_submission(submission):
 
 def _serialize_account_vote(vote):
     return {
+        "vote_version": vote.get("vote_version"),
+        "protocol_version": vote.get("protocol_version"),
+        "network_id": vote.get("network_id"),
         "submission_id": vote.get("submission_id"),
         "vote": vote.get("vote_type"),
         "vote_type": vote.get("vote_type"),
@@ -1445,30 +1523,133 @@ def _require_dev_private_key_export():
     )
 
 
+def _protocol_v1_peer_request_payload(request: Request, body_bytes: bytes) -> dict[str, Any]:
+    body_payload = None
+    if request.method.upper() == "POST":
+        if body_bytes in (b"", None):
+            raise HTTPException(status_code=400, detail="Protocol v1 peer request payload is required.")
+        try:
+            body_payload = json.loads(body_bytes)
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=400, detail="Protocol v1 peer request payload must be valid JSON.") from exc
+        if not isinstance(body_payload, dict):
+            raise HTTPException(status_code=400, detail="Protocol v1 peer request payload must be a JSON object.")
+
+    try:
+        payload = build_protocol_v1_peer_request_payload(
+            request.method,
+            request.url.path,
+            body_payload=body_payload,
+            query_params=request.query_params,
+        )
+    except ProtocolV1PeerMessageError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Protocol v1 peer request payload must resolve to a JSON object.")
+    return payload
+
+
+def _protocol_v1_peer_auth_context(request: Request) -> ProtocolV1PeerAuthContext | None:
+    context = getattr(request.state, "protocol_v1_peer_auth", None)
+    return context if isinstance(context, ProtocolV1PeerAuthContext) else None
+
+
+def _require_protocol_v1_peer_claims_match_auth(
+    request: Request,
+    *,
+    claimed_node_id: str,
+    claimed_network_name: str,
+) -> ProtocolV1PeerAuthContext | None:
+    context = _protocol_v1_peer_auth_context(request)
+    if context is None:
+        return None
+
+    if str(claimed_node_id).strip() != context.sender_node_id:
+        raise HTTPException(status_code=403, detail="Peer sender node_id does not match authenticated sender.")
+
+    try:
+        claimed_network_id = resolve_protocol_v1_peer_network_id(network_name=claimed_network_name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if claimed_network_id != context.network_id:
+        raise HTTPException(status_code=400, detail="Peer message network does not match authenticated network.")
+
+    return context
+
+
+def _require_protocol_v1_active_peer(request: Request) -> ProtocolV1PeerAuthContext | None:
+    context = _protocol_v1_peer_auth_context(request)
+    if context is None:
+        return None
+
+    peer = peer_store.get_active_peer(context.sender_node_id)
+    if not peer:
+        raise HTTPException(status_code=403, detail="Peer is not registered or active.")
+    if peer.get("network_name") != NETWORK_NAME:
+        raise HTTPException(status_code=400, detail="Registered peer belongs to a different network.")
+    return context
+
+
 async def require_peer_secret(
     request: Request,
     x_zoid_peer_secret: str | None = Header(default=None, alias="X-ZOID-Peer-Secret"),
 ):
     if signed_peer_messages_enabled():
+        if not peer_shared_secret_is_configured():
+            raise HTTPException(status_code=500, detail="Peer auth is enabled but the shared secret is not configured.")
+        if not looks_like_protocol_v1_peer_headers(request.headers):
+            raise HTTPException(status_code=401, detail="Missing Protocol v1 peer headers.")
+
         body_bytes = await request.body()
+        payload = _protocol_v1_peer_request_payload(request, body_bytes)
+        replay_store = None
+        if peer_replay_protection_enabled():
+            replay_store = get_protocol_v1_peer_replay_store(
+                data_dir=peer_store.storage.data_dir,
+                retention_window_seconds=PEER_SIGNATURE_WINDOW_SECONDS,
+            )
         try:
-            verify_peer_signature(
+            context = verify_protocol_v1_peer_request(
                 method=request.method,
                 path=request.url.path,
                 headers=request.headers,
-                body_bytes=body_bytes,
+                payload=payload,
+                expected_network_id=resolve_protocol_v1_peer_network_id(network_name=NETWORK_NAME),
+                secret=peer_shared_secret(),
+                timestamp_window_seconds=PEER_SIGNATURE_WINDOW_SECONDS,
+                replay_store=replay_store,
+                now=int(time.time()),
             )
+            request.state.protocol_v1_peer_auth = context
             return
-        except MissingSignedPeerHeadersError as exc:
+        except MissingProtocolV1PeerHeadersError as exc:
             raise HTTPException(status_code=401, detail=str(exc))
-        except InvalidPeerTimestampError as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
-        except ExpiredPeerSignatureError as exc:
-            raise HTTPException(status_code=401, detail=str(exc))
-        except InvalidPeerSignatureError as exc:
+        except UnsupportedPeerMessageVersionError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except UnsupportedPeerProtocolVersionError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except WrongPeerNetworkError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except InvalidPeerMessageTypeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except InvalidPeerSenderError as exc:
             raise HTTPException(status_code=403, detail=str(exc))
-        except ReplayedPeerNonceError as exc:
+        except InvalidPeerNonceError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except ProtocolV1InvalidPeerTimestampError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        except ExpiredPeerMessageError as exc:
+            raise HTTPException(status_code=401, detail=str(exc))
+        except InvalidPeerMessageIdError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        except ProtocolV1InvalidPeerSignatureError as exc:
+            raise HTTPException(status_code=403, detail=str(exc))
+        except ReplayedPeerMessageError as exc:
             raise HTTPException(status_code=409, detail=str(exc))
+        except ReplayStateUnavailableError as exc:
+            raise HTTPException(status_code=503, detail=str(exc))
 
     if not peer_auth_required():
         return
@@ -4605,6 +4786,9 @@ async def submit_transfer_intent(
             fee=str(verification["fee"]),
             memo=str(verification["memo"] or ""),
             network=NETWORK_NAME,
+            transaction_version=verification.get("transaction_version"),
+            protocol_version=verification.get("protocol_version"),
+            network_id=verification.get("network_id"),
             signature_scheme=str(verification["signature_scheme"]),
             signature=str(verification["transfer_signature"]),
             signed_message_hash=str(verification["signed_message_hash"]),
@@ -4654,13 +4838,23 @@ async def register_peer(request: Request, registration: PeerRegistration, _: Non
         raise HTTPException(status_code=400, detail="Peer belongs to a different network.")
 
     try:
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=registration.node_id,
+            claimed_network_name=registration.network_name,
+        )
+        claimed_node_id = (
+            authenticated_peer.sender_node_id
+            if authenticated_peer is not None
+            else registration.node_id
+        )
         peer_url = normalize_peer_url(str(registration.url))
         public_node_url = normalize_peer_url(PUBLIC_NODE_URL)
-        if registration.node_id.strip() == NODE_ID or peer_url == public_node_url:
+        if claimed_node_id.strip() == NODE_ID or peer_url == public_node_url:
             raise HTTPException(status_code=400, detail="Cannot register this node as a peer.")
 
         peer = peer_store.register_peer(
-            node_id=registration.node_id,
+            node_id=claimed_node_id,
             url=peer_url,
             network_name=registration.network_name,
         )
@@ -4684,10 +4878,19 @@ async def receive_transaction_from_peer(
     _: None = Depends(require_peer_secret),
 ):
     try:
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
         return receive_peer_transaction(
             blockchain=blockchain,
             peer_store=peer_store,
-            origin_node_id=receive_request.origin_node_id,
+            origin_node_id=(
+                authenticated_peer.sender_node_id
+                if authenticated_peer is not None
+                else receive_request.origin_node_id
+            ),
             network_name=receive_request.network_name,
             transaction_payload=receive_request.transaction,
             local_network_name=NETWORK_NAME,
@@ -4714,6 +4917,8 @@ async def receive_transaction_from_peer(
         lowered = message.lower()
         if "tx_id does not match" in lowered:
             reason = "invalid_tx_id"
+        elif "mempool admission" in lowered and ("transaction version is required" in lowered or "transaction_version" in lowered):
+            reason = "unsupported_transaction_version"
         elif "signature" in lowered:
             reason = "invalid_signature"
         elif "insufficient available balance" in lowered:
@@ -4737,6 +4942,7 @@ async def get_peer_transaction(
     tx_id: str,
     _: None = Depends(require_peer_secret),
 ):
+    _require_protocol_v1_active_peer(request)
     transaction = blockchain.get_native_transaction(tx_id)
     if not transaction:
         raise HTTPException(status_code=404, detail=f"Transaction not found: {tx_id}")
@@ -4752,6 +4958,7 @@ async def get_peer_mempool_summary(
     request: Request,
     _: None = Depends(require_peer_secret),
 ):
+    _require_protocol_v1_active_peer(request)
     transactions = blockchain.list_mempool_transactions()
     return {
         "tx_ids": [transaction.get("tx_id") for transaction in transactions if transaction.get("tx_id")],
@@ -4764,12 +4971,22 @@ async def get_peer_mempool_summary(
 @api_limit("peer_receive")
 async def receive_submission_from_peer(request: Request, receive_request: PeerSubmissionReceive, _: None = Depends(require_peer_secret)):
     try:
-        if not peer_store.get_active_peer(receive_request.origin_node_id):
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
+        origin_node_id = (
+            authenticated_peer.sender_node_id
+            if authenticated_peer is not None
+            else receive_request.origin_node_id
+        )
+        if not peer_store.get_active_peer(origin_node_id):
             _validate_unregistered_peer_submission_shape(receive_request)
         return receive_peer_submission(
             blockchain=blockchain,
             peer_store=peer_store,
-            origin_node_id=receive_request.origin_node_id,
+            origin_node_id=origin_node_id,
             network_name=receive_request.network_name,
             submission_payload=receive_request.submission.model_dump(),
             local_network_name=NETWORK_NAME,
@@ -4788,14 +5005,27 @@ async def receive_submission_from_peer(request: Request, receive_request: PeerSu
 @api_limit("peer_receive")
 async def receive_vote_from_peer(request: Request, receive_request: PeerVoteReceive, _: None = Depends(require_peer_secret)):
     try:
-        if not peer_store.get_active_peer(receive_request.origin_node_id):
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
+        origin_node_id = (
+            authenticated_peer.sender_node_id
+            if authenticated_peer is not None
+            else receive_request.origin_node_id
+        )
+        if not peer_store.get_active_peer(origin_node_id):
             _validate_unregistered_peer_vote_shape(receive_request)
         return receive_peer_vote(
             blockchain=blockchain,
             peer_store=peer_store,
-            origin_node_id=receive_request.origin_node_id,
+            origin_node_id=origin_node_id,
             network_name=receive_request.network_name,
             vote_payload={
+                "vote_version": receive_request.vote_version,
+                "protocol_version": receive_request.protocol_version,
+                "network_id": receive_request.network_id,
                 "submission_id": receive_request.submission_id,
                 "voter": receive_request.voter,
                 "vote_type": receive_request.vote_type,
@@ -4807,6 +5037,8 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
                 "vote_message": receive_request.vote_message,
                 "signed_message_hash": receive_request.signed_message_hash,
                 "vote_nonce": receive_request.vote_nonce,
+                "vote_issued_at": receive_request.vote_issued_at,
+                "vote_expires_at": receive_request.vote_expires_at,
                 "signed_at": receive_request.signed_at,
                 "identity_source": receive_request.identity_source,
                 "created_at": receive_request.created_at,
@@ -4832,12 +5064,22 @@ async def receive_certificate_from_peer(request: Request, receive_request: PeerC
     try:
         if receive_request.certificate is None:
             raise HTTPException(status_code=400, detail="Certificate payload is required.")
-        if not peer_store.get_active_peer(receive_request.origin_node_id):
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
+        origin_node_id = (
+            authenticated_peer.sender_node_id
+            if authenticated_peer is not None
+            else receive_request.origin_node_id
+        )
+        if not peer_store.get_active_peer(origin_node_id):
             _validate_unregistered_peer_certificate_shape(receive_request)
         return receive_peer_certificate(
             blockchain=blockchain,
             peer_store=peer_store,
-            origin_node_id=receive_request.origin_node_id,
+            origin_node_id=origin_node_id,
             network_name=receive_request.network_name,
             certificate_payload=receive_request.certificate.model_dump(),
             local_network_name=NETWORK_NAME,
@@ -4859,12 +5101,22 @@ async def receive_block_from_peer(request: Request, receive_request: PeerBlockRe
         raw_payload = await request.json()
         if receive_request.block is None:
             raise HTTPException(status_code=400, detail="Block payload is required.")
-        if not peer_store.get_active_peer(receive_request.origin_node_id):
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
+        origin_node_id = (
+            authenticated_peer.sender_node_id
+            if authenticated_peer is not None
+            else receive_request.origin_node_id
+        )
+        if not peer_store.get_active_peer(origin_node_id):
             _validate_unregistered_peer_block_shape(receive_request)
         return receive_peer_block(
             blockchain=blockchain,
             peer_store=peer_store,
-            origin_node_id=receive_request.origin_node_id,
+            origin_node_id=origin_node_id,
             network_name=receive_request.network_name,
             block_payload=(
                 raw_payload.get("block")
@@ -4922,9 +5174,19 @@ async def chain_summary(request: Request):
     return payload
 
 
+@app.get("/peers/chain/summary")
+@api_limit("peer_receive")
+async def peer_chain_summary(
+    request: Request,
+    _: None = Depends(require_peer_secret),
+):
+    _require_protocol_v1_active_peer(request)
+    return await chain_summary(request)
+
+
 @app.get("/chain/blocks")
 @api_limit("public_read")
-async def chain_blocks(request: Request, from_height: int = 0):
+async def chain_blocks(request: Request, from_height: int = 0, include_media_bytes: bool = False):
     if from_height < 0:
         raise HTTPException(status_code=400, detail="from_height must be non-negative.")
 
@@ -4940,7 +5202,7 @@ async def chain_blocks(request: Request, from_height: int = 0):
     }
     return {
         "blocks": [
-            _serialize_block(block)
+            _serialize_block(block, include_media_bytes=include_media_bytes)
             for block in blocks
         ],
         "certificates": [
@@ -4951,6 +5213,22 @@ async def chain_blocks(request: Request, from_height: int = 0):
     }
 
 
+@app.get("/peers/chain/blocks")
+@api_limit("peer_receive")
+async def peer_chain_blocks(
+    request: Request,
+    from_height: int = 0,
+    include_media_bytes: bool = False,
+    _: None = Depends(require_peer_secret),
+):
+    _require_protocol_v1_active_peer(request)
+    return await chain_blocks(
+        request,
+        from_height=from_height,
+        include_media_bytes=include_media_bytes,
+    )
+
+
 @app.post("/chain/sync")
 @api_limit("chain_sync")
 async def sync_chain(request: Request):
@@ -4958,6 +5236,7 @@ async def sync_chain(request: Request):
         blockchain=blockchain,
         peer_store=peer_store,
         network_name=NETWORK_NAME,
+        origin_node_id=NODE_ID,
     )
 
 
@@ -5170,6 +5449,7 @@ async def get_peer_content_metadata(
     content_hash: str,
     _: None = Depends(require_peer_secret),
 ):
+    _require_protocol_v1_active_peer(request)
     content_object = _require_content_object(content_hash)
     return {"content": _peer_safe_content_metadata(content_object)}
 
@@ -5222,6 +5502,7 @@ async def download_peer_content(
     content_hash: str,
     _: None = Depends(require_peer_secret),
 ):
+    _require_protocol_v1_active_peer(request)
     content_object = _require_content_object(content_hash)
     verification = verify_content_object_payload(content_object, data_dir=blockchain.storage.data_dir)
     if verification["error"] == "missing_file":
@@ -5664,11 +5945,16 @@ async def vote_on_submission(
 
         vote["voter_wallet_address"] = verified_wallet
         vote["content_hash"] = submission.content_hash
+        vote["vote_version"] = verification.get("vote_version")
+        vote["protocol_version"] = verification.get("protocol_version")
+        vote["network_id"] = verification.get("network_id")
         vote["signature_scheme"] = str(verification["signature_scheme"])
         vote["vote_signature"] = str(verification["vote_signature"])
         vote["vote_message"] = str(verification["vote_message"])
         vote["signed_message_hash"] = str(verification["signed_message_hash"])
         vote["vote_nonce"] = str(verification["nonce"])
+        vote["vote_issued_at"] = str(verification["vote_issued_at"])
+        vote["vote_expires_at"] = str(verification["vote_expires_at"])
         vote["signed_at"] = str(verification["signed_at"])
         vote["identity_source"] = str(verification["identity_source"])
     else:

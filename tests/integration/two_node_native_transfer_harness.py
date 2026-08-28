@@ -398,27 +398,36 @@ def _build_signed_transaction_payload(
     from native_transfer import (
         NATIVE_TRANSFER_SIGNATURE_SCHEME,
         build_native_transaction,
-        build_transfer_signing_message,
         hash_transfer_signing_message,
-        validate_native_transfer_message,
+    )
+    from protocol_v1 import PROTOCOL_VERSION
+    from protocol_v1_native_transfer import (
+        build_protocol_v1_native_transfer_message,
+        build_protocol_v1_native_transfer_payload,
+        resolve_protocol_v1_network_id,
     )
 
     timestamp = "2026-08-01T12:00:00+00:00"
-    transfer_message = validate_native_transfer_message(
-        {
-            "action": "transfer_zoid",
-            "network": network,
-            "from_address": account.address,
-            "to_address": to_address,
-            "amount": amount,
-            "fee": "0",
-            "nonce": nonce,
-            "timestamp": timestamp,
-            "memo": memo,
-        },
-        network_name=network,
+    network_id = resolve_protocol_v1_network_id(network_name=network)
+    transfer_payload = build_protocol_v1_native_transfer_payload(
+        from_address=account.address,
+        to_address=to_address,
+        amount=amount,
+        fee="0",
+        nonce=nonce,
+        timestamp=timestamp,
+        memo=memo,
     )
-    signed_message = build_transfer_signing_message(transfer_message)
+    signed_message = build_protocol_v1_native_transfer_message(
+        from_address=str(transfer_payload["from_address"]),
+        to_address=str(transfer_payload["to_address"]),
+        amount=str(transfer_payload["amount"]),
+        fee=str(transfer_payload["fee"]),
+        nonce=str(transfer_payload["nonce"]),
+        timestamp=str(transfer_payload["timestamp"]),
+        memo=transfer_payload.get("memo"),
+        network_id=network_id,
+    )
     transaction = build_native_transaction(
         network=network,
         from_address=account.address,
@@ -432,6 +441,9 @@ def _build_signed_transaction_payload(
         signature_scheme=NATIVE_TRANSFER_SIGNATURE_SCHEME,
         signed_message=signed_message,
         signed_message_hash=hash_transfer_signing_message(signed_message),
+        transaction_version=PROTOCOL_VERSION,
+        protocol_version=PROTOCOL_VERSION,
+        network_id=network_id,
     )
     return transaction.to_dict()
 
@@ -452,6 +464,9 @@ def _rebuild_transaction_with_signature(base_transaction: dict[str, Any], signat
         signature_scheme=str(base_transaction["signature_scheme"]),
         signed_message=str(base_transaction["signed_message"]),
         signed_message_hash=str(base_transaction["signed_message_hash"]),
+        transaction_version=base_transaction.get("transaction_version"),
+        protocol_version=base_transaction.get("protocol_version"),
+        network_id=base_transaction.get("network_id"),
         status="signed_pending",
         created_at=str(base_transaction["created_at"]),
         updated_at=str(base_transaction["updated_at"]),
@@ -699,9 +714,17 @@ def run_two_node_native_transfer_verification(*, verbose: bool = False) -> dict[
                         origin_node_id=node_a.node_id,
                     )
 
+                    invalid_signature_base = _build_signed_transaction_payload(
+                        sender,
+                        network=NODE_NETWORK_NAME,
+                        to_address=recipient.address,
+                        amount="1",
+                        nonce=str(initial_nonce + 1),
+                        memo="Task 8.9 invalid signature",
+                    )
                     tampered_signature = _rebuild_transaction_with_signature(
-                        canonical_transaction,
-                        _sign_message(canonical_transaction["signed_message"], Account.create()),
+                        invalid_signature_base,
+                        _sign_message(invalid_signature_base["signed_message"], Account.create()),
                     )
                     _negative_receive_transaction(
                         node_b,

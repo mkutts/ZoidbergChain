@@ -1,0 +1,629 @@
+{
+  "audit": {
+    "branch": "Freeze-ZoidbergChain-Public-Testnet-v1-Protocol",
+    "commit": "d965aa3362124b40c97c676a7503c03007877707",
+    "working_tree_clean": false,
+    "pre_existing_untracked_files": [
+      "rollback-prep-working-tree.patch",
+      "zoidbergcoin-ui/zoidbergchain-dist.zip"
+    ],
+    "python_version": "Python 3.13.5",
+    "storage_backends": [
+      "json",
+      "sqlite"
+    ],
+    "test_commands": [
+      {
+        "command": "python -m pytest -q",
+        "result": "failed: No module named pytest"
+      },
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q",
+        "result": "passed: 738 passed in 77.25s"
+      }
+    ],
+    "post_change_test_commands": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/api/test_peer_auth_api.py tests/api/test_peer_block_sync_api.py tests/api/test_peer_vote_sync_api.py tests/api/test_peer_certificate_sync_api.py tests/api/test_peer_transaction_sync_api.py tests/api/test_peer_content_sync_api.py tests/api/test_chain_sync_api.py tests/test_protocol_v1_peer_messages.py",
+        "result": "passed: 134 passed in 12.96s"
+      },
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/api/test_peer_submission_sync_api.py tests/api/test_peer_auth_api.py tests/api/test_peer_block_sync_api.py tests/api/test_peer_content_sync_api.py tests/api/test_peer_vote_sync_api.py tests/api/test_peer_certificate_sync_api.py tests/api/test_peer_transaction_sync_api.py tests/api/test_chain_sync_api.py tests/api/test_wallet_auth_api.py tests/api/test_native_transfer_api.py tests/api/test_native_transaction_block_inclusion_api.py tests/blockchain/test_protocol_v1_block_format.py tests/blockchain/test_certificate_block_validation.py tests/test_protocol_v1.py tests/test_protocol_v1_originality_votes.py tests/test_protocol_v1_native_transfers.py tests/test_protocol_v1_peer_messages.py tests/storage/test_storage_tools.py tests/storage/test_json_to_sqlite_migration.py tests/config/test_security_modes.py",
+        "result": "passed: 363 passed in 34.75s"
+      },
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/integration/test_two_node_native_transfer_verification.py tests/integration/test_two_node_consensus_verification.py tests/integration/test_two_node_storage_backends.py",
+        "result": "passed: 17 passed in 5.57s"
+      },
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q",
+        "result": "passed: 843 passed in 240.42s (0:04:00)"
+      }
+    ]
+  },
+  "block": {
+    "files": [
+      "block.py",
+      "blockchain.py",
+      "protocol_v1.py"
+    ],
+    "symbols": [
+      "Block",
+      "Block.from_dict",
+      "Block.to_dict",
+      "Block.protocol_v1_metadata",
+      "Block.certificate_metadata",
+      "Block.consensus_payload_v1",
+      "Block.calculate_hash_legacy",
+      "Block.calculate_hash_v1",
+      "Block.calculate_hash",
+      "Blockchain.add_block",
+      "Blockchain.mint_submission",
+      "Blockchain.validate_protocol_v1_block_payload",
+      "Blockchain.validate_block_with_native_transactions",
+      "Blockchain.validate_block_certificate_metadata",
+      "Blockchain.is_chain_valid",
+      "Blockchain.compare_chains_by_originality",
+      "Blockchain.calculate_hash_from_dict"
+    ],
+    "hash_function": "Block.calculate_hash_legacy / Block.calculate_hash_v1 / Blockchain.calculate_hash_from_dict",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "index",
+      "transactions",
+      "previous_hash",
+      "miner",
+      "meme.encoded_image",
+      "meme.text",
+      "timestamp",
+      "hash",
+      "block_version",
+      "network_id",
+      "media_hash",
+      "media_bytes",
+      "submission_id",
+      "certificate_id",
+      "content_hash",
+      "content_id",
+      "content_type",
+      "mime_type",
+      "creator_wallet",
+      "vote_hash",
+      "approval_percentage",
+      "decisive_vote_total",
+      "minimum_votes_required",
+      "approved_at",
+      "originality_score",
+      "reward_type",
+      "reward_recipient",
+      "reward_amount",
+      "reward_source",
+      "minted_at",
+      "voter_rewards",
+      "native_transactions",
+      "transaction_ids",
+      "transaction_count",
+      "transactions_hash"
+    ],
+    "network_bound": true,
+    "protocol_versioned": true,
+    "deterministic_serialization": true,
+    "persistence": [
+      "storage.py blockchain document",
+      "storage_tools.py export/import snapshots",
+      "peer sync block payloads"
+    ],
+    "tests": [
+      "tests/test_protocol_v1.py",
+      "tests/blockchain/test_protocol_v1_block_format.py",
+      "tests/blockchain/test_certificate_block_validation.py",
+      "tests/blockchain/test_chain_originality_comparison.py",
+      "tests/api/test_chain_sync_api.py",
+      "tests/api/test_peer_block_sync_api.py"
+    ],
+    "risks": [
+      "legacy blocks still use legacy string-format hash assembly",
+      "mixed legacy/v1 datasets need explicit reset or migration policy",
+      "embedded media increases block, export, and sync payload size"
+    ]
+  },
+  "certificate": {
+    "files": [
+      "originality_certificate.py",
+      "protocol_v1_originality.py",
+      "peer_sync.py",
+      "blockchain.py"
+    ],
+    "symbols": [
+      "OriginalityCertificate",
+      "OriginalityCertificate.from_approved_submission",
+      "OriginalityCertificate.identity_payload_v1",
+      "OriginalityCertificate.to_core_dict",
+      "OriginalityCertificate.to_dict",
+      "build_vote_hash_payload_v1",
+      "build_certificate_identity_payload_v1",
+      "calculate_vote_hash",
+      "calculate_certificate_id",
+      "validate_certificate_for_submission",
+      "peer_sync._normalize_certificate_payload",
+      "Blockchain.create_originality_certificate"
+    ],
+    "hash_function": "calculate_vote_hash / calculate_certificate_id / protocol_v1_originality.calculate_protocol_v1_certificate_id",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "certificate_version",
+      "protocol_version",
+      "network_id",
+      "submission_id",
+      "content_hash",
+      "creator_wallet",
+      "vote_hash",
+      "vote_total",
+      "decisive_vote_total",
+      "original_votes",
+      "not_original_votes",
+      "unsure_votes",
+      "approval_threshold",
+      "approval_percentage",
+      "minimum_votes_required",
+      "originality_score",
+      "approved_at",
+      "network_name",
+      "issuing_node_id",
+      "content_id"
+    ],
+    "network_bound": true,
+    "protocol_versioned": true,
+    "deterministic_serialization": true,
+    "persistence": [
+      "storage.py blockchain document",
+      "peer sync certificate payloads"
+    ],
+    "tests": [
+      "tests/test_protocol_v1_originality_votes.py",
+      "tests/submissions/test_originality_certificate.py",
+      "tests/api/test_submission_lifecycle_api.py",
+      "tests/api/test_peer_certificate_sync_api.py",
+      "tests/blockchain/test_certificate_block_validation.py"
+    ],
+    "risks": [
+      "legacy and Protocol v1 certificates must remain explicitly separated",
+      "peer certificate validation for known submissions depends on matching local vote-set state",
+      "legacy launch/reset policy is still unresolved"
+    ]
+  },
+  "submission": {
+    "files": [
+      "submission.py",
+      "blockchain.py",
+      "api.py"
+    ],
+    "symbols": [
+      "Submission",
+      "Submission.__post_init__",
+      "Submission.transition_to",
+      "Submission.to_dict",
+      "Submission.from_dict",
+      "calculate_submission_content_hash",
+      "Blockchain.submit_content",
+      "Blockchain.submit_existing_content",
+      "api.submit_content"
+    ],
+    "hash_function": "calculate_submission_content_hash",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "submission_id",
+      "image_path",
+      "text_content",
+      "submitter",
+      "status",
+      "content_hash",
+      "content_id",
+      "certificate_id",
+      "creator_wallet_address",
+      "signature metadata"
+    ],
+    "network_bound": false,
+    "protocol_versioned": false,
+    "deterministic_serialization": false,
+    "persistence": [
+      "storage.py blockchain document",
+      "peer sync submission payloads"
+    ],
+    "tests": [
+      "tests/api/test_submission_lifecycle_api.py",
+      "tests/api/test_access_control_api.py",
+      "tests/content/test_content_storage.py"
+    ],
+    "risks": [
+      "submission_id is a random UUID",
+      "hash depends on file presence and submitter",
+      "no protocol version field"
+    ]
+  },
+  "vote": {
+    "files": [
+      "wallet_auth.py",
+      "protocol_v1_originality.py",
+      "api.py",
+      "peer_sync.py",
+      "blockchain.py"
+    ],
+    "symbols": [
+      "build_protocol_v1_vote_payload",
+      "build_protocol_v1_vote_signing_payload",
+      "build_protocol_v1_vote_message",
+      "build_wallet_vote_message_v1",
+      "WalletAuthManager.issue_vote_challenge",
+      "WalletAuthManager.verify_vote_signature",
+      "Blockchain.cast_submission_vote",
+      "peer_sync._normalize_vote_payload"
+    ],
+    "hash_function": "protocol_v1.canonical_domain_hash over the Protocol v1 vote payload / hash_wallet_message for stored message hashes",
+    "hash_algorithm": "sha256 for message hashes",
+    "fields": [
+      "vote_version",
+      "protocol_version",
+      "network_id",
+      "submission_id",
+      "content_hash",
+      "vote_type",
+      "voter_wallet_address",
+      "nonce",
+      "issued_at",
+      "expires_at",
+      "vote_message",
+      "vote_signature",
+      "signed_message_hash",
+      "signed_at",
+      "identity_source"
+    ],
+    "network_bound": true,
+    "protocol_versioned": true,
+    "deterministic_serialization": true,
+    "persistence": [
+      "storage.py blockchain document",
+      "peer sync vote payloads"
+    ],
+    "tests": [
+      "tests/test_protocol_v1_originality_votes.py",
+      "tests/api/test_wallet_auth_api.py",
+      "tests/api/test_submission_lifecycle_api.py",
+      "tests/api/test_peer_vote_sync_api.py",
+      "tests/submissions/test_originality_certificate.py",
+      "tests/api/test_voter_rewards_api.py"
+    ],
+    "risks": [
+      "legacy and Protocol v1 signed votes must remain explicitly separated",
+      "wallet challenge state is still non-durable across restart",
+      "login and submission challenge domains remain on older human-readable semantics"
+    ]
+  },
+  "native_transfer": {
+    "files": [
+      "native_transfer.py",
+      "protocol_v1_native_transfer.py",
+      "wallet_auth.py",
+      "blockchain.py",
+      "api.py",
+      "peer_sync.py"
+    ],
+    "symbols": [
+      "build_protocol_v1_native_transfer_payload",
+      "build_protocol_v1_native_transfer_signing_payload",
+      "build_protocol_v1_native_transfer_message",
+      "calculate_protocol_v1_transaction_id",
+      "build_transfer_signing_message",
+      "canonicalize_transaction_payload",
+      "compute_transaction_id",
+      "verify_transfer_signature",
+      "validate_transaction_shape",
+      "build_native_transaction",
+      "WalletAuthManager.issue_transfer_challenge",
+      "WalletAuthManager.verify_transfer_signature",
+      "Blockchain.create_signed_transfer_intent",
+      "Blockchain.validate_signed_native_transaction",
+      "Blockchain.reserve_transaction_nonce",
+      "peer_sync._serialize_peer_transaction_payload"
+    ],
+    "hash_function": "protocol_v1_native_transfer.calculate_protocol_v1_transaction_id / native_transfer.compute_transaction_id",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "transaction_version",
+      "protocol_version",
+      "network_id",
+      "network",
+      "from_address",
+      "to_address",
+      "amount",
+      "fee",
+      "nonce",
+      "timestamp",
+      "memo",
+      "signature",
+      "signature_scheme",
+      "signed_message",
+      "signed_message_hash"
+    ],
+    "network_bound": true,
+    "protocol_versioned": true,
+    "deterministic_serialization": true,
+    "persistence": [
+      "storage.py transfer_intents and native_transactions",
+      "peer sync native transaction payloads",
+      "storage_tools export/import snapshots"
+    ],
+    "tests": [
+      "tests/test_native_transfer.py",
+      "tests/test_protocol_v1_native_transfers.py",
+      "tests/api/test_native_transfer_api.py",
+      "tests/api/test_native_transaction_block_inclusion_api.py",
+      "tests/api/test_native_account_api.py",
+      "tests/api/test_peer_transaction_sync_api.py",
+      "tests/storage/test_storage_tools.py"
+    ],
+    "risks": [
+      "legacy and Protocol v1 transfers must remain explicitly separated",
+      "strict sequential nonce policy must stay stable",
+      "pending legacy native-transaction state should be drained or purged before Public Testnet v1 launch"
+    ]
+  },
+  "wallet_signature": {
+    "files": [
+      "wallet_auth.py",
+      "native_transfer.py",
+      "peer_sync.py"
+    ],
+    "symbols": [
+      "recover_signed_wallet_address",
+      "canonicalize_wallet_message",
+      "hash_wallet_message",
+      "normalize_wallet_address"
+    ],
+    "hash_function": "hash_wallet_message",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "message text",
+      "signature",
+      "recovered address"
+    ],
+    "network_bound": true,
+    "protocol_versioned": false,
+    "deterministic_serialization": true,
+    "persistence": [
+      "in-memory auth/session state"
+    ],
+    "tests": [
+      "tests/api/test_submission_lifecycle_api.py",
+      "tests/api/test_native_account_api.py",
+      "tests/api/test_chain_sync_api.py"
+    ],
+    "risks": [
+      "challenge state is not durable across restart",
+      "text-based domain separation needs future versioning"
+    ]
+  },
+  "peer_message": {
+    "files": [
+      "protocol_v1_peer_message.py",
+      "peer_sync.py",
+      "api.py"
+    ],
+    "symbols": [
+      "build_protocol_v1_peer_request_payload",
+      "build_protocol_v1_peer_envelope",
+      "calculate_protocol_v1_peer_message_id",
+      "sign_protocol_v1_peer_message",
+      "build_protocol_v1_peer_request_headers",
+      "verify_protocol_v1_peer_request",
+      "ProtocolV1PeerReplayStore",
+      "get_protocol_v1_peer_replay_store",
+      "require_peer_secret",
+      "register_peer"
+    ],
+    "hash_function": "calculate_protocol_v1_peer_message_id / sign_protocol_v1_peer_message / verify_protocol_v1_peer_request",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "peer_message_version",
+      "protocol_version",
+      "network_id",
+      "message_type",
+      "sender_node_id",
+      "timestamp",
+      "nonce",
+      "payload",
+      "message_id",
+      "signature"
+    ],
+    "network_bound": true,
+    "protocol_versioned": true,
+    "deterministic_serialization": true,
+    "persistence": [
+      "peer store",
+      "peer_message_replay_state.json in the peer-store data directory"
+    ],
+    "tests": [
+      "tests/api/test_peer_auth_api.py",
+      "tests/api/test_peer_block_sync_api.py",
+      "tests/api/test_peer_vote_sync_api.py",
+      "tests/api/test_peer_certificate_sync_api.py",
+      "tests/api/test_peer_content_sync_api.py",
+      "tests/api/test_peer_transaction_sync_api.py",
+      "tests/api/test_chain_sync_api.py",
+      "tests/test_protocol_v1_peer_messages.py"
+    ],
+    "risks": [
+      "all peers still share one configured secret per node",
+      "replay protection is intentionally bounded to the configured retention window",
+      "legacy/v1 interoperability still depends on explicit node configuration rather than negotiation"
+    ]
+  },
+  "genesis": {
+    "files": [
+      "blockchain.py"
+    ],
+    "symbols": [
+      "Blockchain.create_genesis_block"
+    ],
+    "hash_function": "Block.calculate_hash on runtime-generated genesis block",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "index",
+      "previous_hash",
+      "timestamp",
+      "genesis transactions",
+      "miner",
+      "meme",
+      "project owner wallet",
+      "Contributor_one",
+      "Contributor_two"
+    ],
+    "network_bound": false,
+    "protocol_versioned": false,
+    "deterministic_serialization": false,
+    "persistence": [
+      "bootstrap chain state"
+    ],
+    "tests": [
+      "tests/blockchain/test_chain_originality_comparison.py",
+      "tests/api/test_chain_sync_api.py",
+      "tests/integration/test_two_node_consensus_verification.py"
+    ],
+    "risks": [
+      "runtime timestamp",
+      "filesystem dependency on ./zoidberg.jpg",
+      "wallet-dependent initialization"
+    ]
+  },
+  "chain_validation": {
+    "files": [
+      "blockchain.py"
+    ],
+    "symbols": [
+      "Blockchain.is_chain_valid",
+      "Blockchain.validate_block_with_native_transactions",
+      "Blockchain.validate_block_certificate_metadata",
+      "Blockchain.compare_chains_by_originality"
+    ],
+    "hash_function": "chain-level validation rather than a single hash",
+    "hash_algorithm": "sha256 where block hashes are checked",
+    "fields": [
+      "block hash",
+      "previous_hash",
+      "certificate metadata",
+      "native transaction metadata",
+      "genesis hash"
+    ],
+    "network_bound": true,
+    "protocol_versioned": false,
+    "deterministic_serialization": true,
+    "persistence": [
+      "validated chain state in storage"
+    ],
+    "tests": [
+      "tests/blockchain/test_chain_originality_comparison.py",
+      "tests/api/test_chain_sync_api.py"
+    ],
+    "risks": [
+      "depends on legacy block hash semantics",
+      "fork-choice criteria are not versioned"
+    ]
+  },
+  "fork_choice": {
+    "files": [
+      "blockchain.py",
+      "peer_sync.py"
+    ],
+    "symbols": [
+      "Blockchain.compare_chains_by_originality",
+      "Blockchain.replace_chain",
+      "peer_sync._sync_chain_from_peer",
+      "peer_sync._validate_candidate_chain"
+    ],
+    "hash_function": "n/a",
+    "hash_algorithm": "n/a",
+    "fields": [
+      "cumulative originality score",
+      "chain height",
+      "latest block hash",
+      "genesis hash"
+    ],
+    "network_bound": true,
+    "protocol_versioned": false,
+    "deterministic_serialization": true,
+    "persistence": [
+      "chain replacement affects stored blockchain document"
+    ],
+    "tests": [
+      "tests/blockchain/test_chain_originality_comparison.py",
+      "tests/api/test_chain_sync_api.py"
+    ],
+    "risks": [
+      "different peers can prefer different candidates if inputs diverge",
+      "no explicit protocol version field"
+    ]
+  },
+  "media": {
+    "files": [
+      "content.py",
+      "block.py",
+      "peer_sync.py",
+      "blockchain.py",
+      "api.py",
+      "protocol_v1.py"
+    ],
+    "symbols": [
+      "compute_content_hash_bytes",
+      "compute_text_content_hash",
+      "calculate_content_hash",
+      "resolve_declared_payload_hash",
+      "resolve_payload_hash",
+      "store_content_bytes",
+      "ContentObject",
+      "content_object_from_submission_data",
+      "Blockchain.recover_block_media_bytes",
+      "Blockchain.cache_protocol_v1_block_content",
+      "peer_sync.fetch_content_from_peer"
+    ],
+    "hash_function": "content hash and byte hash helpers",
+    "hash_algorithm": "sha256",
+    "fields": [
+      "content_hash",
+      "content_id",
+      "content_type",
+      "mime_type",
+      "media_hash",
+      "media_bytes",
+      "text_content",
+      "caption",
+      "metadata",
+      "file_name",
+      "file_size_bytes",
+      "hash_scheme",
+      "storage_status",
+      "local_path"
+    ],
+    "network_bound": false,
+    "protocol_versioned": false,
+    "deterministic_serialization": true,
+    "persistence": [
+      "content directory on disk",
+      "blockchain document embedded media_bytes for Protocol v1 blocks",
+      "blockchain document metadata",
+      "peer fetch/store synchronization"
+    ],
+    "tests": [
+      "tests/content/test_content_object.py",
+      "tests/content/test_content_storage.py",
+      "tests/blockchain/test_protocol_v1_block_format.py",
+      "tests/api/test_content_api.py",
+      "tests/api/test_peer_block_sync_api.py",
+      "tests/api/test_peer_content_sync_api.py"
+    ],
+    "risks": [
+      "legacy content objects may still use legacy hash semantics until recertified for Protocol v1 minting",
+      "legacy blocks do not embed full media bytes",
+      "embedded media increases storage and sync payload size"
+    ]
+  }
+}

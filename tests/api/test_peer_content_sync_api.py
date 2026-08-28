@@ -7,6 +7,10 @@ import peer_sync
 from blockchain import Blockchain
 from content import compute_text_content_hash
 from peers import PeerStore
+from protocol_v1_peer_message import (
+    build_protocol_v1_peer_request_headers,
+    clear_protocol_v1_peer_replay_store_cache,
+)
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from submission import APPROVED, PENDING, Submission, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from wallet import Wallet
@@ -23,6 +27,7 @@ def _client(blockchain):
     api.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
     api.peer_store = PeerStore(storage_backend=blockchain.storage)
+    clear_protocol_v1_peer_replay_store_cache(data_dir=api.peer_store.storage.data_dir)
     return TestClient(api.app)
 
 
@@ -51,6 +56,7 @@ def _configure_peer_auth(monkeypatch, enabled, secret="super-secret-value"):
     monkeypatch.setattr(peer_sync, "signed_peer_messages_enabled", lambda: False)
     monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: False)
     peer_sync._PEER_NONCE_CACHE.clear()
+    clear_protocol_v1_peer_replay_store_cache()
 
 
 def _configure_signed_peer_messages(monkeypatch, secret="super-secret-value"):
@@ -67,23 +73,27 @@ def _configure_signed_peer_messages(monkeypatch, secret="super-secret-value"):
     monkeypatch.setattr(peer_sync, "peer_shared_secret_is_configured", lambda: True)
     monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: False)
     peer_sync._PEER_NONCE_CACHE.clear()
+    clear_protocol_v1_peer_replay_store_cache()
+
+
+def _freeze_peer_time(monkeypatch, now=1_700_000_000):
+    import api
+
+    monkeypatch.setattr(api.time, "time", lambda: now)
+    monkeypatch.setattr(peer_sync.time, "time", lambda: now)
 
 
 def _signed_get_headers(path, *, secret="super-secret-value", timestamp=1_700_000_000, nonce="nonce-1"):
-    signature = peer_sync.sign_peer_request(
-        method="GET",
-        path=path,
+    return build_protocol_v1_peer_request_headers(
+        "GET",
+        path,
+        None,
+        "peer-node-1",
+        network_name="zoidberg-testnet",
+        secret=secret,
         timestamp=timestamp,
         nonce=nonce,
-        body_bytes=b"",
-        secret=secret,
     )
-    return {
-        "X-ZOID-Node-Id": "peer-node-1",
-        "X-ZOID-Timestamp": str(timestamp),
-        "X-ZOID-Nonce": nonce,
-        "X-ZOID-Signature": signature,
-    }
 
 
 def _fake_response(status_code, *, json_body=None, content=b"", text="", headers=None):
@@ -231,7 +241,8 @@ def test_peer_content_metadata_and_download_require_peer_auth(blockchain, wallet
 def test_signed_peer_get_content_metadata_accepts_empty_body_signature(blockchain, wallets, monkeypatch):
     client = _client(blockchain)
     _configure_signed_peer_messages(monkeypatch)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
+    _register_peer(client=client)
     content_object = blockchain.upload_text_content(
         text_content="signed peer metadata text",
         submitted_by=wallets["owner"].public_key,
@@ -335,6 +346,58 @@ def test_fetch_content_from_peer_rejects_hash_mismatch_and_keeps_remote_referenc
     assert result["reason"] == "hash_mismatch"
     assert content_object.storage_status == "remote"
     assert content_object.local_path is None
+
+
+def test_signed_peer_content_sync_still_rejects_hash_mismatch(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch)
+    _freeze_peer_time(monkeypatch)
+    expected_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
+    blockchain.register_remote_content_reference(content_hash=expected_hash, submitted_by="peer-wallet")
+    peer = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+    calls = []
+
+    def fake_get(url, headers=None, timeout=None):
+        calls.append({"url": url, "headers": headers, "timeout": timeout})
+        if url.endswith("/metadata"):
+            return _fake_response(
+                200,
+                json_body={
+                    "content": {
+                        "content_hash": expected_hash,
+                        "mime_type": "text/plain",
+                        "content_type": "text",
+                        "submitted_by": "peer-wallet",
+                        "file_size_bytes": len(TEXT_BYTES),
+                        "byte_hash": expected_hash,
+                    }
+                },
+            )
+        return _fake_response(
+            200,
+            content=b"tampered payload",
+            headers={"content-type": "text/plain"},
+        )
+
+    monkeypatch.setattr(peer_sync.requests, "get", fake_get)
+
+    result = peer_sync.fetch_content_from_peer(
+        blockchain,
+        peer,
+        expected_hash,
+        origin_node_id="local-node",
+    )
+
+    content_object = blockchain.get_content_object_by_hash(expected_hash)
+    assert result["status"] == "failed_verification"
+    assert result["reason"] == "hash_mismatch"
+    assert content_object.storage_status == "remote"
+    assert content_object.local_path is None
+    assert calls[0]["headers"]["X-ZOID-Message-Type"] == "content-metadata"
+    assert calls[1]["headers"]["X-ZOID-Message-Type"] == "content-download"
 
 
 def test_fetch_content_from_peer_rejects_mime_mismatch(blockchain, monkeypatch):
@@ -654,5 +717,5 @@ def test_receiving_peer_block_creates_remote_content_reference(blockchain, submi
     content_object = blockchain.get_content_object_by_hash(block.content_hash)
     assert response.status_code == 200
     assert content_object is not None
-    assert content_object.storage_status == "remote"
-    assert content_object.local_path is None
+    assert content_object.storage_status == "verified"
+    assert content_object.local_path is not None

@@ -14,6 +14,12 @@ from native_transfer import (
     hash_transfer_signing_message,
 )
 from peers import PeerStore
+from protocol_v1 import PROTOCOL_VERSION
+from protocol_v1_native_transfer import resolve_protocol_v1_network_id
+from protocol_v1_peer_message import (
+    build_protocol_v1_peer_request_headers,
+    clear_protocol_v1_peer_replay_store_cache,
+)
 from transaction import Transaction
 from wallet_auth import WalletAuthManager
 
@@ -33,6 +39,7 @@ def _client(blockchain):
         network_name=api.NETWORK_NAME,
         environment=api.ENVIRONMENT,
     )
+    clear_protocol_v1_peer_replay_store_cache(data_dir=api.peer_store.storage.data_dir)
     return TestClient(api.app), api
 
 
@@ -105,8 +112,58 @@ def _configure_peer_auth(monkeypatch, enabled, secret="super-secret-value"):
     monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: False)
 
 
-def _build_signed_transaction(account, *, to_address=None, amount="4", fee="0", nonce="1", network="zoidberg-testnet", memo="peer tx"):
+def _configure_signed_peer_messages(monkeypatch, secret="super-secret-value"):
+    import api
+
+    monkeypatch.setattr(api, "signed_peer_messages_enabled", lambda: True)
+    monkeypatch.setattr(api, "peer_auth_required", lambda: False)
+    monkeypatch.setattr(api, "peer_shared_secret", lambda: secret)
+    monkeypatch.setattr(api, "peer_shared_secret_is_configured", lambda: True)
+    monkeypatch.setattr(api, "peer_replay_protection_enabled", lambda: False)
+    monkeypatch.setattr(api, "PEER_SIGNATURE_WINDOW_SECONDS", 300)
+    monkeypatch.setattr(peer_sync, "signed_peer_messages_enabled", lambda: True)
+    monkeypatch.setattr(peer_sync, "peer_auth_required", lambda: False)
+    monkeypatch.setattr(peer_sync, "peer_shared_secret", lambda: secret)
+    monkeypatch.setattr(peer_sync, "peer_shared_secret_is_configured", lambda: True)
+    monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: False)
+    monkeypatch.setattr(peer_sync, "peer_signature_window_seconds", lambda: 300)
+    peer_sync._PEER_NONCE_CACHE.clear()
+    clear_protocol_v1_peer_replay_store_cache()
+
+
+def _freeze_peer_time(monkeypatch, now=1_700_000_000):
+    import api
+
+    monkeypatch.setattr(api.time, "time", lambda: now)
+    monkeypatch.setattr(peer_sync.time, "time", lambda: now)
+
+
+def _signed_headers(path, payload, *, secret="super-secret-value", timestamp=1_700_000_000, nonce="nonce-1"):
+    return build_protocol_v1_peer_request_headers(
+        "POST",
+        path,
+        payload,
+        "peer-node-1",
+        network_name="zoidberg-testnet",
+        secret=secret,
+        timestamp=timestamp,
+        nonce=nonce,
+    )
+
+
+def _build_signed_transaction(
+    account,
+    *,
+    to_address=None,
+    amount="4",
+    fee="0",
+    nonce="1",
+    network="zoidberg-testnet",
+    memo="peer tx",
+    transaction_version=PROTOCOL_VERSION,
+):
     to_address = (to_address or Account.create().address).lower()
+    network_id = resolve_protocol_v1_network_id(network_name=network) if transaction_version == PROTOCOL_VERSION else None
     transfer_message = NativeTransferMessage(
         action="transfer_zoid",
         network=network,
@@ -118,11 +175,17 @@ def _build_signed_transaction(account, *, to_address=None, amount="4", fee="0", 
         timestamp="2026-07-26T00:00:00+00:00",
         memo=memo,
         status="signed_pending",
+        transaction_version=transaction_version,
+        protocol_version=PROTOCOL_VERSION if transaction_version == PROTOCOL_VERSION else None,
+        network_id=network_id,
     )
     signed_message = build_transfer_signing_message(transfer_message)
     signature = _sign_message(signed_message, account)
     transaction = build_native_transaction(
         network=network,
+        transaction_version=transaction_version,
+        protocol_version=PROTOCOL_VERSION if transaction_version == PROTOCOL_VERSION else None,
+        network_id=network_id,
         from_address=transfer_message.from_address,
         to_address=transfer_message.to_address,
         amount=transfer_message.amount,
@@ -162,7 +225,11 @@ def test_receive_peer_transaction_accepts_valid_transaction_without_wallet_sessi
     assert response.json()["accepted"] is True
     assert response.json()["status"] == "mempool"
     assert response.json()["duplicate"] is False
-    assert blockchain.get_mempool_transaction(transaction["tx_id"]) is not None
+    stored = blockchain.get_mempool_transaction(transaction["tx_id"])
+    assert stored is not None
+    assert stored["transaction_version"] == 1
+    assert stored["protocol_version"] == 1
+    assert stored["network_id"] == resolve_protocol_v1_network_id(network_name="zoidberg-testnet")
 
 
 def test_receive_peer_transaction_requires_peer_auth_when_enabled(blockchain, monkeypatch):
@@ -204,6 +271,19 @@ def test_receive_peer_transaction_rejects_wrong_network(blockchain):
 
     assert response.status_code == 400
     assert response.json()["reason"] == "wrong_network"
+
+
+def test_receive_peer_transaction_rejects_legacy_transaction_on_protocol_v1_network(blockchain):
+    client, api = _client(blockchain)
+    _register_peer(api)
+    account = Account.create()
+    _fund_native_wallet(blockchain, account.address, "10")
+    transaction = _build_signed_transaction(account, amount="4", transaction_version=None)
+
+    response = client.post("/peers/transactions/receive", json=_receive_payload(transaction))
+
+    assert response.status_code == 400
+    assert response.json()["reason"] == "unsupported_transaction_version"
 
 
 def test_receive_peer_transaction_is_idempotent_for_duplicate_tx_id(blockchain):
@@ -249,6 +329,9 @@ def test_receive_peer_transaction_rejects_invalid_signature_without_reserving_ba
     transaction["signature"] = _sign_message(transaction["signed_message"], Account.create())
     rebuilt = build_native_transaction(
         network=transaction["network"],
+        transaction_version=transaction.get("transaction_version"),
+        protocol_version=transaction.get("protocol_version"),
+        network_id=transaction.get("network_id"),
         from_address=transaction["from_address"],
         to_address=transaction["to_address"],
         amount=transaction["amount"],
@@ -266,6 +349,53 @@ def test_receive_peer_transaction_rejects_invalid_signature_without_reserving_ba
     ).to_dict()
 
     response = client.post("/peers/transactions/receive", json=_receive_payload(rebuilt))
+
+    assert response.status_code == 400
+    assert response.json()["reason"] == "invalid_signature"
+    assert client.get(f"/wallets/{account.address.lower()}/balance").json()["pending_outgoing"] == "0"
+    assert client.get("/mempool").json()["count"] == 0
+
+
+def test_signed_peer_transaction_auth_does_not_bypass_inner_signature_validation(blockchain, monkeypatch):
+    client, api = _client(blockchain)
+    _configure_signed_peer_messages(monkeypatch)
+    _freeze_peer_time(monkeypatch)
+    _register_peer(api)
+    account = Account.create()
+    _fund_native_wallet(blockchain, account.address, "10")
+    transaction = _build_signed_transaction(account, amount="4")
+    transaction["signature"] = _sign_message(transaction["signed_message"], Account.create())
+    rebuilt = build_native_transaction(
+        network=transaction["network"],
+        transaction_version=transaction.get("transaction_version"),
+        protocol_version=transaction.get("protocol_version"),
+        network_id=transaction.get("network_id"),
+        from_address=transaction["from_address"],
+        to_address=transaction["to_address"],
+        amount=transaction["amount"],
+        fee=transaction["fee"],
+        nonce=transaction["nonce"],
+        memo=transaction["memo"],
+        timestamp=transaction["timestamp"],
+        signature=transaction["signature"],
+        signature_scheme=transaction["signature_scheme"],
+        signed_message=transaction["signed_message"],
+        signed_message_hash=transaction["signed_message_hash"],
+        status="signed_pending",
+        created_at=transaction["created_at"],
+        updated_at=transaction["updated_at"],
+    ).to_dict()
+    payload = _receive_payload(rebuilt)
+
+    response = client.post(
+        "/peers/transactions/receive",
+        json=payload,
+        headers=_signed_headers(
+            "/peers/transactions/receive",
+            payload,
+            nonce="signed-transaction-invalid-signature-1",
+        ),
+    )
 
     assert response.status_code == 400
     assert response.json()["reason"] == "invalid_signature"

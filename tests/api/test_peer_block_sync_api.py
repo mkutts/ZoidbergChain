@@ -1,8 +1,14 @@
 import requests
 from fastapi.testclient import TestClient
 
+import peer_sync
 from block import Block
 from peers import PeerStore
+from protocol_v1 import encode_canonical_bytes
+from protocol_v1_peer_message import (
+    build_protocol_v1_peer_request_headers,
+    clear_protocol_v1_peer_replay_store_cache,
+)
 from submission import APPROVED, MINTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 
@@ -15,6 +21,7 @@ def _client(blockchain):
     api.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
     api.peer_store = PeerStore()
+    clear_protocol_v1_peer_replay_store_cache(data_dir=api.peer_store.storage.data_dir)
     return TestClient(api.app)
 
 
@@ -25,6 +32,45 @@ def _register_peer(node_id="peer-node-1", url="http://peer-one.test:8000"):
         node_id=node_id,
         url=url,
         network_name="zoidberg-testnet",
+    )
+
+
+def _configure_signed_peer_messages(monkeypatch, secret="super-secret-value"):
+    import api
+
+    monkeypatch.setattr(api, "signed_peer_messages_enabled", lambda: True)
+    monkeypatch.setattr(api, "peer_auth_required", lambda: False)
+    monkeypatch.setattr(api, "peer_shared_secret", lambda: secret)
+    monkeypatch.setattr(api, "peer_shared_secret_is_configured", lambda: True)
+    monkeypatch.setattr(api, "peer_replay_protection_enabled", lambda: False)
+    monkeypatch.setattr(api, "PEER_SIGNATURE_WINDOW_SECONDS", 300)
+    monkeypatch.setattr(peer_sync, "signed_peer_messages_enabled", lambda: True)
+    monkeypatch.setattr(peer_sync, "peer_auth_required", lambda: False)
+    monkeypatch.setattr(peer_sync, "peer_shared_secret", lambda: secret)
+    monkeypatch.setattr(peer_sync, "peer_shared_secret_is_configured", lambda: True)
+    monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: False)
+    monkeypatch.setattr(peer_sync, "peer_signature_window_seconds", lambda: 300)
+    peer_sync._PEER_NONCE_CACHE.clear()
+    clear_protocol_v1_peer_replay_store_cache()
+
+
+def _freeze_peer_time(monkeypatch, now=1_700_000_000):
+    import api
+
+    monkeypatch.setattr(api.time, "time", lambda: now)
+    monkeypatch.setattr(peer_sync.time, "time", lambda: now)
+
+
+def _signed_headers(path, payload, *, secret="super-secret-value", timestamp=1_700_000_000, nonce="nonce-1"):
+    return build_protocol_v1_peer_request_headers(
+        "POST",
+        path,
+        payload,
+        "peer-node-1",
+        network_name="zoidberg-testnet",
+        secret=secret,
+        timestamp=timestamp,
+        nonce=nonce,
     )
 
 
@@ -325,6 +371,97 @@ def test_receive_peer_block_duplicate_is_idempotent(blockchain, wallets):
     assert len(blockchain.chain) == 2
 
 
+def test_receive_peer_block_rejects_modified_embedded_media(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    _submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    block_dict = block.to_dict()
+    tampered_media = bytearray(block.media_bytes)
+    tampered_media[-1] ^= 0x01
+    block_dict["media_bytes"] = encode_canonical_bytes(bytes(tampered_media))
+    _rehash(blockchain, block_dict)
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block_dict,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "media_hash_mismatch"
+    assert len(blockchain.chain) == 1
+
+
+def test_signed_peer_block_auth_does_not_bypass_embedded_media_validation(
+    blockchain,
+    submission_image,
+    wallets,
+    monkeypatch,
+):
+    client = _client(blockchain)
+    _configure_signed_peer_messages(monkeypatch)
+    _freeze_peer_time(monkeypatch)
+    _register_peer()
+    _submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    block_dict = block.to_dict()
+    tampered_media = bytearray(block.media_bytes)
+    tampered_media[-1] ^= 0x01
+    block_dict["media_bytes"] = encode_canonical_bytes(bytes(tampered_media))
+    _rehash(blockchain, block_dict)
+    payload = {
+        "origin_node_id": "peer-node-1",
+        "network_name": "zoidberg-testnet",
+        "block": block_dict,
+    }
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json=payload,
+        headers=_signed_headers(
+            "/peers/blocks/receive",
+            payload,
+            nonce="signed-block-invalid-media-1",
+        ),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "media_hash_mismatch"
+    assert len(blockchain.chain) == 1
+
+
+def test_receive_peer_block_rejects_modified_declared_content_hash(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    _register_peer()
+    _submission, block = _certified_peer_block(blockchain, submission_image, wallets)
+    block_dict = block.to_dict()
+    block_dict["content_hash"] = "1" * 64
+    _rehash(blockchain, block_dict)
+
+    response = client.post(
+        "/peers/blocks/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            "block": block_dict,
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "content_hash_mismatch"
+    assert len(blockchain.chain) == 1
+
+
 def test_receive_peer_block_mismatched_previous_hash_returns_sync_needed(blockchain, wallets):
     client = _client(blockchain)
     _register_peer()
@@ -350,6 +487,34 @@ def test_receive_peer_block_mismatched_previous_hash_returns_sync_needed(blockch
     assert response.json()["recommended_action"] == "run_chain_sync"
     assert len(blockchain.chain) == 1
     assert blockchain.get_latest_block().hash == latest_block.hash
+
+
+def test_chain_blocks_omit_media_by_default_and_include_it_when_requested(
+    blockchain,
+    submission_image,
+    wallets,
+):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    _certify_submission(blockchain, submission)
+    blockchain.add_to_mint_queue(submission.submission_id)
+    assert blockchain.mint_next_queued_submission(
+        miner=wallets["contributor_one"].public_key,
+        validate_meme=False,
+    ) is True
+    latest_block = blockchain.get_latest_block()
+
+    default_response = client.get("/chain/blocks")
+    full_response = client.get("/chain/blocks?include_media_bytes=true")
+
+    assert default_response.status_code == 200
+    assert full_response.status_code == 200
+    default_block = default_response.json()["blocks"][-1]
+    full_block = full_response.json()["blocks"][-1]
+    assert "media_bytes" not in default_block
+    assert default_block["media_embedded"] is True
+    assert default_block["media_size_bytes"] == len(latest_block.media_bytes)
+    assert full_block["media_bytes"] == latest_block.to_dict()["media_bytes"]
 
 
 def test_known_submission_status_becomes_minted_when_peer_block_references_it(

@@ -1,8 +1,24 @@
+import hashlib
+import hmac
+
 import peer_sync
 from fastapi.testclient import TestClient
 import pytest
 
 from peers import PeerStore
+from protocol_v1 import canonical_json_bytes
+from protocol_v1_peer_message import (
+    HEADER_MESSAGE_ID,
+    HEADER_MESSAGE_TYPE,
+    HEADER_NETWORK_ID,
+    HEADER_NONCE,
+    HEADER_PEER_MESSAGE_VERSION,
+    HEADER_PROTOCOL_VERSION,
+    calculate_protocol_v1_peer_message_id,
+    build_protocol_v1_peer_request_headers,
+    clear_protocol_v1_peer_replay_store_cache,
+    sign_protocol_v1_peer_message,
+)
 from submission import VOTE_ORIGINAL
 
 
@@ -14,6 +30,7 @@ def _client(blockchain):
     api.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
     api.peer_store = PeerStore()
+    clear_protocol_v1_peer_replay_store_cache(data_dir=api.peer_store.storage.data_dir)
     return TestClient(api.app)
 
 
@@ -33,6 +50,7 @@ def _configure_peer_auth(monkeypatch, enabled, secret="super-secret-value"):
     monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: False)
     monkeypatch.setattr(peer_sync, "peer_signature_window_seconds", lambda: 300)
     peer_sync._PEER_NONCE_CACHE.clear()
+    clear_protocol_v1_peer_replay_store_cache()
 
 
 def _safe_secret(secret):
@@ -64,23 +82,72 @@ def _configure_signed_peer_messages(
     monkeypatch.setattr(peer_sync, "peer_replay_protection_enabled", lambda: replay_protection)
     monkeypatch.setattr(peer_sync, "peer_signature_window_seconds", lambda: window_seconds)
     peer_sync._PEER_NONCE_CACHE.clear()
+    clear_protocol_v1_peer_replay_store_cache()
+
+
+def _freeze_peer_time(monkeypatch, now=1_700_000_000):
+    import api
+
+    monkeypatch.setattr(api.time, "time", lambda: now)
+    monkeypatch.setattr(peer_sync.time, "time", lambda: now)
 
 
 def _signed_headers(method, path, payload, secret="super-secret-value", timestamp=1_700_000_000, nonce="nonce-1", node_id="peer-node-1"):
-    body_bytes = peer_sync._serialize_peer_body(payload)
-    signature = peer_sync.sign_peer_request(
-        method=method,
-        path=path,
+    return build_protocol_v1_peer_request_headers(
+        method,
+        path,
+        payload,
+        node_id,
+        network_name="zoidberg-testnet",
+        secret=secret,
         timestamp=timestamp,
         nonce=nonce,
-        body_bytes=body_bytes,
-        secret=secret,
     )
+
+
+def _custom_signed_headers(
+    payload,
+    *,
+    message_type,
+    node_id="peer-node-1",
+    network_id="zoidberg-public-testnet-v1",
+    peer_message_version="1",
+    protocol_version="1",
+    timestamp=1_700_000_000,
+    nonce="nonce-1",
+    secret="super-secret-value",
+    message_id=None,
+    signature=None,
+):
+    if message_id is None and peer_message_version == "1" and protocol_version == "1":
+        message_id = calculate_protocol_v1_peer_message_id(
+            payload,
+            network_id=network_id,
+            message_type=message_type,
+            sender_node_id=node_id,
+            timestamp=timestamp,
+            nonce=nonce,
+        )
+    if signature is None and peer_message_version == "1" and protocol_version == "1":
+        signature = sign_protocol_v1_peer_message(
+            payload,
+            network_id=network_id,
+            message_type=message_type,
+            sender_node_id=node_id,
+            timestamp=timestamp,
+            nonce=nonce,
+            secret=secret,
+        )
     return {
+        HEADER_PEER_MESSAGE_VERSION: str(peer_message_version),
+        HEADER_PROTOCOL_VERSION: str(protocol_version),
+        HEADER_NETWORK_ID: network_id,
+        HEADER_MESSAGE_TYPE: message_type,
         "X-ZOID-Node-Id": node_id,
         "X-ZOID-Timestamp": str(timestamp),
-        "X-ZOID-Nonce": nonce,
-        "X-ZOID-Signature": signature,
+        HEADER_NONCE: nonce,
+        HEADER_MESSAGE_ID: message_id or ("0" * 64),
+        "X-ZOID-Signature": signature or ("0" * 64),
     }
 
 
@@ -253,7 +320,7 @@ def test_outbound_peer_broadcast_omits_auth_header_when_disabled(
 def test_signed_peer_request_allowed_in_development_when_enabled(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
 
     payload = {
         "node_id": "peer-node-1",
@@ -273,7 +340,7 @@ def test_signed_peer_request_allowed_in_development_when_enabled(blockchain, mon
 def test_signed_peer_request_missing_signature_rejected(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
 
     response = client.post(
         "/peers/register",
@@ -285,20 +352,20 @@ def test_signed_peer_request_missing_signature_rejected(blockchain, monkeypatch)
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Missing signed peer headers."
+    assert response.json()["detail"] == "Missing Protocol v1 peer headers."
 
 
 def test_signed_peer_request_rejects_wrong_signature(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
         "network_name": "zoidberg-testnet",
     }
     headers = _signed_headers("POST", "/peers/register", payload)
-    headers["X-ZOID-Signature"] = "deadbeef"
+    headers["X-ZOID-Signature"] = "0" * 64
 
     response = client.post("/peers/register", headers=headers, json=payload)
 
@@ -309,7 +376,7 @@ def test_signed_peer_request_rejects_wrong_signature(blockchain, monkeypatch):
 def test_signed_peer_request_rejects_expired_timestamp(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
@@ -320,13 +387,13 @@ def test_signed_peer_request_rejects_expired_timestamp(blockchain, monkeypatch):
     response = client.post("/peers/register", headers=headers, json=payload)
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Peer signature timestamp outside the allowed window."
+    assert response.json()["detail"] == "Peer message timestamp outside the allowed window."
 
 
 def test_signed_peer_request_rejects_future_timestamp(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
@@ -337,13 +404,13 @@ def test_signed_peer_request_rejects_future_timestamp(blockchain, monkeypatch):
     response = client.post("/peers/register", headers=headers, json=payload)
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Peer signature timestamp outside the allowed window."
+    assert response.json()["detail"] == "Peer message timestamp outside the allowed window."
 
 
 def test_signed_peer_request_rejects_malformed_timestamp(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
@@ -361,7 +428,7 @@ def test_signed_peer_request_rejects_malformed_timestamp(blockchain, monkeypatch
 def test_signed_peer_request_rejects_replayed_nonce_when_enabled(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True, replay_protection=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
@@ -374,13 +441,13 @@ def test_signed_peer_request_rejects_replayed_nonce_when_enabled(blockchain, mon
 
     assert first_response.status_code == 200
     assert second_response.status_code == 409
-    assert second_response.json()["detail"] == "Replayed peer nonce."
+    assert second_response.json()["detail"] in {"Replayed peer nonce.", "Replayed peer message."}
 
 
 def test_signed_peer_request_allows_replayed_nonce_when_disabled(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True, replay_protection=False)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
@@ -398,7 +465,7 @@ def test_signed_peer_request_allows_replayed_nonce_when_disabled(blockchain, mon
 def test_signed_peer_request_body_tampering_rejected(blockchain, monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     signed_payload = {
         "node_id": "peer-node-1",
         "url": "http://peer-one.test:8000",
@@ -414,12 +481,12 @@ def test_signed_peer_request_body_tampering_rejected(blockchain, monkeypatch):
     response = client.post("/peers/register", headers=headers, json=tampered_payload)
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "Invalid peer signature."
+    assert response.json()["detail"] == "Invalid peer message ID."
 
 
 def test_signed_peer_request_path_tampering_rejected(monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "origin_node_id": "peer-node-1",
         "network_name": "zoidberg-testnet",
@@ -438,7 +505,7 @@ def test_signed_peer_request_path_tampering_rejected(monkeypatch):
 
 def test_signed_peer_request_method_tampering_rejected(monkeypatch):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     payload = {
         "origin_node_id": "peer-node-1",
         "network_name": "zoidberg-testnet",
@@ -453,6 +520,194 @@ def test_signed_peer_request_method_tampering_rejected(monkeypatch):
             headers=headers,
             body_bytes=peer_sync._serialize_peer_body(payload),
         )
+
+
+def test_signed_peer_request_rejects_wrong_network_header(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+
+    response = client.post(
+        "/peers/register",
+        headers=_custom_signed_headers(
+            payload,
+            message_type="peer-registration",
+            network_id="zoidberg-devnet-v1",
+        ),
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Peer message belongs to a different network."
+
+
+def test_signed_peer_request_rejects_wrong_message_type_for_route(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+
+    response = client.post(
+        "/peers/register",
+        headers=_custom_signed_headers(payload, message_type="vote"),
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Peer message type does not match the requested peer route."
+
+
+def test_signed_peer_request_rejects_wrong_protocol_version(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+
+    response = client.post(
+        "/peers/register",
+        headers=_custom_signed_headers(
+            payload,
+            message_type="peer-registration",
+            protocol_version="2",
+        ),
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Unsupported peer protocol version: 2."
+
+
+def test_signed_peer_request_rejects_sender_node_id_mismatch(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-2",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+
+    response = client.post(
+        "/peers/register",
+        headers=_signed_headers("POST", "/peers/register", payload, node_id="peer-node-1"),
+        json=payload,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Peer sender node_id does not match authenticated sender."
+
+
+def test_signed_peer_request_rejects_missing_nonce_header(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+    headers = _signed_headers("POST", "/peers/register", payload)
+    headers.pop(HEADER_NONCE)
+
+    response = client.post("/peers/register", headers=headers, json=payload)
+
+    assert response.status_code == 401
+    assert "X-ZOID-Nonce" in response.json()["detail"]
+
+
+def test_signed_peer_request_rejects_malformed_nonce(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+    headers = _signed_headers("POST", "/peers/register", payload)
+    headers[HEADER_NONCE] = "bad nonce"
+
+    response = client.post("/peers/register", headers=headers, json=payload)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Peer nonce must use only letters, digits, '.', '_', ':', or '-'."
+
+
+def test_explicit_v1_request_does_not_fallback_to_legacy_shared_secret(blockchain, monkeypatch):
+    import api
+
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    monkeypatch.setattr(api, "peer_auth_required", lambda: True)
+    monkeypatch.setattr(peer_sync, "peer_auth_required", lambda: True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+
+    response = client.post(
+        "/peers/register",
+        headers={
+            HEADER_PEER_MESSAGE_VERSION: "1",
+            "X-ZOID-Peer-Secret": "super-secret-value",
+        },
+        json=payload,
+    )
+
+    assert response.status_code == 401
+    assert "Missing Protocol v1 peer headers" in response.json()["detail"]
+
+
+def test_signed_peer_request_rejects_wrong_domain_auth_material(blockchain, monkeypatch):
+    _configure_signed_peer_messages(monkeypatch, enabled=True)
+    client = _client(blockchain)
+    _freeze_peer_time(monkeypatch)
+    payload = {
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000",
+        "network_name": "zoidberg-testnet",
+    }
+    headers = _signed_headers("POST", "/peers/register", payload)
+    mutated_envelope = {
+        "domain": "zoidbergchain/vote/v1",
+        "message_type": "peer-registration",
+        "network_id": "zoidberg-public-testnet-v1",
+        "nonce": "nonce-1",
+        "object_type": "peer-message",
+        "payload": payload,
+        "peer_message_version": 1,
+        "protocol": "zoidbergchain",
+        "protocol_version": 1,
+        "sender_node_id": "peer-node-1",
+        "timestamp": 1_700_000_000,
+    }
+    mutated_bytes = canonical_json_bytes(mutated_envelope)
+    headers[HEADER_MESSAGE_ID] = hashlib.sha256(mutated_bytes).hexdigest()
+    headers["X-ZOID-Signature"] = hmac.new(
+        b"super-secret-value",
+        mutated_bytes,
+        hashlib.sha256,
+    ).hexdigest()
+
+    response = client.post("/peers/register", headers=headers, json=payload)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid peer message ID."
 
 
 def test_public_endpoint_does_not_require_signed_peer_messages(blockchain, monkeypatch):
@@ -472,7 +727,7 @@ def test_outbound_signed_peer_broadcast_includes_signed_headers_when_enabled(
 ):
     _configure_signed_peer_messages(monkeypatch, enabled=True)
     client = _client(blockchain)
-    monkeypatch.setattr(peer_sync.time, "time", lambda: 1_700_000_000)
+    _freeze_peer_time(monkeypatch)
     monkeypatch.setattr(peer_sync.secrets, "token_hex", lambda _: "nonce-1")
     import api
 
@@ -497,8 +752,13 @@ def test_outbound_signed_peer_broadcast_includes_signed_headers_when_enabled(
     response = client.post(f"/submissions/{submission.submission_id}/broadcast")
 
     assert response.status_code == 200
+    assert calls[0]["headers"][HEADER_PEER_MESSAGE_VERSION] == "1"
+    assert calls[0]["headers"][HEADER_PROTOCOL_VERSION] == "1"
+    assert calls[0]["headers"][HEADER_NETWORK_ID] == "zoidberg-public-testnet-v1"
+    assert calls[0]["headers"][HEADER_MESSAGE_TYPE] == "submission"
     assert calls[0]["headers"]["X-ZOID-Node-Id"] == "local-node"
     assert calls[0]["headers"]["X-ZOID-Timestamp"] == "1700000000"
     assert calls[0]["headers"]["X-ZOID-Nonce"] == "nonce-1"
+    assert HEADER_MESSAGE_ID in calls[0]["headers"]
     assert "X-ZOID-Signature" in calls[0]["headers"]
     assert "X-ZOID-Peer-Secret" not in calls[0]["headers"]

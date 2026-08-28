@@ -12,7 +12,7 @@ import imagehash
 from concurrent.futures import ThreadPoolExecutor
 import pytesseract
 import time
-from block import Block
+from block import Block, PROTOCOL_V1_BLOCK_VERSION
 from transaction import Transaction
 from wallet import Wallet
 from utils import hash_image
@@ -65,6 +65,8 @@ from content import (
     compute_text_content_hash,
     ensure_content_storage_dir,
     guess_mime_type,
+    load_content_bytes,
+    resolve_declared_payload_hash,
     resolve_payload_hash,
     resolve_local_path,
     sanitize_original_filename,
@@ -84,9 +86,16 @@ from native_transfer import (
     validate_transaction_shape,
     verify_transfer_signature,
 )
+from protocol_v1_native_transfer import (
+    PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
+    build_protocol_v1_native_transfer_message,
+    looks_like_protocol_v1_native_transfer_message,
+    resolve_protocol_v1_network_id,
+)
 from storage import create_storage_backend
-from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
-from wallet_auth import normalize_wallet_address
+from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
+from validators import is_valid_content_hash, is_valid_ethereum_address, is_valid_user_wallet_identity
+from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
@@ -223,19 +232,7 @@ class Blockchain:
 
     def _serialize_blockchain_state(self):
         return {
-            "chain": [
-                {
-                    "index": block.index,
-                    "previous_hash": block.previous_hash,
-                    "timestamp": block.timestamp,
-                    "transactions": [tx.to_dict() for tx in block.transactions],
-                    "miner": block.miner,
-                    "meme": block.meme,
-                    "hash": block.hash,
-                    **block.certificate_metadata(),
-                }
-                for block in self.chain
-            ],
+            "chain": [block.to_dict() for block in self.chain],
             "submissions": [submission.to_dict() for submission in self.submissions],
             "content_objects": [content_object.to_dict() for content_object in self.content_objects],
             "mint_queue": self.mint_queue,
@@ -288,6 +285,9 @@ class Blockchain:
             "fee": payload.get("fee"),
             "memo": payload.get("memo"),
             "network": payload.get("network"),
+            "transaction_version": payload.get("transaction_version"),
+            "protocol_version": payload.get("protocol_version"),
+            "network_id": payload.get("network_id"),
             "signature_scheme": payload.get("signature_scheme"),
             "signature": payload.get("signature"),
             "signed_message": payload.get("signed_message"),
@@ -1394,41 +1394,7 @@ class Blockchain:
             loaded_data = self.storage.load_blockchain_state()
 
             if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
-                self.chain = [
-                    Block(
-                        index=block_data["index"],
-                        previous_hash=block_data["previous_hash"],
-                        timestamp=block_data["timestamp"],
-                        transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],
-                        miner=block_data["miner"],
-                        meme=block_data.get("meme", {}),
-                        hash=block_data.get("hash"),
-                        submission_id=block_data.get("submission_id"),
-                        certificate_id=block_data.get("certificate_id"),
-                        content_hash=block_data.get("content_hash"),
-                        content_id=block_data.get("content_id"),
-                        content_type=block_data.get("content_type"),
-                        mime_type=block_data.get("mime_type"),
-                        creator_wallet=block_data.get("creator_wallet"),
-                        vote_hash=block_data.get("vote_hash"),
-                        approval_percentage=block_data.get("approval_percentage"),
-                        decisive_vote_total=block_data.get("decisive_vote_total"),
-                        minimum_votes_required=block_data.get("minimum_votes_required"),
-                        approved_at=block_data.get("approved_at"),
-                        originality_score=block_data.get("originality_score"),
-                        reward_type=block_data.get("reward_type"),
-                        reward_recipient=block_data.get("reward_recipient"),
-                        reward_amount=block_data.get("reward_amount"),
-                        reward_source=block_data.get("reward_source"),
-                        minted_at=block_data.get("minted_at"),
-                        voter_rewards=block_data.get("voter_rewards", []),
-                        native_transactions=block_data.get("native_transactions", []),
-                        transaction_ids=block_data.get("transaction_ids"),
-                        transaction_count=block_data.get("transaction_count"),
-                        transactions_hash=block_data.get("transactions_hash"),
-                    )
-                    for block_data in loaded_data["chain"]
-                ]
+                self.chain = [Block.from_dict(block_data) for block_data in loaded_data["chain"]]
 
                 self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}
 
@@ -1789,6 +1755,65 @@ class Blockchain:
         submission.content_id = content_object.content_id
         return content_object
 
+    def _promote_submission_content_for_protocol_v1(self, submission):
+        if submission is None:
+            raise ValueError("Submission is required.")
+
+        existing_content_object = self.get_content_object_by_hash(submission.content_hash)
+        resolved_image_path = resolve_local_path(submission.image_path, data_dir=self.storage.data_dir)
+        if not (resolved_image_path and os.path.isfile(resolved_image_path)):
+            resolved_image_path = resolve_local_path(
+                getattr(existing_content_object, "local_path", None),
+                data_dir=self.storage.data_dir,
+            )
+
+        expects_binary_payload = bool((submission.image_path or "").strip())
+        if getattr(existing_content_object, "content_type", None) in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
+            expects_binary_payload = True
+
+        if resolved_image_path and os.path.isfile(resolved_image_path):
+            with open(resolved_image_path, "rb") as image_file:
+                content_object = self.upload_binary_content(
+                    file_bytes=image_file.read(),
+                    submitted_by=submission.submitter,
+                    mime_type=guess_mime_type(os.path.basename(resolved_image_path), "image/jpeg"),
+                    original_filename=os.path.basename(resolved_image_path),
+                    caption=validate_caption(submission.text_content),
+                    content_type_hint=self._content_type_hint_for_submission(
+                        resolved_image_path,
+                        submission.text_content,
+                    ),
+                )
+            submission.image_path = resolved_image_path
+        else:
+            if expects_binary_payload:
+                raise ValueError("Protocol v1 certification requires recoverable binary media bytes.")
+            text_content = (
+                (submission.text_content or "").strip()
+                or (
+                    getattr(existing_content_object, "text_content", None)
+                    or getattr(existing_content_object, "caption", "")
+                ).strip()
+            )
+            if not text_content:
+                raise ValueError("Protocol v1 certification requires recoverable submission content.")
+            content_object = self.upload_text_content(
+                text_content=text_content,
+                submitted_by=submission.submitter,
+                caption=validate_caption(text_content),
+            )
+            submission.text_content = content_object.text_content or text_content
+
+        submission.content_hash = content_object.content_hash
+        submission.content_id = content_object.content_id
+        metadata = dict(content_object.metadata or {})
+        metadata.setdefault("submission_id", submission.submission_id)
+        content_object.metadata = metadata
+        return content_object
+
+    def promote_submission_content_for_protocol_v1(self, submission):
+        return self._promote_submission_content_for_protocol_v1(submission)
+
     def _store_submission_content(self, submission, image_path="", text_content=""):
         if image_path:
             with open(image_path, "rb") as image_file:
@@ -1887,6 +1912,97 @@ class Blockchain:
 
     def list_content_objects(self, status=None):
         return self.storage.list_content_objects(status=status, content_objects=self.content_objects)
+
+    @staticmethod
+    def _block_field(block, field_name, default=None):
+        if isinstance(block, dict):
+            return block.get(field_name, default)
+        return getattr(block, field_name, default)
+
+    @staticmethod
+    def is_protocol_v1_block_payload(block) -> bool:
+        return Blockchain._block_field(block, "block_version") == PROTOCOL_V1_BLOCK_VERSION
+
+    @staticmethod
+    def protocol_v1_network_id() -> str:
+        return resolve_network_id(network_name=NETWORK_NAME)
+
+    def recover_block_media_bytes(self, block_or_hash):
+        block = block_or_hash
+        if isinstance(block_or_hash, str):
+            block = self.get_block_by_hash(block_or_hash)
+        if block is None:
+            raise ValueError("Block not found.")
+
+        media_bytes = self._block_field(block, "media_bytes")
+        if media_bytes is not None:
+            if isinstance(block, dict):
+                return Block.from_dict(block).media_bytes
+            return block.media_bytes
+
+        content_hash = self._block_field(block, "content_hash")
+        mime_type = self._block_field(block, "mime_type")
+        if not content_hash or not mime_type:
+            raise ValueError("Block does not contain recoverable media bytes.")
+        return load_content_bytes(content_hash, mime_type, data_dir=self.storage.data_dir)
+
+    def _resolve_protocol_v1_block_media(self, block):
+        mime_type = self._block_field(block, "mime_type")
+        if not isinstance(mime_type, str) or not mime_type.strip():
+            raise ValueError("Protocol v1 blocks must include mime_type.")
+        media_bytes = self.recover_block_media_bytes(block)
+        return resolve_declared_payload_hash(media_bytes, mime_type)
+
+    def cache_protocol_v1_block_content(self, block, *, submission_id=None):
+        if not self.is_protocol_v1_block_payload(block):
+            return None
+
+        resolved_media = self._resolve_protocol_v1_block_media(block)
+        content_hash = self._block_field(block, "content_hash")
+        if not isinstance(content_hash, str) or not content_hash.strip():
+            raise ValueError("Protocol v1 blocks must include content_hash.")
+
+        hash_scheme = (
+            resolved_media["hash_scheme"]
+            if content_hash == resolved_media["content_hash"]
+            else HASH_SCHEME_LEGACY
+        )
+        stored_content = store_content_bytes(
+            content_hash,
+            resolved_media["stored_bytes"],
+            mime_type=resolved_media["mime_type"],
+            data_dir=self.storage.data_dir,
+            hash_scheme=hash_scheme,
+        )
+        caption = None
+        meme_value = self._block_field(block, "meme")
+        if isinstance(meme_value, dict):
+            caption = (meme_value.get("text") or "").strip() or None
+
+        content_object = self.register_uploaded_content(
+            content_hash=content_hash,
+            submitted_by=(
+                self._block_field(block, "creator_wallet")
+                or self._block_field(block, "miner")
+                or "protocol-v1-block"
+            ),
+            mime_type=stored_content["mime_type"],
+            file_size_bytes=stored_content["file_size_bytes"],
+            storage_status=stored_content["storage_status"],
+            local_path=stored_content["local_path"],
+            file_name=stored_content["file_name"],
+            caption=caption,
+            text_content=resolved_media["text_content"],
+            content_type_hint=self._block_field(block, "content_type"),
+            byte_hash=stored_content["byte_hash"],
+            hash_scheme=hash_scheme,
+        )
+        metadata = dict(content_object.metadata or {})
+        metadata["media_hash"] = resolved_media["content_hash"]
+        if submission_id:
+            metadata["submission_id"] = submission_id
+        content_object.metadata = metadata
+        return content_object
 
     def _content_type_hint_for_submission(self, image_path="", text_content=""):
         has_image = bool(image_path)
@@ -2976,6 +3092,9 @@ class Blockchain:
         fee,
         memo,
         network,
+        transaction_version=None,
+        protocol_version=None,
+        network_id=None,
         signature_scheme,
         signature,
         signed_message_hash,
@@ -2988,6 +3107,9 @@ class Blockchain:
     ):
         transaction = build_native_transaction(
             network=str(network),
+            transaction_version=transaction_version,
+            protocol_version=protocol_version,
+            network_id=network_id,
             from_address=from_address,
             to_address=to_address,
             amount=str(amount),
@@ -3308,7 +3430,7 @@ class Blockchain:
 
     @staticmethod
     def _serialize_native_transaction_for_block(transaction):
-        return {
+        payload = {
             "tx_id": transaction.get("tx_id"),
             "transaction_type": transaction.get("transaction_type"),
             "network": transaction.get("network"),
@@ -3324,6 +3446,13 @@ class Blockchain:
             "signed_message": transaction.get("signed_message"),
             "signed_message_hash": transaction.get("signed_message_hash"),
         }
+        if transaction.get("transaction_version") is not None:
+            payload["transaction_version"] = transaction.get("transaction_version")
+        if transaction.get("protocol_version") is not None:
+            payload["protocol_version"] = transaction.get("protocol_version")
+        if transaction.get("network_id") is not None:
+            payload["network_id"] = transaction.get("network_id")
+        return payload
 
     @staticmethod
     def _compute_block_native_transactions_hash(transactions) -> str:
@@ -3814,30 +3943,57 @@ class Blockchain:
         if allowed_statuses is not None and status not in allowed_statuses:
             raise ValueError(f"Transaction status {status} is not eligible for this operation.")
 
-        signed_transfer = parse_transfer_signing_message(
-            validated_transaction.signed_message,
-            network_name=NETWORK_NAME,
-        )
-        expected_fields = {
-            "from_address": validated_transaction.from_address,
-            "to_address": validated_transaction.to_address,
-            "amount": validated_transaction.amount,
-            "fee": validated_transaction.fee,
-            "nonce": validated_transaction.nonce,
-            "timestamp": validated_transaction.timestamp,
-            "memo": validated_transaction.memo,
-        }
-        actual_fields = {
-            "from_address": signed_transfer.from_address,
-            "to_address": signed_transfer.to_address,
-            "amount": signed_transfer.amount,
-            "fee": signed_transfer.fee,
-            "nonce": signed_transfer.nonce,
-            "timestamp": signed_transfer.timestamp,
-            "memo": signed_transfer.memo,
-        }
-        if actual_fields != expected_fields:
-            raise ValueError("signed_message does not match the canonical transaction payload.")
+        if validated_transaction.signed_message_hash != hash_wallet_message(validated_transaction.signed_message):
+            raise ValueError("signed_message_hash does not match signed_message.")
+
+        if validated_transaction.transaction_version == PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
+            if validated_transaction.protocol_version != PROTOCOL_VERSION:
+                raise ValueError("protocol_version is required for Protocol v1 native transfers.")
+            if validated_transaction.network_id is None:
+                raise ValueError("network_id is required for Protocol v1 native transfers.")
+            expected_network_id = resolve_protocol_v1_network_id(network_name=NETWORK_NAME)
+            if validated_transaction.network_id != expected_network_id:
+                raise ValueError("Transaction belongs to a different network.")
+            expected_message = build_protocol_v1_native_transfer_message(
+                from_address=validated_transaction.from_address,
+                to_address=validated_transaction.to_address,
+                amount=validated_transaction.amount,
+                fee=validated_transaction.fee,
+                nonce=validated_transaction.nonce,
+                timestamp=validated_transaction.timestamp,
+                memo=validated_transaction.memo,
+                network_id=validated_transaction.network_id,
+            )
+            if validated_transaction.signed_message != expected_message:
+                raise ValueError("signed_message does not match the Protocol v1 native transfer payload.")
+        else:
+            if looks_like_protocol_v1_native_transfer_message(validated_transaction.signed_message):
+                raise ValueError("transaction_version is required for Protocol v1 native transfer messages.")
+
+            signed_transfer = parse_transfer_signing_message(
+                validated_transaction.signed_message,
+                network_name=NETWORK_NAME,
+            )
+            expected_fields = {
+                "from_address": validated_transaction.from_address,
+                "to_address": validated_transaction.to_address,
+                "amount": validated_transaction.amount,
+                "fee": validated_transaction.fee,
+                "nonce": validated_transaction.nonce,
+                "timestamp": validated_transaction.timestamp,
+                "memo": validated_transaction.memo,
+            }
+            actual_fields = {
+                "from_address": signed_transfer.from_address,
+                "to_address": signed_transfer.to_address,
+                "amount": signed_transfer.amount,
+                "fee": signed_transfer.fee,
+                "nonce": signed_transfer.nonce,
+                "timestamp": signed_transfer.timestamp,
+                "memo": signed_transfer.memo,
+            }
+            if actual_fields != expected_fields:
+                raise ValueError("signed_message does not match the canonical transaction payload.")
 
         verify_transfer_signature(
             validated_transaction.signed_message,
@@ -3851,6 +4007,8 @@ class Blockchain:
             transaction_or_tx_id,
             allowed_statuses=self._native_mempool_eligible_statuses(),
         )
+        if validated_transaction.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
+            raise ValueError("Protocol v1 native transaction version is required for mempool admission.")
         self.validate_transaction_nonce(validated_transaction)
         self.validate_transaction_balance_sufficiency(
             validated_transaction,
@@ -3890,6 +4048,16 @@ class Blockchain:
                         "tx_id": tx_id,
                         "reason": self._normalize_rejection_reason(str(exc)),
                         "message": str(exc),
+                    }
+                )
+                continue
+
+            if validated_transaction.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
+                skipped.append(
+                    {
+                        "tx_id": tx_id,
+                        "reason": "unsupported_transaction_version",
+                        "message": "Protocol v1 blocks cannot include legacy native transactions.",
                     }
                 )
                 continue
@@ -4014,6 +4182,16 @@ class Blockchain:
                 )
 
             tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
+            if (
+                self.is_protocol_v1_block_payload(block_dict)
+                and validated_transaction.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION
+            ):
+                self._raise_native_block_validation_error(
+                    "unsupported_transaction_version",
+                    "Protocol v1 blocks cannot include legacy native transactions.",
+                    tx_id=tx_id,
+                    transaction_index=index,
+                )
             if tx_id in seen_block_tx_ids:
                 self._raise_native_block_validation_error(
                     "duplicate_transaction_id",
@@ -4273,6 +4451,7 @@ class Blockchain:
                 self.save_blockchain()
             return existing_certificate
 
+        self._promote_submission_content_for_protocol_v1(submission)
         approved_at = approved_at if approved_at is not None else time.time()
         certificate = self._build_originality_certificate(
             submission,
@@ -4918,13 +5097,41 @@ class Blockchain:
                 print(f"Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
                 raise ValueError("This meme has already been submitted.")
 
+        protocol_v1_media = None
+        canonical_block_text = text_content
+        if certificate is not None:
+            if is_text_payload:
+                protocol_v1_media = resolve_declared_payload_hash(
+                    text_content.encode("utf-8"),
+                    TEXT_MIME_TYPE,
+                )
+                canonical_block_text = protocol_v1_media["text_content"]
+            else:
+                with open(image_path, "rb") as image_file:
+                    protocol_v1_media = resolve_declared_payload_hash(
+                        image_file.read(),
+                        guessed_mime_type or guess_mime_type(os.path.basename(image_path), "image/jpeg"),
+                    )
+            declared_content_hash = str(getattr(certificate, "content_hash", "") or "").strip()
+            if declared_content_hash != protocol_v1_media["content_hash"]:
+                raise ValueError("Certified submission content_hash does not match canonical media bytes.")
+
         # Encode the payload for block storage.
         if is_text_payload:
             print("Debug: Encoding text payload for block storage.")
-            meme_encoded = base64.b64encode(text_content.encode("utf-8")).decode("utf-8")
+            encoded_payload = (
+                protocol_v1_media["stored_bytes"]
+                if protocol_v1_media is not None
+                else text_content.encode("utf-8")
+            )
+            meme_encoded = base64.b64encode(encoded_payload).decode("utf-8")
         else:
-            print(f"Debug: Encoding image at path {image_path}.")
-            meme_encoded = self.encode_image(image_path)
+            if protocol_v1_media is not None:
+                print(f"Debug: Encoding image at path {image_path}.")
+                meme_encoded = base64.b64encode(protocol_v1_media["stored_bytes"]).decode("utf-8")
+            else:
+                print(f"Debug: Encoding image at path {image_path}.")
+                meme_encoded = self.encode_image(image_path)
 
         # âœ… Calculate meme size (base64 encoding increases size)
         meme_size_kb = len(meme_encoded) / 1024
@@ -5024,6 +5231,12 @@ class Blockchain:
             if normalized_reward_receiver is None:
                 raise ValueError("Minting reward recipient is missing or invalid for this submission.")
             reward_receiver = normalized_reward_receiver
+        if certificate is not None and any(
+            existing_block.submission_id == certificate.submission_id
+            or existing_block.certificate_id == certificate.certificate_id
+            for existing_block in self.chain
+        ):
+            raise ValueError("Certified submission already minted into a block.")
 
         voter_reward_plan = (
             self._select_voter_reward_records_for_block(
@@ -5062,8 +5275,12 @@ class Blockchain:
             previous_hash=latest_block.hash,
             timestamp=minted_at,
             transactions=voter_reward_transactions + [reward_transaction] + valid_transactions,
-            meme={"encoded_image": meme_encoded, "text": text_content},
+            meme={"encoded_image": meme_encoded, "text": canonical_block_text},
             miner=miner,
+            block_version=PROTOCOL_V1_BLOCK_VERSION if certificate is not None else None,
+            network_id=self.protocol_v1_network_id() if certificate is not None else None,
+            media_hash=protocol_v1_media["content_hash"] if protocol_v1_media is not None else None,
+            media_bytes=protocol_v1_media["stored_bytes"] if protocol_v1_media is not None else None,
             native_transactions=native_transactions_for_block,
             transaction_ids=native_transaction_plan["transaction_ids"],
             transaction_count=native_transaction_plan["transaction_count"],
@@ -5279,11 +5496,109 @@ class Blockchain:
                 metadata[field_name] = meme.get(field_name)
         return metadata
 
+    def validate_protocol_v1_block_payload(self, block_dict):
+        if not self.is_protocol_v1_block_payload(block_dict):
+            return True
+
+        block_version = block_dict.get("block_version")
+        if block_version != PROTOCOL_V1_BLOCK_VERSION:
+            self._raise_native_block_validation_error(
+                "invalid_block_version",
+                "Unsupported Protocol v1 block_version.",
+                block_index=block_dict.get("index"),
+                block_version=block_version,
+            )
+
+        network_id = block_dict.get("network_id")
+        expected_network_id = self.protocol_v1_network_id()
+        if network_id != expected_network_id:
+            self._raise_native_block_validation_error(
+                "wrong_network",
+                "Protocol v1 block network_id does not match the local network.",
+                block_index=block_dict.get("index"),
+                network_id=network_id,
+                expected_network_id=expected_network_id,
+            )
+
+        media_hash = block_dict.get("media_hash")
+        if not is_valid_content_hash(media_hash):
+            self._raise_native_block_validation_error(
+                "invalid_media_hash",
+                "Protocol v1 block media_hash must be a 64-character lowercase hexadecimal string.",
+                block_index=block_dict.get("index"),
+            )
+
+        content_hash = block_dict.get("content_hash")
+        if not is_valid_content_hash(content_hash):
+            self._raise_native_block_validation_error(
+                "invalid_content_hash",
+                "Protocol v1 block content_hash must be a 64-character lowercase hexadecimal string.",
+                block_index=block_dict.get("index"),
+            )
+
+        if block_dict.get("media_bytes") is None:
+            self._raise_native_block_validation_error(
+                "missing_media_bytes",
+                "Protocol v1 blocks must embed immutable media bytes.",
+                block_index=block_dict.get("index"),
+            )
+
+        try:
+            content_type = _validate_content_type(block_dict.get("content_type"))
+        except ValueError as exc:
+            self._raise_native_block_validation_error(
+                "invalid_content_metadata",
+                str(exc),
+                block_index=block_dict.get("index"),
+            )
+
+        try:
+            resolved_media = self._resolve_protocol_v1_block_media(block_dict)
+        except (UnicodeDecodeError, ValueError) as exc:
+            self._raise_native_block_validation_error(
+                "invalid_embedded_media",
+                str(exc),
+                block_index=block_dict.get("index"),
+            )
+
+        if media_hash != resolved_media["content_hash"]:
+            self._raise_native_block_validation_error(
+                "media_hash_mismatch",
+                "Protocol v1 block media_hash does not match embedded media bytes.",
+                block_index=block_dict.get("index"),
+                media_hash=media_hash,
+                actual_media_hash=resolved_media["content_hash"],
+            )
+        if content_hash != resolved_media["content_hash"]:
+            self._raise_native_block_validation_error(
+                "content_hash_mismatch",
+                "Protocol v1 block content_hash does not match embedded media bytes.",
+                block_index=block_dict.get("index"),
+                content_hash=content_hash,
+                actual_content_hash=resolved_media["content_hash"],
+            )
+
+        if resolved_media["mime_type"] == TEXT_MIME_TYPE and content_type != CONTENT_TYPE_TEXT:
+            self._raise_native_block_validation_error(
+                "content_type_mismatch",
+                "Protocol v1 text blocks must declare content_type='text'.",
+                block_index=block_dict.get("index"),
+            )
+        if resolved_media["mime_type"] != TEXT_MIME_TYPE and content_type not in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
+            self._raise_native_block_validation_error(
+                "content_type_mismatch",
+                "Protocol v1 binary blocks must declare content_type='image' or 'mixed'.",
+                block_index=block_dict.get("index"),
+            )
+
+        return True
+
     def validate_block_native_transaction_metadata(self, block_dict, *, prior_chain=None):
         self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
         return True
 
     def validate_block_with_native_transactions(self, block_dict, *, prior_chain=None):
+        self.validate_protocol_v1_block_payload(block_dict)
         self.validate_block_certificate_metadata(block_dict, prior_chain=prior_chain)
         self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
         return True
@@ -5788,7 +6103,7 @@ class Blockchain:
 
     def get_chain_as_dict(self):
         """Return the blockchain as a list of dictionaries."""
-        return [block.__dict__ for block in self.chain]
+        return [block.to_dict() for block in self.chain]
     
     def replace_chain(self, new_chain):
         """Replace the current chain only when the originality fork-choice rule prefers it."""
@@ -5802,22 +6117,9 @@ class Blockchain:
     
     def calculate_hash_from_dict(self, block_dict):
         """Calculate the hash for a block dictionary."""
-        transaction_data = "".join(
-            [
-                f"{tx['sender']}{tx['recipient']}{_hash_number(tx['amount'])}{_hash_number(tx['tip'])}{_hash_number(tx['payload_size_kb'])}{tx['signature']}"
-                for tx in block_dict["transactions"]
-            ]
-        )
-        certificate_data = ""
-        certificate_metadata = self.extract_block_certificate_metadata(block_dict)
-        if certificate_metadata:
-            certificate_data = json.dumps(
-                certificate_metadata,
-                sort_keys=True,
-                separators=(",", ":"),
-            )
-        block_string = f"{block_dict['index']}{block_dict['previous_hash']}{block_dict['timestamp']}{transaction_data}{block_dict['meme']}{block_dict['miner']}{certificate_data}"
-        return hashlib.sha256(block_string.encode()).hexdigest()
+        if self.is_protocol_v1_block_payload(block_dict):
+            return Block.calculate_hash_v1_from_dict(block_dict)
+        return Block.from_dict(block_dict).calculate_hash()
     
     def is_valid_public_key(self, public_key):
         """Check if the given public key is valid."""

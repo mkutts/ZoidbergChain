@@ -6,10 +6,11 @@ from eth_account.messages import encode_defunct
 from fastapi.testclient import TestClient
 
 from blockchain import Blockchain
+from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from transaction import Transaction
 from wallet import Wallet
-from wallet_auth import WalletAuthManager
+from wallet_auth import WalletAuthManager, hash_wallet_message
 
 
 def _client(blockchain):
@@ -130,11 +131,18 @@ def test_verified_session_can_request_transfer_challenge(blockchain):
     assert body["nonce"] == "1"
     assert body["expected_nonce"] == "1"
     assert body["nonce_policy"] == "strict_sequential"
+    assert body["transaction_version"] == 1
+    assert body["protocol_version"] == 1
+    assert body["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
+    assert body["signed_message_hash"] == hash_wallet_message(body["message"])
     assert body["transfer_preview"]["nonce"] == "1"
+    assert body["transfer_preview"]["timestamp"] == body["issued_at"]
     assert body["transfer_preview"]["network"] == manager.network_name
-    assert "ZoidbergChain Native Transfer" in body["message"]
-    assert "Nonce: 1" in body["message"]
-    assert "not an Ethereum/ERC-20 transfer" in body["message"]
+    assert body["transfer_preview"]["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
+    assert body["transfer_preview"]["transaction_version"] == 1
+    assert body["transfer_preview"]["protocol_version"] == 1
+    assert "zoidbergchain/native-transfer/v1" in body["message"]
+    assert '"object_type":"native-transfer"' in body["message"]
 
 
 def test_transfer_challenge_requires_verified_session(blockchain):
@@ -209,6 +217,9 @@ def test_valid_signed_transfer_intent_succeeds_and_is_non_final(blockchain):
     assert body["transfer_id"]
     assert body["nonce"] == "1"
     assert body["status"] == "signed_pending"
+    assert body["transaction_version"] == 1
+    assert body["protocol_version"] == 1
+    assert body["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
     assert body["settlement_state"] == "non_final"
     assert "not settled" in body["message"].lower()
     assert blockchain.get_native_balance(account.address.lower()) == starting_balance
@@ -270,7 +281,7 @@ def test_transfer_submit_rejects_modified_message(blockchain):
             "amount": challenge["transfer_preview"]["amount"],
             "fee": challenge["transfer_preview"]["fee"],
             "memo": "preview",
-            "message": challenge["message"].replace("Amount: 10", "Amount: 11"),
+            "message": challenge["message"].replace('"amount":"10"', '"amount":"11"'),
             "signature": _sign_message(challenge["message"], account),
         },
         headers=headers,
@@ -417,11 +428,17 @@ def test_transfer_read_endpoints_return_safe_fields(blockchain):
     assert "session_token" not in transfer
     assert transfer["tx_id"] == tx_id
     assert transfer["nonce"] == "1"
+    assert transfer["transaction_version"] == 1
+    assert transfer["protocol_version"] == 1
+    assert transfer["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
     assert wallet_history.json()["transfers"][0]["transfer_id"] == transfer_id
     assert wallet_history.json()["transfers"][0]["tx_id"] == tx_id
     assert transaction["tx_id"] == tx_id
     assert transaction["status"] == "signed_pending"
     assert transaction["nonce"] == "1"
+    assert transaction["transaction_version"] == 1
+    assert transaction["protocol_version"] == 1
+    assert transaction["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
     assert "signature" not in transaction
     assert "signed_message" not in transaction
     assert account_history.json()["transactions"][0]["tx_id"] == tx_id

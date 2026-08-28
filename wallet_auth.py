@@ -10,9 +10,18 @@ from eth_account.messages import encode_defunct
 from fastapi import Header, HTTPException
 from native_transfer import (
     NATIVE_TRANSACTION_NONCE_POLICY,
-    build_transfer_signing_message,
-    validate_native_transfer_message,
     verify_transfer_signature as verify_signed_native_transfer_message,
+)
+from protocol_v1_native_transfer import (
+    PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
+    build_protocol_v1_native_transfer_payload,
+    build_protocol_v1_native_transfer_message,
+    resolve_protocol_v1_network_id,
+)
+from protocol_v1 import PROTOCOL_VERSION
+from protocol_v1_originality import (
+    PROTOCOL_V1_VOTE_VERSION,
+    build_protocol_v1_vote_message,
 )
 
 
@@ -64,6 +73,9 @@ class VoteChallenge:
     message: str
     issued_at: datetime
     expires_at: datetime
+    vote_version: int | None = None
+    network_id: str | None = None
+    protocol_version: int | None = None
     used: bool = False
 
 
@@ -79,6 +91,9 @@ class TransferChallenge:
     message: str
     issued_at: datetime
     expires_at: datetime
+    transaction_version: int | None = None
+    network_id: str | None = None
+    protocol_version: int | None = None
     used: bool = False
 
 
@@ -179,6 +194,31 @@ def build_wallet_vote_message(
             "This signature proves the wallet is casting this originality vote on ZoidbergChain.",
             "It does not authorize a token transfer.",
         ]
+    )
+
+
+def build_wallet_vote_message_v1(
+    *,
+    wallet_address: str,
+    network_id: str,
+    submission_id: str,
+    content_hash: str,
+    vote_type: str,
+    nonce: str,
+    issued_at: datetime | str,
+    expires_at: datetime | str,
+) -> str:
+    issued_at_text = _isoformat(issued_at) if isinstance(issued_at, datetime) else str(issued_at or "").strip()
+    expires_at_text = _isoformat(expires_at) if isinstance(expires_at, datetime) else str(expires_at or "").strip()
+    return build_protocol_v1_vote_message(
+        wallet_address=wallet_address,
+        network_id=network_id,
+        submission_id=submission_id,
+        content_hash=content_hash,
+        vote_type=vote_type,
+        nonce=nonce,
+        issued_at=issued_at_text,
+        expires_at=expires_at_text,
     )
 
 
@@ -473,9 +513,10 @@ class WalletAuthManager:
         issued_at = _utc_now()
         expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
         nonce = secrets.token_urlsafe(24)
-        message = build_wallet_vote_message(
+        network_id = resolve_protocol_v1_network_id(network_name=self.network_name)
+        message = build_wallet_vote_message_v1(
             wallet_address=normalized,
-            network_name=self.network_name,
+            network_id=network_id,
             submission_id=submission_id.strip(),
             content_hash=content_hash.strip(),
             vote_type=vote_type.strip(),
@@ -492,6 +533,9 @@ class WalletAuthManager:
             message=message,
             issued_at=issued_at,
             expires_at=expires_at,
+            vote_version=PROTOCOL_V1_VOTE_VERSION,
+            network_id=network_id,
+            protocol_version=PROTOCOL_VERSION,
         )
         self._vote_challenges_by_message_hash[hash_wallet_message(message)] = challenge
         return {
@@ -500,8 +544,12 @@ class WalletAuthManager:
             "submission_id": challenge.submission_id,
             "content_hash": challenge.content_hash,
             "vote": challenge.vote_type,
+            "vote_version": challenge.vote_version,
+            "protocol_version": challenge.protocol_version,
+            "network_id": challenge.network_id,
             "nonce": nonce,
             "message": message,
+            "signed_message_hash": hash_wallet_message(message),
             "issued_at": _isoformat(issued_at),
             "expires_at": _isoformat(expires_at),
         }
@@ -534,7 +582,19 @@ class WalletAuthManager:
         if challenge.expires_at <= _utc_now():
             raise ValueError("Vote challenge has expired.")
         normalized_message = canonicalize_wallet_message(message)
-        if normalized_message != canonicalize_wallet_message(challenge.message):
+        expected_message = challenge.message
+        if challenge.vote_version == PROTOCOL_V1_VOTE_VERSION:
+            expected_message = build_wallet_vote_message_v1(
+                wallet_address=challenge.wallet_address,
+                network_id=challenge.network_id or resolve_protocol_v1_network_id(network_name=self.network_name),
+                submission_id=challenge.submission_id,
+                content_hash=challenge.content_hash,
+                vote_type=challenge.vote_type,
+                nonce=challenge.nonce,
+                issued_at=challenge.issued_at,
+                expires_at=challenge.expires_at,
+            )
+        if normalized_message != canonicalize_wallet_message(expected_message):
             raise ValueError("Vote challenge message does not match the stored challenge.")
         if challenge.wallet_address != normalized:
             raise ValueError("Vote challenge wallet does not match the verified session wallet.")
@@ -558,11 +618,16 @@ class WalletAuthManager:
             "submission_id": challenge.submission_id,
             "content_hash": challenge.content_hash,
             "vote": challenge.vote_type,
+            "vote_version": challenge.vote_version,
+            "protocol_version": challenge.protocol_version,
+            "network_id": challenge.network_id,
             "nonce": challenge.nonce,
             "signature_scheme": "personal_sign",
             "vote_signature": signature.strip(),
-            "vote_message": canonicalize_wallet_message(challenge.message),
+            "vote_message": canonicalize_wallet_message(expected_message),
             "signed_message_hash": message_hash,
+            "vote_issued_at": _isoformat(challenge.issued_at),
+            "vote_expires_at": _isoformat(challenge.expires_at),
             "issued_at": _isoformat(challenge.issued_at),
             "expires_at": _isoformat(challenge.expires_at),
             "signed_at": _isoformat(signed_at),
@@ -588,33 +653,40 @@ class WalletAuthManager:
         issued_at = _utc_now()
         expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
         timestamp = _isoformat(issued_at)
-        transfer_message = validate_native_transfer_message(
-            {
-                "action": "transfer_zoid",
-                "network": self.network_name,
-                "from_address": normalized_from,
-                "to_address": to_address,
-                "amount": amount,
-                "nonce": nonce,
-                "fee": fee,
-                "timestamp": timestamp,
-                "memo": memo,
-                "status": "draft",
-            },
-            network_name=self.network_name,
+        network_id = resolve_protocol_v1_network_id(network_name=self.network_name)
+        transfer_payload = build_protocol_v1_native_transfer_payload(
+            from_address=normalized_from,
+            to_address=to_address,
+            amount=amount,
+            fee=fee,
+            nonce=nonce,
+            timestamp=timestamp,
+            memo=memo,
         )
-        message = build_transfer_signing_message(transfer_message)
+        message = build_protocol_v1_native_transfer_message(
+            from_address=transfer_payload["from_address"],
+            to_address=transfer_payload["to_address"],
+            amount=transfer_payload["amount"],
+            fee=transfer_payload["fee"],
+            nonce=transfer_payload["nonce"],
+            timestamp=transfer_payload["timestamp"],
+            memo=transfer_payload["memo"],
+            network_id=network_id,
+        )
         challenge = TransferChallenge(
-            from_address=transfer_message.from_address,
-            to_address=transfer_message.to_address,
-            amount=transfer_message.amount,
-            fee=transfer_message.fee,
-            memo=transfer_message.memo,
-            nonce=transfer_message.nonce,
-            timestamp=transfer_message.timestamp,
+            from_address=transfer_payload["from_address"],
+            to_address=transfer_payload["to_address"],
+            amount=transfer_payload["amount"],
+            fee=transfer_payload["fee"],
+            memo=transfer_payload["memo"],
+            nonce=transfer_payload["nonce"],
+            timestamp=transfer_payload["timestamp"],
             message=message,
             issued_at=issued_at,
             expires_at=expires_at,
+            transaction_version=PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
+            network_id=network_id,
+            protocol_version=PROTOCOL_VERSION,
         )
         self._transfer_challenges_by_message_hash[hash_wallet_message(message)] = challenge
         return {
@@ -626,7 +698,11 @@ class WalletAuthManager:
             "nonce": challenge.nonce,
             "expected_nonce": challenge.nonce,
             "nonce_policy": NATIVE_TRANSACTION_NONCE_POLICY,
+            "transaction_version": challenge.transaction_version,
+            "protocol_version": challenge.protocol_version,
+            "network_id": challenge.network_id,
             "message": challenge.message,
+            "signed_message_hash": hash_wallet_message(message),
             "issued_at": _isoformat(challenge.issued_at),
             "expires_at": _isoformat(challenge.expires_at),
             "transfer_preview": {
@@ -635,7 +711,11 @@ class WalletAuthManager:
                 "amount": challenge.amount,
                 "fee": challenge.fee,
                 "nonce": challenge.nonce,
+                "timestamp": challenge.timestamp,
                 "network": self.network_name,
+                "network_id": challenge.network_id,
+                "transaction_version": challenge.transaction_version,
+                "protocol_version": challenge.protocol_version,
             },
         }
 
@@ -673,33 +753,39 @@ class WalletAuthManager:
             raise ValueError("Transfer challenge has already been used.")
         if challenge.expires_at <= _utc_now():
             raise ValueError("Transfer challenge has expired.")
-        if message != challenge.message:
+        expected_message = challenge.message
+        if challenge.transaction_version == PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
+            expected_message = build_protocol_v1_native_transfer_message(
+                from_address=challenge.from_address,
+                to_address=challenge.to_address,
+                amount=challenge.amount,
+                fee=challenge.fee,
+                nonce=challenge.nonce,
+                timestamp=challenge.timestamp,
+                memo=challenge.memo,
+                network_id=challenge.network_id or resolve_protocol_v1_network_id(network_name=self.network_name),
+            )
+        if message != expected_message:
             raise ValueError("Transfer challenge message does not match the stored challenge.")
         if challenge.from_address != normalized_wallet:
             raise ValueError("Transfer challenge wallet does not match the verified session wallet.")
 
-        requested_transfer = validate_native_transfer_message(
-            {
-                "action": "transfer_zoid",
-                "network": self.network_name,
-                "from_address": normalized_from,
-                "to_address": to_address,
-                "amount": amount,
-                "nonce": challenge.nonce,
-                "fee": fee,
-                "timestamp": challenge.timestamp,
-                "memo": memo,
-                "status": "signed_pending",
-            },
-            network_name=self.network_name,
+        requested_transfer = build_protocol_v1_native_transfer_payload(
+            from_address=normalized_from,
+            to_address=to_address,
+            amount=amount,
+            fee=fee,
+            nonce=challenge.nonce,
+            timestamp=challenge.timestamp,
+            memo=memo,
         )
-        if requested_transfer.to_address != challenge.to_address:
+        if requested_transfer["to_address"] != challenge.to_address:
             raise ValueError("Transfer to_address does not match the signed challenge.")
-        if requested_transfer.amount != challenge.amount:
+        if requested_transfer["amount"] != challenge.amount:
             raise ValueError("Transfer amount does not match the signed challenge.")
-        if requested_transfer.fee != challenge.fee:
+        if requested_transfer["fee"] != challenge.fee:
             raise ValueError("Transfer fee does not match the signed challenge.")
-        if (requested_transfer.memo or None) != challenge.memo:
+        if (requested_transfer["memo"] or None) != challenge.memo:
             raise ValueError("Transfer memo does not match the signed challenge.")
 
         verification = verify_signed_native_transfer_message(
@@ -718,9 +804,12 @@ class WalletAuthManager:
             "memo": challenge.memo or "",
             "nonce": challenge.nonce,
             "timestamp": challenge.timestamp,
+            "transaction_version": challenge.transaction_version,
+            "protocol_version": challenge.protocol_version,
+            "network_id": challenge.network_id,
             "signature_scheme": verification.signature_scheme,
             "transfer_signature": signature.strip(),
-            "transfer_message": challenge.message,
+            "transfer_message": expected_message,
             "signed_message_hash": verification.signed_message_hash,
             "issued_at": _isoformat(challenge.issued_at),
             "expires_at": _isoformat(challenge.expires_at),

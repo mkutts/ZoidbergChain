@@ -14,6 +14,7 @@ from content import (
     CONTENT_TYPE_IMAGE,
     CONTENT_TYPE_MIXED,
     CONTENT_TYPE_TEXT,
+    STORAGE_STATUS_VERIFIED,
     TEXT_MIME_TYPE,
     resolve_payload_hash,
     store_content_bytes,
@@ -22,6 +23,7 @@ from content import (
 )
 from config import (
     MAX_CONTENT_FILE_SIZE_BYTES,
+    NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     peer_auth_required,
     peer_replay_protection_enabled,
@@ -33,8 +35,27 @@ from config import (
 from originality_certificate import (
     OriginalityCertificate,
     calculate_certificate_id,
+    calculate_vote_hash,
     calculate_originality_score,
     validate_certificate_for_submission,
+)
+from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION
+from protocol_v1_originality import (
+    PROTOCOL_V1_CERTIFICATE_VERSION,
+    PROTOCOL_V1_VOTE_VERSION,
+    build_protocol_v1_vote_message,
+    resolve_protocol_v1_network_id,
+)
+from protocol_v1_peer_message import (
+    HEADER_NETWORK_ID,
+    MissingProtocolV1PeerHeadersError,
+    ProtocolV1PeerMessageError,
+    ReplayedPeerMessageError,
+    build_protocol_v1_peer_request_headers,
+    build_protocol_v1_peer_request_payload,
+    normalize_protocol_v1_peer_timestamp,
+    resolve_protocol_v1_peer_network_id,
+    verify_protocol_v1_peer_request,
 )
 from submission import (
     APPROVED,
@@ -45,7 +66,10 @@ from submission import (
     REJECTED,
     SUBMISSION_STATUSES,
     Submission,
+    VOTE_NOT_ORIGINAL,
+    VOTE_ORIGINAL,
     VOTE_TYPES,
+    VOTE_UNSURE,
     calculate_submission_content_hash,
 )
 from transaction import Transaction
@@ -151,28 +175,30 @@ def _serialize_peer_body(payload):
     ).encode("utf-8")
 
 
-def _peer_request_headers(method, path, payload, origin_node_id):
+def _peer_request_headers(method, path, payload, origin_node_id, *, network_name=None):
     if signed_peer_messages_enabled():
         if not peer_shared_secret_is_configured():
             raise ValueError("PEER_SHARED_SECRET must be configured for signed peer messages.")
         if not isinstance(origin_node_id, str) or not origin_node_id.strip():
             raise ValueError("origin_node_id is required for signed peer messages.")
-        timestamp = int(time.time())
+        timestamp = normalize_protocol_v1_peer_timestamp(int(time.time()))
         nonce = secrets.token_hex(16)
-        body_bytes = _serialize_peer_body(payload)
-        signature = sign_peer_request(
-            method=method,
-            path=path,
+        payload_network_name = (
+            payload.get("network_name")
+            if isinstance(payload, dict) and isinstance(payload.get("network_name"), str)
+            else None
+        )
+        return build_protocol_v1_peer_request_headers(
+            method,
+            path,
+            payload if isinstance(payload, dict) else None,
+            origin_node_id,
+            network_name=network_name or payload_network_name,
+            secret=peer_shared_secret(),
             timestamp=timestamp,
             nonce=nonce,
-            body_bytes=body_bytes,
+            query_params=payload if str(method).upper() == "GET" and isinstance(payload, dict) else None,
         )
-        return {
-            "X-ZOID-Node-Id": origin_node_id,
-            "X-ZOID-Timestamp": str(timestamp),
-            "X-ZOID-Nonce": nonce,
-            "X-ZOID-Signature": signature,
-        }
     if peer_auth_required() and peer_shared_secret_is_configured():
         return {"X-ZOID-Peer-Secret": peer_shared_secret()}
     return {}
@@ -212,45 +238,51 @@ def verify_peer_signature(method, path, headers, body_bytes):
     if not signed_peer_messages_enabled():
         return None
 
-    node_id = headers.get("X-ZOID-Node-Id")
-    timestamp = headers.get("X-ZOID-Timestamp")
-    nonce = headers.get("X-ZOID-Nonce")
-    signature = headers.get("X-ZOID-Signature")
-
-    if not node_id or not timestamp or not nonce or not signature:
-        raise MissingSignedPeerHeadersError("Missing signed peer headers.")
-
     try:
-        timestamp_value = int(str(timestamp).strip())
-    except (TypeError, ValueError):
-        raise InvalidPeerTimestampError("Invalid peer timestamp.")
+        body_payload = None
+        if body_bytes not in (None, b"", ""):
+            decoded_bytes = body_bytes if isinstance(body_bytes, bytes) else str(body_bytes).encode("utf-8")
+            body_payload = json.loads(decoded_bytes)
+            if not isinstance(body_payload, dict):
+                raise ProtocolV1PeerMessageError("Protocol v1 peer request payload must be a JSON object.")
+        payload = build_protocol_v1_peer_request_payload(
+            method,
+            path,
+            body_payload=body_payload,
+        )
+        expected_network_id = headers.get(HEADER_NETWORK_ID)
+        if expected_network_id in (None, ""):
+            raise MissingProtocolV1PeerHeadersError("Missing Protocol v1 peer headers.")
+        context = verify_protocol_v1_peer_request(
+            method=method,
+            path=path,
+            headers=headers,
+            payload=payload,
+            expected_network_id=resolve_protocol_v1_peer_network_id(network_id=expected_network_id),
+            secret=peer_shared_secret(),
+            timestamp_window_seconds=peer_signature_window_seconds(),
+            replay_store=None,
+            now=int(time.time()),
+        )
+    except MissingProtocolV1PeerHeadersError as exc:
+        raise MissingSignedPeerHeadersError(str(exc)) from exc
+    except ReplayedPeerMessageError as exc:
+        raise ReplayedPeerNonceError(str(exc)) from exc
+    except ProtocolV1PeerMessageError as exc:
+        message = str(exc)
+        if "timestamp outside the allowed window" in message.lower():
+            raise ExpiredPeerSignatureError(message) from exc
+        if "timestamp" in message.lower():
+            raise InvalidPeerTimestampError(message) from exc
+        raise InvalidPeerSignatureError(message) from exc
 
-    now = int(time.time())
-    window_seconds = peer_signature_window_seconds()
-    if abs(now - timestamp_value) > window_seconds:
-        raise ExpiredPeerSignatureError("Peer signature timestamp outside the allowed window.")
-
-    expected_signature = sign_peer_request(
-        method=method,
-        path=path,
-        timestamp=timestamp_value,
-        nonce=nonce,
-        body_bytes=body_bytes,
-    )
-    if not hmac.compare_digest(str(signature), expected_signature):
-        raise InvalidPeerSignatureError("Invalid peer signature.")
-
-    if peer_replay_protection_enabled():
-        _cleanup_peer_nonce_cache(now, window_seconds)
-        if _is_replayed_peer_nonce(str(node_id), str(nonce)):
-            raise ReplayedPeerNonceError("Replayed peer nonce.")
-        _record_peer_nonce(str(node_id), str(nonce), timestamp_value)
-
-    return str(node_id)
+    return str(context.sender_node_id)
 
 
-def build_peer_request_headers(method, path, payload, origin_node_id):
-    return _peer_request_headers(method, path, payload, origin_node_id)
+def build_peer_request_headers(method, path, payload, origin_node_id, *, network_name=None):
+    if network_name is not None and payload is None and str(method).upper() == "GET":
+        payload = {"network_name": network_name}
+    return _peer_request_headers(method, path, payload, origin_node_id, network_name=network_name)
 
 
 def fetch_content_from_peer(
@@ -266,10 +298,19 @@ def fetch_content_from_peer(
 
     metadata_path = f"/peers/content/{content_hash}/metadata"
     metadata_url = f"{peer['url'].rstrip('/')}{metadata_path}"
+    metadata_headers = build_peer_request_headers(
+        "GET",
+        metadata_path,
+        None,
+        origin_node_id,
+        network_name=peer.get("network_name"),
+    )
+    metadata_request_kwargs = {"timeout": timeout_seconds}
+    if metadata_headers:
+        metadata_request_kwargs["headers"] = metadata_headers
     metadata_response = requests.get(
         metadata_url,
-        headers=build_peer_request_headers("GET", metadata_path, None, origin_node_id),
-        timeout=timeout_seconds,
+        **metadata_request_kwargs,
     )
     metadata_status = getattr(metadata_response, "status_code", None)
     if metadata_status == 404:
@@ -300,10 +341,19 @@ def fetch_content_from_peer(
 
     binary_path = f"/peers/content/{content_hash}"
     binary_url = f"{peer['url'].rstrip('/')}{binary_path}"
+    binary_headers = build_peer_request_headers(
+        "GET",
+        binary_path,
+        None,
+        origin_node_id,
+        network_name=peer.get("network_name"),
+    )
+    binary_request_kwargs = {"timeout": timeout_seconds}
+    if binary_headers:
+        binary_request_kwargs["headers"] = binary_headers
     binary_response = requests.get(
         binary_url,
-        headers=build_peer_request_headers("GET", binary_path, None, origin_node_id),
-        timeout=timeout_seconds,
+        **binary_request_kwargs,
     )
     binary_status = getattr(binary_response, "status_code", None)
     if binary_status == 404:
@@ -441,11 +491,18 @@ def _transaction_reason_from_error(message):
     normalized = str(message or "").strip().lower()
     if "tx_id does not match" in normalized:
         return "invalid_tx_id"
+    if "mempool admission" in normalized and ("transaction version is required" in normalized or "transaction_version" in normalized):
+        return "unsupported_transaction_version"
     if "signed_message does not match" in normalized:
         return "invalid_signed_message"
     if "signature" in normalized:
         return "invalid_signature"
-    if "different network" in normalized or "network does not match" in normalized:
+    if (
+        "different network" in normalized
+        or "network does not match" in normalized
+        or "network_id does not match" in normalized
+        or "belongs to a different network" in normalized
+    ):
         return "wrong_network"
     if "nonce already used or reserved" in normalized:
         return "conflicting_nonce"
@@ -463,7 +520,7 @@ def _transaction_reason_from_error(message):
 
 
 def _serialize_peer_transaction_payload(transaction):
-    return {
+    payload = {
         "tx_id": transaction.get("tx_id"),
         "transaction_type": transaction.get("transaction_type"),
         "network": transaction.get("network"),
@@ -482,6 +539,13 @@ def _serialize_peer_transaction_payload(transaction):
         "created_at": transaction.get("created_at"),
         "updated_at": transaction.get("updated_at"),
     }
+    if transaction.get("transaction_version") is not None:
+        payload["transaction_version"] = transaction.get("transaction_version")
+    if transaction.get("protocol_version") is not None:
+        payload["protocol_version"] = transaction.get("protocol_version")
+    if transaction.get("network_id") is not None:
+        payload["network_id"] = transaction.get("network_id")
+    return payload
 
 
 def _require_valid_peer_string(value, validator, error_cls, field_name):
@@ -612,8 +676,11 @@ def sync_chain_from_peers(
     blockchain,
     peer_store,
     network_name,
+    origin_node_id=None,
     timeout_seconds=5,
 ):
+    if origin_node_id is None:
+        origin_node_id = NODE_ID
     results = []
     active_peers = peer_store.list_active_peers(network_name=network_name)
 
@@ -622,6 +689,7 @@ def sync_chain_from_peers(
             result = _sync_chain_from_peer(
                 blockchain=blockchain,
                 peer=peer,
+                origin_node_id=origin_node_id,
                 network_name=network_name,
                 timeout_seconds=timeout_seconds,
             )
@@ -707,7 +775,23 @@ def receive_peer_block(
         if existing_block.index == block.index:
             raise DuplicateBlockError("Block already exists.")
 
-    if block.content_hash:
+    _validate_block_extends_chain(
+        blockchain,
+        block,
+        blockchain.chain,
+        validate_hash=True,
+        validate_chain=True,
+    )
+
+    if blockchain.is_protocol_v1_block_payload(block):
+        try:
+            blockchain.cache_protocol_v1_block_content(
+                block,
+                submission_id=related_submission_id or block.submission_id,
+            )
+        except ValueError as exc:
+            raise MalformedBlockError(str(exc)) from exc
+    elif block.content_hash:
         blockchain.register_remote_content_reference(
             content_hash=block.content_hash,
             content_id=block.content_id,
@@ -717,14 +801,6 @@ def receive_peer_block(
             storage_status="remote",
             submission_id=related_submission_id or block.submission_id,
         )
-
-    _validate_block_extends_chain(
-        blockchain,
-        block,
-        blockchain.chain,
-        validate_hash=True,
-        validate_chain=True,
-    )
 
     blockchain.chain.append(block)
     blockchain.settle_block_native_transactions(block)
@@ -795,7 +871,7 @@ def receive_peer_vote(
     if peer.get("network_name") != local_network_name:
         raise WrongNetworkError("Registered peer belongs to a different network.")
 
-    normalized_vote = _normalize_vote_payload(vote_payload)
+    normalized_vote = _normalize_vote_payload(vote_payload, local_network_name)
     submission = blockchain.get_submission(normalized_vote["submission_id"])
     if not submission:
         raise UnknownSubmissionError(f"Submission not found: {normalized_vote['submission_id']}")
@@ -824,6 +900,9 @@ def receive_peer_vote(
             created_at=normalized_vote["created_at"],
         )
         for key in [
+            "vote_version",
+            "protocol_version",
+            "network_id",
             "content_hash",
             "voter_wallet_address",
             "signature_scheme",
@@ -831,6 +910,8 @@ def receive_peer_vote(
             "vote_message",
             "signed_message_hash",
             "vote_nonce",
+            "vote_issued_at",
+            "vote_expires_at",
             "signed_at",
             "identity_source",
         ]:
@@ -995,6 +1076,9 @@ def broadcast_vote_to_peers(
         "created_at": vote.get("created_at"),
     }
     for key in [
+        "vote_version",
+        "protocol_version",
+        "network_id",
         "content_hash",
         "voter_wallet_address",
         "signature_scheme",
@@ -1002,6 +1086,8 @@ def broadcast_vote_to_peers(
         "vote_message",
         "signed_message_hash",
         "vote_nonce",
+        "vote_issued_at",
+        "vote_expires_at",
         "signed_at",
         "identity_source",
     ]:
@@ -1337,10 +1423,19 @@ def sync_transaction_from_peer(
     timeout_seconds=3,
 ):
     transaction_path = f"/peers/transactions/{tx_id}"
+    request_headers = build_peer_request_headers(
+        "GET",
+        transaction_path,
+        None,
+        origin_node_id,
+        network_name=network_name,
+    )
+    request_kwargs = {"timeout": timeout_seconds}
+    if request_headers:
+        request_kwargs["headers"] = request_headers
     response = requests.get(
         f"{peer['url'].rstrip('/')}{transaction_path}",
-        headers=build_peer_request_headers("GET", transaction_path, None, origin_node_id),
-        timeout=timeout_seconds,
+        **request_kwargs,
     )
     status_code = getattr(response, "status_code", None)
     if status_code == 404:
@@ -1374,10 +1469,19 @@ def sync_mempool_from_peer(
     timeout_seconds=3,
 ):
     summary_path = "/peers/mempool/summary"
+    request_headers = build_peer_request_headers(
+        "GET",
+        summary_path,
+        None,
+        origin_node_id,
+        network_name=network_name,
+    )
+    request_kwargs = {"timeout": timeout_seconds}
+    if request_headers:
+        request_kwargs["headers"] = request_headers
     response = requests.get(
         f"{peer['url'].rstrip('/')}{summary_path}",
-        headers=build_peer_request_headers("GET", summary_path, None, origin_node_id),
-        timeout=timeout_seconds,
+        **request_kwargs,
     )
     status_code = getattr(response, "status_code", None)
     if status_code is None or status_code >= 400:
@@ -1413,13 +1517,18 @@ def sync_mempool_from_peer(
     }
 
 
-def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
+def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeout_seconds):
     local_height = blockchain.get_latest_block().index
     local_latest_hash = blockchain.get_latest_block().hash
     local_genesis_hash = blockchain.chain[0].hash
     local_score = blockchain.get_cumulative_originality_score()
 
-    summary = _fetch_peer_chain_summary(peer, timeout_seconds)
+    summary = _fetch_peer_chain_summary(
+        peer,
+        origin_node_id=origin_node_id,
+        network_name=network_name,
+        timeout_seconds=timeout_seconds,
+    )
     peer_score = summary["cumulative_originality_score"]
     peer_height = summary["chain_height"]
     peer_latest_hash = summary["latest_block_hash"]
@@ -1520,6 +1629,8 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
     candidate_payload = _fetch_peer_blocks(
         peer,
         from_height=0,
+        origin_node_id=origin_node_id,
+        network_name=network_name,
         timeout_seconds=timeout_seconds,
     )
     _store_chain_sync_certificates(
@@ -1576,21 +1687,49 @@ def _sync_chain_from_peer(blockchain, peer, network_name, timeout_seconds):
     )
 
 
-def _fetch_peer_chain_summary(peer, timeout_seconds):
-    summary_url = f"{peer['url'].rstrip('/')}/chain/summary"
-    response = requests.get(summary_url, timeout=timeout_seconds)
+def _fetch_peer_chain_summary(peer, *, origin_node_id, network_name, timeout_seconds):
+    summary_path = "/peers/chain/summary"
+    summary_url = f"{peer['url'].rstrip('/')}{summary_path}"
+    request_headers = build_peer_request_headers(
+        "GET",
+        summary_path,
+        None,
+        origin_node_id,
+        network_name=network_name,
+    )
+    request_kwargs = {"timeout": timeout_seconds}
+    if request_headers:
+        request_kwargs["headers"] = request_headers
+    response = requests.get(
+        summary_url,
+        **request_kwargs,
+    )
     status_code = getattr(response, "status_code", None)
     if status_code is None or status_code >= 400:
         raise ChainSyncError(f"Peer summary returned status {status_code}.")
     return _normalize_chain_summary(response.json())
 
 
-def _fetch_peer_blocks(peer, from_height, timeout_seconds):
-    blocks_url = f"{peer['url'].rstrip('/')}/chain/blocks"
+def _fetch_peer_blocks(peer, from_height, *, origin_node_id, network_name, timeout_seconds):
+    blocks_path = "/peers/chain/blocks"
+    query_payload = {"from_height": from_height, "include_media_bytes": True}
+    blocks_url = f"{peer['url'].rstrip('/')}{blocks_path}"
+    request_headers = build_peer_request_headers(
+        "GET",
+        blocks_path,
+        query_payload,
+        origin_node_id,
+        network_name=network_name,
+    )
+    request_kwargs = {
+        "params": {"from_height": from_height, "include_media_bytes": "true"},
+        "timeout": timeout_seconds,
+    }
+    if request_headers:
+        request_kwargs["headers"] = request_headers
     response = requests.get(
         blocks_url,
-        params={"from_height": from_height},
-        timeout=timeout_seconds,
+        **request_kwargs,
     )
     status_code = getattr(response, "status_code", None)
     if status_code is None or status_code >= 400:
@@ -1634,6 +1773,33 @@ def _store_chain_sync_certificates(blockchain, certificates_payload, local_netwo
             )
         except (MalformedCertificateError, ConflictingCertificateError) as exc:
             raise ChainSyncError(str(exc))
+
+
+def _validate_certificate_vote_set_against_local_submission(blockchain, certificate, submission):
+    vote_summary = blockchain.get_submission_votes(submission.submission_id)
+    expected_counts = {
+        "vote_total": len(vote_summary["votes"]),
+        "decisive_vote_total": vote_summary["counts"][VOTE_ORIGINAL] + vote_summary["counts"][VOTE_NOT_ORIGINAL],
+        "original_votes": vote_summary["counts"][VOTE_ORIGINAL],
+        "not_original_votes": vote_summary["counts"][VOTE_NOT_ORIGINAL],
+        "unsure_votes": vote_summary["counts"][VOTE_UNSURE],
+    }
+    for field_name, expected_value in expected_counts.items():
+        if getattr(certificate, field_name) != expected_value:
+            raise MalformedCertificateError(f"Originality certificate {field_name} does not match local vote set.")
+    try:
+        expected_vote_hash = calculate_vote_hash(
+            vote_summary["votes"],
+            vote_set_version=certificate.certificate_version,
+            submission_id=submission.submission_id,
+            content_hash=submission.content_hash,
+            network_id=certificate.network_id,
+            network_name=certificate.network_name,
+        )
+    except ValueError as exc:
+        raise MalformedCertificateError(str(exc)) from exc
+    if certificate.vote_hash != expected_vote_hash:
+        raise MalformedCertificateError("Originality certificate vote_hash does not match local vote set.")
 
 
 def _store_peer_certificate(
@@ -1680,13 +1846,25 @@ def _store_peer_certificate(
     submission = blockchain.get_submission(certificate.submission_id)
     if submission:
         if submission.content_hash != certificate.content_hash:
-            raise MalformedCertificateError(
-                "Originality certificate content_hash does not match submission."
-            )
+            try:
+                blockchain.promote_submission_content_for_protocol_v1(submission)
+            except ValueError:
+                pass
+            if submission.content_hash != certificate.content_hash:
+                content_object = blockchain.get_content_object_by_hash(submission.content_hash)
+                if content_object is None or getattr(content_object, "storage_status", None) != STORAGE_STATUS_VERIFIED:
+                    submission.content_hash = certificate.content_hash
+                    if certificate.content_id is not None:
+                        submission.content_id = certificate.content_id
+                if submission.content_hash != certificate.content_hash:
+                    raise MalformedCertificateError(
+                        "Originality certificate content_hash does not match submission."
+                    )
         if submission.submitter != certificate.creator_wallet:
             raise MalformedCertificateError(
                 "Originality certificate creator_wallet does not match submission."
             )
+        _validate_certificate_vote_set_against_local_submission(blockchain, certificate, submission)
         try:
             validate_certificate_for_submission(
                 certificate,
@@ -1737,6 +1915,9 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
     _reject_forbidden_fields(
         certificate_payload,
         [
+            "certificate_version",
+            "protocol_version",
+            "network_id",
             "certificate_id",
             "submission_id",
             "content_hash",
@@ -1754,6 +1935,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             "issuing_node_id",
             "vote_hash",
             "originality_score",
+            "approval_threshold",
         ],
         MalformedCertificateError,
         "Certificate payload",
@@ -1781,6 +1963,33 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             raise MalformedCertificateError(f"Certificate {field_name} is required.")
 
     normalized = {}
+    certificate_version = certificate_payload.get("certificate_version")
+    if certificate_version is not None:
+        if (
+            isinstance(certificate_version, bool)
+            or not isinstance(certificate_version, int)
+            or certificate_version != PROTOCOL_V1_CERTIFICATE_VERSION
+        ):
+            raise MalformedCertificateError("Certificate certificate_version is unsupported.")
+        normalized["certificate_version"] = certificate_version
+
+    protocol_version = certificate_payload.get("protocol_version")
+    if protocol_version is not None:
+        if isinstance(protocol_version, bool) or not isinstance(protocol_version, int):
+            raise MalformedCertificateError("Certificate protocol_version must be a positive integer.")
+        if protocol_version != PROTOCOL_VERSION:
+            raise MalformedCertificateError("Certificate protocol_version is unsupported.")
+        normalized["protocol_version"] = protocol_version
+
+    network_id = certificate_payload.get("network_id")
+    if network_id is not None:
+        if not isinstance(network_id, str) or not network_id.strip():
+            raise MalformedCertificateError("Certificate network_id is required.")
+        try:
+            normalized["network_id"] = resolve_protocol_v1_network_id(network_id=network_id.strip())
+        except ValueError as exc:
+            raise MalformedCertificateError(str(exc)) from exc
+
     for field_name in [
         "certificate_id",
         "submission_id",
@@ -1795,7 +2004,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             "certificate_id": lambda raw: isinstance(raw, str) and bool(raw.strip()),
             "submission_id": lambda raw: isinstance(raw, str) and bool(raw.strip()),
             "content_hash": lambda raw: isinstance(raw, str) and bool(raw.strip()),
-            "creator_wallet": is_valid_wallet_public_key,
+            "creator_wallet": is_valid_user_wallet_identity,
             "network_name": is_valid_network_name,
             "issuing_node_id": is_valid_node_id,
             "vote_hash": lambda raw: isinstance(raw, str) and bool(raw.strip()),
@@ -1806,6 +2015,10 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             MalformedCertificateError,
             f"Certificate {field_name}",
         )
+        if field_name == "creator_wallet":
+            normalized_wallet = normalize_wallet_address(normalized[field_name])
+            if normalized_wallet is not None:
+                normalized[field_name] = normalized_wallet
 
     content_id = certificate_payload.get("content_id")
     if content_id is not None:
@@ -1851,13 +2064,51 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             )
         normalized["originality_score"] = originality_score
 
+    approval_threshold = certificate_payload.get("approval_threshold")
+    if approval_threshold is not None:
+        try:
+            approval_threshold = float(approval_threshold)
+        except (TypeError, ValueError):
+            raise MalformedCertificateError("Certificate approval_threshold must be numeric.")
+        if not math.isfinite(approval_threshold) or approval_threshold < 0:
+            raise MalformedCertificateError(
+                "Certificate approval_threshold must be a non-negative number."
+            )
+        normalized["approval_threshold"] = approval_threshold
+
+    if normalized.get("certificate_version") is None and any(
+        normalized.get(field_name) is not None
+        for field_name in ["protocol_version", "network_id", "approval_threshold"]
+    ):
+        raise MalformedCertificateError(
+            "Certificate certificate_version is required when Protocol v1 certificate fields are present."
+        )
+
+    if normalized.get("certificate_version") == PROTOCOL_V1_CERTIFICATE_VERSION:
+        if normalized.get("protocol_version") != PROTOCOL_VERSION:
+            raise MalformedCertificateError("Certificate protocol_version is required for Protocol v1 certificates.")
+        if normalized.get("network_id") is None:
+            raise MalformedCertificateError("Certificate network_id is required for Protocol v1 certificates.")
+        if "approval_threshold" not in normalized:
+            raise MalformedCertificateError("Certificate approval_threshold is required for Protocol v1 certificates.")
+
     certificate = OriginalityCertificate.from_dict(normalized)
     _validate_certificate_internal(certificate, local_network_name)
     return certificate
 
 
 def _validate_certificate_internal(certificate, local_network_name):
-    if certificate.network_name != local_network_name:
+    if certificate.is_protocol_v1_certificate():
+        expected_network_id = resolve_protocol_v1_network_id(network_name=local_network_name)
+        if certificate.protocol_version != PROTOCOL_VERSION:
+            raise MalformedCertificateError("Originality certificate protocol_version is unsupported.")
+        if certificate.network_id != expected_network_id:
+            raise MalformedCertificateError("Originality certificate belongs to a different network.")
+        if certificate.approval_threshold is None:
+            raise MalformedCertificateError("Originality certificate approval_threshold is required.")
+        if not math.isclose(float(certificate.approval_threshold), ORIGINALITY_APPROVAL_THRESHOLD):
+            raise MalformedCertificateError("Originality certificate approval threshold is inconsistent.")
+    elif certificate.network_name != local_network_name:
         raise MalformedCertificateError("Originality certificate belongs to a different network.")
     if not certificate.vote_hash:
         raise MalformedCertificateError("Originality certificate vote_hash is required.")
@@ -1904,7 +2155,16 @@ def _validate_certificate_internal(certificate, local_network_name):
         raise MalformedCertificateError(
             "Originality certificate approval percentage is inconsistent."
         )
-    if certificate.certificate_id != calculate_certificate_id(certificate.to_core_dict()):
+    try:
+        expected_certificate_id = calculate_certificate_id(
+            certificate.to_core_dict(),
+            certificate_version=certificate.certificate_version,
+            network_id=certificate.network_id,
+            network_name=certificate.network_name,
+        )
+    except ValueError as exc:
+        raise MalformedCertificateError(str(exc)) from exc
+    if certificate.certificate_id != expected_certificate_id:
         raise MalformedCertificateError(
             "Originality certificate_id does not match certificate contents."
         )
@@ -2068,6 +2328,10 @@ def _normalize_block_payload(block_payload):
     _reject_forbidden_fields(
         block_payload,
         [
+            "block_version",
+            "network_id",
+            "media_hash",
+            "media_bytes",
             "index",
             "previous_hash",
             "timestamp",
@@ -2142,39 +2406,30 @@ def _normalize_block_payload(block_payload):
         _normalize_transaction_payload(transaction_payload)
         for transaction_payload in transactions_payload
     ]
+    block_version = block_payload.get("block_version")
+    if block_version is not None and (
+        isinstance(block_version, bool) or not isinstance(block_version, int) or block_version <= 0
+    ):
+        raise MalformedBlockError("Block block_version must be a positive integer when provided.")
 
-    return Block(
-        index=index,
-        previous_hash=previous_hash.strip(),
-        timestamp=timestamp_value,
-        transactions=transactions,
-        miner=miner_value,
-        meme=block_payload["meme"],
-        hash=block_hash.strip(),
-        submission_id=block_payload.get("submission_id"),
-        certificate_id=block_payload.get("certificate_id"),
-        content_hash=block_payload.get("content_hash"),
-        content_id=block_payload.get("content_id"),
-        content_type=block_payload.get("content_type"),
-        mime_type=block_payload.get("mime_type"),
-        creator_wallet=block_payload.get("creator_wallet"),
-        vote_hash=block_payload.get("vote_hash"),
-        approval_percentage=block_payload.get("approval_percentage"),
-        decisive_vote_total=block_payload.get("decisive_vote_total"),
-        minimum_votes_required=block_payload.get("minimum_votes_required"),
-        approved_at=block_payload.get("approved_at"),
-        originality_score=block_payload.get("originality_score"),
-        reward_type=block_payload.get("reward_type"),
-        reward_recipient=block_payload.get("reward_recipient"),
-        reward_amount=block_payload.get("reward_amount"),
-        reward_source=block_payload.get("reward_source"),
-        minted_at=block_payload.get("minted_at"),
-        voter_rewards=block_payload.get("voter_rewards", []),
-        native_transactions=block_payload.get("native_transactions", []),
-        transaction_ids=block_payload.get("transaction_ids"),
-        transaction_count=block_payload.get("transaction_count"),
-        transactions_hash=block_payload.get("transactions_hash"),
-    )
+    network_id = block_payload.get("network_id")
+    if network_id is not None and (not isinstance(network_id, str) or not network_id.strip()):
+        raise MalformedBlockError("Block network_id must be a non-empty string when provided.")
+
+    try:
+        return Block.from_dict(
+            {
+                **block_payload,
+                "index": index,
+                "previous_hash": previous_hash.strip(),
+                "timestamp": timestamp_value,
+                "transactions": transactions,
+                "miner": miner_value,
+                "hash": block_hash.strip(),
+            }
+        )
+    except ValueError as exc:
+        raise MalformedBlockError(str(exc)) from exc
 
 
 def _normalize_transaction_payload(transaction_payload):
@@ -2243,12 +2498,19 @@ def _normalize_transaction_payload(transaction_payload):
 
 
 def _validate_block_hash(blockchain, block):
-    calculated_hash = block.calculate_hash()
+    try:
+        calculated_hash = block.calculate_hash()
+    except ValueError as exc:
+        raise MalformedBlockError(str(exc)) from exc
     if block.hash != calculated_hash:
         raise MalformedBlockError("Block hash does not match block contents.")
 
     block_dict = block.to_dict()
-    if block.hash != blockchain.calculate_hash_from_dict(block_dict):
+    try:
+        expected_hash = blockchain.calculate_hash_from_dict(block_dict)
+    except ValueError as exc:
+        raise MalformedBlockError(str(exc)) from exc
+    if block.hash != expected_hash:
         raise MalformedBlockError("Block hash does not match existing block validation.")
 
 
@@ -2262,6 +2524,7 @@ def _validate_block_extends_chain(blockchain, block, current_chain, validate_has
         raise MalformedBlockError("Block index must extend the local chain by one.")
 
     try:
+        blockchain.validate_protocol_v1_block_payload(block.to_dict())
         blockchain.validate_block_certificate_metadata(
             block.to_dict(),
             prior_chain=[
@@ -2335,13 +2598,34 @@ def _find_existing_vote(blockchain, submission_id, voter):
     return blockchain.storage.get_vote(submission_id, voter, blockchain.votes)
 
 
-def _normalize_vote_payload(vote_payload):
+def _looks_like_protocol_v1_domain_message(message, *, object_type=None):
+    if not isinstance(message, str) or not message.strip():
+        return False
+    try:
+        payload = json.loads(message)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("protocol") != "zoidbergchain":
+        return False
+    if payload.get("protocol_version") != PROTOCOL_VERSION:
+        return False
+    if object_type is not None and payload.get("object_type") != object_type:
+        return False
+    return isinstance(payload.get("domain"), str) and isinstance(payload.get("network_id"), str) and "payload" in payload
+
+
+def _normalize_vote_payload(vote_payload, local_network_name):
     if not isinstance(vote_payload, dict):
         raise MalformedVoteError("Vote payload must be an object.")
 
     _reject_forbidden_fields(
         vote_payload,
         [
+            "vote_version",
+            "protocol_version",
+            "network_id",
             "submission_id",
             "voter",
             "vote_type",
@@ -2353,6 +2637,8 @@ def _normalize_vote_payload(vote_payload):
             "vote_message",
             "signed_message_hash",
             "vote_nonce",
+            "vote_issued_at",
+            "vote_expires_at",
             "signed_at",
             "identity_source",
             "created_at",
@@ -2403,14 +2689,45 @@ def _normalize_vote_payload(vote_payload):
             raise MalformedVoteError("Vote content_hash must be a 64-character lowercase hexadecimal string.")
         normalized["content_hash"] = normalized_content_hash
 
+    vote_version = vote_payload.get("vote_version")
+    if vote_version is not None:
+        if isinstance(vote_version, bool) or not isinstance(vote_version, int) or vote_version != PROTOCOL_V1_VOTE_VERSION:
+            raise MalformedVoteError("Vote vote_version is unsupported.")
+        normalized["vote_version"] = vote_version
+
+    protocol_version = vote_payload.get("protocol_version")
+    if protocol_version is not None:
+        if isinstance(protocol_version, bool) or not isinstance(protocol_version, int):
+            raise MalformedVoteError("Vote protocol_version must be a positive integer.")
+        if protocol_version != PROTOCOL_VERSION:
+            raise MalformedVoteError("Vote protocol_version is unsupported.")
+        normalized["protocol_version"] = protocol_version
+
+    network_id = vote_payload.get("network_id")
+    if network_id is not None:
+        if not isinstance(network_id, str) or not network_id.strip():
+            raise MalformedVoteError("Vote network_id is required.")
+        try:
+            normalized["network_id"] = resolve_protocol_v1_network_id(network_id=network_id.strip())
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
+
     normalized["voter_wallet_address"] = vote_payload.get("voter_wallet_address")
     normalized["signature_scheme"] = vote_payload.get("signature_scheme")
     normalized["vote_signature"] = vote_payload.get("vote_signature")
     normalized["vote_message"] = vote_payload.get("vote_message")
     normalized["signed_message_hash"] = vote_payload.get("signed_message_hash")
     normalized["vote_nonce"] = vote_payload.get("vote_nonce")
+    normalized["vote_issued_at"] = vote_payload.get("vote_issued_at")
+    normalized["vote_expires_at"] = vote_payload.get("vote_expires_at")
     normalized["signed_at"] = vote_payload.get("signed_at")
     normalized["identity_source"] = vote_payload.get("identity_source")
+
+    if normalized.get("vote_version") is None and any(
+        normalized.get(field_name) is not None
+        for field_name in ["protocol_version", "network_id", "vote_issued_at", "vote_expires_at"]
+    ):
+        raise MalformedVoteError("Vote vote_version is required when Protocol v1 vote fields are present.")
 
     voter_wallet_address = normalized["voter_wallet_address"]
     normalized_wallet_address = normalize_wallet_address(voter_wallet_address) if isinstance(voter_wallet_address, str) else None
@@ -2433,14 +2750,61 @@ def _normalize_vote_payload(vote_payload):
         except ValueError as exc:
             raise MalformedVoteError(str(exc)) from exc
 
-        if recovered_wallet != normalized["voter"]:
-            raise MalformedVoteError("Vote signature does not match voter.")
-        if normalized["voter_wallet_address"] is None:
-            normalized["voter_wallet_address"] = recovered_wallet
-        elif normalized["voter_wallet_address"] != recovered_wallet:
-            raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
-        if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(normalized["vote_message"]):
-            raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
+        if normalized.get("vote_version") == PROTOCOL_V1_VOTE_VERSION:
+            if normalized.get("protocol_version") != PROTOCOL_VERSION:
+                raise MalformedVoteError("Vote protocol_version is required for Protocol v1 votes.")
+            if normalized.get("network_id") is None:
+                raise MalformedVoteError("Vote network_id is required for Protocol v1 votes.")
+            expected_network_id = resolve_protocol_v1_network_id(network_name=local_network_name)
+            if normalized["network_id"] != expected_network_id:
+                raise MalformedVoteError("Vote belongs to a different network.")
+            if normalized.get("content_hash") is None:
+                raise MalformedVoteError("Vote content_hash is required for Protocol v1 votes.")
+            if not isinstance(normalized.get("vote_nonce"), str) or not normalized["vote_nonce"].strip():
+                raise MalformedVoteError("Vote vote_nonce is required for Protocol v1 votes.")
+            if not isinstance(normalized.get("vote_issued_at"), str) or not normalized["vote_issued_at"].strip():
+                raise MalformedVoteError("Vote vote_issued_at is required for Protocol v1 votes.")
+            if not isinstance(normalized.get("vote_expires_at"), str) or not normalized["vote_expires_at"].strip():
+                raise MalformedVoteError("Vote vote_expires_at is required for Protocol v1 votes.")
+            expected_voter = normalize_wallet_address(normalized["voter"])
+            if expected_voter is None:
+                raise MalformedVoteError("Protocol v1 signed votes require an Ethereum-style voter wallet.")
+            expected_message = build_protocol_v1_vote_message(
+                wallet_address=expected_voter,
+                network_id=normalized["network_id"],
+                submission_id=normalized["submission_id"],
+                content_hash=normalized["content_hash"],
+                vote_type=normalized["vote_type"],
+                nonce=normalized["vote_nonce"],
+                issued_at=normalized["vote_issued_at"],
+                expires_at=normalized["vote_expires_at"],
+            )
+            if normalized["vote_message"].strip() != expected_message:
+                raise MalformedVoteError("Vote vote_message does not match the Protocol v1 vote payload.")
+            if recovered_wallet != expected_voter:
+                raise MalformedVoteError("Vote signature does not match voter.")
+            normalized["voter"] = expected_voter
+            if normalized["voter_wallet_address"] is None:
+                normalized["voter_wallet_address"] = expected_voter
+            elif normalized["voter_wallet_address"] != expected_voter:
+                raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
+            if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(expected_message):
+                raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
+        else:
+            if normalized.get("vote_version") is not None:
+                raise MalformedVoteError("Vote signature metadata is incompatible with the declared vote_version.")
+            if _looks_like_protocol_v1_domain_message(normalized["vote_message"], object_type=OBJECT_TYPE_VOTE):
+                raise MalformedVoteError("Vote vote_version is required for Protocol v1 vote messages.")
+            if recovered_wallet != normalized["voter"]:
+                raise MalformedVoteError("Vote signature does not match voter.")
+            if normalized["voter_wallet_address"] is None:
+                normalized["voter_wallet_address"] = recovered_wallet
+            elif normalized["voter_wallet_address"] != recovered_wallet:
+                raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
+            if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(normalized["vote_message"]):
+                raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
+    elif normalized.get("vote_version") == PROTOCOL_V1_VOTE_VERSION:
+        raise MalformedVoteError("Protocol v1 votes must include signature metadata.")
 
     return normalized
 

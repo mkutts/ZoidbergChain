@@ -9,6 +9,7 @@ from typing import Any
 
 from eth_account import Account
 from eth_account.messages import encode_defunct
+from protocol_v1 import PROTOCOL_VERSION
 from validators import is_valid_network_name
 
 
@@ -85,6 +86,9 @@ class NativeTransferMessage:
     signature_scheme: str | None = None
     message_hash: str | None = None
     status: str = "draft"
+    transaction_version: int | None = None
+    protocol_version: int | None = None
+    network_id: str | None = None
 
     def as_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -107,6 +111,12 @@ class NativeTransferMessage:
             payload["message_hash"] = self.message_hash
         if self.status:
             payload["status"] = self.status
+        if self.transaction_version is not None:
+            payload["transaction_version"] = self.transaction_version
+        if self.protocol_version is not None:
+            payload["protocol_version"] = self.protocol_version
+        if self.network_id is not None:
+            payload["network_id"] = self.network_id
         return payload
 
 
@@ -125,6 +135,9 @@ class NativeTransaction:
     tx_id: str
     transaction_type: str
     network: str
+    transaction_version: int | None
+    protocol_version: int | None
+    network_id: str | None
     from_address: str
     to_address: str
     amount: str
@@ -170,6 +183,12 @@ class NativeTransaction:
             "settled_at": self.settled_at,
             "rejection_reason": self.rejection_reason,
         }
+        if self.transaction_version is not None:
+            payload["transaction_version"] = self.transaction_version
+        if self.protocol_version is not None:
+            payload["protocol_version"] = self.protocol_version
+        if self.network_id is not None:
+            payload["network_id"] = self.network_id
         return payload
 
 
@@ -289,7 +308,7 @@ def _normalize_transfer_memo(memo: str | None) -> str | None:
     return candidate
 
 
-def _canonical_transaction_fields(payload: dict[str, Any]) -> dict[str, Any]:
+def _canonical_transaction_fields_legacy(payload: dict[str, Any]) -> dict[str, Any]:
     network = str(payload.get("network") or "").strip()
     if not network:
         raise ValueError("network is required.")
@@ -327,6 +346,13 @@ def _canonical_transaction_fields(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("signed_message_hash is required.")
     if normalize_tx_id(signed_message_hash) is None:
         raise ValueError("signed_message_hash must be lowercase SHA-256 hex.")
+    if signed_message_hash != hash_transfer_signing_message(signed_message):
+        raise ValueError("signed_message_hash does not match signed_message.")
+
+    from protocol_v1_native_transfer import looks_like_protocol_v1_native_transfer_message
+
+    if looks_like_protocol_v1_native_transfer_message(signed_message):
+        raise ValueError("transaction_version is required for Protocol v1 native transfer messages.")
 
     return {
         "transaction_type": transaction_type,
@@ -345,20 +371,130 @@ def _canonical_transaction_fields(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _canonical_transaction_fields_v1(payload: dict[str, Any]) -> dict[str, Any]:
+    from protocol_v1_native_transfer import (
+        PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
+        looks_like_protocol_v1_native_transfer_message,
+        resolve_protocol_v1_network_id,
+    )
+
+    network = str(payload.get("network") or "").strip()
+    if not network:
+        raise ValueError("network is required.")
+    if not is_valid_network_name(network):
+        raise ValueError("network is invalid.")
+
+    transaction_version = payload.get("transaction_version")
+    if isinstance(transaction_version, bool) or not isinstance(transaction_version, int):
+        raise ValueError("transaction_version must be a positive integer.")
+    if transaction_version != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
+        raise ValueError("transaction_version is unsupported.")
+
+    protocol_version = payload.get("protocol_version")
+    if isinstance(protocol_version, bool) or not isinstance(protocol_version, int):
+        raise ValueError("protocol_version must be a positive integer.")
+    if protocol_version != PROTOCOL_VERSION:
+        raise ValueError("protocol_version is unsupported.")
+
+    try:
+        network_id = resolve_protocol_v1_network_id(network_id=payload.get("network_id"))
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+
+    from_address = normalize_wallet_address(payload.get("from_address"))
+    if not from_address:
+        raise ValueError("from_address must be a valid Ethereum-style 0x address.")
+
+    to_address = normalize_wallet_address(payload.get("to_address"))
+    if not to_address:
+        raise ValueError("to_address must be a valid Ethereum-style 0x address.")
+    if from_address == to_address:
+        raise ValueError("from_address and to_address must be different.")
+
+    transaction_type = str(payload.get("transaction_type") or "").strip().lower()
+    if transaction_type != NATIVE_TRANSACTION_TYPE:
+        raise ValueError(f"transaction_type must be exactly {NATIVE_TRANSACTION_TYPE}.")
+
+    signature = str(payload.get("signature") or "").strip()
+    if not signature:
+        raise ValueError("signature is required.")
+
+    signature_scheme = str(payload.get("signature_scheme") or "").strip()
+    if signature_scheme != NATIVE_TRANSFER_SIGNATURE_SCHEME:
+        raise ValueError(f"signature_scheme must be {NATIVE_TRANSFER_SIGNATURE_SCHEME}.")
+
+    signed_message = str(payload.get("signed_message") or "").strip()
+    if not signed_message:
+        raise ValueError("signed_message is required.")
+    if not looks_like_protocol_v1_native_transfer_message(signed_message):
+        raise ValueError("signed_message must be a Protocol v1 native transfer payload.")
+
+    signed_message_hash = str(payload.get("signed_message_hash") or "").strip().lower()
+    if not signed_message_hash:
+        raise ValueError("signed_message_hash is required.")
+    if normalize_tx_id(signed_message_hash) is None:
+        raise ValueError("signed_message_hash must be lowercase SHA-256 hex.")
+    if signed_message_hash != hash_transfer_signing_message(signed_message):
+        raise ValueError("signed_message_hash does not match signed_message.")
+
+    return {
+        "transaction_type": transaction_type,
+        "transaction_version": transaction_version,
+        "protocol_version": protocol_version,
+        "network": network,
+        "network_id": network_id,
+        "from_address": from_address,
+        "to_address": to_address,
+        "amount": parse_native_zoid_amount(payload.get("amount"), allow_zero=False),
+        "fee": parse_native_zoid_amount(payload.get("fee", "0"), allow_zero=True),
+        "nonce": parse_transfer_nonce(payload.get("nonce")),
+        "memo": _normalize_transfer_memo(payload.get("memo")),
+        "timestamp": parse_transfer_timestamp(payload.get("timestamp")),
+        "signature": signature,
+        "signature_scheme": signature_scheme,
+        "signed_message": signed_message,
+        "signed_message_hash": signed_message_hash,
+    }
+
+
 def canonicalize_transaction_payload(transaction: dict[str, Any] | NativeTransaction) -> str:
+    from protocol_v1 import canonical_json_text
+
     payload = transaction.to_dict() if isinstance(transaction, NativeTransaction) else dict(transaction or {})
-    canonical_fields = _canonical_transaction_fields(payload)
-    return json.dumps(
-        canonical_fields,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=True,
+    version = payload.get("transaction_version")
+    if version is None:
+        canonical_fields = _canonical_transaction_fields_legacy(payload)
+        return json.dumps(
+            canonical_fields,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+
+    from protocol_v1_native_transfer import build_protocol_v1_transaction_identity_payload
+
+    if version != PROTOCOL_VERSION:
+        raise ValueError(f"Unsupported transaction_version: {version}")
+    return canonical_json_text(
+        build_protocol_v1_transaction_identity_payload(payload)
     )
 
 
 def compute_transaction_id(transaction_payload: dict[str, Any] | NativeTransaction) -> str:
-    canonical = canonicalize_transaction_payload(transaction_payload)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    payload = transaction_payload.to_dict() if isinstance(transaction_payload, NativeTransaction) else dict(transaction_payload or {})
+    version = payload.get("transaction_version")
+    if version is None:
+        canonical = canonicalize_transaction_payload(payload)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    from protocol_v1_native_transfer import calculate_protocol_v1_transaction_id
+
+    if version != PROTOCOL_VERSION:
+        raise ValueError(f"Unsupported transaction_version: {version}")
+    network_id = payload.get("network_id")
+    if network_id in (None, ""):
+        raise ValueError("network_id is required for Protocol v1 native transaction IDs.")
+    return calculate_protocol_v1_transaction_id(payload, network_id=str(network_id))
 
 
 def validate_transaction_shape(
@@ -367,10 +503,28 @@ def validate_transaction_shape(
     network_name: str,
 ) -> NativeTransaction:
     payload = transaction.to_dict() if isinstance(transaction, NativeTransaction) else dict(transaction or {})
-    canonical_fields = _canonical_transaction_fields(payload)
+    version = payload.get("transaction_version")
+    if version is None:
+        if any(payload.get(field_name) is not None for field_name in ("protocol_version", "network_id")):
+            raise ValueError("transaction_version is required when Protocol v1 transaction fields are present.")
+        canonical_fields = _canonical_transaction_fields_legacy(payload)
+        transaction_version = None
+        protocol_version = None
+        network_id = None
+    else:
+        canonical_fields = _canonical_transaction_fields_v1(payload)
+        transaction_version = canonical_fields["transaction_version"]
+        protocol_version = canonical_fields["protocol_version"]
+        network_id = canonical_fields["network_id"]
 
     if canonical_fields["network"] != network_name:
         raise ValueError("network does not match the active ZoidbergChain network.")
+    if transaction_version == PROTOCOL_VERSION:
+        from protocol_v1_native_transfer import resolve_protocol_v1_network_id
+
+        expected_network_id = resolve_protocol_v1_network_id(network_name=network_name)
+        if network_id != expected_network_id:
+            raise ValueError("network_id does not match the active ZoidbergChain network.")
 
     status = _normalize_transaction_status(payload.get("status"))
     tx_id = str(payload.get("tx_id") or "").strip().lower()
@@ -408,6 +562,9 @@ def validate_transaction_shape(
         tx_id=normalized_tx_id,
         transaction_type=canonical_fields["transaction_type"],
         network=canonical_fields["network"],
+        transaction_version=transaction_version,
+        protocol_version=protocol_version,
+        network_id=network_id,
         from_address=canonical_fields["from_address"],
         to_address=canonical_fields["to_address"],
         amount=canonical_fields["amount"],
@@ -444,6 +601,9 @@ def build_native_transaction(
     signature_scheme: str,
     signed_message: str,
     signed_message_hash: str,
+    transaction_version: int | None = None,
+    protocol_version: int | None = None,
+    network_id: str | None = None,
     status: str = "signed_pending",
     created_at: str | None = None,
     updated_at: str | None = None,
@@ -469,6 +629,9 @@ def build_native_transaction(
         "signature_scheme": signature_scheme,
         "signed_message": signed_message,
         "signed_message_hash": signed_message_hash,
+        "transaction_version": transaction_version,
+        "protocol_version": protocol_version,
+        "network_id": network_id,
         "status": status,
         "created_at": created_timestamp,
         "updated_at": updated_timestamp,
@@ -547,6 +710,24 @@ def validate_native_transfer_message(
 
 
 def build_transfer_signing_message(transfer_message: NativeTransferMessage) -> str:
+    if transfer_message.transaction_version == PROTOCOL_VERSION:
+        from protocol_v1_native_transfer import build_protocol_v1_native_transfer_message
+
+        if transfer_message.protocol_version != PROTOCOL_VERSION:
+            raise ValueError("Protocol v1 native transfers must use protocol_version=1.")
+        if not transfer_message.network_id:
+            raise ValueError("Protocol v1 native transfers require network_id.")
+        return build_protocol_v1_native_transfer_message(
+            from_address=transfer_message.from_address,
+            to_address=transfer_message.to_address,
+            amount=transfer_message.amount,
+            fee=transfer_message.fee,
+            nonce=transfer_message.nonce,
+            timestamp=transfer_message.timestamp,
+            memo=transfer_message.memo,
+            network_id=transfer_message.network_id,
+        )
+
     lines = [
         "ZoidbergChain Native Transfer",
         "",

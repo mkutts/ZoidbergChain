@@ -5,6 +5,8 @@ from originality_certificate import (
     calculate_originality_score,
     calculate_vote_hash,
 )
+from protocol_v1 import PROTOCOL_VERSION
+from protocol_v1_originality import PROTOCOL_V1_CERTIFICATE_VERSION, resolve_protocol_v1_network_id
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -142,7 +144,11 @@ def test_approved_submission_automatically_creates_certificate(blockchain, submi
     assert result["certificate"] == certificate.to_dict()
     assert submission.certificate_id == certificate.certificate_id
     assert certificate.vote_hash == calculate_vote_hash(
-        blockchain.get_submission_votes(submission.submission_id)["votes"]
+        blockchain.get_submission_votes(submission.submission_id)["votes"],
+        vote_set_version=certificate.certificate_version,
+        submission_id=submission.submission_id,
+        content_hash=submission.content_hash,
+        network_id=certificate.network_id,
     )
 
 
@@ -277,6 +283,9 @@ def test_certificate_can_be_created_from_approved_submission(blockchain, submiss
     assert certificate.minimum_votes_required == 5
     assert certificate.approved_at == APPROVED_AT
     assert certificate.network_name == NETWORK_NAME
+    assert certificate.certificate_version == PROTOCOL_V1_CERTIFICATE_VERSION
+    assert certificate.protocol_version == PROTOCOL_VERSION
+    assert certificate.network_id == resolve_protocol_v1_network_id(network_name=NETWORK_NAME)
     assert certificate.issuing_node_id == ISSUING_NODE_ID
     assert certificate.originality_score == calculate_originality_score(certificate)
     assert submission.certificate_id == certificate.certificate_id

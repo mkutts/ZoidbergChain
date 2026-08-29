@@ -1,10 +1,13 @@
 from pathlib import Path
 
+from protocol_v1_genesis import PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
+
 
 def test_blockchain_fixture_creates_genesis_block_in_isolation(blockchain):
     assert len(blockchain.chain) == 1
     assert blockchain.get_latest_block().index == 0
-    assert Path("blockchain.json").exists() is False
+    assert Path("blockchain.json").exists() is True
+    assert blockchain.get_latest_block().hash == PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
 
 
 def test_wallet_fixture_registers_genesis_wallets(blockchain, wallets):

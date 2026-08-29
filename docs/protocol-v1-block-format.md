@@ -1,5 +1,7 @@
 # Protocol v1 Block Format
 
+Authoritative note: [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md) is the primary Public Testnet v1 protocol specification. If this document conflicts with it or with [docs/protocol-v1-freeze-report.json](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-freeze-report.json), the authoritative spec and freeze report win.
+
 ## 1. Block version
 
 Protocol v1 accepted-media blocks are identified by `block_version: 1`.
@@ -345,14 +347,12 @@ Legacy pre-v1 blocks do not satisfy MODEL A.
 
 ## 21. Remaining limitations
 
-Task 3 and Task 4 still do not yet freeze or migrate:
-
-- genesis semantics
-- finality/lifecycle semantics
+Genesis semantics and reset policy are now frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md).
 
 Task 6 freezes peer-message transport in [docs/protocol-v1-peer-messages.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-peer-messages.md).
+Task 7 freezes lifecycle and operational finality semantics in [docs/protocol-v1-lifecycle-finality.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-lifecycle-finality.md).
 
 Vote signing and originality certificate identity are frozen in [docs/protocol-v1-originality-and-votes.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-originality-and-votes.md).
 Native-transfer signing and tx IDs are frozen in [docs/protocol-v1-native-transfers.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-native-transfers.md).
 
-The legacy direct block-creation path still exists for legacy blocks and should be reviewed in a later lifecycle-hardening task, but it does not mint Protocol v1 accepted-media blocks without certificate-backed metadata.
+The legacy direct block-creation path still exists for legacy blocks as an explicit development-only compatibility route, but it does not mint Protocol v1 accepted-media blocks without certificate-backed metadata.

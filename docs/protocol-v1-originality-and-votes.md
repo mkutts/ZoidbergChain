@@ -1,5 +1,7 @@
 # Protocol v1 Originality Certificates and Votes
 
+Authoritative note: [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md) is the primary Public Testnet v1 protocol specification. If this document conflicts with it or with [docs/protocol-v1-freeze-report.json](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-freeze-report.json), the authoritative spec and freeze report win.
+
 ## 1. Vote object version
 
 Protocol v1 votes are identified explicitly with:
@@ -315,7 +317,7 @@ Compatibility rule:
 - existing dev data remains loadable
 - Protocol v1 block validation can still follow explicit legacy certificate records during the transition
 
-Public Testnet launch will likely require a clean recertification/reset policy for legacy dev data, but that policy is not implemented here.
+Public Testnet launch/reset policy for legacy dev data is now frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md). Task 4 itself still does not auto-migrate legacy votes or certificates into the canonical Public Testnet v1 chain.
 
 ## 21. Peer sync behavior
 
@@ -337,15 +339,11 @@ Additional receive-time checks:
 
 ## 22. Known limitations
 
-Task 4 intentionally does not yet migrate:
-
-- native transfer signing domains
-- native transaction ID domains
-- genesis semantics
-- lifecycle/finality semantics
-- final reset/recertification policy for legacy chain data
+Protocol v1 still does not auto-migrate or auto-recertify legacy chain data.
 
 Task 6 freezes peer-message transport in [docs/protocol-v1-peer-messages.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-peer-messages.md).
+Task 7 freezes lifecycle and operational finality semantics in [docs/protocol-v1-lifecycle-finality.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-lifecycle-finality.md).
+Task 8 freezes genesis and reset policy in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md).
 
 Operational note:
 

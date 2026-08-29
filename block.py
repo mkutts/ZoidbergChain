@@ -11,6 +11,11 @@ from protocol_v1 import (
     encode_canonical_bytes,
     normalize_network_id,
 )
+from protocol_v1_genesis import (
+    PUBLIC_TESTNET_V1_GENESIS_VERSION,
+    canonical_public_testnet_v1_genesis_hash,
+    canonical_public_testnet_v1_genesis_payload_from_record,
+)
 from transaction import Transaction
 
 
@@ -63,6 +68,8 @@ class Block:
         meme=None,
         hash=None,
         block_version=None,
+        genesis_version=None,
+        protocol_version=None,
         network_id=None,
         media_hash=None,
         media_bytes=None,
@@ -89,6 +96,8 @@ class Block:
         transaction_ids=None,
         transaction_count=None,
         transactions_hash=None,
+        total_supply=None,
+        initial_reward_pool=None,
     ):
         self.index = index
         self.previous_hash = previous_hash
@@ -97,6 +106,8 @@ class Block:
         self.miner = miner
         self.meme = meme or "default-meme"
         self.block_version = block_version
+        self.genesis_version = genesis_version
+        self.protocol_version = protocol_version
         self.network_id = normalize_network_id(network_id) if network_id is not None else None
         self.media_hash = media_hash
         self.media_bytes = self._coerce_media_bytes(media_bytes)
@@ -130,6 +141,8 @@ class Block:
         )
         self.transaction_count = int(transaction_count if transaction_count is not None else len(self.native_transactions))
         self.transactions_hash = transactions_hash
+        self.total_supply = total_supply
+        self.initial_reward_pool = initial_reward_pool
         self.hash = hash or self.calculate_hash()
 
     @staticmethod
@@ -166,6 +179,8 @@ class Block:
             meme=block_data.get("meme", {}),
             hash=block_data.get("hash"),
             block_version=block_data.get("block_version"),
+            genesis_version=block_data.get("genesis_version"),
+            protocol_version=block_data.get("protocol_version"),
             network_id=block_data.get("network_id"),
             media_hash=block_data.get("media_hash"),
             media_bytes=block_data.get("media_bytes"),
@@ -192,16 +207,25 @@ class Block:
             transaction_ids=block_data.get("transaction_ids"),
             transaction_count=block_data.get("transaction_count"),
             transactions_hash=block_data.get("transactions_hash"),
+            total_supply=block_data.get("total_supply"),
+            initial_reward_pool=block_data.get("initial_reward_pool"),
         )
 
     def is_protocol_v1_block(self) -> bool:
         return self.block_version == PROTOCOL_V1_BLOCK_VERSION
 
+    def is_protocol_v1_genesis_block(self) -> bool:
+        return self.genesis_version == PUBLIC_TESTNET_V1_GENESIS_VERSION
+
     def protocol_v1_metadata(self, *, include_media_bytes=True):
         metadata = {
             "block_version": self.block_version,
+            "genesis_version": self.genesis_version,
+            "protocol_version": self.protocol_version,
             "network_id": self.network_id,
             "media_hash": self.media_hash,
+            "total_supply": self.total_supply,
+            "initial_reward_pool": self.initial_reward_pool,
         }
         if include_media_bytes and self.media_bytes is not None:
             metadata["media_bytes"] = encode_canonical_bytes(self.media_bytes)
@@ -499,7 +523,14 @@ class Block:
     def calculate_hash_v1_from_dict(cls, block_dict):
         return hashlib.sha256(cls.consensus_payload_v1_bytes_from_dict(block_dict)).hexdigest()
 
+    def calculate_hash_genesis(self):
+        record = self.to_dict(include_media_bytes=True)
+        canonical_public_testnet_v1_genesis_payload_from_record(record)
+        return canonical_public_testnet_v1_genesis_hash()
+
     def calculate_hash(self):
+        if self.is_protocol_v1_genesis_block():
+            return self.calculate_hash_genesis()
         if self.is_protocol_v1_block():
             return self.calculate_hash_v1()
         return self.calculate_hash_legacy()

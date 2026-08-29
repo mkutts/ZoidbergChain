@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from peers import PeerStore
+from test_support import fund_native_wallet_with_block
 
 
 def _client(blockchain):
@@ -31,6 +32,7 @@ def test_public_endpoint_error_responses_do_not_leak_internal_details(blockchain
 def test_request_logging_does_not_include_query_string_secrets(blockchain, wallets, monkeypatch):
     import api
 
+    fund_native_wallet_with_block(blockchain, wallets["owner"].public_key, amount="25")
     client = _client(blockchain)
     private_key = wallets["owner"].private_key
     logged_messages = []

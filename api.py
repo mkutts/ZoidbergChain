@@ -704,6 +704,7 @@ def _validate_uploaded_image_payload(image: UploadFile, file_bytes: bytes) -> tu
 
 def _serialize_submission(submission):
     content_object = blockchain.get_content_object_by_hash(submission.content_hash) if submission.content_hash else None
+    lifecycle = blockchain.get_submission_protocol_v1_lifecycle(submission.submission_id)
     body = {
         "submission_id": submission.submission_id,
         "text_content": submission.text_content,
@@ -721,6 +722,14 @@ def _serialize_submission(submission):
         "certificate_id": submission.certificate_id,
         "decision_reason": getattr(submission, "decision_reason", None),
         "decision_finalized_at": getattr(submission, "decision_finalized_at", None),
+        "submission_status": submission.status,
+        "certificate_status": lifecycle["certificate_status"],
+        "mint_status": lifecycle["mint_status"],
+        "block_status": lifecycle["block_status"],
+        "confirmations": lifecycle["confirmations"],
+        "confirmed": lifecycle["confirmed"],
+        "finalized": lifecycle["finalized"],
+        "protocol_v1_lifecycle": lifecycle,
         "voter_reward_summary": blockchain.get_submission_voter_reward_summary(submission.submission_id),
     }
     if content_object is not None:
@@ -747,8 +756,23 @@ def _serialize_certificate(certificate):
 
 def _serialize_block(block, *, include_media_bytes=False):
     body = block.to_dict(include_media_bytes=include_media_bytes)
+    chain_state = blockchain.get_block_chain_state(block)
     body["transaction_count"] = body.get("transaction_count", len(body.get("native_transactions", []) or []))
     body["transaction_ids"] = body.get("transaction_ids", [tx.get("tx_id") for tx in body.get("native_transactions", []) if tx.get("tx_id")])
+    body["is_genesis"] = body.get("index") == 0
+    body["object_type"] = "genesis" if body["is_genesis"] else "block"
+    body["block_status"] = chain_state["phase"]
+    body["accepted"] = chain_state["accepted"]
+    body["canonical"] = chain_state["canonical"]
+    body["confirmations"] = chain_state["confirmations"]
+    body["confirmed"] = chain_state["confirmed"]
+    body["finalized"] = chain_state["finalized"]
+    body["confirmation_depth"] = chain_state["confirmation_depth"]
+    body["finality_depth"] = chain_state["finality_depth"]
+    body["finality_model"] = chain_state["finality_model"]
+    body["finality_scope"] = chain_state["finality_scope"]
+    if body["is_genesis"]:
+        body["canonical_genesis_hash"] = blockchain.public_testnet_v1_genesis_hash()
     if not include_media_bytes and getattr(block, "media_bytes", None) is not None:
         body["media_embedded"] = True
         body["media_size_bytes"] = len(block.media_bytes)
@@ -1500,6 +1524,14 @@ async def require_mint_queue_management_access(
             return "admin"
         raise HTTPException(status_code=403, detail="Admin API key required for mint queue management.")
     raise HTTPException(status_code=403, detail="Mint queue management is disabled.")
+
+
+async def require_legacy_direct_block_access():
+    require_development_mode(
+        allow_dev_reset_endpoints(),
+        "Legacy direct block route",
+    )
+    return "dev"
 
 
 async def require_transaction_broadcast_access(
@@ -5167,7 +5199,10 @@ async def get_chain(request: Request):
 async def chain_summary(request: Request):
     payload = _health_payload()
     payload.update({
+        "protocol_version": 1,
+        "network_id": blockchain.protocol_v1_network_id(),
         "genesis_hash": blockchain.chain[0].hash,
+        "canonical_genesis_hash": blockchain.public_testnet_v1_genesis_hash(),
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
         "cumulative_work": None,
     })
@@ -5222,11 +5257,30 @@ async def peer_chain_blocks(
     _: None = Depends(require_peer_secret),
 ):
     _require_protocol_v1_active_peer(request)
-    return await chain_blocks(
-        request,
-        from_height=from_height,
-        include_media_bytes=include_media_bytes,
-    )
+    if from_height < 0:
+        raise HTTPException(status_code=400, detail="from_height must be non-negative.")
+
+    blocks = [
+        block
+        for block in blockchain.chain
+        if block.index >= from_height
+    ]
+    certificate_ids = {
+        block.certificate_id
+        for block in blocks
+        if block.certificate_id
+    }
+    return {
+        "blocks": [
+            block.to_dict(include_media_bytes=include_media_bytes)
+            for block in blocks
+        ],
+        "certificates": [
+            certificate.to_dict()
+            for certificate in blockchain.originality_certificates
+            if certificate.certificate_id in certificate_ids
+        ],
+    }
 
 
 @app.post("/chain/sync")
@@ -6104,9 +6158,10 @@ async def add_block(
     image: UploadFile,
     miner: Annotated[str, Form(..., min_length=66, max_length=66, pattern=PUBLIC_KEY_PATTERN)],
     private_key: Annotated[str, Form(..., min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")],  # ✅ Validate miner via wallet key
+    role: str = Depends(require_legacy_direct_block_access),
 ):
     """
-    Add a new block to the blockchain with the given meme image and transactions.
+    Add a legacy direct block for development-only workflows.
     """
 
     print(f"Debug: Received add_block request - Miner: {miner}")
@@ -6191,7 +6246,10 @@ async def add_block(
         )
 
         return {
-            "message": "Block added successfully.",
+            "message": "Legacy direct block added successfully.",
+            "legacy_direct_block": True,
+            "protocol_v1_mint_path": False,
+            "access_role": role,
             "block": _serialize_block(latest_block) if latest_block else False,
             "broadcast": broadcast_result,
         }

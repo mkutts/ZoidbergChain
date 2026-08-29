@@ -16,6 +16,7 @@ from native_transfer import (
 from peers import PeerStore
 from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID
 from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
+from test_support import fund_native_wallet_with_block
 from transaction import Transaction
 from wallet_auth import WalletAuthManager
 
@@ -60,9 +61,7 @@ def _verified_headers(client, account):
 
 
 def _fund_native_wallet(blockchain, wallet_address, amount="25"):
-    blockchain.chain[0].transactions.append(
-        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
-    )
+    fund_native_wallet_with_block(blockchain, wallet_address, amount=amount)
 
 
 def _build_legacy_signed_transaction(account, *, to_address=None, amount="4", fee="0", nonce="1", memo="legacy block tx"):

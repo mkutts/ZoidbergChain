@@ -1,5 +1,7 @@
 # Protocol v1 Native ZOID Transfers
 
+Authoritative note: [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md) is the primary Public Testnet v1 protocol specification. If this document conflicts with it or with [docs/protocol-v1-freeze-report.json](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-freeze-report.json), the authoritative spec and freeze report win.
+
 Native ZOID transfers are ZoidbergChain Layer 1 transactions. They are not Ethereum transactions and ZOID is not an ERC-20 token.
 
 Task 5 freezes the Protocol v1 native-transfer representation, signing semantics, and transaction ID algorithm. Task 6 freezes peer-message transport separately. Genesis remains outside Task 5.
@@ -326,12 +328,12 @@ Legacy compatibility is explicit:
 - existing dev/test data remains loadable where practical
 - legacy pending transfers are not admitted into the live Protocol v1 mempool or new Protocol v1 blocks
 
-This task does not define the final Public Testnet reset policy, but launch still likely requires a purge of pending legacy native-transaction state.
+Public Testnet reset policy is now frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md). Operationally, pending legacy native-transaction state should still be reviewed or purged before a node joins the canonical Public Testnet v1 chain.
 
 ## 24. Known limitations
 
-Task 5 intentionally does not yet freeze or migrate:
+Task 5 intentionally does not itself freeze or migrate launch-time legacy cleanup:
 
-- genesis
-- lifecycle/finality semantics
-- the final legacy reset policy
+- pending legacy native-transaction state
+
+Task 7 freezes lifecycle and operational finality semantics in [docs/protocol-v1-lifecycle-finality.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-lifecycle-finality.md).

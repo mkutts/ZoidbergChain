@@ -20,7 +20,7 @@ from protocol_v1_peer_message import (
     build_protocol_v1_peer_request_headers,
     clear_protocol_v1_peer_replay_store_cache,
 )
-from transaction import Transaction
+from test_support import fund_native_wallet_with_block
 from wallet_auth import WalletAuthManager
 
 
@@ -49,9 +49,7 @@ def _sign_message(message, account):
 
 
 def _fund_native_wallet(blockchain, wallet_address, amount="25"):
-    blockchain.chain[0].transactions.append(
-        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
-    )
+    fund_native_wallet_with_block(blockchain, wallet_address, amount=amount)
 
 
 def _verified_headers(client, account):

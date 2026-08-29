@@ -4,7 +4,9 @@ from fastapi.testclient import TestClient
 
 from block import Block
 from peers import PeerStore
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
+from test_support import fund_native_wallet_with_block
 from transaction import Transaction
 
 
@@ -49,10 +51,7 @@ def _sign_message(message, account):
 
 
 def _fund_native_wallet(blockchain, wallet_address, amount="25"):
-    blockchain.chain[0].transactions.append(
-        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
-    )
-    blockchain.chain[0].hash = blockchain.chain[0].calculate_hash()
+    fund_native_wallet_with_block(blockchain, wallet_address, amount=amount)
 
 
 def _verified_headers(client, account):
@@ -229,6 +228,8 @@ def _summary(
 ):
     return {
         "network_name": network_name,
+        "network_id": PUBLIC_TESTNET_V1_NETWORK_ID,
+        "protocol_version": PROTOCOL_VERSION,
         "node_id": node_id,
         "chain_height": chain[-1].index,
         "latest_block_hash": chain[-1].hash,
@@ -304,6 +305,8 @@ def test_chain_summary_endpoint(blockchain):
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["network_name"] == "zoidberg-testnet"
+    assert payload["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
+    assert payload["protocol_version"] == PROTOCOL_VERSION
     assert payload["node_id"] == "local-node"
     assert payload["environment"] == "development"
     assert payload["public_demo_mode"] is False
@@ -312,9 +315,25 @@ def test_chain_summary_endpoint(blockchain):
     assert payload["storage_backend"] == "json"
     assert payload["peer_count"] == 0
     assert payload["genesis_hash"] == blockchain.chain[0].hash
+    assert payload["canonical_genesis_hash"] == blockchain.chain[0].hash
     assert payload["cumulative_originality_score"] == 0
     assert payload["cumulative_work"] is None
     assert "build" in payload
+
+
+def test_chain_blocks_identify_the_canonical_genesis_explicitly(blockchain):
+    client = _client(blockchain)
+
+    response = client.get("/chain/blocks")
+
+    assert response.status_code == 200
+    genesis = response.json()["blocks"][0]
+    assert genesis["is_genesis"] is True
+    assert genesis["object_type"] == "genesis"
+    assert genesis["genesis_version"] == 1
+    assert genesis["protocol_version"] == PROTOCOL_VERSION
+    assert genesis["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
+    assert genesis["canonical_genesis_hash"] == blockchain.chain[0].hash
 
 
 def test_chain_summary_reports_cumulative_originality_score(
@@ -727,5 +746,5 @@ def test_sync_rejects_invalid_native_transfer_block_without_mutating_local_state
     assert "network does not match" in response.json()["results"][0]["reason"].lower()
     assert blockchain.get_latest_block().index == 0
     assert blockchain.get_native_transaction(tx_id) is None
-    assert blockchain.get_native_balance_snapshot(sender_address)["final_balance"] == "10"
+    assert blockchain.get_native_balance_snapshot(sender_address)["final_balance"] == "0"
     assert blockchain.get_native_balance_snapshot(recipient_address)["final_balance"] == "0"

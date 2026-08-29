@@ -40,6 +40,7 @@ from originality_certificate import (
     validate_certificate_for_submission,
 )
 from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION
+from protocol_v1_genesis import GenesisValidationError
 from protocol_v1_originality import (
     PROTOCOL_V1_CERTIFICATE_VERSION,
     PROTOCOL_V1_VOTE_VERSION,
@@ -804,8 +805,13 @@ def receive_peer_block(
 
     blockchain.chain.append(block)
     blockchain.settle_block_native_transactions(block)
+    blockchain.recompute_reward_pool_balance(chain=blockchain.chain)
     _remove_confirmed_pending_transactions(blockchain, block.transactions)
-    minted_submission = _mark_related_submission_minted(blockchain, related_submission_id)
+    minted_submission = _mark_related_submission_minted(
+        blockchain,
+        related_submission_id or block.submission_id,
+    )
+    blockchain.reconcile_submission_canonical_state()
     blockchain.save_blockchain()
 
     return {
@@ -1520,8 +1526,9 @@ def sync_mempool_from_peer(
 def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeout_seconds):
     local_height = blockchain.get_latest_block().index
     local_latest_hash = blockchain.get_latest_block().hash
-    local_genesis_hash = blockchain.chain[0].hash
+    local_genesis_hash = blockchain.public_testnet_v1_genesis_hash()
     local_score = blockchain.get_cumulative_originality_score()
+    local_network_id = blockchain.protocol_v1_network_id()
 
     summary = _fetch_peer_chain_summary(
         peer,
@@ -1533,6 +1540,21 @@ def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeou
     peer_height = summary["chain_height"]
     peer_latest_hash = summary["latest_block_hash"]
     if summary["network_name"] != network_name:
+        return _chain_sync_result(
+            peer,
+            "skipped",
+            "wrong_network",
+            local_height=local_height,
+            peer_height=peer_height,
+            candidate_height=peer_height,
+            local_latest_hash=local_latest_hash,
+            candidate_latest_hash=peer_latest_hash,
+            local_score=local_score,
+            peer_score=peer_score,
+            candidate_score=peer_score,
+            decision="invalid_candidate",
+        )
+    if summary["network_id"] != local_network_id:
         return _chain_sync_result(
             peer,
             "skipped",
@@ -1666,6 +1688,8 @@ def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeou
     for block in candidate_chain:
         _remove_confirmed_pending_transactions(blockchain, block.transactions)
     blockchain.chain = candidate_chain
+    blockchain.recompute_reward_pool_balance(chain=blockchain.chain)
+    blockchain.reconcile_submission_canonical_state()
     blockchain.reconcile_native_transactions_with_chain(chain=candidate_chain)
     blockchain.save_blockchain()
 
@@ -2183,6 +2207,10 @@ def _validate_candidate_chain(
     candidate_chain = [_normalize_block_payload(block_payload) for block_payload in blocks_payload]
     if candidate_chain[0].index != 0:
         raise ChainSyncError("Candidate chain must begin with genesis block.")
+    try:
+        blockchain.validate_canonical_public_testnet_v1_genesis(candidate_chain[0])
+    except GenesisValidationError as exc:
+        raise ChainSyncError(str(exc)) from exc
     if candidate_chain[0].hash != expected_genesis_hash:
         raise ChainSyncError("Candidate chain genesis hash does not match local genesis.")
     if candidate_chain[-1].index != expected_height:
@@ -2196,9 +2224,11 @@ def _validate_candidate_chain(
         if certificate_id and not blockchain.get_originality_certificate(certificate_id):
             raise ChainSyncError(f"Missing originality certificate: {certificate_id}")
 
+    working_chain = []
     for block in candidate_chain:
         _validate_block_hash(blockchain, block)
-        _validate_block_transactions(blockchain, block)
+        _validate_block_transactions(blockchain, block, prior_chain=working_chain)
+        working_chain.append(block)
 
     if not blockchain.is_chain_valid([block.to_dict() for block in candidate_chain]):
         raise ChainSyncError("Candidate chain failed validation.")
@@ -2210,12 +2240,21 @@ def _normalize_chain_summary(summary):
     if not isinstance(summary, dict):
         raise ChainSyncError("Peer chain summary must be an object.")
 
-    for field_name in ["network_name", "node_id", "chain_height", "latest_block_hash", "genesis_hash"]:
+    for field_name in ["network_name", "network_id", "protocol_version", "node_id", "chain_height", "latest_block_hash", "genesis_hash"]:
         if field_name not in summary:
             raise ChainSyncError(f"Peer chain summary missing {field_name}.")
 
     if not isinstance(summary["network_name"], str) or not summary["network_name"].strip():
         raise ChainSyncError("Peer chain summary network_name is required.")
+    if not isinstance(summary["network_id"], str) or not summary["network_id"].strip():
+        raise ChainSyncError("Peer chain summary network_id is required.")
+    try:
+        network_id = resolve_protocol_v1_network_id(network_id=summary["network_id"].strip())
+    except ValueError as exc:
+        raise ChainSyncError("Peer chain summary network_id is invalid.") from exc
+    protocol_version = summary["protocol_version"]
+    if isinstance(protocol_version, bool) or not isinstance(protocol_version, int) or protocol_version != PROTOCOL_VERSION:
+        raise ChainSyncError("Peer chain summary protocol_version is unsupported.")
     if not isinstance(summary["node_id"], str) or not summary["node_id"].strip():
         raise ChainSyncError("Peer chain summary node_id is required.")
     if not isinstance(summary["chain_height"], int) or summary["chain_height"] < 0:
@@ -2236,6 +2275,8 @@ def _normalize_chain_summary(summary):
     return {
         **summary,
         "network_name": summary["network_name"].strip(),
+        "network_id": network_id,
+        "protocol_version": protocol_version,
         "node_id": summary["node_id"].strip(),
         "latest_block_hash": summary["latest_block_hash"].strip(),
         "genesis_hash": summary["genesis_hash"].strip(),
@@ -2329,6 +2370,8 @@ def _normalize_block_payload(block_payload):
         block_payload,
         [
             "block_version",
+            "genesis_version",
+            "protocol_version",
             "network_id",
             "media_hash",
             "media_bytes",
@@ -2362,6 +2405,8 @@ def _normalize_block_payload(block_payload):
             "transaction_ids",
             "transaction_count",
             "transactions_hash",
+            "total_supply",
+            "initial_reward_pool",
         ],
         MalformedBlockError,
         "Block payload",
@@ -2411,6 +2456,18 @@ def _normalize_block_payload(block_payload):
         isinstance(block_version, bool) or not isinstance(block_version, int) or block_version <= 0
     ):
         raise MalformedBlockError("Block block_version must be a positive integer when provided.")
+
+    genesis_version = block_payload.get("genesis_version")
+    if genesis_version is not None and (
+        isinstance(genesis_version, bool) or not isinstance(genesis_version, int) or genesis_version <= 0
+    ):
+        raise MalformedBlockError("Block genesis_version must be a positive integer when provided.")
+
+    protocol_version = block_payload.get("protocol_version")
+    if protocol_version is not None and (
+        isinstance(protocol_version, bool) or not isinstance(protocol_version, int) or protocol_version <= 0
+    ):
+        raise MalformedBlockError("Block protocol_version must be a positive integer when provided.")
 
     network_id = block_payload.get("network_id")
     if network_id is not None and (not isinstance(network_id, str) or not network_id.strip()):
@@ -2553,9 +2610,10 @@ def _validate_block_transactions(blockchain, block, *, prior_chain=None):
         if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not blockchain.validate_transaction(transaction):
             raise MalformedBlockError("Block contains an invalid transaction.")
     try:
+        source_chain = blockchain.chain if prior_chain is None else prior_chain
         chain_prefix = [
             existing_block.to_dict() if hasattr(existing_block, "to_dict") else existing_block
-            for existing_block in (prior_chain or blockchain.chain)
+            for existing_block in source_chain
         ]
         blockchain.validate_block_native_transactions(block.to_dict(), prior_chain=chain_prefix)
     except ValueError as exc:

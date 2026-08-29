@@ -8,6 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from protocol_v1_genesis import (
+    GenesisValidationError,
+    canonical_public_testnet_v1_genesis_hash,
+    require_public_testnet_v1_genesis_chain,
+)
 from storage import JSONStorageBackend, SQLiteStorageBackend
 
 
@@ -52,6 +58,9 @@ class MigrationSummary:
     mint_queue_count: int
     latest_block_hash: str | None
     backup_path: str | None
+    protocol_version: int = PROTOCOL_VERSION
+    network_id: str = PUBLIC_TESTNET_V1_NETWORK_ID
+    canonical_genesis_hash: str = canonical_public_testnet_v1_genesis_hash()
     status: str = "success"
 
     def to_dict(self) -> dict[str, Any]:
@@ -70,6 +79,9 @@ class MigrationSummary:
             "mint_queue_count": self.mint_queue_count,
             "latest_block_hash": self.latest_block_hash,
             "backup_path": self.backup_path,
+            "protocol_version": self.protocol_version,
+            "network_id": self.network_id,
+            "canonical_genesis_hash": self.canonical_genesis_hash,
         }
 
 
@@ -179,6 +191,18 @@ def _load_source_snapshot(source_json_path: Path, source_peers_path: Path) -> di
     return snapshot
 
 
+def _validate_source_public_testnet_v1_state(snapshot: dict[str, Any], *, label: str) -> str | None:
+    chain = snapshot.get("chain", [])
+    if chain:
+        try:
+            return require_public_testnet_v1_genesis_chain(chain, label=label)
+        except GenesisValidationError as exc:
+            raise MigrationError(str(exc)) from exc
+    if _has_persisted_data(snapshot):
+        raise MigrationError(f"{label} contains persisted state but no genesis block.")
+    return None
+
+
 def _source_summary(snapshot: dict[str, Any]) -> dict[str, Any]:
     return {
         "chain_length": _section_count(snapshot, "chain"),
@@ -250,6 +274,10 @@ def migrate_json_to_sqlite(
     source_peers_path = Path(peers_json_path) if peers_json_path is not None else source_json_path.with_name("peers.json")
 
     source_snapshot = _load_source_snapshot(source_json_path, source_peers_path)
+    _validate_source_public_testnet_v1_state(
+        source_snapshot,
+        label="Source snapshot",
+    )
     if sqlite_db_path.exists() and _target_has_data(sqlite_db_path):
         if not overwrite:
             raise MigrationError(

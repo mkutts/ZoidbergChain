@@ -1,6 +1,7 @@
+import sys
+
 from fastapi.testclient import TestClient
 
-import api
 import config
 from access_control import AccessSessionManager
 from admin_auth import AdminSessionManager, hash_admin_password
@@ -8,7 +9,14 @@ from ops_support import safe_backup_status, safe_environment_validation, verify_
 from wallet_auth import WalletAuthManager
 
 
+def _api_module():
+    import api
+
+    return api
+
+
 def _client(blockchain):
+    api = _api_module()
     api.limiter.reset()
     api.blockchain = blockchain
     api.wallet_auth_manager = WalletAuthManager(
@@ -30,11 +38,14 @@ def _configure_admin(monkeypatch, **overrides):
     }
     defaults.update(overrides)
 
+    api = sys.modules.get("api")
     for name, value in defaults.items():
         monkeypatch.setattr(config, name, value)
-        monkeypatch.setattr(api, name, value)
+        if api is not None:
+            monkeypatch.setattr(api, name, value)
 
-    api.admin_session_manager = AdminSessionManager(session_ttl_seconds=api.ADMIN_SESSION_TTL_SECONDS)
+    if api is not None:
+        api.admin_session_manager = AdminSessionManager(session_ttl_seconds=api.ADMIN_SESSION_TTL_SECONDS)
 
 
 def _configure_ops_mode(monkeypatch, **overrides):
@@ -56,21 +67,23 @@ def _configure_ops_mode(monkeypatch, **overrides):
     }
     defaults.update(overrides)
 
+    api = sys.modules.get("api")
     for name, value in defaults.items():
         monkeypatch.setattr(config, name, value)
-        if hasattr(api, name):
+        if api is not None and hasattr(api, name):
             monkeypatch.setattr(api, name, value)
 
     monkeypatch.setattr(config, "public_demo_mode_enabled", lambda: bool(config.PUBLIC_DEMO_MODE))
-    monkeypatch.setattr(api, "public_demo_mode_enabled", lambda: bool(config.PUBLIC_DEMO_MODE))
     monkeypatch.setattr(config, "cors_allowed_origins", lambda: list(config.CORS_ALLOWED_ORIGINS))
-    monkeypatch.setattr(api, "cors_allowed_origins", lambda: list(config.CORS_ALLOWED_ORIGINS))
     monkeypatch.setattr(config, "require_peer_auth", lambda: bool(config.REQUIRE_PEER_AUTH))
     monkeypatch.setattr(config, "signed_peer_messages_enabled", lambda: bool(config.ENABLE_SIGNED_PEER_MESSAGES))
     monkeypatch.setattr(config, "peer_auth_required", lambda: bool(config.REQUIRE_PEER_AUTH))
-    monkeypatch.setattr(api, "require_peer_auth", lambda: bool(config.REQUIRE_PEER_AUTH))
-    monkeypatch.setattr(api, "signed_peer_messages_enabled", lambda: bool(config.ENABLE_SIGNED_PEER_MESSAGES))
-    monkeypatch.setattr(api, "peer_auth_required", lambda: bool(config.REQUIRE_PEER_AUTH))
+    if api is not None:
+        monkeypatch.setattr(api, "public_demo_mode_enabled", lambda: bool(config.PUBLIC_DEMO_MODE))
+        monkeypatch.setattr(api, "cors_allowed_origins", lambda: list(config.CORS_ALLOWED_ORIGINS))
+        monkeypatch.setattr(api, "require_peer_auth", lambda: bool(config.REQUIRE_PEER_AUTH))
+        monkeypatch.setattr(api, "signed_peer_messages_enabled", lambda: bool(config.ENABLE_SIGNED_PEER_MESSAGES))
+        monkeypatch.setattr(api, "peer_auth_required", lambda: bool(config.REQUIRE_PEER_AUTH))
 
 
 def _login_admin(client, password="super-secret-admin"):

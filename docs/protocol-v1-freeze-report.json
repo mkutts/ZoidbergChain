@@ -1,0 +1,272 @@
+{
+  "protocol_name": "zoidbergchain",
+  "protocol_version": 1,
+  "version_tag": "v1",
+  "network_id": "zoidberg-public-testnet-v1",
+  "network_alias": "zoidberg-testnet",
+  "genesis_hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+  "confirmation_depth": 2,
+  "finality_depth": 6,
+  "version_domain_matrix": [
+    {
+      "object": "block",
+      "object_version": 1,
+      "protocol_version": 1,
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true
+    },
+    {
+      "object": "vote",
+      "object_version": 1,
+      "protocol_version": 1,
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true
+    },
+    {
+      "object": "certificate",
+      "object_version": 1,
+      "protocol_version": 1,
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true
+    },
+    {
+      "object": "native_transfer",
+      "object_version": 1,
+      "protocol_version": 1,
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true
+    },
+    {
+      "object": "peer_message",
+      "object_version": 1,
+      "protocol_version": 1,
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true
+    },
+    {
+      "object": "genesis",
+      "object_version": 1,
+      "protocol_version": 1,
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true
+    }
+  ],
+  "objects": {
+    "block": {
+      "object_version": 1,
+      "protocol_version": 1,
+      "domain": "zoidbergchain/block/v1",
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true,
+      "hash_algorithm": "sha256",
+      "hash_input": "Block.consensus_payload_v1_bytes()",
+      "runtime_files": [
+        "block.py",
+        "blockchain.py",
+        "protocol_v1.py"
+      ],
+      "runtime_functions": [
+        "Block.consensus_payload_v1",
+        "Block.consensus_payload_v1_bytes",
+        "Block.calculate_hash_v1",
+        "Blockchain.validate_protocol_v1_block_payload",
+        "Blockchain.validate_block_with_native_transactions"
+      ]
+    },
+    "vote": {
+      "object_version": 1,
+      "protocol_version": 1,
+      "domain": "zoidbergchain/vote/v1",
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true,
+      "hash_algorithm": "sha256",
+      "hash_input": "canonical_domain_bytes(vote_payload, object_type=\"vote\", network_id=network_id)",
+      "runtime_files": [
+        "protocol_v1_originality.py",
+        "wallet_auth.py",
+        "peer_sync.py"
+      ],
+      "runtime_functions": [
+        "build_protocol_v1_vote_payload",
+        "build_protocol_v1_vote_message",
+        "build_protocol_v1_vote_message_hash",
+        "Blockchain.cast_submission_vote"
+      ]
+    },
+    "certificate": {
+      "object_version": 1,
+      "protocol_version": 1,
+      "domain": "zoidbergchain/originality-certificate/v1",
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true,
+      "hash_algorithm": "sha256",
+      "hash_input": "canonical_domain_bytes(certificate_identity_payload, object_type=\"originality-certificate\", network_id=network_id)",
+      "runtime_files": [
+        "protocol_v1_originality.py",
+        "originality_certificate.py",
+        "blockchain.py"
+      ],
+      "runtime_functions": [
+        "build_protocol_v1_certificate_identity_payload",
+        "calculate_protocol_v1_certificate_id",
+        "calculate_protocol_v1_vote_hash",
+        "validate_certificate_for_submission"
+      ]
+    },
+    "native_transfer": {
+      "object_version": 1,
+      "protocol_version": 1,
+      "domain": "zoidbergchain/native-transfer/v1",
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true,
+      "hash_algorithm": "sha256",
+      "hash_input": "canonical_domain_bytes(transfer_payload, object_type=\"native-transfer\", network_id=network_id)",
+      "runtime_files": [
+        "protocol_v1_native_transfer.py",
+        "native_transfer.py",
+        "blockchain.py"
+      ],
+      "runtime_functions": [
+        "build_protocol_v1_native_transfer_payload",
+        "build_protocol_v1_native_transfer_message",
+        "build_protocol_v1_native_transfer_message_hash",
+        "calculate_protocol_v1_transaction_id",
+        "verify_transfer_signature"
+      ]
+    },
+    "peer_message": {
+      "object_version": 1,
+      "protocol_version": 1,
+      "domain": "zoidbergchain/peer-message/v1",
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true,
+      "hash_algorithm": "sha256",
+      "hash_input": "protocol_v1_peer_envelope_bytes(...)",
+      "auth_algorithm": "hmac-sha256",
+      "replay_state_file": "peer_message_replay_state.json",
+      "freshness_window_seconds": 300,
+      "runtime_files": [
+        "protocol_v1_peer_message.py",
+        "peer_sync.py",
+        "api.py"
+      ],
+      "runtime_functions": [
+        "build_protocol_v1_peer_envelope",
+        "calculate_protocol_v1_peer_message_id",
+        "sign_protocol_v1_peer_message",
+        "verify_protocol_v1_peer_request",
+        "ProtocolV1PeerReplayStore.reject_replay_or_record"
+      ]
+    },
+    "genesis": {
+      "object_version": 1,
+      "protocol_version": 1,
+      "domain": "zoidbergchain/genesis/v1",
+      "network_bound": true,
+      "domain_separated": true,
+      "legacy_path": true,
+      "hash_algorithm": "sha256",
+      "hash_input": "canonical_domain_bytes(canonical_public_testnet_v1_genesis_payload(), object_type=\"genesis\", network_id=network_id)",
+      "runtime_files": [
+        "protocol_v1_genesis.py",
+        "block.py",
+        "blockchain.py",
+        "storage_tools.py",
+        "storage_migration.py",
+        "peer_sync.py"
+      ],
+      "runtime_functions": [
+        "canonical_public_testnet_v1_genesis_payload",
+        "canonical_public_testnet_v1_genesis_record",
+        "canonical_public_testnet_v1_genesis_hash",
+        "validate_public_testnet_v1_genesis_record",
+        "require_public_testnet_v1_genesis_chain"
+      ]
+    }
+  },
+  "model_a": {
+    "embedded_media_bytes_required": true,
+    "media_bytes_hash_critical": true,
+    "content_hash_recomputed_from_embedded_bytes": true,
+    "auxiliary_storage_is_authoritative": false,
+    "cache_deletion_preserves_authoritative_media": true,
+    "export_import_preserves_media": true,
+    "peer_sync_preserves_media": true,
+    "legacy_blocks_satisfy_model_a": false
+  },
+  "legacy_boundaries": {
+    "legacy_blocks": "Blocks without block_version remain on the legacy hash and validation path.",
+    "legacy_votes": "Human-readable signed vote messages remain explicit legacy objects.",
+    "legacy_certificates": "Versionless certificates remain explicit legacy records and keep legacy IDs.",
+    "legacy_native_transfers": "Versionless transfer messages and tx IDs remain explicit legacy objects and are not admitted into new Protocol v1 blocks.",
+    "legacy_peer_auth": "Legacy X-ZOID-Peer-Secret auth still exists only when signed peer messaging is disabled.",
+    "legacy_direct_block_route": {
+      "path": "/add_block",
+      "mode": "development_only",
+      "allowed_in_public_testnet": false
+    },
+    "legacy_genesis": "Legacy runtime-generated genesis is rejected for Public Testnet v1 startup, import, migration, and chain sync."
+  },
+  "test_results": {
+    "status": "complete",
+    "baseline": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_protocol_v1.py tests\\test_protocol_v1_originality_votes.py tests\\test_protocol_v1_native_transfers.py tests\\test_protocol_v1_peer_messages.py tests\\blockchain\\test_protocol_v1_block_format.py tests\\blockchain\\test_protocol_v1_lifecycle_finality.py tests\\blockchain\\test_protocol_v1_genesis.py tests\\storage\\test_storage_tools.py tests\\storage\\test_json_to_sqlite_migration.py tests\\api\\test_chain_sync_api.py tests\\integration\\test_two_node_consensus_verification.py tests\\integration\\test_two_node_storage_backends.py -q",
+        "result": "162 passed in 29.58s"
+      }
+    ],
+    "focused_protocol_v1": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_protocol_v1.py tests\\test_protocol_v1_originality_votes.py tests\\test_protocol_v1_native_transfers.py tests\\test_protocol_v1_peer_messages.py tests\\test_protocol_v1_golden_vectors.py tests\\test_protocol_v1_freeze_consistency.py tests\\blockchain\\test_protocol_v1_block_format.py tests\\blockchain\\test_protocol_v1_lifecycle_finality.py tests\\blockchain\\test_protocol_v1_genesis.py tests\\api\\test_chain_sync_api.py tests\\api\\test_peer_block_sync_api.py tests\\api\\test_submission_lifecycle_api.py -q",
+        "result": "185 passed in 34.67s"
+      }
+    ],
+    "golden_vector": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\test_protocol_v1_golden_vectors.py tests\\test_protocol_v1_freeze_consistency.py -q",
+        "result": "13 passed in 0.81s"
+      }
+    ],
+    "storage_migration": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\storage\\test_storage_tools.py tests\\storage\\test_json_to_sqlite_migration.py tests\\storage\\test_storage_regression_pass.py -q",
+        "result": "41 passed in 27.63s"
+      }
+    ],
+    "integration": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_two_node_native_transfer_verification.py tests\\integration\\test_two_node_consensus_verification.py tests\\integration\\test_two_node_storage_backends.py -q",
+        "result": "17 passed in 18.67s"
+      }
+    ],
+    "full_suite": [
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q",
+        "result": "879 passed in 190.88s (0:03:10)"
+      }
+    ]
+  },
+  "public_testnet_launch_blockers_outside_milestone_1": [
+    "Operational peer shared secret rollout and rotation remain manual.",
+    "Validator provisioning, monitoring, and deployment runbooks remain operational responsibilities outside the protocol freeze.",
+    "MODEL A storage growth remains an operational capacity planning concern."
+  ],
+  "known_non_blocking_limitations": [
+    "The validator set is controlled and known rather than decentralized.",
+    "Finality is operational depth policy, not BFT or cryptographic irreversibility.",
+    "Side branches are not durably persisted as a first-class alternate-branch store.",
+    "Legacy compatibility code remains present on explicit non-canonical paths."
+  ],
+  "launch_blockers": []
+}

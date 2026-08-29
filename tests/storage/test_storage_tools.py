@@ -16,6 +16,7 @@ from native_transfer import (
 )
 from peers import PeerStore
 from protocol_v1 import PROTOCOL_VERSION, decode_canonical_bytes
+from protocol_v1_genesis import PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
 from protocol_v1_native_transfer import (
     PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
     build_protocol_v1_native_transfer_message,
@@ -23,9 +24,9 @@ from protocol_v1_native_transfer import (
     resolve_protocol_v1_network_id,
 )
 from storage import JSONStorageBackend, SQLiteStorageBackend
-from transaction import Transaction
 from wallet import Wallet
 from submission import VOTE_ORIGINAL
+from test_support import fund_native_wallet_with_block
 
 
 def _reload_config():
@@ -100,9 +101,7 @@ def _seed_backend(backend, submission_image, *, owner=None, contributor_one=None
 def _seed_native_transfer(blockchain, *, amount="2", memo="storage snapshot transfer"):
     sender = Account.create()
     recipient = Account.create()
-    blockchain.chain[0].transactions.append(
-        Transaction(sender="GENESIS", recipient=sender.address.lower(), amount=10.0, tip=0)
-    )
+    fund_native_wallet_with_block(blockchain, sender.address, amount="10")
     network_id = resolve_protocol_v1_network_id(network_name=config.NETWORK_NAME)
     transfer_payload = build_protocol_v1_native_transfer_payload(
         from_address=sender.address,
@@ -200,6 +199,11 @@ def test_export_includes_core_state_and_excludes_private_keys_by_default(backend
     assert exported["metadata"]["node_id"] == config.NODE_ID
     assert exported["metadata"]["network_name"] == config.NETWORK_NAME
     assert exported["metadata"]["storage_backend"] in {"json", "sqlite"}
+    assert exported["metadata"]["protocol_version"] == PROTOCOL_VERSION
+    assert exported["metadata"]["network_id"] == "zoidberg-public-testnet-v1"
+    assert exported["metadata"]["canonical_genesis_hash"] == PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
+    assert exported["metadata"]["genesis_hash"] == PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
+    assert exported["metadata"]["genesis_status"] == "canonical_public_testnet_v1"
     assert exported["metadata"]["latest_block_hash"] == seeded["backend"].load_chain()[-1]["hash"]
     assert exported["state"]["chain"]
     assert exported["state"]["submissions"]
@@ -342,6 +346,24 @@ def test_import_refuses_overwrite_by_default(isolated_data_dir, submission_image
 
     with pytest.raises(ValueError, match="already contains data"):
         storage_tools.import_storage(target_backend, input_path=export_path)
+
+
+def test_import_rejects_snapshot_with_mutated_public_testnet_v1_genesis(isolated_data_dir, submission_image):
+    source_backend = _json_backend(isolated_data_dir, "source-mutated-genesis")
+    seeded = _seed_backend(source_backend, submission_image)
+    export_path = isolated_data_dir / "mutated-genesis.json"
+    storage_tools.export_storage(seeded["backend"], output_path=export_path)
+
+    snapshot = json.loads(export_path.read_text(encoding="utf-8"))
+    snapshot["state"]["chain"][0]["timestamp"] = 1785542401
+    snapshot["state"]["chain"][0]["hash"] = "80cbd0c41a78a2aefb32dbee3ce245258fe2ac87f8b5661dc86e1733f5e3308b"
+    export_path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="frozen Public Testnet v1 genesis"):
+        storage_tools.import_storage(
+            _json_backend(isolated_data_dir, "target-mutated-genesis"),
+            input_path=export_path,
+        )
 
 
 def test_import_creates_backup_before_overwrite(isolated_data_dir, submission_image):

@@ -1,0 +1,370 @@
+{
+  "protocol": {
+    "name": "zoidbergchain",
+    "version": 1,
+    "version_tag": "v1",
+    "network_id": "zoidberg-public-testnet-v1",
+    "genesis_hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+    "domains": {
+      "block": "zoidbergchain/block/v1",
+      "vote": "zoidbergchain/vote/v1",
+      "originality_certificate": "zoidbergchain/originality-certificate/v1",
+      "native_transfer": "zoidbergchain/native-transfer/v1",
+      "peer_message": "zoidbergchain/peer-message/v1",
+      "genesis": "zoidbergchain/genesis/v1",
+      "submission": "zoidbergchain/submission/v1"
+    }
+  },
+  "canonical_serialization": {
+    "simple_vectors": [
+      {
+        "logical_input": {
+          "a": 1
+        },
+        "canonical_json": "{\"a\":1}",
+        "hash": "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862"
+      },
+      {
+        "logical_input": {
+          "a": [
+            1,
+            true,
+            null,
+            "zoid"
+          ]
+        },
+        "canonical_json": "{\"a\":[1,true,null,\"zoid\"]}",
+        "hash": "edd510ce70d225d512ee05cf6f1bcf1b56919c9c4129649500fd965c52c4070d"
+      }
+    ],
+    "bytes_vector": {
+      "logical_hex": "00ff61626380",
+      "canonical_json": "{\"$encoding\":\"hex\",\"$type\":\"bytes\",\"$value\":\"00ff61626380\"}",
+      "canonical_object": {
+        "$type": "bytes",
+        "$encoding": "hex",
+        "$value": "00ff61626380"
+      }
+    }
+  },
+  "block": {
+    "base": {
+      "constructor": {
+        "index": 7,
+        "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "timestamp": 1724760000.5,
+        "transactions": [
+          {
+            "sender": "REWARD_POOL",
+            "recipient": "0x1111111111111111111111111111111111111111",
+            "amount": 5.0,
+            "created_at": 1724760000.5
+          }
+        ],
+        "miner": "0x1111111111111111111111111111111111111111",
+        "meme": {
+          "encoded_image": "cHJvdG9jb2wtdjEtbWVkaWE=",
+          "text": "Protocol v1 vector"
+        },
+        "block_version": 1,
+        "network_id": "zoidberg-public-testnet-v1",
+        "media_hash": "ff2d30a5c313b57e8eb7ef39d709814dda8685b2b29952197b5a9023c71c892d",
+        "media_bytes_hex": "70726f746f636f6c2d76312d6d65646961",
+        "submission_id": "submission-123",
+        "certificate_id": "certificate-123",
+        "content_hash": "ff2d30a5c313b57e8eb7ef39d709814dda8685b2b29952197b5a9023c71c892d",
+        "content_id": "3c74bab17335f4ebf6ad33429730b300",
+        "content_type": "text",
+        "mime_type": "text/plain",
+        "creator_wallet": "0x1111111111111111111111111111111111111111",
+        "vote_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "approval_percentage": 0.8,
+        "decisive_vote_total": 5,
+        "minimum_votes_required": 5,
+        "approved_at": 1724760001.25,
+        "originality_score": 9.75,
+        "reward_type": "meme_mining_reward",
+        "reward_recipient": "0x1111111111111111111111111111111111111111",
+        "reward_amount": 5.0,
+        "reward_source": "reward_pool",
+        "minted_at": 1724760002.75,
+        "voter_rewards": [],
+        "native_transactions": []
+      },
+      "consensus_payload_json": "{\"domain\":\"zoidbergchain/block/v1\",\"network_id\":\"zoidberg-public-testnet-v1\",\"object_type\":\"block\",\"payload\":{\"approval_percentage\":\"0.8\",\"approved_at\":\"1724760001.25\",\"block_version\":1,\"certificate_id\":\"certificate-123\",\"content_hash\":\"ff2d30a5c313b57e8eb7ef39d709814dda8685b2b29952197b5a9023c71c892d\",\"content_id\":\"3c74bab17335f4ebf6ad33429730b300\",\"content_type\":\"text\",\"creator_wallet\":\"0x1111111111111111111111111111111111111111\",\"decisive_vote_total\":5,\"index\":7,\"media_bytes\":{\"$encoding\":\"hex\",\"$type\":\"bytes\",\"$value\":\"70726f746f636f6c2d76312d6d65646961\"},\"media_hash\":\"ff2d30a5c313b57e8eb7ef39d709814dda8685b2b29952197b5a9023c71c892d\",\"meme_text\":\"Protocol v1 vector\",\"mime_type\":\"text/plain\",\"miner\":\"0x1111111111111111111111111111111111111111\",\"minimum_votes_required\":5,\"minted_at\":\"1724760002.75\",\"native_transactions\":[],\"originality_score\":\"9.75\",\"previous_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"reward_amount\":\"5\",\"reward_recipient\":\"0x1111111111111111111111111111111111111111\",\"reward_source\":\"reward_pool\",\"reward_type\":\"meme_mining_reward\",\"submission_id\":\"submission-123\",\"timestamp\":\"1724760000.5\",\"transactions\":[{\"amount\":\"5\",\"payload_size_kb\":0,\"recipient\":\"0x1111111111111111111111111111111111111111\",\"sender\":\"REWARD_POOL\",\"tip\":0}],\"vote_hash\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"voter_rewards\":[]},\"protocol\":\"zoidbergchain\",\"protocol_version\":1}",
+      "hash": "e23fb96c29f5d51c3dfabc59ad7a35da623293dc49efff87b78241ac2b1dbd4b"
+    },
+    "mutations": {
+      "media_bytes_hash": "3b519000b9dee6a8dc61d5736d8123024c3012313d68ca586b96a03adb8f17d6",
+      "metadata_hash": "fec2c441577bb2d02bf4077ecde163adeb55934054679815f872e573d6d5e476",
+      "other_network_hash": "1fa965ef7fbe498b1ddc681b3a9a2105b1cbb6d0d3043e946aa20be24fd14ecb",
+      "order_ab_hash": "7b942825640a7196b6afdf42013dcff54a4ed2033c9746aaf90d693f33a1630e",
+      "order_ba_hash": "ca9a1575a576a27990c8d59f5437663cd9a80535312ffc03d01cd70bf7923e72"
+    }
+  },
+  "vote": {
+    "payload": {
+      "vote_version": 1,
+      "submission_id": "submission-vector-001",
+      "content_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "voter_wallet_address": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+      "vote_type": "original",
+      "nonce": "vote-nonce-001",
+      "issued_at": "2026-08-27T12:00:00+00:00",
+      "expires_at": "2026-08-27T12:05:00+00:00"
+    },
+    "signing_payload": {
+      "domain": "zoidbergchain/vote/v1",
+      "network_id": "zoidberg-public-testnet-v1",
+      "object_type": "vote",
+      "payload": {
+        "content_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "expires_at": "2026-08-27T12:05:00+00:00",
+        "issued_at": "2026-08-27T12:00:00+00:00",
+        "nonce": "vote-nonce-001",
+        "submission_id": "submission-vector-001",
+        "vote_type": "original",
+        "vote_version": 1,
+        "voter_wallet_address": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a"
+      },
+      "protocol": "zoidbergchain",
+      "protocol_version": 1
+    },
+    "message": "{\"domain\":\"zoidbergchain/vote/v1\",\"network_id\":\"zoidberg-public-testnet-v1\",\"object_type\":\"vote\",\"payload\":{\"content_hash\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"expires_at\":\"2026-08-27T12:05:00+00:00\",\"issued_at\":\"2026-08-27T12:00:00+00:00\",\"nonce\":\"vote-nonce-001\",\"submission_id\":\"submission-vector-001\",\"vote_type\":\"original\",\"vote_version\":1,\"voter_wallet_address\":\"0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":1}",
+    "message_hash": "95d2d5a4b7181aaea73ed284ed88afd3b1cc22b8e699e3cb1f109b98390fc4b2",
+    "recovered_wallet": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+    "signature": "5b14f579b649f2e95ec5c8541ef7ce20e09881c168891c43f8e954950673ed912b15e73b537d4fc0863b530718ca20e1652a8e94f7c3c053fa30412bd5c652531b",
+    "alternate_hashes": {
+      "network": "e62b898cd0d3138fb581975ea45d697a925a2db7c39d2543028d9c6cc22112b1",
+      "domain": "e3fc2f1d87ded190a57dd2f3ee01f1095c1302dfeddc6133f25c1dfcbe8c5850",
+      "protocol": "80cfdccdd7d2e2c74cc4908787ed36e7cfab26c39b6dd3d4283642ecaa9669c4",
+      "vote_choice": "5eb469cc5e3d593c7ce9106dc3a0647ec96f5eb1d362c26bb4932c18b9a95fc3"
+    },
+    "vote_set_payload": {
+      "vote_set_version": 1,
+      "submission_id": "submission-vector-001",
+      "content_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "votes": [
+        {
+          "voter": "0x1111111111111111111111111111111111111111",
+          "vote_type": "original"
+        },
+        {
+          "voter": "0x2222222222222222222222222222222222222222",
+          "vote_type": "original"
+        },
+        {
+          "voter": "0x3333333333333333333333333333333333333333",
+          "vote_type": "original"
+        },
+        {
+          "voter": "0x4444444444444444444444444444444444444444",
+          "vote_type": "original"
+        },
+        {
+          "voter": "0x5555555555555555555555555555555555555555",
+          "vote_type": "not_original"
+        }
+      ]
+    },
+    "vote_hash": "d9b0a5bfd42e2e17cc940abae3ef02fa3282c8fd754f51a6fb151b1a95ba6d2d"
+  },
+  "certificate": {
+    "identity_payload": {
+      "certificate_version": 1,
+      "submission_id": "submission-vector-001",
+      "content_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "creator_wallet": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+      "vote_hash": "d9b0a5bfd42e2e17cc940abae3ef02fa3282c8fd754f51a6fb151b1a95ba6d2d",
+      "vote_total": 5,
+      "decisive_vote_total": 5,
+      "original_votes": 4,
+      "not_original_votes": 1,
+      "unsure_votes": 0,
+      "minimum_votes_required": 5,
+      "approval_threshold": "0.8",
+      "approval_percentage": "0.8",
+      "originality_score": "2.3"
+    },
+    "certificate_id": "78420b3916bde68a5c181dcc4d32046ae332de5e0da81fc7fde8b65fcddf1dff",
+    "metadata_insensitive_mutation": {
+      "approved_at": 1724760999.5,
+      "issuing_node_id": "node-2",
+      "content_id": "other-content-id"
+    }
+  },
+  "native_transfer": {
+    "payload": {
+      "amount": "1.5",
+      "fee": "0",
+      "from_address": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+      "memo": "native transfer vector",
+      "nonce": "7",
+      "timestamp": "2026-08-27T12:34:56+00:00",
+      "to_address": "0x2222222222222222222222222222222222222222",
+      "transaction_version": 1
+    },
+    "signing_payload": {
+      "domain": "zoidbergchain/native-transfer/v1",
+      "network_id": "zoidberg-public-testnet-v1",
+      "object_type": "native-transfer",
+      "payload": {
+        "amount": "1.5",
+        "fee": "0",
+        "from_address": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+        "memo": "native transfer vector",
+        "nonce": "7",
+        "timestamp": "2026-08-27T12:34:56+00:00",
+        "to_address": "0x2222222222222222222222222222222222222222",
+        "transaction_version": 1
+      },
+      "protocol": "zoidbergchain",
+      "protocol_version": 1
+    },
+    "message": "{\"domain\":\"zoidbergchain/native-transfer/v1\",\"network_id\":\"zoidberg-public-testnet-v1\",\"object_type\":\"native-transfer\",\"payload\":{\"amount\":\"1.5\",\"fee\":\"0\",\"from_address\":\"0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a\",\"memo\":\"native transfer vector\",\"nonce\":\"7\",\"timestamp\":\"2026-08-27T12:34:56+00:00\",\"to_address\":\"0x2222222222222222222222222222222222222222\",\"transaction_version\":1},\"protocol\":\"zoidbergchain\",\"protocol_version\":1}",
+    "message_hash": "1285632c6ab851f61f37aae160c04e00b7c663a80e66c7961610e83424ec4bc5",
+    "tx_id": "1285632c6ab851f61f37aae160c04e00b7c663a80e66c7961610e83424ec4bc5",
+    "recovered_wallet": "0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a",
+    "signature": "1100c308111861872d0e239a8bc7a1b8c253997e688bc66a58a7b12f4168289119c940c2c785a5d37ddf9a0fed1b693536cc7b414419bd901f0e1a756c0c9a6f1c",
+    "alternate_hashes": {
+      "network": "d70228dd02ff5641e6f7709b4f5f442460bc17a48314d0021a24abfb698b0c43",
+      "domain": "6317f2fb65b988fbdaa9c6d974802b887c8453a85b04a1a4b31038e155851978",
+      "protocol": "cc62c60d762f1bdfa10e9eb4c521c1e4fc5516cf7c699143b2668607110041dd"
+    },
+    "mutation_tx_ids": {
+      "nonce": "a1779807b5c5e7b7fe8f3c6c14b52ee6f89e5dd8aaab4f6e8ebe9e0a40240ac7",
+      "amount": "e6dfbb58b54ccdadad8ea869422e003f2cb90f7f5361e83f5e536f0d4467dc2e",
+      "fee": "4a5b12f9706682c6025370794cd9317387646036b7d78ab043202f4085876726",
+      "memo": "edf4715c0a55d7fdf45b51bc95e7da0f4da7d7f7b96c265456ab7a48afd4b93a"
+    }
+  },
+  "peer_message": {
+    "payload": {
+      "network_name": "zoidberg-testnet",
+      "node_id": "peer-node-1",
+      "url": "http://peer-one.test:8000"
+    },
+    "envelope": {
+      "domain": "zoidbergchain/peer-message/v1",
+      "message_type": "peer-registration",
+      "network_id": "zoidberg-public-testnet-v1",
+      "nonce": "peer-nonce-1",
+      "object_type": "peer-message",
+      "payload": {
+        "network_name": "zoidberg-testnet",
+        "node_id": "peer-node-1",
+        "url": "http://peer-one.test:8000"
+      },
+      "peer_message_version": 1,
+      "protocol": "zoidbergchain",
+      "protocol_version": 1,
+      "sender_node_id": "peer-node-1",
+      "timestamp": 1724760000
+    },
+    "message": "{\"domain\":\"zoidbergchain/peer-message/v1\",\"message_type\":\"peer-registration\",\"network_id\":\"zoidberg-public-testnet-v1\",\"nonce\":\"peer-nonce-1\",\"object_type\":\"peer-message\",\"payload\":{\"network_name\":\"zoidberg-testnet\",\"node_id\":\"peer-node-1\",\"url\":\"http://peer-one.test:8000\"},\"peer_message_version\":1,\"protocol\":\"zoidbergchain\",\"protocol_version\":1,\"sender_node_id\":\"peer-node-1\",\"timestamp\":1724760000}",
+    "message_id": "89e78f2e47da978dd21a744c745cf2c35d118b04facd07f43f4c6f87dd16bfb9",
+    "hmac": "ebba943b7ee8c924ff1034ae65ae494ae37f0e9609399f12844eaaa7059dd4b9",
+    "alternate_vectors": {
+      "network_message_id": "9c7414fc5bfbf70096d5133d257f8c58f39d952cdcca2dce0ad6682f24eb2e2f",
+      "network_hmac": "43063e3e4f14e19d1fdff908750792fa56206e44d91f722c5707fdfbb768239c",
+      "message_type_message_id": "d910e09c9db54e314e1cb06b89b05541799c4df9d01145b6fbb77d48b4f88a15",
+      "message_type_hmac": "6f3c0faccb7fef0a5a7b95100b9ef5f9dcd69cf0a735c434ea4b0a11cd762b5e",
+      "sender_message_id": "ea32b6b49fd69eea48b84c3626aca5f51b03bebc435b637b4502eb123e594bef",
+      "sender_hmac": "889315faf654ba5e7d97feb227131d1c0296441bac55d7e03c2eb52079df183b",
+      "payload_message_id": "3280b7f8e1973699c28fc6e182bf94b924dbc7f578a8a621ce5ed17c9cf7a6cf",
+      "payload_hmac": "9b35c3de21286ce99be5faa2a3dcf595e65bef0c617f042047d9b9df1c787f63"
+    }
+  },
+  "genesis": {
+    "version": 1,
+    "payload": {
+      "genesis_version": 1,
+      "index": 0,
+      "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": 1785542400,
+      "transactions": [
+        {
+          "sender": "GENESIS",
+          "recipient": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa",
+          "amount": 790000000,
+          "tip": 0,
+          "signature": null,
+          "payload_size_kb": 0,
+          "created_at": 1785542400
+        },
+        {
+          "sender": "GENESIS",
+          "recipient": "02466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f27",
+          "amount": 100000000,
+          "tip": 0,
+          "signature": null,
+          "payload_size_kb": 0,
+          "created_at": 1785542400
+        },
+        {
+          "sender": "GENESIS",
+          "recipient": "023c72addb4fdf09af94f0c94d7fe92a386a7e70cf8a1d85916386bb2535c7b1b1",
+          "amount": 10000000,
+          "tip": 0,
+          "signature": null,
+          "payload_size_kb": 0,
+          "created_at": 1785542400
+        }
+      ],
+      "miner": "GENESIS",
+      "meme_text": "ZoidbergChain Public Testnet v1 Genesis",
+      "total_supply": 1000000000,
+      "initial_reward_pool": 100000000
+    },
+    "envelope_json": "{\"domain\":\"zoidbergchain/genesis/v1\",\"network_id\":\"zoidberg-public-testnet-v1\",\"object_type\":\"genesis\",\"payload\":{\"genesis_version\":1,\"index\":0,\"initial_reward_pool\":100000000,\"meme_text\":\"ZoidbergChain Public Testnet v1 Genesis\",\"miner\":\"GENESIS\",\"previous_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"timestamp\":1785542400,\"total_supply\":1000000000,\"transactions\":[{\"amount\":790000000,\"created_at\":1785542400,\"payload_size_kb\":0,\"recipient\":\"034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa\",\"sender\":\"GENESIS\",\"signature\":null,\"tip\":0},{\"amount\":100000000,\"created_at\":1785542400,\"payload_size_kb\":0,\"recipient\":\"02466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f27\",\"sender\":\"GENESIS\",\"signature\":null,\"tip\":0},{\"amount\":10000000,\"created_at\":1785542400,\"payload_size_kb\":0,\"recipient\":\"023c72addb4fdf09af94f0c94d7fe92a386a7e70cf8a1d85916386bb2535c7b1b1\",\"sender\":\"GENESIS\",\"signature\":null,\"tip\":0}]},\"protocol\":\"zoidbergchain\",\"protocol_version\":1}",
+    "hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+    "record": {
+      "genesis_version": 1,
+      "protocol_version": 1,
+      "network_id": "zoidberg-public-testnet-v1",
+      "index": 0,
+      "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": 1785542400,
+      "transactions": [
+        {
+          "sender": "GENESIS",
+          "recipient": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa",
+          "amount": 790000000,
+          "tip": 0,
+          "signature": null,
+          "payload_size_kb": 0,
+          "created_at": 1785542400
+        },
+        {
+          "sender": "GENESIS",
+          "recipient": "02466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f27",
+          "amount": 100000000,
+          "tip": 0,
+          "signature": null,
+          "payload_size_kb": 0,
+          "created_at": 1785542400
+        },
+        {
+          "sender": "GENESIS",
+          "recipient": "023c72addb4fdf09af94f0c94d7fe92a386a7e70cf8a1d85916386bb2535c7b1b1",
+          "amount": 10000000,
+          "tip": 0,
+          "signature": null,
+          "payload_size_kb": 0,
+          "created_at": 1785542400
+        }
+      ],
+      "miner": "GENESIS",
+      "meme": {
+        "text": "ZoidbergChain Public Testnet v1 Genesis"
+      },
+      "hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+      "total_supply": 1000000000,
+      "initial_reward_pool": 100000000
+    },
+    "alternate_hashes": {
+      "network": "b0f60269aaf573737084a0a5026dd71007396909648a972831115746ce30ab2d",
+      "timestamp": "80cbd0c41a78a2aefb32dbee3ce245258fe2ac87f8b5661dc86e1733f5e3308b"
+    }
+  }
+}

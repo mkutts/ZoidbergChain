@@ -1,10 +1,12 @@
 # Protocol v1 Canonical Serialization Foundation
 
+Authoritative note: [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md) is the primary Public Testnet v1 protocol specification. If this document conflicts with it or with [docs/protocol-v1-freeze-report.json](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-freeze-report.json), the authoritative spec and freeze report win.
+
 ## Scope
 
-This document defines the new shared Protocol v1 identity and canonical-serialization foundation introduced in Task 2.
+This document defines the shared Protocol v1 identity and canonical-serialization foundation introduced in Task 2.
 
-This foundation is not yet wired into legacy block hashes, certificate IDs, vote signatures, native transaction signatures/IDs, peer signatures, or genesis hashing.
+That foundation now underpins the frozen Public Testnet v1 block, certificate, vote, native-transfer, peer-message, and genesis identities. Legacy objects remain on explicit compatibility paths where later tasks deliberately preserved them.
 
 ## Protocol identity
 
@@ -23,7 +25,7 @@ This foundation is not yet wired into legacy block hashes, certificate IDs, vote
   - storage directory
   - validator identity
 
-Task 2 adds an explicit mapping layer so later signatures and hashes can bind to a stable network identifier without changing the current runtime behavior yet.
+Task 2 adds the explicit mapping layer that later tasks now use to bind Protocol v1 identities to one stable network identifier without depending on hostnames, storage paths, or local node-specific names.
 
 ## Domain/object identifiers
 
@@ -84,7 +86,7 @@ Rules:
 - no line wrapping
 - no MIME dependence
 
-This makes deterministic binary inclusion possible for later MODEL A block-format work without deciding that final block schema yet.
+This is the frozen bytes representation used by Public Testnet v1 consensus objects, including MODEL A block media embedding.
 
 ## Unicode behavior
 
@@ -154,20 +156,23 @@ Rejected by default:
 
 ## Compatibility statement
 
-Task 2 does not migrate existing runtime consensus objects.
+Task 2 does not rewrite existing legacy runtime objects.
 
-Specifically, this foundation is not yet used for:
+This foundation is still not used for:
 
 - legacy block hashes
-- certificate IDs
-- vote signing payloads
 - submission identifiers
-- peer signatures
-- genesis hashing
+- legacy human-readable wallet login messages
+- legacy human-readable wallet submission messages
 
-Tasks 4 and 5 now use this foundation for:
+As of Task 8, this foundation is used for:
 
+- Protocol v1 block hashes
 - Protocol v1 vote signing payloads
-- Protocol v1 certificate IDs
+- Protocol v1 certificate IDs and vote hashes
 - Protocol v1 native transfer signing payloads
 - Protocol v1 native transfer transaction IDs
+- Protocol v1 peer-message envelopes, message IDs, and HMAC inputs
+- Public Testnet v1 genesis hashing
+
+Tasks 3 through 8 progressively wired this foundation into the live Protocol v1 consensus objects listed above.

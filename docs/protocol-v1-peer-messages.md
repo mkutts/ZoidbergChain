@@ -1,8 +1,10 @@
 # Protocol v1 Peer Messages
 
+Authoritative note: [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md) is the primary Public Testnet v1 protocol specification. If this document conflicts with it or with [docs/protocol-v1-freeze-report.json](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-freeze-report.json), the authoritative spec and freeze report win.
+
 Task 6 freezes the Protocol v1 peer-message envelope, shared-secret authentication semantics, replay protection, and explicit legacy-vs-v1 dispatch for Public Testnet v1.
 
-Genesis behavior and lifecycle/finality semantics remain outside Task 6.
+Genesis behavior and reset policy are frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md). Lifecycle and operational finality semantics are frozen separately in [docs/protocol-v1-lifecycle-finality.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-lifecycle-finality.md).
 
 ## 1. Peer protocol version
 
@@ -448,6 +450,8 @@ Authenticated request payloads bind:
 
 Authenticated chain sync does not bypass normal chain evaluation. Received blocks still validate individually, and chain selection still checks:
 
+- peer `network_id`
+- peer `protocol_version`
 - genesis hash
 - best-chain comparison
 - block-by-block validity
@@ -487,11 +491,10 @@ Inner-object validation errors remain object-specific and are returned by the ex
 
 Task 6 intentionally does not freeze or redesign:
 
-- genesis
-- finality/lifecycle semantics
 - validator decentralization
 - a per-peer secret-rotation protocol
-- the final legacy reset/migration policy
+
+Genesis and reset policy are now frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md).
 
 Residual transport limitations:
 

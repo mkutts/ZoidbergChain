@@ -31,6 +31,8 @@ from config import (
     NETWORK_NAME,
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
+    PROTOCOL_V1_CONFIRMATION_DEPTH,
+    PROTOCOL_V1_FINALITY_DEPTH,
     REWARD_POOL_SUPPLY,
     REQUIRE_ACCESS_FOR_REWARDS,
     TOTAL_SUPPLY,
@@ -94,6 +96,14 @@ from protocol_v1_native_transfer import (
 )
 from storage import create_storage_backend
 from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
+from protocol_v1_genesis import (
+    GenesisValidationError,
+    PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL,
+    PUBLIC_TESTNET_V1_TOTAL_SUPPLY,
+    canonical_public_testnet_v1_genesis_hash,
+    canonical_public_testnet_v1_genesis_record,
+    validate_public_testnet_v1_genesis_record,
+)
 from validators import is_valid_content_hash, is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
@@ -207,6 +217,7 @@ class Blockchain:
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
         ensure_content_storage_dir(data_dir=self.storage.data_dir)
+        self._validate_frozen_public_testnet_v1_runtime_constants()
 
         # âœ… Store wallets immediately before loading blockchain
         self.project_owner_wallet = project_owner_wallet
@@ -218,6 +229,7 @@ class Blockchain:
         if not self.chain:
             print("Debug: No valid blockchain found. Creating Genesis blockchain...")
             self.create_genesis_block(self.project_owner_wallet, self.Contributor_one, self.Contributor_two)
+            self.save_blockchain()
 
         # âœ… Ensure wallets are always assigned even after loading blockchain
         if self.project_owner_wallet and self.project_owner_wallet.public_key not in self.wallets:
@@ -256,6 +268,51 @@ class Blockchain:
     @staticmethod
     def _utc_now_iso() -> str:
         return datetime.now(timezone.utc).isoformat()
+
+    @staticmethod
+    def _validate_frozen_public_testnet_v1_runtime_constants() -> None:
+        if TOTAL_SUPPLY != PUBLIC_TESTNET_V1_TOTAL_SUPPLY:
+            raise GenesisValidationError(
+                "genesis_configuration_mismatch",
+                "TOTAL_SUPPLY does not match the frozen Public Testnet v1 genesis definition.",
+                details={
+                    "total_supply": TOTAL_SUPPLY,
+                    "expected_total_supply": PUBLIC_TESTNET_V1_TOTAL_SUPPLY,
+                },
+            )
+        if REWARD_POOL_SUPPLY != PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL:
+            raise GenesisValidationError(
+                "genesis_configuration_mismatch",
+                "REWARD_POOL_SUPPLY does not match the frozen Public Testnet v1 genesis definition.",
+                details={
+                    "initial_reward_pool": REWARD_POOL_SUPPLY,
+                    "expected_initial_reward_pool": PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL,
+                },
+            )
+
+    @staticmethod
+    def public_testnet_v1_genesis_hash() -> str:
+        return canonical_public_testnet_v1_genesis_hash()
+
+    @staticmethod
+    def canonical_public_testnet_v1_genesis_block() -> Block:
+        return Block.from_dict(canonical_public_testnet_v1_genesis_record())
+
+    def validate_canonical_public_testnet_v1_genesis(self, block) -> bool:
+        block_dict = block.to_dict() if hasattr(block, "to_dict") else dict(block)
+        validate_public_testnet_v1_genesis_record(block_dict)
+        calculated_hash = self.calculate_hash_from_dict(block_dict)
+        expected_hash = self.public_testnet_v1_genesis_hash()
+        if calculated_hash != expected_hash:
+            raise GenesisValidationError(
+                "genesis_mismatch",
+                "Genesis hash does not match the frozen Public Testnet v1 hash.",
+                details={
+                    "expected_genesis_hash": expected_hash,
+                    "actual_genesis_hash": calculated_hash,
+                },
+            )
+        return True
 
     @staticmethod
     def _coerce_native_event_timestamp(value) -> str:
@@ -1431,6 +1488,7 @@ class Blockchain:
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
+                self.reconcile_submission_canonical_state()
                 mempool_report = self.revalidate_mempool_transactions(save=False)
                 if native_state["changed"] or mempool_report["removed"] > 0:
                     self.save_blockchain()
@@ -1439,28 +1497,22 @@ class Blockchain:
                         "Debug: Dropped invalid native transaction state during load - "
                         f"{native_state['removed']} record(s) removed."
                     )
+                if self.chain:
+                    self.validate_canonical_public_testnet_v1_genesis(self.chain[0])
+                    if not self.is_chain_valid(self.chain_to_dicts(self.chain)):
+                        raise GenesisValidationError(
+                            "invalid_chain_state",
+                            "Persisted blockchain state failed chain validation.",
+                        )
                 print(f"Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"Debug: Wallets loaded: {len(self.wallets)} wallets")
                 return True
 
             if loaded_data is not None:
-                print("Debug: Blockchain file found but is invalid. Resetting to Genesis state.")
-                self.chain = []
-                self.wallets = {}
-                self.submissions = []
-                self.content_objects = []
-                self.mint_queue = []
-                self.votes = []
-                self.transfer_intents = []
-                self.native_transactions = []
-                self.originality_certificates = []
-                self.access_requests = []
-                self.access_accounts = []
-                self.wallet_bindings = []
-                self.allowlist_entries = []
-                self.override_requests = []
-                self.feedback_records = []
-                self.audit_logs = []
+                raise GenesisValidationError(
+                    "invalid_chain_state",
+                    "Persisted blockchain state is malformed and cannot be loaded safely.",
+                )
 
         except FileNotFoundError:
             print("Debug: No saved blockchain found. Creating new blockchain.")
@@ -1480,94 +1532,28 @@ class Blockchain:
             self.override_requests = []
             self.feedback_records = []
             self.audit_logs = []
-        except json.JSONDecodeError:
-            print("Debug: Failed to parse blockchain.json. Resetting to Genesis state.")
-            self.chain = []
-            self.wallets = {}
-            self.submissions = []
-            self.content_objects = []
-            self.mint_queue = []
-            self.votes = []
-            self.transfer_intents = []
-            self.native_transactions = []
-            self.originality_certificates = []
-            self.access_requests = []
-            self.access_accounts = []
-            self.wallet_bindings = []
-            self.allowlist_entries = []
-            self.override_requests = []
-            self.feedback_records = []
-            self.audit_logs = []
+        except json.JSONDecodeError as exc:
+            raise GenesisValidationError(
+                "invalid_chain_state",
+                "Persisted blockchain state is not valid JSON. Reset the local node data explicitly before restarting.",
+            ) from exc
+        except GenesisValidationError:
+            raise
         except Exception as e:
-            print(f"Debug: Unexpected error loading blockchain - {e}")
-            self.chain = []
-            self.wallets = {}
-            self.submissions = []
-            self.content_objects = []
-            self.mint_queue = []
-            self.votes = []
-            self.transfer_intents = []
-            self.native_transactions = []
-            self.originality_certificates = []
-            self.access_requests = []
-            self.access_accounts = []
-            self.wallet_bindings = []
-            self.allowlist_entries = []
-            self.override_requests = []
-            self.feedback_records = []
-            self.audit_logs = []
+            raise GenesisValidationError(
+                "invalid_chain_state",
+                f"Persisted blockchain state failed to load safely: {e}",
+            ) from e
 
         return False
 
     def create_genesis_block(self, project_owner_wallet, Contributor_one, Contributor_two, initial_supply=TOTAL_SUPPLY):
-        """Create the Genesis block with initial transactions and optional encoded meme."""
-        genesis_transactions = []
-
-        # Create initial transactions to fund wallets
-        if project_owner_wallet:
-            tx = Transaction(sender="GENESIS", recipient=project_owner_wallet.public_key, amount=initial_supply * 0.79)
-            genesis_transactions.append(tx)
-
-        if Contributor_one:
-            tx = Transaction(sender="GENESIS", recipient=Contributor_one.public_key, amount=initial_supply * 0.10)
-            genesis_transactions.append(tx)
-
-        if Contributor_two:
-            tx = Transaction(sender="GENESIS", recipient=Contributor_two.public_key, amount=initial_supply * 0.01)
-            genesis_transactions.append(tx)
-
-        # Ensure the transactions are correctly formatted
-        print("Debug: Genesis Transactions -", [tx.__dict__ for tx in genesis_transactions])
-
-        # Encode the provided genesis image
-        try:
-            with open("./zoidberg.jpg", "rb") as image_file:
-                encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
-        except Exception as e:
-            raise ValueError(f"Failed to encode genesis image: {e}")
-
-        # Create the genesis block with transactions
-        genesis_block = Block(
-            index=0,
-            previous_hash="0",
-            timestamp=time.time(),
-            transactions=genesis_transactions,  # âœ… Assign transactions explicitly
-            miner="GENESIS",
-            meme={"encoded_image": encoded_image, "text": "LOOKING FOR A NEW MEME COIN? WHY NOT ZOIDBERGCOIN"}
-        )
-        self.chain.append(genesis_block)
-
-        # âœ… Debugging to verify genesis block transactions
-        print("\nGenesis Block Transactions:", [tx.__dict__ for tx in genesis_block.transactions])
-
-        print("\nGenesis wallets initialized:")
-        if project_owner_wallet:
-            print(f"Project Owner Wallet Public Key: {_short_public_key(project_owner_wallet.public_key)}")
-        if Contributor_one:
-            print(f"Contributor One Public Key: {_short_public_key(Contributor_one.public_key)}")
-        if Contributor_two:
-            print(f"Contributor Two Public Key: {_short_public_key(Contributor_two.public_key)}")
-        print("Private keys are not printed. Use the development-only export endpoint for local setup.\n")
+        """Create the frozen canonical Public Testnet v1 genesis block."""
+        self._validate_frozen_public_testnet_v1_runtime_constants()
+        genesis_block = self.canonical_public_testnet_v1_genesis_block()
+        self.chain = [genesis_block]
+        self.validate_canonical_public_testnet_v1_genesis(genesis_block)
+        print("Debug: Loaded frozen Public Testnet v1 genesis block.")
 
 
     def encode_image(self, image_path):
@@ -1926,6 +1912,226 @@ class Blockchain:
     @staticmethod
     def protocol_v1_network_id() -> str:
         return resolve_network_id(network_name=NETWORK_NAME)
+
+    @staticmethod
+    def protocol_v1_lifecycle_policy() -> dict[str, object]:
+        return {
+            "confirmation_depth": int(PROTOCOL_V1_CONFIRMATION_DEPTH),
+            "finality_depth": int(PROTOCOL_V1_FINALITY_DEPTH),
+            "finality_model": "operational_depth",
+            "finality_scope": "policy_not_bft",
+        }
+
+    def get_protocol_v1_block_for_submission(self, submission_id, *, chain=None):
+        normalized_submission_id = str(submission_id or "").strip()
+        if not normalized_submission_id:
+            return None
+        for block in chain or self.chain:
+            if not self.is_protocol_v1_block_payload(block):
+                continue
+            if str(self._block_field(block, "submission_id") or "").strip() == normalized_submission_id:
+                return block
+        return None
+
+    def get_protocol_v1_block_for_certificate(self, certificate_id, *, chain=None):
+        normalized_certificate_id = str(certificate_id or "").strip()
+        if not normalized_certificate_id:
+            return None
+        for block in chain or self.chain:
+            if not self.is_protocol_v1_block_payload(block):
+                continue
+            if str(self._block_field(block, "certificate_id") or "").strip() == normalized_certificate_id:
+                return block
+        return None
+
+    def get_block_chain_state(self, block_or_hash, *, chain=None) -> dict[str, object]:
+        policy = self.protocol_v1_lifecycle_policy()
+        chain_dicts = self.chain_to_dicts(chain or self.chain)
+        target_hash = (
+            str(block_or_hash or "").strip()
+            if isinstance(block_or_hash, str)
+            else str(self._block_field(block_or_hash, "hash") or "").strip()
+        )
+        state = {
+            "accepted": False,
+            "block_created": False,
+            "block_accepted": False,
+            "canonical": False,
+            "confirmations": None,
+            "confirmed": False,
+            "finalized": False,
+            "confirmation_depth": policy["confirmation_depth"],
+            "finality_depth": policy["finality_depth"],
+            "finality_model": policy["finality_model"],
+            "finality_scope": policy["finality_scope"],
+            "block_hash": target_hash or None,
+            "block_height": None,
+            "phase": "none",
+        }
+        if not target_hash:
+            return state
+
+        target_block = next(
+            (
+                block_dict
+                for block_dict in chain_dicts
+                if str(block_dict.get("hash") or "").strip() == target_hash
+            ),
+            None,
+        )
+        if target_block is None:
+            return state
+
+        confirmations = int(chain_dicts[-1]["index"]) - int(target_block["index"])
+        confirmed = confirmations >= int(policy["confirmation_depth"])
+        finalized = confirmations >= int(policy["finality_depth"])
+        phase = "canonical"
+        if finalized:
+            phase = "finalized"
+        elif confirmed:
+            phase = "confirmed"
+
+        state.update(
+            {
+                "accepted": True,
+                "block_created": True,
+                "block_accepted": True,
+                "canonical": True,
+                "confirmations": confirmations,
+                "confirmed": confirmed,
+                "finalized": finalized,
+                "block_height": int(target_block["index"]),
+                "phase": phase,
+            }
+        )
+        return state
+
+    def get_submission_certificate_state(self, submission) -> dict[str, object]:
+        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
+        if certificate is None:
+            return {
+                "certificate_status": "missing",
+                "certificate_id": None,
+                "certificate": None,
+                "validation_error": None,
+            }
+        try:
+            validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        except ValueError as exc:
+            return {
+                "certificate_status": "invalid",
+                "certificate_id": certificate.certificate_id,
+                "certificate": certificate,
+                "validation_error": str(exc),
+            }
+        return {
+            "certificate_status": "valid",
+            "certificate_id": certificate.certificate_id,
+            "certificate": certificate,
+            "validation_error": None,
+        }
+
+    def get_submission_protocol_v1_lifecycle(self, submission_id) -> dict[str, object]:
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+
+        certificate_state = self.get_submission_certificate_state(submission)
+        certificate = certificate_state["certificate"]
+        block = self.get_protocol_v1_block_for_submission(submission.submission_id)
+        block_state = self.get_block_chain_state(block) if block is not None else self.get_block_chain_state(None)
+        rejected = submission.status in {REJECTED, HARD_REJECTED}
+        voting = submission.status == PENDING and not rejected and not self.is_submission_voting_locked(submission)
+        certified = certificate_state["certificate_status"] == "valid"
+        mint_eligible = False
+        mint_status = "not_ready"
+
+        if block is not None or submission.status == MINTED:
+            mint_status = "minted"
+        elif rejected:
+            mint_status = "rejected"
+        elif submission.mint_blocked:
+            mint_status = "blocked"
+        elif certified and self.get_protocol_v1_block_for_certificate(certificate.certificate_id) is not None:
+            mint_status = "minted"
+        elif certified and self._resolve_mintable_submission_certificate(submission) is not None:
+            mint_eligible = True
+            mint_status = "mint_eligible"
+        elif certified:
+            mint_status = "certified_unmintable"
+
+        phase = "submitted"
+        if block_state["finalized"]:
+            phase = "finalized"
+        elif block_state["confirmed"]:
+            phase = "confirmed"
+        elif block_state["canonical"]:
+            phase = "canonical"
+        elif block_state["block_accepted"]:
+            phase = "block-accepted"
+        elif mint_eligible:
+            phase = "mint-eligible"
+        elif certified:
+            phase = "certified"
+        elif rejected:
+            phase = "rejected"
+        elif voting:
+            phase = "voting"
+
+        return {
+            "phase": phase,
+            "submitted": True,
+            "voting": voting,
+            "rejected": rejected,
+            "certified": certified,
+            "mint_eligible": mint_eligible,
+            "block_created": bool(block_state["block_created"]),
+            "block_accepted": bool(block_state["block_accepted"]),
+            "canonical": bool(block_state["canonical"]),
+            "confirmations": block_state["confirmations"],
+            "confirmed": bool(block_state["confirmed"]),
+            "finalized": bool(block_state["finalized"]),
+            "confirmation_depth": block_state["confirmation_depth"],
+            "finality_depth": block_state["finality_depth"],
+            "finality_model": block_state["finality_model"],
+            "finality_scope": block_state["finality_scope"],
+            "certificate_status": certificate_state["certificate_status"],
+            "mint_status": mint_status,
+            "block_status": block_state["phase"],
+            "block_hash": block_state["block_hash"],
+            "block_height": block_state["block_height"],
+            "queue_present": self.storage.mint_queue_contains(submission.submission_id, self.mint_queue),
+        }
+
+    def reconcile_submission_canonical_state(self) -> bool:
+        minted_submission_ids = {
+            str(self._block_field(block, "submission_id") or "").strip()
+            for block in self.chain
+            if self.is_protocol_v1_block_payload(block)
+            and str(self._block_field(block, "submission_id") or "").strip()
+        }
+        changed = False
+        for submission in self.submissions:
+            certificate = self.get_originality_certificate_for_submission(submission.submission_id)
+            if submission.submission_id in minted_submission_ids:
+                if submission.status != MINTED:
+                    submission.status = MINTED
+                    changed = True
+                if self.storage.mint_queue_contains(submission.submission_id, self.mint_queue):
+                    self.mint_queue = [
+                        queued_submission_id
+                        for queued_submission_id in self.mint_queue
+                        if queued_submission_id != submission.submission_id
+                    ]
+                    changed = True
+                continue
+
+            if submission.status == MINTED and certificate is not None:
+                restored_status = QUEUED if self.storage.mint_queue_contains(submission.submission_id, self.mint_queue) else APPROVED
+                if submission.status != restored_status:
+                    submission.status = restored_status
+                    changed = True
+        return changed
 
     def recover_block_media_bytes(self, block_or_hash):
         block = block_or_hash
@@ -2987,10 +3193,11 @@ class Blockchain:
             if reward_record.get("reward_id") not in settled_reward_ids
         ]
 
-    def _select_voter_reward_records_for_block(self, *, prioritized_submission_id=None):
+    def _select_voter_reward_records_for_block(self, *, prioritized_submission_id=None, reward_pool_balance=None):
         selected = []
         skipped = []
-        remaining_units = self._reward_units_from_decimal(Decimal(str(self.reward_pool))) - self._reward_units_from_decimal(Decimal(str(MEME_BLOCK_REWARD)))
+        available_reward_pool = self.reward_pool if reward_pool_balance is None else reward_pool_balance
+        remaining_units = self._reward_units_from_decimal(Decimal(str(available_reward_pool))) - self._reward_units_from_decimal(Decimal(str(MEME_BLOCK_REWARD)))
         if remaining_units <= 0:
             return {"selected": [], "skipped": self._due_voter_reward_records()}
         selected_reward_ids = set()
@@ -4792,13 +4999,17 @@ class Blockchain:
             reward_recipient=reward_recipient,
         )
         if block_added:
-            if submission.submission_id in self.mint_queue:
-                self.mint_queue = [
-                    queued_submission_id
-                    for queued_submission_id in self.mint_queue
-                    if queued_submission_id != submission.submission_id
-                ]
-            submission.transition_to(MINTED)
+            self.reconcile_submission_canonical_state()
+            if self.get_protocol_v1_block_for_submission(submission.submission_id) is None:
+                if submission.submission_id in self.mint_queue:
+                    self.mint_queue = [
+                        queued_submission_id
+                        for queued_submission_id in self.mint_queue
+                        if queued_submission_id != submission.submission_id
+                    ]
+                if submission.status != MINTED:
+                    submission.status = MINTED
+            self.save_blockchain()
         return block_added
 
     def mint_next_queued_submission(self, miner=None, max_block_size_kb=500, validate_meme=True):
@@ -5038,7 +5249,37 @@ class Blockchain:
         self.mint_queue = valid_queue
         return removed_entries
 
-    def add_block(
+    def validate_candidate_block_for_local_acceptance(self, block, *, current_chain=None):
+        working_chain = current_chain or self.chain
+        latest_block = working_chain[-1]
+        if block.previous_hash != latest_block.hash:
+            raise ValueError("Block does not extend the local chain tip.")
+        if block.index != latest_block.index + 1:
+            raise ValueError("Block index must extend the local chain by one.")
+
+        calculated_hash = block.calculate_hash()
+        if block.hash != calculated_hash:
+            raise ValueError("Block hash does not match block contents.")
+
+        block_dict = block.to_dict()
+        expected_hash = self.calculate_hash_from_dict(block_dict)
+        if block.hash != expected_hash:
+            raise ValueError("Block hash does not match existing block validation.")
+
+        for transaction in block.transactions:
+            if not transaction.is_valid():
+                raise ValueError("Block contains an invalid transaction.")
+            if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not self.validate_transaction(transaction):
+                raise ValueError("Block contains an invalid transaction.")
+
+        prior_chain = self.chain_to_dicts(working_chain)
+        self.validate_block_with_native_transactions(block_dict, prior_chain=prior_chain)
+        candidate_chain = prior_chain + [block_dict]
+        if not self.is_chain_valid(candidate_chain):
+            raise ValueError("Block failed chain validation.")
+        return True
+
+    def build_block_candidate(
         self,
         image_path,
         text_content=None,
@@ -5048,12 +5289,9 @@ class Blockchain:
         certificate=None,
         reward_recipient=None,
     ):
-        """
-        Add a block with tip distribution, enforce block size limit, and validate memes.
-        """
         if not self.is_valid_public_key(miner):
             print(f"Debug: Invalid miner public key: {miner}")
-            raise ValueError(f"Invalid public key provided for the miner.")
+            raise ValueError("Invalid public key provided for the miner.")
 
         file_exists = bool(image_path) and os.path.isfile(image_path)
         file_extension = os.path.splitext(image_path)[1].lower() if image_path else ""
@@ -5068,7 +5306,6 @@ class Blockchain:
             print(f"Debug: Image path {image_path} does not exist.")
             raise ValueError("Invalid image path provided for the meme.")
 
-        # Extract text content if not provided.
         if not text_content:
             if is_text_payload and file_exists:
                 print("Debug: Reading text content from the stored text payload.")
@@ -5081,12 +5318,11 @@ class Blockchain:
                 print(f"Debug: No text extracted from image {image_path}.")
                 raise ValueError("No text content could be extracted from the image.")
 
-        # ✅ Meme Validation Check
-        normalized_text = re.sub(r'[^\w\s]', '', text_content).strip().lower()  # Normalize text
+        normalized_text = re.sub(r'[^\w\s]', '', text_content).strip().lower()
         if is_text_payload:
             image_hash = compute_text_content_hash(text_content)
         else:
-            image_hash = hash_image(image_path)  # Compute image hash
+            image_hash = hash_image(image_path)
 
         if validate_meme:
             if is_text_payload:
@@ -5094,7 +5330,10 @@ class Blockchain:
                     print(f"Debug: Duplicate text payload detected: '{normalized_text}' already exists.")
                     raise ValueError("This meme has already been submitted.")
             elif image_hash in self.image_hashes and normalized_text in self.texts:
-                print(f"Debug: Duplicate meme detected! Image hash {image_hash} and text '{normalized_text}' already exist.")
+                print(
+                    f"Debug: Duplicate meme detected! Image hash {image_hash} and text "
+                    f"'{normalized_text}' already exist."
+                )
                 raise ValueError("This meme has already been submitted.")
 
         protocol_v1_media = None
@@ -5116,7 +5355,6 @@ class Blockchain:
             if declared_content_hash != protocol_v1_media["content_hash"]:
                 raise ValueError("Certified submission content_hash does not match canonical media bytes.")
 
-        # Encode the payload for block storage.
         if is_text_payload:
             print("Debug: Encoding text payload for block storage.")
             encoded_payload = (
@@ -5133,9 +5371,8 @@ class Blockchain:
                 print(f"Debug: Encoding image at path {image_path}.")
                 meme_encoded = self.encode_image(image_path)
 
-        # âœ… Calculate meme size (base64 encoding increases size)
         meme_size_kb = len(meme_encoded) / 1024
-        text_size_kb = len(text_content.encode()) / 1024  # Convert text content size to KB
+        text_size_kb = len(text_content.encode()) / 1024
 
         native_transaction_plan = self.select_native_transactions_for_block(
             max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK,
@@ -5150,10 +5387,10 @@ class Blockchain:
             ).encode("utf-8")
         ) / 1024 if native_transactions_for_block else 0
 
-        # Validate transactions and calculate total tips
         valid_transactions = []
-        total_tx_size_kb = 0  # âœ… Track total transaction size
-        total_miner_tips = 0  # âœ… Only track minerâ€™s tip earnings
+        total_tx_size_kb = 0
+        total_miner_tips = 0.0
+        candidate_reward_pool = float(self.reward_pool)
 
         print("Debug: Validating transactions concurrently...")
         with ThreadPoolExecutor() as executor:
@@ -5162,102 +5399,72 @@ class Blockchain:
                 tx = future_to_tx[future]
                 try:
                     if future.result():
-                        tip = tx.tip  # âœ… Keep tip logic
-
-                        # âœ… Tip Distribution (Existing Model)
-                        if self.reward_pool < (self.initial_reward_pool * 0.25):
+                        tip = float(tx.tip or 0)
+                        if candidate_reward_pool < (self.initial_reward_pool * 0.25):
                             tip_split = {"miner": 0.25, "reward_pool": 0.75}
                         else:
                             tip_split = {"miner": 0.5, "reward_pool": 0.5}
 
                         miner_tip_share = tip * tip_split["miner"]
                         reward_pool_tip_share = tip * tip_split["reward_pool"]
+                        candidate_reward_pool += reward_pool_tip_share
+                        total_miner_tips += miner_tip_share
 
-                        # âœ… Add to balances
-                        self.reward_pool += reward_pool_tip_share  # âœ… Only tips go to reward pool
-                        total_miner_tips += miner_tip_share  # âœ… Miner gets tip only
-
-                        # âœ… Debugging Output
                         print(f"Debug: Transaction Distribution - Tip Total: {tip:.4f}")
                         print(f"Debug: - Miner gets: {miner_tip_share:.4f}")
                         print(f"Debug: - Reward Pool gets: {reward_pool_tip_share:.4f}")
 
-                        tx_size_kb = len(str(tx)) / 1024  # âœ… Convert transaction size to KB
+                        tx_size_kb = len(str(tx)) / 1024
                         total_tx_size_kb += tx_size_kb
                         valid_transactions.append(tx)
                 except Exception as e:
                     print(f"Debug: Transaction validation error: {e}")
 
-        # âœ… Calculate total block size
         total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb + native_tx_size_kb
-
-        # âœ… Enforce block size limit
         if total_block_size_kb > max_block_size_kb:
-            print(f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of {max_block_size_kb} KB. Rejecting block.")
-            return False
+            print(
+                f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of "
+                f"{max_block_size_kb} KB. Rejecting block."
+            )
+            return None
 
         print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
 
-        # âœ… Ensure minerâ€™s balance is updated
-        if miner in self.wallets:
-            current_balance = self.get_balance(miner)  # âœ… Get miner's balance
-            updated_balance = current_balance + total_miner_tips  # âœ… Add miner's earnings
-            print(f"Debug: Before crediting miner {miner}: {current_balance:.4f} {COIN_NAME}")
-            print(f"Debug: Miner earned: {total_miner_tips:.4f} {COIN_NAME}")
-
-            # âœ… Store the updated balance at the blockchain level
-            self.wallets[miner].stored_balance = updated_balance  # âœ… Store updated balance
-
-            print(f"Debug: After crediting miner {miner}: {self.wallets[miner].stored_balance:.4f} {COIN_NAME}")
-        else:
-            print(f"Debug: WARNING! Miner {miner} not found in registered wallets. Initializing new wallet.")
-
-            # âœ… Initialize the miner's wallet with the earned balance
-            self.wallets[miner] = Wallet()
-            self.wallets[miner].public_key = miner
-            self.wallets[miner].private_key = None  # Minerâ€™s private key is unknown
-            self.wallets[miner].stored_balance = total_miner_tips  # âœ… Store the initial balance
-            print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} {COIN_NAME}")
-
-        # Add creator reward
         mining_reward = float(MEME_BLOCK_REWARD)
-        if self.reward_pool < mining_reward:
-            print("Error: Insufficient funds in the reward pool.")
-            return False
-
         reward_receiver = reward_recipient or miner
         if reward_receiver not in {"GENESIS", "REWARD_POOL"}:
             normalized_reward_receiver = self._normalize_native_wallet_identity(reward_receiver)
             if normalized_reward_receiver is None:
                 raise ValueError("Minting reward recipient is missing or invalid for this submission.")
             reward_receiver = normalized_reward_receiver
-        if certificate is not None and any(
-            existing_block.submission_id == certificate.submission_id
-            or existing_block.certificate_id == certificate.certificate_id
-            for existing_block in self.chain
+        if certificate is not None and (
+            self.get_protocol_v1_block_for_submission(certificate.submission_id) is not None
+            or self.get_protocol_v1_block_for_certificate(certificate.certificate_id) is not None
         ):
             raise ValueError("Certified submission already minted into a block.")
 
         voter_reward_plan = (
             self._select_voter_reward_records_for_block(
                 prioritized_submission_id=certificate.submission_id,
+                reward_pool_balance=candidate_reward_pool,
             )
             if VOTER_REWARDS_ENABLED and certificate is not None
             else {"selected": [], "skipped": []}
         )
-        voter_reward_transactions = [
-            Transaction("REWARD_POOL", reward_record["reward_recipient"], float(reward_record["reward_amount"]))
-            for reward_record in voter_reward_plan["selected"]
-        ]
         total_voter_reward_amount = sum(
             float(reward_record["reward_amount"])
             for reward_record in voter_reward_plan["selected"]
         )
-        reward_transaction = Transaction("REWARD_POOL", reward_receiver, float(mining_reward))
-        self.reward_pool -= mining_reward
-        self.reward_pool -= total_voter_reward_amount
+        if candidate_reward_pool < (mining_reward + total_voter_reward_amount):
+            print("Error: Insufficient funds in the reward pool.")
+            return None
 
-        # Create the new block
+        voter_reward_transactions = [
+            Transaction("REWARD_POOL", reward_record["reward_recipient"], float(reward_record["reward_amount"]))
+            for reward_record in voter_reward_plan["selected"]
+        ]
+        reward_transaction = Transaction("REWARD_POOL", reward_receiver, mining_reward)
+
         latest_block = self.get_latest_block()
         minted_at = time.time()
         reward_metadata = {}
@@ -5270,6 +5477,7 @@ class Blockchain:
                 certificate,
                 minted_at=minted_at,
             )
+
         new_block = Block(
             index=latest_block.index + 1,
             previous_hash=latest_block.hash,
@@ -5292,15 +5500,56 @@ class Blockchain:
         if certificate is not None:
             new_block.reward_type = "meme_mining_reward"
             new_block.reward_recipient = reward_transaction.recipient
-            new_block.reward_amount = float(mining_reward)
+            new_block.reward_amount = mining_reward
             new_block.reward_source = "reward_pool"
             new_block.minted_at = minted_at
             new_block.voter_rewards = list(voter_reward_plan["selected"])
             new_block.hash = new_block.calculate_hash()
+
+        return {
+            "block": new_block,
+            "candidate_type": "protocol_v1" if certificate is not None else "legacy",
+            "image_path": image_path,
+            "text_content": text_content,
+            "normalized_text": normalized_text,
+            "image_hash": image_hash,
+            "total_block_size_kb": total_block_size_kb,
+            "total_miner_tips": total_miner_tips,
+            "valid_transactions": valid_transactions,
+            "native_transaction_plan": native_transaction_plan,
+        }
+
+    def accept_block_candidate(self, candidate):
+        if candidate is None:
+            return False
+
+        new_block = candidate["block"]
+        self.validate_candidate_block_for_local_acceptance(new_block, current_chain=self.chain)
+
+        total_miner_tips = float(candidate.get("total_miner_tips") or 0)
+        miner = new_block.miner
+        if miner in self.wallets:
+            current_balance = self.get_balance(miner)
+            updated_balance = current_balance + total_miner_tips
+            print(f"Debug: Before crediting miner {miner}: {current_balance:.4f} {COIN_NAME}")
+            print(f"Debug: Miner earned: {total_miner_tips:.4f} {COIN_NAME}")
+            self.wallets[miner].stored_balance = updated_balance
+            print(f"Debug: After crediting miner {miner}: {self.wallets[miner].stored_balance:.4f} {COIN_NAME}")
+        else:
+            print(f"Debug: WARNING! Miner {miner} not found in registered wallets. Initializing new wallet.")
+            self.wallets[miner] = Wallet()
+            self.wallets[miner].public_key = miner
+            self.wallets[miner].private_key = None
+            self.wallets[miner].stored_balance = total_miner_tips
+            print(f"Debug: New miner wallet created for {miner} with balance: {total_miner_tips:.4f} {COIN_NAME}")
+
         self.chain.append(new_block)
         self.settle_block_native_transactions(new_block)
-        self.pending_transactions = [tx for tx in self.pending_transactions if tx not in valid_transactions]
-        for skipped in native_transaction_plan["skipped"]:
+        self.pending_transactions = [
+            tx for tx in self.pending_transactions
+            if tx not in candidate.get("valid_transactions", [])
+        ]
+        for skipped in candidate.get("native_transaction_plan", {}).get("skipped", []):
             tx_id = skipped.get("tx_id")
             if not tx_id or self.get_native_transaction(tx_id) is None:
                 continue
@@ -5312,17 +5561,42 @@ class Blockchain:
                 rejection_reason=skipped.get("reason") or "validation_failed",
             )
 
-        # âœ… Cache meme data after block is added
-        print(f"Debug: Caching meme data for image {image_path}.")
-        self.image_hashes.add(image_hash)
-        self.texts.append(normalized_text)
-
-        print(f"Block {new_block.index} added with meme: {text_content}. Final size: {total_block_size_kb:.2f} KB.")
-        print(f"Miner earned: {total_miner_tips:.4f} {COIN_NAME}.")
-
+        print(f"Debug: Caching meme data for image {candidate['image_path']}.")
+        self.image_hashes.add(candidate["image_hash"])
+        self.texts.append(candidate["normalized_text"])
+        self.recompute_reward_pool_balance(chain=self.chain)
         self.save_blockchain()
 
+        print(
+            f"Block {new_block.index} added with meme: {candidate['text_content']}. "
+            f"Final size: {candidate['total_block_size_kb']:.2f} KB."
+        )
+        print(f"Miner earned: {total_miner_tips:.4f} {COIN_NAME}.")
         return True
+
+    def add_block(
+        self,
+        image_path,
+        text_content=None,
+        miner=None,
+        max_block_size_kb=500,
+        validate_meme=True,
+        certificate=None,
+        reward_recipient=None,
+    ):
+        """
+        Add a block with tip distribution, enforce block size limit, and validate memes.
+        """
+        candidate = self.build_block_candidate(
+            image_path=image_path,
+            text_content=text_content,
+            miner=miner,
+            max_block_size_kb=max_block_size_kb,
+            validate_meme=validate_meme,
+            certificate=certificate,
+            reward_recipient=reward_recipient,
+        )
+        return self.accept_block_candidate(candidate)
 
     def get_latest_block(self):
         return self.chain[-1]
@@ -6024,9 +6298,19 @@ class Blockchain:
 
     def is_chain_valid(self, chain):
         """Validate a given chain."""
-        for i in range(1, len(chain)):
-            current_block = chain[i]
-            previous_block = chain[i - 1]
+        chain_dicts = self.chain_to_dicts(chain)
+        if not chain_dicts:
+            return False
+
+        try:
+            self.validate_canonical_public_testnet_v1_genesis(chain_dicts[0])
+        except GenesisValidationError as exc:
+            print(f"Debug: Genesis validation failed - {exc}")
+            return False
+
+        for i in range(1, len(chain_dicts)):
+            current_block = chain_dicts[i]
+            previous_block = chain_dicts[i - 1]
 
             # Validate the hash of the block
             if current_block["hash"] != self.calculate_hash_from_dict(current_block):
@@ -6110,6 +6394,9 @@ class Blockchain:
         comparison = self.compare_chains_by_originality(self.chain, new_chain)
         if comparison["decision"] == "replace_with_candidate":
             self.chain = new_chain
+            self.recompute_reward_pool_balance(chain=self.chain)
+            self.reconcile_submission_canonical_state()
+            self.reconcile_native_transactions_with_chain(chain=self.chain)
             print(f"Debug: Replaced local chain: {comparison['reason']}.")
             return True
         print(f"Debug: Received chain not selected: {comparison['reason']}.")
@@ -6117,6 +6404,9 @@ class Blockchain:
     
     def calculate_hash_from_dict(self, block_dict):
         """Calculate the hash for a block dictionary."""
+        if block_dict.get("genesis_version") is not None:
+            validate_public_testnet_v1_genesis_record(block_dict)
+            return self.public_testnet_v1_genesis_hash()
         if self.is_protocol_v1_block_payload(block_dict):
             return Block.calculate_hash_v1_from_dict(block_dict)
         return Block.from_dict(block_dict).calculate_hash()

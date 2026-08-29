@@ -1,6 +1,6 @@
 # ZoidbergChain
 
-As of Saturday, August 1, 2026, ZoidbergChain is ready for Task 9 public-demo and controlled-testnet hardening on top of the completed Task 1 through Task 8 implementation.
+As of Saturday, August 29, 2026, the frozen Public Testnet v1 protocol specification lives in [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md).
 
 ## Stage 1 Goal
 

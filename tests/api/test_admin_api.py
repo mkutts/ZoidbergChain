@@ -1,12 +1,20 @@
+import sys
+
 from fastapi.testclient import TestClient
 
-import api
 from admin_auth import AdminSessionManager, hash_admin_password
 from access_control import AccessSessionManager
 from wallet_auth import WalletAuthManager
 
 
+def _api_module():
+    import api
+
+    return api
+
+
 def _client(blockchain):
+    api = _api_module()
     api.limiter.reset()
     api.blockchain = blockchain
     api.wallet_auth_manager = WalletAuthManager(
@@ -29,12 +37,15 @@ def _configure_admin(monkeypatch, **overrides):
     defaults.update(overrides)
 
     import config
+    api = sys.modules.get("api")
 
     for name, value in defaults.items():
         monkeypatch.setattr(config, name, value)
-        monkeypatch.setattr(api, name, value)
+        if api is not None:
+            monkeypatch.setattr(api, name, value)
 
-    api.admin_session_manager = AdminSessionManager(session_ttl_seconds=api.ADMIN_SESSION_TTL_SECONDS)
+    if api is not None:
+        api.admin_session_manager = AdminSessionManager(session_ttl_seconds=api.ADMIN_SESSION_TTL_SECONDS)
 
 
 def _configure_access(monkeypatch, **overrides):
@@ -52,10 +63,12 @@ def _configure_access(monkeypatch, **overrides):
     defaults.update(overrides)
 
     import config
+    api = sys.modules.get("api")
 
     for name, value in defaults.items():
         monkeypatch.setattr(config, name, value)
-        monkeypatch.setattr(api, name, value)
+        if api is not None:
+            monkeypatch.setattr(api, name, value)
 
 
 def _login_admin(client, password="super-secret-admin"):

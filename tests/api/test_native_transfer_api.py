@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from blockchain import Blockchain
 from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID
 from storage import JSONStorageBackend, SQLiteStorageBackend
-from transaction import Transaction
+from test_support import fund_native_wallet_with_block
 from wallet import Wallet
 from wallet_auth import WalletAuthManager, hash_wallet_message
 
@@ -57,9 +57,7 @@ def _create_account():
 
 
 def _fund_native_wallet(blockchain, wallet_address, amount="5"):
-    blockchain.chain[0].transactions.append(
-        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
-    )
+    fund_native_wallet_with_block(blockchain, wallet_address, amount=amount)
 
 
 def _sign_message(message, account):

@@ -239,6 +239,23 @@ def test_migration_refuses_schema_drift_in_source_snapshot(isolated_data_dir):
         )
 
 
+def test_migration_rejects_legacy_runtime_genesis_source(isolated_data_dir, submission_image):
+    _seed_json_state(isolated_data_dir, submission_image)
+    source_path = isolated_data_dir / "blockchain.json"
+    snapshot = json.loads(source_path.read_text(encoding="utf-8"))
+    for field_name in ["genesis_version", "protocol_version", "network_id", "total_supply", "initial_reward_pool"]:
+        snapshot["chain"][0].pop(field_name, None)
+    snapshot["chain"][0]["previous_hash"] = "0"
+    snapshot["chain"][0]["hash"] = "legacy-runtime-genesis"
+    source_path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(MigrationError, match="frozen Public Testnet v1 genesis"):
+        migrate_json_to_sqlite(
+            source_json_path=source_path,
+            sqlite_db_path=isolated_data_dir / "legacy-source.db",
+        )
+
+
 def test_migration_respects_data_dir_isolation_and_does_not_touch_node_b(isolated_data_dir, submission_image):
     node_a_dir = isolated_data_dir / "node-a"
     node_b_dir = isolated_data_dir / "node-b"

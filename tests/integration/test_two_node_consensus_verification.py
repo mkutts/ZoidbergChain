@@ -3,6 +3,7 @@ from blockchain import Blockchain
 from originality_certificate import OriginalityCertificate
 from peers import PeerStore
 from peer_sync import receive_peer_block, sync_chain_from_peers
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
 from submission import Submission, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 
@@ -18,26 +19,7 @@ class FakeResponse:
 
 
 def _clone_block(block):
-    block_data = block.to_dict()
-    return Block(
-        index=block_data["index"],
-        previous_hash=block_data["previous_hash"],
-        timestamp=block_data["timestamp"],
-        transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],
-        miner=block_data["miner"],
-        meme=block_data.get("meme", {}),
-        hash=block_data["hash"],
-        submission_id=block_data.get("submission_id"),
-        certificate_id=block_data.get("certificate_id"),
-        content_hash=block_data.get("content_hash"),
-        creator_wallet=block_data.get("creator_wallet"),
-        vote_hash=block_data.get("vote_hash"),
-        approval_percentage=block_data.get("approval_percentage"),
-        decisive_vote_total=block_data.get("decisive_vote_total"),
-        minimum_votes_required=block_data.get("minimum_votes_required"),
-        approved_at=block_data.get("approved_at"),
-        originality_score=block_data.get("originality_score"),
-    )
+    return Block.from_dict(block.to_dict())
 
 
 def _matching_genesis_node(node_a, wallets):
@@ -82,6 +64,8 @@ def _chain_summary(node, node_id):
     latest_block = node.get_latest_block()
     return {
         "network_name": "zoidberg-testnet",
+        "network_id": PUBLIC_TESTNET_V1_NETWORK_ID,
+        "protocol_version": PROTOCOL_VERSION,
         "node_id": node_id,
         "chain_height": latest_block.index,
         "latest_block_hash": latest_block.hash,

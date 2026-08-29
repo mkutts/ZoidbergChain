@@ -20,6 +20,7 @@ from fastapi.testclient import TestClient
 from block import Block
 from peers import PeerStore
 from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
+from test_support import fund_native_wallet_with_block
 from transaction import Transaction
 from wallet import Wallet
 from wallet_auth import WalletAuthManager
@@ -98,38 +99,7 @@ def _create_wallets() -> dict[str, Wallet]:
 
 
 def _clone_block(block: Block) -> Block:
-    block_data = block.to_dict()
-    return Block(
-        index=block_data["index"],
-        previous_hash=block_data["previous_hash"],
-        timestamp=block_data["timestamp"],
-        transactions=[Transaction.from_dict(tx) for tx in block_data["transactions"]],
-        miner=block_data["miner"],
-        meme=block_data.get("meme", {}),
-        hash=block_data["hash"],
-        submission_id=block_data.get("submission_id"),
-        certificate_id=block_data.get("certificate_id"),
-        content_hash=block_data.get("content_hash"),
-        content_id=block_data.get("content_id"),
-        content_type=block_data.get("content_type"),
-        mime_type=block_data.get("mime_type"),
-        creator_wallet=block_data.get("creator_wallet"),
-        vote_hash=block_data.get("vote_hash"),
-        approval_percentage=block_data.get("approval_percentage"),
-        decisive_vote_total=block_data.get("decisive_vote_total"),
-        minimum_votes_required=block_data.get("minimum_votes_required"),
-        approved_at=block_data.get("approved_at"),
-        originality_score=block_data.get("originality_score"),
-        reward_type=block_data.get("reward_type"),
-        reward_recipient=block_data.get("reward_recipient"),
-        reward_amount=block_data.get("reward_amount"),
-        reward_source=block_data.get("reward_source"),
-        minted_at=block_data.get("minted_at"),
-        native_transactions=block_data.get("native_transactions", []),
-        transaction_ids=block_data.get("transaction_ids"),
-        transaction_count=block_data.get("transaction_count"),
-        transactions_hash=block_data.get("transactions_hash"),
-    )
+    return Block.from_dict(block.to_dict())
 
 
 @contextmanager
@@ -380,10 +350,7 @@ def _prepare_mintable_submission(
 
 
 def _fund_native_wallet(blockchain, wallet_address: str, amount: str):
-    blockchain.chain[0].transactions.append(
-        Transaction(sender="GENESIS", recipient=wallet_address.lower(), amount=float(amount), tip=0)
-    )
-    blockchain.chain[0].hash = blockchain.chain[0].calculate_hash()
+    fund_native_wallet_with_block(blockchain, wallet_address, amount=amount)
 
 
 def _build_signed_transaction_payload(

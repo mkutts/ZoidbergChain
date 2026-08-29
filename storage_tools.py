@@ -12,6 +12,13 @@ from typing import Any
 
 import config
 from content import ContentObject, verify_content_object_payload
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from protocol_v1_genesis import (
+    GenesisValidationError,
+    canonical_public_testnet_v1_genesis_hash,
+    inspect_public_testnet_v1_genesis_chain,
+    require_public_testnet_v1_genesis_chain,
+)
 from storage import (
     JSONStorageBackend,
     SQLiteStorageBackend,
@@ -150,6 +157,78 @@ def _genesis_block_hash(chain: list[Any]) -> str | None:
     return getattr(first_block, "hash", None)
 
 
+def _snapshot_genesis_metadata(chain: list[Any]) -> dict[str, Any]:
+    inspection = inspect_public_testnet_v1_genesis_chain(chain)
+    metadata = {
+        "protocol_version": PROTOCOL_VERSION,
+        "network_id": PUBLIC_TESTNET_V1_NETWORK_ID,
+        "canonical_genesis_hash": canonical_public_testnet_v1_genesis_hash(),
+        "genesis_hash": inspection.get("genesis_hash"),
+        "genesis_status": inspection.get("status"),
+    }
+    if inspection.get("error_code"):
+        metadata["genesis_error_code"] = inspection["error_code"]
+    if inspection.get("error_message"):
+        metadata["genesis_error_message"] = inspection["error_message"]
+    return metadata
+
+
+def _validate_importable_public_testnet_v1_state(state: dict[str, Any], *, label: str) -> str | None:
+    chain = state.get("chain", [])
+    if chain:
+        try:
+            return require_public_testnet_v1_genesis_chain(chain, label=label)
+        except GenesisValidationError as exc:
+            raise ValueError(str(exc)) from exc
+    if _has_persisted_data(state):
+        raise ValueError(f"{label} contains persisted state but no genesis block.")
+    return None
+
+
+def _validate_snapshot_metadata_binding(
+    metadata: dict[str, Any],
+    *,
+    expected_genesis_hash: str | None,
+    allow_network_override: bool,
+) -> None:
+    if not isinstance(metadata, dict):
+        raise ValueError("Snapshot metadata must be an object.")
+
+    metadata_network_name = metadata.get("network_name")
+    if metadata_network_name != config.NETWORK_NAME and not allow_network_override:
+        raise ValueError(
+            f"Snapshot network_name {metadata_network_name!r} does not match this node's network "
+            f"{config.NETWORK_NAME!r}. Use allow_network_override=True or --allow-network-override to import anyway."
+        )
+
+    if metadata.get("protocol_version", PROTOCOL_VERSION) != PROTOCOL_VERSION:
+        raise ValueError(
+            "Snapshot protocol_version does not match Public Testnet v1 and cannot be imported."
+        )
+
+    if metadata.get("network_id", PUBLIC_TESTNET_V1_NETWORK_ID) != PUBLIC_TESTNET_V1_NETWORK_ID:
+        raise ValueError(
+            "Snapshot network_id does not match Public Testnet v1. A materially different genesis "
+            "state requires a different network identity and an explicit local reset."
+        )
+
+    canonical_hash = canonical_public_testnet_v1_genesis_hash()
+    metadata_canonical_hash = metadata.get("canonical_genesis_hash", canonical_hash)
+    if metadata_canonical_hash != canonical_hash:
+        raise ValueError(
+            "Snapshot canonical_genesis_hash does not match the frozen Public Testnet v1 genesis hash."
+        )
+
+    metadata_genesis_hash = metadata.get("genesis_hash")
+    if metadata_genesis_hash not in {None, "", canonical_hash}:
+        raise ValueError(
+            "Snapshot genesis_hash does not match the frozen Public Testnet v1 genesis hash."
+        )
+
+    if expected_genesis_hash and metadata_genesis_hash not in {None, "", expected_genesis_hash}:
+        raise ValueError("Snapshot metadata genesis_hash does not match the imported chain state.")
+
+
 def _calculate_cumulative_originality_score(chain: list[Any]) -> float | None:
     total = 0.0
     found = False
@@ -243,6 +322,7 @@ def build_export_snapshot(
         "cumulative_originality_score": _calculate_cumulative_originality_score(chain),
         "contains_private_keys": bool(include_private_keys and _snapshot_contains_private_keys(state)),
     }
+    metadata.update(_snapshot_genesis_metadata(chain))
     if include_private_keys:
         metadata["warning"] = (
             "This export includes private keys. Do not share it and keep it in a protected location."
@@ -438,11 +518,15 @@ def import_storage(
 
     metadata = snapshot["metadata"]
     state = snapshot["state"]
-    if metadata.get("network_name") != config.NETWORK_NAME and not allow_network_override:
-        raise ValueError(
-            f"Snapshot network_name {metadata.get('network_name')!r} does not match this node's network "
-            f"{config.NETWORK_NAME!r}. Use allow_network_override=True or --allow-network-override to import anyway."
-        )
+    expected_genesis_hash = _validate_importable_public_testnet_v1_state(
+        state,
+        label="Imported snapshot state",
+    )
+    _validate_snapshot_metadata_binding(
+        metadata,
+        expected_genesis_hash=expected_genesis_hash,
+        allow_network_override=allow_network_override,
+    )
 
     if _snapshot_has_sensitive_wallet_data(snapshot):
         if not include_private_keys or not _private_key_export_allowed():
@@ -468,6 +552,9 @@ def import_storage(
         "overwrite": overwrite,
         "network_override_used": allow_network_override,
         "backup": backup_info,
+        "network_id": PUBLIC_TESTNET_V1_NETWORK_ID,
+        "protocol_version": PROTOCOL_VERSION,
+        "canonical_genesis_hash": canonical_public_testnet_v1_genesis_hash(),
     }
 
     if dry_run:
@@ -488,14 +575,6 @@ def import_storage(
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),
         "peers": deepcopy(state.get("peers", [])),
     }
-
-    if _has_persisted_data(existing_state):
-        existing_genesis = _genesis_block_hash(existing_state.get("chain", []))
-        imported_genesis = _genesis_block_hash(imported_state.get("chain", []))
-        if existing_genesis and imported_genesis and existing_genesis != imported_genesis:
-            raise ValueError(
-                "Imported snapshot genesis hash does not match the existing node data."
-            )
 
     _write_state_to_backend(backend, imported_state)
     integrity_report = check_storage_integrity(backend)

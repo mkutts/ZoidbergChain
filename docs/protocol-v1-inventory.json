@@ -1,11 +1,23 @@
 {
   "audit": {
     "branch": "Freeze-ZoidbergChain-Public-Testnet-v1-Protocol",
-    "commit": "d965aa3362124b40c97c676a7503c03007877707",
+    "commit": "34eab657b7baa6c33d938b0c8d2275db4800ca93",
     "working_tree_clean": false,
+    "pre_existing_modified_files": [
+      "api.py",
+      "blockchain.py",
+      "config.py",
+      "docs/protocol-v1-audit.md",
+      "docs/protocol-v1-block-format.md",
+      "docs/protocol-v1-native-transfers.md",
+      "docs/protocol-v1-originality-and-votes.md",
+      "docs/protocol-v1-peer-messages.md",
+      "peer_sync.py",
+      "tests/api/test_submission_lifecycle_api.py"
+    ],
     "pre_existing_untracked_files": [
-      "rollback-prep-working-tree.patch",
-      "zoidbergcoin-ui/zoidbergchain-dist.zip"
+      "docs/protocol-v1-lifecycle-finality.md",
+      "tests/blockchain/test_protocol_v1_lifecycle_finality.py"
     ],
     "python_version": "Python 3.13.5",
     "storage_backends": [
@@ -14,30 +26,34 @@
     ],
     "test_commands": [
       {
-        "command": "python -m pytest -q",
-        "result": "failed: No module named pytest"
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/storage/test_storage_tools.py tests/storage/test_json_to_sqlite_migration.py tests/blockchain/test_blockchain_smoke.py tests/blockchain/test_protocol_v1_block_format.py -q",
+        "result": "passed: 44 passed in 10.15s"
       },
       {
-        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q",
-        "result": "passed: 738 passed in 77.25s"
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/api/test_chain_sync_api.py -q",
+        "result": "passed: 16 passed in 2.70s"
       }
     ],
     "post_change_test_commands": [
       {
-        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/api/test_peer_auth_api.py tests/api/test_peer_block_sync_api.py tests/api/test_peer_vote_sync_api.py tests/api/test_peer_certificate_sync_api.py tests/api/test_peer_transaction_sync_api.py tests/api/test_peer_content_sync_api.py tests/api/test_chain_sync_api.py tests/test_protocol_v1_peer_messages.py",
-        "result": "passed: 134 passed in 12.96s"
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/blockchain/test_protocol_v1_genesis.py tests/storage/test_storage_tools.py tests/storage/test_json_to_sqlite_migration.py tests/api/test_chain_sync_api.py -q",
+        "result": "passed: 63 passed in 31.70s"
       },
       {
-        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/api/test_peer_submission_sync_api.py tests/api/test_peer_auth_api.py tests/api/test_peer_block_sync_api.py tests/api/test_peer_content_sync_api.py tests/api/test_peer_vote_sync_api.py tests/api/test_peer_certificate_sync_api.py tests/api/test_peer_transaction_sync_api.py tests/api/test_chain_sync_api.py tests/api/test_wallet_auth_api.py tests/api/test_native_transfer_api.py tests/api/test_native_transaction_block_inclusion_api.py tests/blockchain/test_protocol_v1_block_format.py tests/blockchain/test_certificate_block_validation.py tests/test_protocol_v1.py tests/test_protocol_v1_originality_votes.py tests/test_protocol_v1_native_transfers.py tests/test_protocol_v1_peer_messages.py tests/storage/test_storage_tools.py tests/storage/test_json_to_sqlite_migration.py tests/config/test_security_modes.py",
-        "result": "passed: 363 passed in 34.75s"
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/integration/test_two_node_native_transfer_verification.py tests/integration/test_two_node_consensus_verification.py tests/integration/test_two_node_storage_backends.py -q",
+        "result": "passed: 17 passed in 14.81s"
       },
       {
-        "command": ".\\.venv\\Scripts\\python.exe -m pytest -q tests/integration/test_two_node_native_transfer_verification.py tests/integration/test_two_node_consensus_verification.py tests/integration/test_two_node_storage_backends.py",
-        "result": "passed: 17 passed in 5.57s"
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/api/test_admin_api.py tests/api/test_feedback_api.py tests/api/test_ops_api.py -q",
+        "result": "passed: 24 passed in 23.40s"
+      },
+      {
+        "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/api/test_security_audit_api.py tests/storage/test_storage_regression_pass.py -q",
+        "result": "passed: 9 passed in 2.27s"
       },
       {
         "command": ".\\.venv\\Scripts\\python.exe -m pytest -q",
-        "result": "passed: 843 passed in 240.42s (0:04:00)"
+        "result": "passed: 866 passed in 278.45s (0:04:38)"
       }
     ]
   },
@@ -189,7 +205,7 @@
     "risks": [
       "legacy and Protocol v1 certificates must remain explicitly separated",
       "peer certificate validation for known submissions depends on matching local vote-set state",
-      "legacy launch/reset policy is still unresolved"
+      "automatic recertification of legacy launch data remains out of scope"
     ]
   },
   "submission": {
@@ -365,7 +381,7 @@
     "risks": [
       "legacy and Protocol v1 transfers must remain explicitly separated",
       "strict sequential nonce policy must stay stable",
-      "pending legacy native-transaction state should be drained or purged before Public Testnet v1 launch"
+      "pending legacy native-transaction state should be reviewed or purged before joining the canonical Public Testnet v1 chain"
     ]
   },
   "wallet_signature": {
@@ -460,39 +476,55 @@
   },
   "genesis": {
     "files": [
+      "protocol_v1_genesis.py",
+      "block.py",
       "blockchain.py"
     ],
     "symbols": [
-      "Blockchain.create_genesis_block"
+      "canonical_public_testnet_v1_genesis_payload",
+      "canonical_public_testnet_v1_genesis_record",
+      "validate_public_testnet_v1_genesis_record",
+      "Block.calculate_hash_genesis",
+      "Blockchain.create_genesis_block",
+      "Blockchain.validate_canonical_public_testnet_v1_genesis"
     ],
-    "hash_function": "Block.calculate_hash on runtime-generated genesis block",
+    "hash_function": "protocol_v1.canonical_domain_hash over the frozen Public Testnet v1 genesis payload / Block.calculate_hash_genesis / Blockchain.calculate_hash_from_dict",
     "hash_algorithm": "sha256",
     "fields": [
+      "genesis_version",
+      "protocol_version",
+      "network_id",
       "index",
       "previous_hash",
       "timestamp",
-      "genesis transactions",
+      "transactions",
       "miner",
-      "meme",
-      "project owner wallet",
-      "Contributor_one",
-      "Contributor_two"
+      "meme.text",
+      "hash",
+      "total_supply",
+      "initial_reward_pool"
     ],
-    "network_bound": false,
-    "protocol_versioned": false,
-    "deterministic_serialization": false,
+    "network_bound": true,
+    "protocol_versioned": true,
+    "deterministic_serialization": true,
     "persistence": [
-      "bootstrap chain state"
+      "bootstrap chain state",
+      "storage_tools.py export/import metadata",
+      "storage_migration.py source validation",
+      "peer sync chain summaries and candidate-chain validation"
     ],
     "tests": [
-      "tests/blockchain/test_chain_originality_comparison.py",
+      "tests/blockchain/test_protocol_v1_genesis.py",
       "tests/api/test_chain_sync_api.py",
-      "tests/integration/test_two_node_consensus_verification.py"
+      "tests/storage/test_storage_tools.py",
+      "tests/storage/test_json_to_sqlite_migration.py",
+      "tests/integration/test_two_node_consensus_verification.py",
+      "tests/integration/test_two_node_storage_backends.py"
     ],
     "risks": [
-      "runtime timestamp",
-      "filesystem dependency on ./zoidberg.jpg",
-      "wallet-dependent initialization"
+      "legacy local chain data must be reset explicitly before Public Testnet v1 startup",
+      "post-genesis legacy block compatibility paths still exist outside genesis freezing",
+      "validator membership remains operational config state rather than genesis consensus state"
     ]
   },
   "chain_validation": {
@@ -515,7 +547,7 @@
       "genesis hash"
     ],
     "network_bound": true,
-    "protocol_versioned": false,
+    "protocol_versioned": true,
     "deterministic_serialization": true,
     "persistence": [
       "validated chain state in storage"
@@ -526,7 +558,7 @@
     ],
     "risks": [
       "depends on legacy block hash semantics",
-      "fork-choice criteria are not versioned"
+      "post-genesis mixed legacy/v1 policy remains transitional"
     ]
   },
   "fork_choice": {
@@ -549,7 +581,7 @@
       "genesis hash"
     ],
     "network_bound": true,
-    "protocol_versioned": false,
+    "protocol_versioned": true,
     "deterministic_serialization": true,
     "persistence": [
       "chain replacement affects stored blockchain document"
@@ -560,7 +592,7 @@
     ],
     "risks": [
       "different peers can prefer different candidates if inputs diverge",
-      "no explicit protocol version field"
+      "post-genesis legacy compatibility remains explicit transitional behavior"
     ]
   },
   "media": {

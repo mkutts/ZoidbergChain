@@ -1235,3 +1235,94 @@ def test_http_exception_status_and_message_are_preserved(blockchain):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Submission not found: missing-submission"
+
+
+def test_submission_detail_exposes_protocol_v1_lifecycle_fields(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key, "Lifecycle detail")
+    _cast_votes(
+        blockchain,
+        submission.submission_id,
+        [VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_ORIGINAL, VOTE_NOT_ORIGINAL],
+    )
+
+    assert client.post(
+        f"/submissions/{submission.submission_id}/evaluate",
+        data={"automated_originality_passed": "true"},
+    ).status_code == 200
+    mint_response = client.post(f"/mint-queue/{submission.submission_id}/mint")
+    assert mint_response.status_code == 200
+
+    response = client.get(f"/submissions/{submission.submission_id}")
+
+    assert response.status_code == 200
+    body = response.json()["submission"]
+    lifecycle = body["protocol_v1_lifecycle"]
+    assert body["submission_status"] == MINTED
+    assert body["certificate_status"] == "valid"
+    assert body["mint_status"] == "minted"
+    assert body["block_status"] == "canonical"
+    assert body["confirmations"] == 0
+    assert body["confirmed"] is False
+    assert body["finalized"] is False
+    assert lifecycle["submitted"] is True
+    assert lifecycle["certified"] is True
+    assert lifecycle["block_created"] is True
+    assert lifecycle["block_accepted"] is True
+    assert lifecycle["canonical"] is True
+    assert lifecycle["phase"] == "canonical"
+    assert lifecycle["finality_model"] == "operational_depth"
+    assert lifecycle["finality_scope"] == "policy_not_bft"
+
+    block = mint_response.json()["block"]
+    assert block["accepted"] is True
+    assert block["canonical"] is True
+    assert block["block_status"] == "canonical"
+    assert block["confirmations"] == 0
+    assert block["confirmed"] is False
+    assert block["finalized"] is False
+
+
+def test_legacy_add_block_route_is_gated_in_public_mode(blockchain, submission_image, wallets, monkeypatch):
+    import api
+
+    client = _client(blockchain)
+    monkeypatch.setattr(api, "public_api_mode_enabled", lambda: True)
+    monkeypatch.setattr(api, "development_tools_enabled", lambda feature_enabled: False)
+
+    with submission_image.open("rb") as handle:
+        response = client.post(
+            "/add_block",
+            data={
+                "miner": wallets["owner"].public_key,
+                "private_key": wallets["owner"].private_key,
+            },
+            files={"image": ("zoidberg.jpg", handle.read(), "image/jpeg")},
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Legacy direct block route is disabled."
+
+
+def test_legacy_add_block_route_is_marked_as_non_protocol_v1_path(blockchain, submission_image, wallets, monkeypatch):
+    import utils
+
+    client = _client(blockchain)
+    monkeypatch.setattr(utils, "extract_text", lambda image_path: "Legacy direct route block")
+
+    with submission_image.open("rb") as handle:
+        response = client.post(
+            "/add_block",
+            data={
+                "miner": wallets["owner"].public_key,
+                "private_key": wallets["owner"].private_key,
+            },
+            files={"image": ("zoidberg.jpg", handle.read(), "image/jpeg")},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["legacy_direct_block"] is True
+    assert body["protocol_v1_mint_path"] is False
+    assert body["block"]["block_status"] == "canonical"
+    assert "block_version" not in body["block"]

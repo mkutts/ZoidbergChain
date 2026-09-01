@@ -9,7 +9,8 @@ def _client(blockchain):
 
     api.limiter.reset()
     api.blockchain = blockchain
-    api.peer_store = PeerStore()
+    # Reset peer_store to use the same isolated storage backend as the blockchain fixture
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     return TestClient(api.app)
 
 

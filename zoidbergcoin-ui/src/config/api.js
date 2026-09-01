@@ -1,45 +1,9 @@
 import axios from "axios";
+import { createDefaultApiBaseUrl, resolveApiBaseUrl } from "../utils/runtimeConfig.js";
 
-const IMPORT_META_ENV = {
-  MODE: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.MODE : undefined,
-  PROD: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.PROD : undefined,
-  VITE_API_BASE_URL: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_API_BASE_URL : undefined,
-  VITE_API_BASE: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_API_BASE : undefined,
-  VITE_BACKEND_URL: typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_BACKEND_URL : undefined,
-};
-const BROWSER_LOCATION = typeof window !== "undefined" ? window.location : null;
+export { createDefaultApiBaseUrl, resolveApiBaseUrl };
 
-export function createDefaultApiBaseUrl(importMetaEnv = {}, browserLocation = null) {
-  const devApiHost = browserLocation?.hostname === "localhost"
-    ? "localhost"
-    : "127.0.0.1";
-
-  return importMetaEnv.PROD
-    ? "https://zoidbergcoin.com/api"
-    : `http://${devApiHost}:8000`;
-}
-
-function normalizeApiBaseUrl(value) {
-  return String(value || "").trim();
-}
-
-export function resolveApiBaseUrl(importMetaEnv = {}, browserLocation = null) {
-  const configuredBaseUrl = [
-    importMetaEnv.VITE_API_BASE_URL,
-    importMetaEnv.VITE_API_BASE,
-    importMetaEnv.VITE_BACKEND_URL,
-  ]
-    .map(normalizeApiBaseUrl)
-    .find(Boolean);
-
-  if (configuredBaseUrl) {
-    return configuredBaseUrl;
-  }
-
-  return createDefaultApiBaseUrl(importMetaEnv, browserLocation);
-}
-
-export const API_BASE_URL = resolveApiBaseUrl(IMPORT_META_ENV, BROWSER_LOCATION);
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

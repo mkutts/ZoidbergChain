@@ -9,6 +9,8 @@ from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 def _client(blockchain):
     import api
     import config
+    from peers import PeerStore
+    from wallet_auth import WalletAuthManager
 
     api.NODE_ID = "local-node"
     api.PUBLIC_NODE_URL = "http://localhost:8000"
@@ -17,6 +19,11 @@ def _client(blockchain):
     config.PUBLIC_NODE_URL = "http://localhost:8000"
     config.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
+    api.wallet_auth_manager = WalletAuthManager(
+        network_name=api.NETWORK_NAME,
+        environment=api.ENVIRONMENT,
+    )
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     return TestClient(api.app)
 
 
@@ -104,7 +111,8 @@ def test_registering_valid_peer(blockchain, monkeypatch):
         "last_seen": 100.0,
         "status": "active",
     }
-    assert json.loads(Path("peers.json").read_text())[0]["node_id"] == "peer-node-1"
+    # Use blockchain's isolated storage backend peers path, not cwd-based peers.json
+    assert json.loads(Path(blockchain.storage.peers_file).read_text())[0]["node_id"] == "peer-node-1"
 
 
 def test_register_peer_rejects_wrong_network(blockchain):

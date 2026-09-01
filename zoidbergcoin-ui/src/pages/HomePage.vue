@@ -12,31 +12,17 @@
 
     <div class="form-container">
       <button @click="goToDashboard" class="btn secondary">Open Beta App</button>
-      <button v-if="showDevWalletTools" @click="generateWallet" class="btn primary">Development-Only Server Wallet</button>
-      <p v-if="showDevWalletTools" class="dev-wallet-note">
-        Development-only wallet generation remains available for local testing, but verified MetaMask sessions are the normal identity path.
-      </p>
-
       <button @click="goToWhyPage" class="btn secondary why-btn">Open Beta Guide</button>
 
       <a :href="whitePaperURL" download class="btn primary">Download White Paper</a>
-    </div>
-
-    <p v-if="successMessage" class="status-message success">{{ successMessage }}</p>
-    <p v-if="errorMessage" class="status-message error">{{ errorMessage }}</p>
-
-    <div v-if="walletDetails" class="wallet-details">
-      <p class="warning">{{ walletDetails.exportMessage }}</p>
-      <p><strong>Public Key:</strong> {{ walletDetails.publicKey }}</p>
     </div>
   </div>
 </template>
 
 <script>
-import { apiClient, getApiErrorMessage } from '../config/api';
 import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import WalletPanel from '../components/WalletPanel.vue';
-import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
+import { isPublicDemoMode } from '../utils/runtimeConfig';
 
 export default {
   components: {
@@ -45,36 +31,11 @@ export default {
   },
   data() {
     return {
-      walletDetails: null,
-      successMessage: '',
-      errorMessage: '',
-      showDevWalletTools: showDevelopmentTools(),
       showPublicDemoBanner: isPublicDemoMode(),
       whitePaperURL: '/ZoidbergCoin_WhitePaper.pdf',
     };
   },
   methods: {
-    async generateWallet() {
-      this.successMessage = '';
-      this.errorMessage = '';
-      try {
-        const response = await apiClient.post('/generate_wallet');
-
-        const { public_key: publicKey } = response.data.wallet;
-        const keyExport = response.data.key_export || {};
-
-        this.walletDetails = {
-          publicKey,
-          exportMessage: keyExport.enabled
-            ? 'Development-only private key export may be enabled on this local node, but the frontend does not display private keys. Use dev-only local tooling instead.'
-            : keyExport.message || 'Private key export is disabled for this response.',
-        };
-        this.successMessage = response.data.message || 'Development-only server wallet generated successfully.';
-      } catch (error) {
-        console.error('Error generating wallet:', error);
-        this.errorMessage = getApiErrorMessage(error, 'Failed to generate development-only server wallet.');
-      }
-    },
     goToDashboard() {
       this.$router.push('/dashboard');
     },
@@ -131,48 +92,6 @@ h1 {
   flex-direction: column;
   gap: 20px;
   margin-top: 20px;
-}
-
-.wallet-details {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(50, 50, 50, 0.9);
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(255, 0, 0, 0.5);
-  text-align: left;
-  width: min(360px, 100%);
-}
-
-.wallet-details p {
-  margin: 5px 0;
-  word-break: break-word;
-}
-
-.warning {
-  color: #ff4747;
-  margin-bottom: 10px;
-  font-weight: bold;
-}
-
-.status-message {
-  margin-top: 18px;
-  max-width: 520px;
-  line-height: 1.4;
-}
-
-.success {
-  color: #8df5a6;
-}
-
-.error {
-  color: #ff8c8c;
-}
-
-.dev-wallet-note {
-  margin: -8px 0 0;
-  color: #b8b8b8;
-  font-size: 0.9rem;
-  line-height: 1.4;
 }
 
 .btn {

@@ -25,10 +25,21 @@
         <p v-if="wallet.state.isVerifiedSession" class="wallet-meta">Wallet verified. You can now use this wallet for submissions, voting, rewards, and test ZOID transfers.</p>
         <p v-else-if="wallet.state.connectionStatus === 'expired'" class="wallet-meta">This wallet was connected before, but verification expired or changed. Verify again to keep using the beta app.</p>
         <p v-else class="wallet-meta">Wallet connected. Verify it to unlock signing and other beta actions.</p>
-        <p v-if="wallet.state.chainId" class="wallet-meta">Chain ID: {{ wallet.state.chainId }}</p>
         <p v-if="wallet.state.sessionExpiresAt && wallet.state.isVerifiedSession" class="wallet-meta">
           Verification expires at: {{ sessionExpiryLabel }}
         </p>
+        <div v-if="protocolIdentityRows.length" class="protocol-card">
+          <span class="native-balance-label">Protocol Identity</span>
+          <div class="wallet-summary-list">
+            <div v-for="row in protocolIdentityRows" :key="row.label" class="wallet-summary-row">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+            </div>
+          </div>
+          <p class="wallet-meta">
+            MetaMask is used to sign and verify your ZoidbergChain identity. Native ZOID transfers settle directly on ZoidbergChain.
+          </p>
+        </div>
 
         <div v-if="showAccessStatusCard" class="access-card">
           <span class="native-balance-label">Beta Access</span>
@@ -95,7 +106,7 @@
 
         <div v-if="wallet.state.isVerifiedSession" class="reward-card">
           <div class="history-header">
-            <span class="native-balance-label">Wallet Activity</span>
+          <span class="native-balance-label">Wallet Activity</span>
             <button
               type="button"
               class="wallet-btn secondary compact"
@@ -154,7 +165,7 @@
           <template v-if="wallet.state.isVerifiedSession">
             <p class="wallet-meta">{{ transferWarning }}</p>
             <p class="wallet-meta">Pending transfers can affect your available balance before final settlement.</p>
-            <p class="wallet-meta">Current next transfer number: <strong>{{ nextTransferNonceLabel }}</strong></p>
+            <p class="wallet-meta">Current next transfer nonce: <strong>{{ nextTransferNonceLabel }}</strong></p>
             <label class="transfer-field">
               <span>From Wallet</span>
               <input :value="wallet.state.verifiedWalletAddress" type="text" readonly />
@@ -212,6 +223,10 @@
                         <strong>{{ transferStatusLabel(transfer.status) }}</strong>
                       </div>
                       <div>
+                        <span>Settlement</span>
+                        <strong>{{ transferSettlementLabel(transfer) }}</strong>
+                      </div>
+                      <div>
                         <span>From Wallet</span>
                         <strong>{{ wallet.shortenAddress(transfer.from_address) }}</strong>
                       </div>
@@ -232,12 +247,16 @@
                         <strong>{{ transfer.nonce || transfer.transfer_nonce || 'Missing' }}</strong>
                       </div>
                       <div>
+                        <span>Protocol</span>
+                        <strong>{{ transferProtocolLabel(transfer) }}</strong>
+                      </div>
+                      <div>
+                        <span>Network ID</span>
+                        <strong>{{ transfer.network_id || protocolIdentity.networkId || 'Missing' }}</strong>
+                      </div>
+                      <div>
                         <span>Created At</span>
                         <strong>{{ formatDateTime(transfer.created_at || transferTimestamp(transfer)) || 'Unknown time' }}</strong>
-                      </div>
-                      <div v-if="showDevTransferTools">
-                        <span>Admitted At</span>
-                        <strong>{{ formatDateTime(transfer.admitted_at) || 'Not admitted' }}</strong>
                       </div>
                       <div>
                         <span>Included Block Height</span>
@@ -255,62 +274,7 @@
                     <p v-if="transfer.memo" class="wallet-meta history-note">Memo: {{ transfer.memo }}</p>
                     <p v-if="transfer.rejection_reason" class="wallet-meta history-note">Rejection reason: {{ transfer.rejection_reason }}</p>
                     <p v-if="transfer.status_detail" class="wallet-meta history-note">{{ transfer.status_detail }}</p>
-                    <div v-if="showDevTransferTools && transfer.status === 'signed_pending' && transfer.tx_id" class="wallet-actions">
-                      <button
-                        type="button"
-                        class="wallet-btn secondary"
-                        @click="admitTransferToMempool(transfer)"
-                        :disabled="isMempoolSubmitting"
-                      >
-                        {{ isMempoolSubmitting ? 'Admitting...' : 'Admit to Mempool' }}
-                      </button>
-                    </div>
                     <p v-if="transfer.status === 'signed_pending'" class="wallet-meta history-note">This transfer is signed and pending. It can reduce available balance before the final block settlement appears.</p>
-                  </li>
-                </ul>
-              </template>
-            </div>
-            <div v-if="showDevTransferTools" class="transfer-history">
-              <p class="wallet-meta transfer-history-title">Local pending queue</p>
-              <p v-if="!mempoolTransactions.length" class="wallet-meta">No local mempool transactions.</p>
-              <template v-else>
-                <p class="wallet-meta">The mempool is local to this node. Transactions settle only when included in an accepted meme-mined block.</p>
-                <ul class="history-list">
-                  <li v-for="transaction in mempoolTransactions" :key="transaction.tx_id" class="history-card">
-                    <div class="history-title-row">
-                      <strong>{{ transferStatusLabel(transaction.status) }}</strong>
-                      <span>{{ transferDirection(transaction) }}</span>
-                    </div>
-                    <div class="history-grid">
-                      <div>
-                        <span>Tx ID</span>
-                        <strong>{{ shortenTransferId(transaction.tx_id) }}</strong>
-                      </div>
-                      <div>
-                        <span>Status</span>
-                        <strong>{{ transferStatusLabel(transaction.status) }}</strong>
-                      </div>
-                      <div>
-                        <span>From Wallet</span>
-                        <strong>{{ wallet.shortenAddress(transaction.from_address) }}</strong>
-                      </div>
-                      <div>
-                        <span>To Wallet</span>
-                        <strong>{{ wallet.shortenAddress(transaction.to_address) }}</strong>
-                      </div>
-                      <div>
-                        <span>Amount</span>
-                        <strong>{{ transaction.amount }} {{ nativeBalanceSymbol }}</strong>
-                      </div>
-                      <div>
-                        <span>Nonce</span>
-                        <strong>{{ transaction.nonce || 'Missing' }}</strong>
-                      </div>
-                      <div>
-                        <span>Admitted At</span>
-                        <strong>{{ formatDateTime(transaction.admitted_at) || 'Unknown time' }}</strong>
-                      </div>
-                    </div>
                   </li>
                 </ul>
               </template>
@@ -354,7 +318,7 @@
 
       <template v-else>
         <p class="wallet-meta">
-          MetaMask is used to sign ZoidbergChain actions. Native ZOID balances live in the ZoidbergChain app, not in the old development-only server wallet list.
+          MetaMask is used to sign ZoidbergChain actions. Native ZOID balances live in the ZoidbergChain app, not in the old development-only server wallet list or an Ethereum token ledger.
         </p>
         <p v-if="wallet.state.lastConnectedAddress" class="wallet-meta">
           Last connected address: {{ wallet.shortenAddress(wallet.state.lastConnectedAddress) }}
@@ -396,6 +360,7 @@ import { useWallet } from '../services/wallet';
 import { useAccess } from '../services/access';
 import { apiClient, getApiErrorMessage } from '../config/api';
 import { createNativeTransferService, TRANSFER_PENDING_WARNING } from '../services/nativeTransfer.js';
+import { buildProtocolNetworkIdentity } from '../utils/protocolV1Ui.js';
 import {
   buildNativeBalanceSummary,
   buildRewardSummary,
@@ -409,14 +374,14 @@ import {
   getFailedRequiredRuleChecks,
 } from '../utils/eligibilityChecklist.js';
 import { describeWalletSupport } from '../utils/mobileWallet.js';
-import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
+import { isPublicDemoMode } from '../utils/runtimeConfig';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 
 const wallet = useWallet();
 const access = useAccess();
 const showPublicDemoNotice = isPublicDemoMode();
-const showDevTransferTools = showDevelopmentTools();
 const copyButtonLabel = ref('Copy Full Address');
+const chainSummary = ref(null);
 const accountSummary = ref(null);
 const isBalanceLoading = ref(false);
 const balanceError = ref('');
@@ -429,9 +394,6 @@ const transferError = ref('');
 const transferSuccessMessage = ref('');
 const transferHistory = ref([]);
 const nonceState = ref(null);
-const mempoolTransactions = ref([]);
-const isMempoolLoading = ref(false);
-const isMempoolSubmitting = ref(false);
 const transferForm = ref({
   toAddress: '',
   amount: '',
@@ -463,6 +425,7 @@ function openFeedbackPanel() {
 const shortenedAddress = computed(() => wallet.shortenAddress(wallet.state.walletAddress));
 const transferWarning = computed(() => TRANSFER_PENDING_WARNING);
 const nativeBalanceSymbol = computed(() => accountSummary.value?.symbol || 'ZOID');
+const protocolIdentity = computed(() => buildProtocolNetworkIdentity(chainSummary.value || {}));
 const nextTransferNonceLabel = computed(() => nonceState.value?.next_nonce ?? accountSummary.value?.nonce?.next_nonce ?? '--');
 const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
   final_balance: accountSummary.value?.final_balance,
@@ -472,11 +435,30 @@ const balanceSummaryRows = computed(() => buildNativeBalanceSummary({
   available_balance: accountSummary.value?.available_balance,
   symbol: nativeBalanceSymbol.value,
 }));
+const protocolIdentityRows = computed(() => {
+  const rows = [];
+  if (protocolIdentity.value.displayName) {
+    rows.push({ label: 'Public Network', value: protocolIdentity.value.displayName });
+  }
+  if (protocolIdentity.value.networkId) {
+    rows.push({ label: 'Network ID', value: protocolIdentity.value.networkId });
+  }
+  if (protocolIdentity.value.protocolVersion !== null) {
+    rows.push({ label: 'Protocol', value: `v${protocolIdentity.value.protocolVersion}` });
+  }
+  if (protocolIdentity.value.genesisHash) {
+    rows.push({ label: 'Genesis Hash', value: formatHistoryValue(protocolIdentity.value.genesisHash) });
+  }
+  if (wallet.state.chainId) {
+    rows.push({ label: 'MetaMask Wallet Network Code', value: wallet.state.chainId });
+  }
+  return rows;
+});
 const accountSummaryRows = computed(() => {
   const summary = accountSummary.value || {};
   return [
     { label: 'Native Account Type', value: summary.account_type === 'metamask_native' ? 'MetaMask-backed ZoidbergChain account' : 'Unknown' },
-    { label: 'Network', value: summary.network_name || 'Unknown' },
+    { label: 'Runtime Alias', value: summary.network_name || 'Unknown' },
     { label: 'Verified Session', value: wallet.state.isVerifiedSession ? 'Verified' : 'Not verified' },
     { label: 'Submissions', value: summary.submission_count ?? 0 },
     { label: 'Votes', value: summary.vote_count ?? 0 },
@@ -673,7 +655,6 @@ async function disconnect() {
   rewardError.value = '';
   balanceError.value = '';
   transferHistory.value = [];
-  mempoolTransactions.value = [];
   transferError.value = '';
   transferSuccessMessage.value = '';
   nonceState.value = null;
@@ -709,6 +690,15 @@ async function refreshAccountSummary() {
     balanceError.value = getApiErrorMessage(error, 'Failed to load native ZOID account summary.');
   } finally {
     isBalanceLoading.value = false;
+  }
+}
+
+async function refreshProtocolIdentity() {
+  try {
+    const response = await apiClient.get('/chain/summary');
+    chainSummary.value = response.data || null;
+  } catch (_error) {
+    chainSummary.value = null;
   }
 }
 
@@ -766,44 +756,6 @@ async function refreshNonceState() {
   }
 }
 
-async function refreshMempool() {
-  if (!wallet.state.isVerifiedSession) {
-    mempoolTransactions.value = [];
-    return;
-  }
-
-  isMempoolLoading.value = true;
-  try {
-    const response = await apiClient.get('/mempool');
-    mempoolTransactions.value = Array.isArray(response.data.transactions) ? response.data.transactions : [];
-  } catch (_error) {
-    mempoolTransactions.value = [];
-  } finally {
-    isMempoolLoading.value = false;
-  }
-}
-
-async function admitTransferToMempool(transfer) {
-  if (!transfer?.tx_id) {
-    return;
-  }
-
-  isMempoolSubmitting.value = true;
-  transferError.value = '';
-  transferSuccessMessage.value = '';
-  try {
-    await apiClient.post(`/transactions/${transfer.tx_id}/admit`);
-    transferSuccessMessage.value = 'Transaction admitted to local mempool. Not settled yet.';
-    await refreshAccountData();
-  } catch (error) {
-    transferError.value = humanizeNativeTransferError(
-      getApiErrorMessage(error, 'Failed to admit transaction to local mempool.'),
-    );
-  } finally {
-    isMempoolSubmitting.value = false;
-  }
-}
-
 async function submitTransferIntent() {
   if (!wallet.state.isVerifiedSession || !wallet.state.verifiedWalletAddress) {
     transferError.value = 'Verify wallet before signing a transfer.';
@@ -841,11 +793,11 @@ async function submitTransferIntent() {
 
 async function refreshAccountData() {
   await Promise.all([
+    refreshProtocolIdentity(),
     refreshAccountSummary(),
     refreshRewardHistory(),
     refreshTransferHistory(),
     refreshNonceState(),
-    refreshMempool(),
   ]);
 }
 
@@ -887,6 +839,22 @@ function transferDirection(transfer) {
 
 function transferStatusLabel(status) {
   return describeTransferIntentStatus(status);
+}
+
+function transferSettlementLabel(transfer) {
+  return transfer?.status_detail || describeTransferIntentStatus(transfer?.status);
+}
+
+function transferProtocolLabel(transfer) {
+  const transactionVersion = transfer?.transaction_version ?? null;
+  const protocolVersion = transfer?.protocol_version ?? null;
+  if (transactionVersion !== null && transactionVersion !== undefined && protocolVersion !== null && protocolVersion !== undefined) {
+    return `Tx v${transactionVersion} / Protocol v${protocolVersion}`;
+  }
+  if (protocolVersion !== null && protocolVersion !== undefined) {
+    return `Protocol v${protocolVersion}`;
+  }
+  return 'Missing';
 }
 
 function transferTimestamp(transfer) {
@@ -933,7 +901,6 @@ watch(
       rewardHistory.value = [];
       rewardError.value = '';
       transferHistory.value = [];
-      mempoolTransactions.value = [];
       transferError.value = '';
       transferSuccessMessage.value = '';
       nonceState.value = null;
@@ -948,6 +915,7 @@ onMounted(async () => {
   refreshMobileWalletSupport();
   await wallet.detectMetaMask();
   refreshMobileWalletSupport();
+  await refreshProtocolIdentity();
   await refreshAccessStatus();
   if (typeof window !== 'undefined') {
     window.addEventListener('zoidberg-wallet-balance-refresh', handleBalanceRefreshEvent);
@@ -1130,6 +1098,14 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(141, 245, 166, 0.2);
   border-radius: 8px;
   background: rgba(141, 245, 166, 0.08);
+}
+
+.protocol-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 176, 176, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 176, 176, 0.08);
 }
 
 .native-balance-label {

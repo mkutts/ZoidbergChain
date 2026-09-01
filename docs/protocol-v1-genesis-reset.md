@@ -11,7 +11,7 @@ The canonical Public Testnet v1 network identity is:
 
 The canonical Public Testnet v1 genesis hash is:
 
-- `585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c`
+- `2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061`
 
 ## 1. Genesis object
 
@@ -27,9 +27,12 @@ Public Testnet v1 genesis is a special Protocol v1 genesis object, not a normal 
 That means:
 
 - it uses the Task 2 genesis domain instead of the accepted-media block domain
-- it does not embed accepted media bytes
+- it embeds the exact original Zoidberg genesis meme bytes recovered from the pre-v1 genesis record
 - it does not pretend to be originality-earned content
-- a missing local image file never changes the Public Testnet v1 genesis hash
+- the embedded `media_bytes` are genesis-hash critical
+- a missing local image file never changes the Public Testnet v1 genesis hash because the bytes are committed in the repository fixture and persisted in block 0
+
+The previous media-less Public Testnet v1 genesis hash was superseded before launch. The network ID remains `zoidberg-public-testnet-v1` only because the public testnet had not launched; after launch, changing genesis under the same network ID is forbidden.
 
 ## 2. Exact canonical values
 
@@ -49,14 +52,16 @@ That means:
 | `miner` | canonical genesis-hashed and persisted | `GENESIS` |
 | `meme_text` | canonical genesis-hashed | `ZoidbergChain Public Testnet v1 Genesis` |
 | `meme.text` | persisted representation of the canonical text marker | `ZoidbergChain Public Testnet v1 Genesis` |
+| `media_hash` | canonical genesis-hashed and persisted | `dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7` |
+| `media_bytes` | canonical genesis-hashed and persisted | Protocol v1 canonical bytes object for the recovered JPEG bytes |
+| `mime_type` | canonical genesis-hashed and persisted | `image/jpeg` |
+| `content_type` | canonical genesis-hashed and persisted | `image` |
 | `total_supply` | canonical genesis-hashed and persisted | `1000000000` |
 | `initial_reward_pool` | canonical genesis-hashed and persisted | `100000000` |
-| `hash` | persisted but not hashed | `585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c` |
+| `hash` | persisted but not hashed | `2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061` |
 | `network_name` | derived/runtime alias only | `zoidberg-testnet` |
 | validator membership | operational/config state, not genesis consensus state | not committed into genesis |
 | `block_version` | not applicable to genesis | omitted |
-| `media_hash` | not applicable to genesis | omitted |
-| `media_bytes` | not applicable to genesis | omitted |
 | `native_transactions` | not applicable to genesis | omitted |
 | submission/certificate fields | not applicable to genesis | omitted |
 | native-transfer settlement fields | not applicable to genesis | omitted |
@@ -82,6 +87,8 @@ The bootstrap allocations plus the frozen initial reward pool equal the frozen t
 - `900000000 + 100000000 = 1000000000`
 
 ### Persisted canonical genesis record
+
+The exact literal record, including the full canonical bytes object, is frozen in `tests/fixtures/protocol_v1_golden_vectors.json`. Abridged shape:
 
 ```json
 {
@@ -124,7 +131,15 @@ The bootstrap allocations plus the frozen initial reward pool equal the frozen t
   "meme": {
     "text": "ZoidbergChain Public Testnet v1 Genesis"
   },
-  "hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+  "media_hash": "dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7",
+  "media_bytes": {
+    "$type": "bytes",
+    "$encoding": "hex",
+    "$value": "<exact 57343 recovered JPEG bytes encoded as lowercase hex>"
+  },
+  "mime_type": "image/jpeg",
+  "content_type": "image",
+  "hash": "2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061",
   "total_supply": 1000000000,
   "initial_reward_pool": 100000000
 }
@@ -169,16 +184,20 @@ Golden vectors committed in source and tests include:
 
 - canonical Public Testnet v1 genesis envelope bytes
 - canonical Public Testnet v1 genesis hash
+- genesis media byte encoding and media SHA-256
 - alternate-network genesis hash
 - one-field-mutated genesis hash
+- one-byte media mutation genesis hash
 
 Current literal test vectors:
 
-- canonical genesis hash: `585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c`
-- same payload under `network_id = "zoidberg-public-testnet-v1-reset-1"`: `b0f60269aaf573737084a0a5026dd71007396909648a972831115746ce30ab2d`
-- same network with `timestamp = 1785542401`: `80cbd0c41a78a2aefb32dbee3ce245258fe2ac87f8b5661dc86e1733f5e3308b`
+- canonical genesis hash: `2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061`
+- genesis media hash: `dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7`
+- same payload under `network_id = "zoidberg-public-testnet-v1-reset-1"`: `097d76e704deba4a476fa682f8ff9e10b78e5a6c569435bd99edcdf8e8566fbc`
+- same network with `timestamp = 1785542401`: `bc9a7f7344bb96cc1c6f7a29a0a3faceb69b73c8fe47acc22542beae38e400ac`
+- same network with one changed media byte: `0278be27ada816685debc6f5356d458d9a2f562fa8be25ef45dcdbc839603d3a`
 
-These vectors prove that both network identity and genesis-field mutations change the genesis identity.
+These vectors prove that network identity, genesis-field mutations, and media-byte mutations change the genesis identity.
 
 ## 7. Startup behavior
 
@@ -243,12 +262,14 @@ Public Testnet v1 genesis is identical across:
 - SQLite storage
 - restart/load cycles
 - JSON to SQLite migration of a valid Public Testnet v1 chain
+- export/import backup round trips
 
 Fresh-node and restart tests assert:
 
 - fresh JSON genesis hash equals fresh SQLite genesis hash
 - both equal the literal expected genesis hash
 - round-trip persistence preserves the exact genesis record and hash
+- embedded genesis `media_bytes` survive byte-for-byte
 
 ## 10. JSON to SQLite migration
 
@@ -256,6 +277,7 @@ Migration behavior is frozen as follows:
 
 - canonical Public Testnet v1 chains migrate normally
 - migrated genesis must remain byte-for-byte and hash-for-hash identical
+- migrated genesis media bytes must remain byte-for-byte identical
 - source snapshots with legacy or mutated genesis are rejected
 - migration never rewrites a foreign genesis into the Public Testnet v1 canonical genesis silently
 
@@ -273,6 +295,7 @@ Import behavior is frozen as follows:
 
 - import validates the snapshot network binding
 - import validates canonical Public Testnet v1 genesis before writing
+- import preserves the embedded genesis media bytes
 - wrong or legacy genesis snapshots are rejected
 - import never rewrites foreign genesis
 - explicit overwrite is still required before replacing existing local data
@@ -286,6 +309,7 @@ Before adopting peer chain data, the node now validates:
 - peer `protocol_version`
 - peer `genesis_hash`
 - canonical genesis validity of the received chain
+- embedded genesis `media_bytes`, `media_hash`, `mime_type`, and `content_type`
 
 An authenticated peer with a different genesis is still rejected.
 
@@ -335,6 +359,8 @@ With the default Public Testnet v1 depths, genesis becomes:
 
 Existing legacy or mismatched local chain data must be reset explicitly before the node can join Public Testnet v1.
 
+Existing local chains rooted at the superseded media-less Public Testnet v1 genesis hash must also be reset explicitly. The node fails closed and does not rewrite block 0 in place.
+
 The node does not delete incompatible data automatically.
 
 ### Public Testnet v1 reset after launch
@@ -353,7 +379,7 @@ Recommended operator sequence:
 1. Stop the node.
 2. Back up the existing data directory before deleting anything.
 3. Remove only the local blockchain storage for the active backend.
-4. Restart the node and confirm it recreates the canonical genesis hash `585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c`.
+4. Restart the node and confirm it recreates the canonical genesis hash `2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061`.
 
 Current storage deletion scope:
 

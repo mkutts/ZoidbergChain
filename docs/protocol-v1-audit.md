@@ -190,7 +190,7 @@ Peer auth now uses an explicit Protocol v1 peer-message envelope binding domain,
 
 ### Genesis
 
-Genesis is now a special Protocol v1 genesis object bound to the canonical Task 2 genesis domain and the canonical Public Testnet v1 network ID. The persisted record carries `genesis_version`, `protocol_version`, `network_id`, `total_supply`, and `initial_reward_pool`, while the hash is the literal frozen constant `585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c`.
+Genesis is now a special Protocol v1 genesis object bound to the canonical Task 2 genesis domain and the canonical Public Testnet v1 network ID. The persisted record carries `genesis_version`, `protocol_version`, `network_id`, `total_supply`, `initial_reward_pool`, and the exact original Zoidberg genesis meme bytes recovered from the pre-v1 genesis record. The hash is the literal frozen constant `2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061`.
 
 ## 6. Current signature domains
 
@@ -234,11 +234,11 @@ Tasks 3 through 8 close the versioning gap for blocks, genesis, originality cert
 - State/allocation: `total_supply = 1000000000` and `initial_reward_pool = 100000000`
 - Miner/creator: `"GENESIS"`
 - Certificate-related fields: none
-- Content/media fields: persisted `meme.text` marker only; no image payload and no `media_bytes`
+- Content/media fields: persisted `meme.text`, `media_hash`, `media_bytes`, `mime_type`, and `content_type`; `media_bytes` contain the recovered original JPEG bytes
 - Network information: explicit `network_id = "zoidberg-public-testnet-v1"`
 - Validator information: validator/peer authorization remains operational config state rather than genesis state
-- Environment dependencies: none of current time, filesystem media, supplied wallets, hostnames, node IDs, or storage backend affect the canonical genesis
-- Resulting hash: `585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c`, derived from the Task 2 canonical genesis domain envelope
+- Environment dependencies: none of current time, arbitrary filesystem media, supplied wallets, hostnames, node IDs, or storage backend affect the canonical genesis; the committed genesis media fixture must match the frozen media hash
+- Resulting hash: `2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061`, derived from the Task 2 canonical genesis domain envelope
 
 Two clean nodes with the same source code are guaranteed to create the same Public Testnet v1 genesis object and hash.
 
@@ -249,7 +249,7 @@ Answer:
 Why:
 
 - the timestamp is frozen
-- the genesis record does not read a local image file
+- the genesis record reads only the committed immutable media fixture and verifies its frozen SHA-256
 - supplied wallets do not define canonical genesis allocations
 - node identity and hostname are not genesis inputs
 

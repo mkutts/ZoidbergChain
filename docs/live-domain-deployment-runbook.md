@@ -128,13 +128,19 @@ Frontend dependencies and build:
 cd /srv/zoidbergchain/current/zoidbergcoin-ui
 sudo -u <DEPLOY_USER> npm install
 sudo -u <DEPLOY_USER> env \
-  VITE_API_BASE_URL=https://zoidbergcoin.com/api \
+  VITE_API_BASE_URL=/api \
   VITE_ENVIRONMENT=testnet \
   VITE_PUBLIC_DEMO_MODE=true \
   VITE_ENABLE_DEV_TOOLS=false \
   npm run build
 sudo rsync -av --delete /srv/zoidbergchain/current/zoidbergcoin-ui/dist/ /var/www/zoidbergchain/
 ```
+
+Notes:
+
+- `zoidbergcoin-ui/dist/` is the canonical deployable frontend artifact.
+- `zoidbergcoin-ui/zoidbergchain-dist.zip` is obsolete and should not be used as a deployment source.
+- backend `GET /` serves only a minimal backend info page; the public app root should come from the deployed `dist/` files.
 
 ## Server Environment File
 
@@ -154,7 +160,7 @@ Example contents:
 ENVIRONMENT=testnet
 PUBLIC_DEMO_MODE=true
 PUBLIC_API_MODE=true
-NETWORK_NAME=zoidberg-public-demo-1
+NETWORK_NAME=zoidberg-testnet
 NODE_ID=zoidberg-public-demo-node-1
 NODE_HOST=127.0.0.1
 NODE_PORT=8000

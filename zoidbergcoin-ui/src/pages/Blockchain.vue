@@ -4,8 +4,8 @@
     <header class="explorer-header">
       <div>
         <p class="eyebrow">Blockchain Explorer</p>
-        <h1>Certified Meme Blocks</h1>
-        <p class="subtitle">Inspect the chain powered by community-approved originality certificates.</p>
+        <h1>Protocol v1 Explorer</h1>
+        <p class="subtitle">Inspect Public Testnet v1 blocks, genesis identity, and operational finality.</p>
       </div>
       <div class="header-actions">
         <button @click="refreshExplorer" class="btn secondary" :disabled="isLoading">
@@ -20,9 +20,9 @@
         <div class="card-heading">
           <div>
             <p class="section-label">Chain Summary</p>
-            <h2>Current Consensus</h2>
+            <h2>Current Network Identity</h2>
           </div>
-          <span class="workflow-chip">Cumulative Originality Score</span>
+          <span class="workflow-chip">{{ protocolIdentity.protocolLabel }}</span>
         </div>
 
         <p v-if="summaryError" class="status-message error">{{ summaryError }}</p>
@@ -41,14 +41,36 @@
             <strong>{{ shortenHash(chainSummary.latest_block_hash) }}</strong>
           </div>
           <div class="metric-card">
-            <span>Network</span>
-            <strong>{{ chainSummary.network_name || 'Unknown' }}</strong>
+            <span>Public Network</span>
+            <strong>{{ protocolIdentity.displayName }}</strong>
           </div>
           <div class="metric-card">
             <span>Node</span>
             <strong>{{ shortenKey(chainSummary.node_id) }}</strong>
           </div>
         </div>
+
+        <div v-if="chainSummary" class="detail-grid protocol-identity-grid">
+          <div>
+            <span>Network ID</span>
+            <strong>{{ protocolIdentity.networkId || 'Unknown' }}</strong>
+          </div>
+          <div>
+            <span>Protocol</span>
+            <strong>{{ protocolIdentity.protocolLabel }}</strong>
+          </div>
+          <div>
+            <span>Runtime Alias</span>
+            <strong>{{ protocolIdentity.networkAlias || 'Unknown' }}</strong>
+          </div>
+          <div>
+            <span>Canonical Genesis Hash</span>
+            <strong>{{ protocolIdentity.genesisHash || 'Unknown' }}</strong>
+          </div>
+        </div>
+        <p v-if="chainSummary" class="hint">
+          Runtime alias {{ chainSummary.network_name || 'Unknown' }} is a display label. Protocol v1 identity is anchored by the network ID and genesis hash.
+        </p>
 
         <div v-else-if="!summaryError" class="empty-state">
           Loading chain summary...
@@ -75,17 +97,18 @@
             <div class="block-heading">
               <div>
                 <p class="section-label">Block #{{ block.index }}</p>
-                <h3>{{ block.index === 0 ? 'Genesis Block' : 'Meme-mined Block' }}</h3>
+                <h3>{{ blockDisplay(block).title }}</h3>
               </div>
-              <span :class="block.certificate_id ? 'status-pill ready' : 'status-pill'">
-                {{ block.certificate_id ? 'Certified' : 'No Certificate Required' }}
+              <span class="status-pill" :class="blockDisplay(block).statusTone">
+                {{ blockDisplay(block).statusLabel }}
               </span>
             </div>
 
+            <p class="hint">{{ blockDisplay(block).detail }}</p>
+
             <div v-if="hasContentPreview(block)" class="content-preview">
               <img v-if="isImageContent(block) && block.download_url" :src="contentUrl(block.download_url)" alt="Block content preview" class="content-image">
-              <pre v-else-if="isTextContent(block)">{{ block.meme && block.meme.text ? block.meme.text : 'Text preview unavailable.' }}</pre>
-              <img v-else-if="block.meme && block.meme.encoded_image" :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="content-image">
+              <pre v-else-if="isTextContent(block)">{{ previewText(block) }}</pre>
             </div>
 
             <div class="detail-grid">
@@ -98,73 +121,94 @@
                 <strong>{{ shortenHash(block.previous_hash) }}</strong>
               </div>
               <div>
-                <span>Mined By</span>
-                <strong>{{ shortenKey(block.miner) }}</strong>
+                <span>Block Version</span>
+                <strong>{{ block.block_version ?? 'Missing' }}</strong>
               </div>
-              <div v-if="block.certificate_id">
-                <span>Submission ID</span>
-                <strong>{{ shortenHash(block.submission_id) }}</strong>
+              <div>
+                <span>Protocol</span>
+                <strong>{{ block.protocol_version ? `Protocol v${block.protocol_version}` : 'Missing' }}</strong>
               </div>
-              <div v-if="block.certificate_id">
-                <span>Certificate ID</span>
-                <strong>{{ shortenHash(block.certificate_id) }}</strong>
+              <div>
+                <span>Network ID</span>
+                <strong>{{ block.network_id || protocolIdentity.networkId || 'Missing' }}</strong>
               </div>
-              <div v-if="block.certificate_id">
-                <span>Content Hash</span>
-                <strong>{{ shortenHash(block.content_hash) }}</strong>
+              <div>
+                <span>Canonical State</span>
+                <strong>{{ blockDisplay(block).statusLabel }}</strong>
               </div>
-              <div v-if="block.certificate_id">
-                <span>Content ID</span>
-                <strong>{{ shortenHash(block.content_id) }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Content Type</span>
-                <strong>{{ block.content_type || 'Missing' }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>MIME Type</span>
-                <strong>{{ block.mime_type || 'Missing' }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Originality Score</span>
-                <strong>{{ formatScore(block.originality_score) }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Creator Account</span>
-                <strong>{{ shortenKey(block.creator_wallet) }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Reward Type</span>
-                <strong>{{ block.reward_type || 'Missing' }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Native Reward Recipient</span>
-                <strong>{{ shortenKey(block.reward_recipient) }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Native ZOID Reward Amount</span>
-                <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Approval</span>
-                <strong>{{ formatPercent(block.approval_percentage) }}</strong>
-              </div>
-              <div v-if="block.certificate_id">
-                <span>Storage Status</span>
-                <strong>{{ formatContentStatus(block.storage_status) }}</strong>
+              <div>
+                <span>Confirmations</span>
+                <strong>{{ block.confirmations ?? 0 }}</strong>
               </div>
               <div>
                 <span>Native Transfer Count</span>
                 <strong>{{ block.transaction_count ?? 0 }}</strong>
               </div>
+              <div v-if="blockDisplay(block).isGenesis">
+                <span>Canonical Genesis Hash</span>
+                <strong>{{ block.canonical_genesis_hash || protocolIdentity.genesisHash || 'Missing' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Submission ID</span>
+                <strong>{{ shortenHash(block.submission_id) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Certificate ID</span>
+                <strong>{{ shortenHash(block.certificate_id) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Content Hash</span>
+                <strong>{{ shortenHash(block.content_hash) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Content ID</span>
+                <strong>{{ shortenHash(block.content_id) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Content Type</span>
+                <strong>{{ block.content_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>MIME Type</span>
+                <strong>{{ block.mime_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Originality Score</span>
+                <strong>{{ formatScore(block.originality_score) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Creator Account</span>
+                <strong>{{ shortenKey(block.creator_wallet) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Reward Type</span>
+                <strong>{{ block.reward_type || 'Missing' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Native Reward Recipient</span>
+                <strong>{{ shortenKey(block.reward_recipient) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Native ZOID Reward Amount</span>
+                <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Approval</span>
+                <strong>{{ formatPercent(block.approval_percentage) }}</strong>
+              </div>
+              <div v-if="Array.isArray(block.voter_rewards) && block.voter_rewards.length">
+                <span>Voter Reward Settlements</span>
+                <strong>{{ block.voter_rewards.length }}</strong>
+              </div>
             </div>
 
             <div class="content-state-line">
-              <span v-if="block.storage_status" class="status-pill" :class="contentStatusClass(block)">{{ contentStatusLabel(block) }}</span>
+              <span class="status-pill" :class="blockContentAvailability(block).chipTone">{{ blockContentAvailability(block).chipLabel }}</span>
               <a v-if="block.download_url" :href="contentUrl(block.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
+            <p class="hint">{{ blockContentAvailability(block).detail }}</p>
 
             <div v-if="(block.transaction_count ?? 0) > 0" class="native-transfer-panel">
               <div class="history-header">
@@ -181,7 +225,7 @@
                 <li v-for="transaction in block.native_transactions || []" :key="transaction.tx_id" class="native-transfer-item">
                   <div class="history-title-row">
                     <strong>{{ shortenHash(transaction.tx_id) }}</strong>
-                    <span>Settled on ZoidbergChain</span>
+                    <span>{{ transaction.status_detail || 'Settled on ZoidbergChain' }}</span>
                   </div>
                   <div class="detail-grid">
                     <div>
@@ -197,16 +241,20 @@
                       <strong>{{ transaction.amount }} ZOID</strong>
                     </div>
                     <div>
+                      <span>Fee</span>
+                      <strong>{{ transaction.fee ?? '0' }} ZOID</strong>
+                    </div>
+                    <div>
                       <span>Nonce</span>
                       <strong>{{ transaction.nonce ?? 'Missing' }}</strong>
+                    </div>
+                    <div>
+                      <span>Protocol</span>
+                      <strong>{{ transaction.protocol_version ? `Tx v${transaction.transaction_version ?? '?'} / Protocol v${transaction.protocol_version}` : 'Missing' }}</strong>
                     </div>
                   </div>
                 </li>
               </ul>
-            </div>
-
-            <div v-if="!hasContentPreview(block) && block.meme && block.meme.encoded_image" class="meme-container">
-              <img :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="meme-image" />
             </div>
           </article>
         </div>
@@ -219,6 +267,15 @@
 import { apiClient, buildApiUrl, getApiErrorMessage } from '../config/api';
 import PublicDemoBanner from '../components/PublicDemoBanner.vue';
 import { isPublicDemoMode } from '../utils/runtimeConfig';
+import {
+  buildBlockContentAvailability,
+  buildBlockDisplay,
+  buildProtocolNetworkIdentity,
+  hasRenderableProtocolPreview,
+  isProtocolImageContent,
+  isProtocolTextContent,
+  resolveProtocolTextPreview,
+} from '../utils/protocolV1Ui.js';
 
 export default {
   components: {
@@ -234,6 +291,11 @@ export default {
       showPublicDemoBanner: isPublicDemoMode(),
     };
   },
+  computed: {
+    protocolIdentity() {
+      return buildProtocolNetworkIdentity(this.chainSummary || {});
+    },
+  },
   async created() {
     await this.refreshExplorer();
   },
@@ -243,8 +305,11 @@ export default {
     },
     async refreshExplorer() {
       this.isLoading = true;
-      await Promise.all([this.fetchChainSummary(), this.fetchChain()]);
-      this.isLoading = false;
+      try {
+        await Promise.all([this.fetchChainSummary(), this.fetchChain()]);
+      } finally {
+        this.isLoading = false;
+      }
     },
     async fetchChainSummary() {
       this.summaryError = '';
@@ -303,54 +368,22 @@ export default {
       return transactionIds.map((txId) => this.shortenHash(txId)).join(', ');
     },
     hasContentPreview(record) {
-      return Boolean(record?.download_url || this.isTextContent(record) || this.isImageContent(record));
+      return hasRenderableProtocolPreview(record);
     },
     isImageContent(record) {
-      const value = String(record?.mime_type || record?.content_type || '').toLowerCase();
-      return value.startsWith('image/');
+      return isProtocolImageContent(record);
     },
     isTextContent(record) {
-      const mimeType = String(record?.mime_type || '').toLowerCase();
-      const contentType = String(record?.content_type || '').toLowerCase();
-      return mimeType === 'text/plain' || contentType === 'text' || contentType === 'mixed';
+      return isProtocolTextContent(record);
     },
-    contentStatusLabel(record) {
-      const status = String(record?.storage_status || '').toLowerCase();
-      if (status === 'verified') {
-        return 'Verified Locally';
-      }
-      if (status === 'local') {
-        return 'Not Verified Locally';
-      }
-      if (status === 'remote') {
-        return 'Remote Content';
-      }
-      if (status === 'missing') {
-        return 'Missing Content';
-      }
-      if (!status) {
-        return 'Content Unknown';
-      }
-      return this.formatContentStatus(status);
+    previewText(record) {
+      return resolveProtocolTextPreview(record);
     },
-    contentStatusClass(record) {
-      const status = String(record?.storage_status || '').toLowerCase();
-      if (status === 'verified') {
-        return 'ready';
-      }
-      if (status === 'local') {
-        return 'pending';
-      }
-      if (status === 'remote' || status === 'missing') {
-        return 'warning-chip';
-      }
-      return '';
+    blockDisplay(block) {
+      return buildBlockDisplay(block);
     },
-    formatContentStatus(status) {
-      if (!status) {
-        return 'Missing';
-      }
-      return String(status).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    blockContentAvailability(block) {
+      return buildBlockContentAvailability(block);
     },
     goToDashboard() {
       this.$router.push('/dashboard');
@@ -428,6 +461,11 @@ h3 {
   font-size: 1.05rem;
 }
 
+.hint {
+  color: #b9c1cc;
+  line-height: 1.5;
+}
+
 .section-panel {
   padding: 22px;
   background: rgba(28, 28, 28, 0.94);
@@ -490,7 +528,6 @@ h3 {
 }
 
 .metric-card,
-.content-preview-card,
 .block-card,
 .empty-state {
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -520,6 +557,10 @@ h3 {
   font-size: 1rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.protocol-identity-grid {
+  margin-top: 16px;
 }
 
 .blocks {
@@ -603,6 +644,14 @@ h3 {
   background: rgba(19, 19, 19, 0.55);
 }
 
+.history-header,
+.history-title-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
 .block-heading {
   align-items: center;
   margin-bottom: 14px;
@@ -669,19 +718,6 @@ h3 {
   box-shadow: none;
 }
 
-.meme-container {
-  margin-top: 16px;
-  text-align: center;
-}
-
-.meme-image {
-  max-width: 100%;
-  max-height: 360px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  object-fit: contain;
-}
-
 @media (max-width: 920px) {
   .explorer-header {
     align-items: flex-start;
@@ -709,7 +745,9 @@ h3 {
 
   .card-heading,
   .block-heading,
-  .header-actions {
+  .header-actions,
+  .history-header,
+  .history-title-row {
     align-items: stretch;
     flex-direction: column;
   }
@@ -729,8 +767,7 @@ h3 {
     white-space: normal;
   }
 
-  .content-image,
-  .meme-image {
+  .content-image {
     max-height: 260px;
   }
 }

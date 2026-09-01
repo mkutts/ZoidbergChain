@@ -43,16 +43,20 @@ Backend:
 
 Frontend:
 
-- build `zoidbergcoin-ui` with `VITE_API_BASE_URL` pointing at the HTTPS API origin
+- build `zoidbergcoin-ui` with same-origin API routing through `/api`
 - set `VITE_ENVIRONMENT=testnet`
 - set `VITE_PUBLIC_DEMO_MODE=true`
 - keep `VITE_ENABLE_DEV_TOOLS=false`
+- run `npm run build` inside `zoidbergcoin-ui`
+- deploy the generated site from `zoidbergcoin-ui/dist/`
+- treat `zoidbergcoin-ui/dist/` as the authoritative frontend artifact
+- treat backend `static/index.html` only as a minimal backend info page, not the full maintained app
 
 Reverse proxy:
 
 - terminate HTTPS at Nginx
 - proxy API traffic to the backend host and port
-- serve the frontend build output as the public site
+- serve `zoidbergcoin-ui/dist/` as the public site root
 - allow only expected public origins through CORS
 
 ## Task 10.1 Voting Eligibility Policy
@@ -141,6 +145,25 @@ Task 10.3 adds an end-to-end QA pass for public testnet voting eligibility and m
 ## Task 10.4 Controlled Testnet Access
 
 Task 10.4 adds a simple operator-controlled access gate for a semi-private public demo/testnet.
+
+## Local Frontend And Backend
+
+Run the local backend from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+Run the local Vue frontend from `zoidbergcoin-ui`:
+
+```powershell
+npm run dev
+```
+
+Local frontend development opens at `http://localhost:5173` or `http://127.0.0.1:5173`.
+The frontend uses the shared `VITE_API_BASE_URL` resolver in `zoidbergcoin-ui/src/utils/runtimeConfig.js`; in Vite development the API base is always `/api`, and the Vite dev server proxies that path to the local FastAPI backend at `http://localhost:8000` while stripping the `/api` prefix before it reaches FastAPI. Production builds also default to `/api`, which the live web server proxies to the production FastAPI backend. A production build may set `VITE_API_BASE_URL` only if the frontend is intentionally hosted on a separate API origin.
+
+Development CORS deliberately allows `http://localhost:5173` and `http://127.0.0.1:5173` with credentials. Testnet and production CORS remain restricted to the configured public frontend origins.
 
 Important honesty note:
 

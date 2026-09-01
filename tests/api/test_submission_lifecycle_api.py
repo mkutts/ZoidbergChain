@@ -19,13 +19,45 @@ from submission import (
 
 def _client(blockchain):
     import api
+    import config
+    from peers import PeerStore
 
+    # Normalize the shared API module back to development-mode access defaults.
+    # Other test modules reload `api` under different env combinations, so this
+    # keeps submission tests from inheriting invite-only access state.
+    config.ENVIRONMENT = "development"
+    config.APP_ENV = "development"
+    config.PUBLIC_API_MODE = False
+    config.ACCESS_CONTROL_MODE = "open"
+    config.ACCESS_REQUESTS_ENABLED = True
+    config.ACCESS_DEV_BYPASS_ENABLED = True
+    config.REQUIRE_ACCESS_FOR_APP = False
+    config.REQUIRE_ACCESS_FOR_SUBMISSIONS = False
+    config.REQUIRE_ACCESS_FOR_VOTES = False
+    config.REQUIRE_ACCESS_FOR_REWARDS = False
+    config.REQUIRE_ACCESS_FOR_TRANSFERS = False
+    config.MAX_WALLETS_PER_ACCESS_ACCOUNT = 5
+    config.ACCESS_PUBLIC_LABEL = "Open local development"
+    api.ENVIRONMENT = "development"
+    api.PUBLIC_API_MODE = False
+    api.ACCESS_CONTROL_MODE = "open"
+    api.ACCESS_REQUESTS_ENABLED = True
+    api.ACCESS_DEV_BYPASS_ENABLED = True
+    api.REQUIRE_ACCESS_FOR_APP = False
+    api.REQUIRE_ACCESS_FOR_SUBMISSIONS = False
+    api.REQUIRE_ACCESS_FOR_VOTES = False
+    api.REQUIRE_ACCESS_FOR_REWARDS = False
+    api.REQUIRE_ACCESS_FOR_TRANSFERS = False
+    api.MAX_WALLETS_PER_ACCESS_ACCOUNT = 5
+    api.ACCESS_PUBLIC_LABEL = "Open local development"
     api.limiter.reset()
     api.blockchain = blockchain
     api.wallet_auth_manager = WalletAuthManager(
         network_name=api.NETWORK_NAME,
         environment=api.ENVIRONMENT,
     )
+    # Reset peer_store to use the same isolated storage backend as the blockchain fixture
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     return TestClient(api.app)
 
 

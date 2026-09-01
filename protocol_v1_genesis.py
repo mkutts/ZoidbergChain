@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 from collections.abc import Mapping
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from protocol_v1 import (
@@ -9,6 +13,8 @@ from protocol_v1 import (
     PUBLIC_TESTNET_V1_NETWORK_ID,
     canonical_domain_bytes,
     canonical_domain_hash,
+    decode_canonical_bytes,
+    encode_canonical_bytes,
     normalize_network_id,
 )
 
@@ -21,6 +27,17 @@ PUBLIC_TESTNET_V1_GENESIS_MINER = "GENESIS"
 PUBLIC_TESTNET_V1_GENESIS_TEXT = "ZoidbergChain Public Testnet v1 Genesis"
 PUBLIC_TESTNET_V1_TOTAL_SUPPLY = 1_000_000_000
 PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL = 100_000_000
+PUBLIC_TESTNET_V1_OBSOLETE_MEDIALESS_GENESIS_HASH = (
+    "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c"
+)
+PUBLIC_TESTNET_V1_GENESIS_MEDIA_FIXTURE = Path(__file__).with_name(
+    "public_testnet_v1_genesis_meme_base64.txt"
+)
+PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH = "dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7"
+PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE = "image/jpeg"
+PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE = "image"
+PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH = 57_343
+PUBLIC_TESTNET_V1_GENESIS_MEDIA_ENCODED_LENGTH = 76_460
 
 PUBLIC_TESTNET_V1_BOOTSTRAP_ALLOCATIONS = (
     {
@@ -51,6 +68,10 @@ _GENESIS_ALLOWED_FIELDS = frozenset(
         "transactions",
         "miner",
         "meme",
+        "content_type",
+        "media_hash",
+        "media_bytes",
+        "mime_type",
         "hash",
         "total_supply",
         "initial_reward_pool",
@@ -68,6 +89,94 @@ class GenesisValidationError(ValueError):
         detail = {"code": self.code, "message": str(self)}
         detail.update(self.details)
         return detail
+
+
+def _detect_genesis_media_mime_type(media_bytes: bytes) -> str | None:
+    if media_bytes.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if media_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if media_bytes.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if media_bytes[:4] == b"RIFF" and media_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+def _validate_public_testnet_v1_genesis_media_bytes(media_bytes: bytes) -> bytes:
+    if not isinstance(media_bytes, (bytes, bytearray, memoryview)):
+        raise GenesisValidationError(
+            "genesis_media_mismatch",
+            "Genesis media_bytes must decode to bytes.",
+        )
+
+    raw = bytes(media_bytes)
+    if not raw:
+        raise GenesisValidationError(
+            "genesis_media_mismatch",
+            "Genesis media_bytes must not be empty.",
+        )
+    if len(raw) != PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH:
+        raise GenesisValidationError(
+            "genesis_media_mismatch",
+            "Genesis media byte length does not match the frozen original meme.",
+            details={
+                "expected_media_byte_length": PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH,
+                "actual_media_byte_length": len(raw),
+            },
+        )
+
+    detected_mime_type = _detect_genesis_media_mime_type(raw)
+    if detected_mime_type != PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE:
+        raise GenesisValidationError(
+            "genesis_media_mismatch",
+            "Genesis media bytes are not the frozen supported media type.",
+            details={
+                "expected_mime_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE,
+                "actual_mime_type": detected_mime_type,
+            },
+        )
+
+    media_hash = hashlib.sha256(raw).hexdigest()
+    if media_hash != PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH:
+        raise GenesisValidationError(
+            "genesis_media_mismatch",
+            "Genesis media bytes do not match the frozen original meme hash.",
+            details={
+                "expected_media_hash": PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+                "actual_media_hash": media_hash,
+            },
+        )
+    return raw
+
+
+@lru_cache(maxsize=1)
+def canonical_public_testnet_v1_genesis_media_base64() -> str:
+    try:
+        encoded = "".join(PUBLIC_TESTNET_V1_GENESIS_MEDIA_FIXTURE.read_text(encoding="ascii").split())
+    except OSError as exc:
+        raise RuntimeError(
+            "Frozen Public Testnet v1 genesis media fixture is missing. "
+            "A clean node must include public_testnet_v1_genesis_meme_base64.txt."
+        ) from exc
+
+    if len(encoded) != PUBLIC_TESTNET_V1_GENESIS_MEDIA_ENCODED_LENGTH:
+        raise RuntimeError(
+            "Frozen Public Testnet v1 genesis media fixture length does not match the expected legacy encoding."
+        )
+    return encoded
+
+
+@lru_cache(maxsize=1)
+def canonical_public_testnet_v1_genesis_media_bytes() -> bytes:
+    try:
+        media_bytes = base64.b64decode(
+            canonical_public_testnet_v1_genesis_media_base64(),
+            validate=True,
+        )
+    except ValueError as exc:
+        raise RuntimeError("Frozen Public Testnet v1 genesis media fixture is not valid base64.") from exc
+    return _validate_public_testnet_v1_genesis_media_bytes(media_bytes)
 
 
 def canonical_public_testnet_v1_genesis_transactions() -> list[dict[str, Any]]:
@@ -94,6 +203,10 @@ def canonical_public_testnet_v1_genesis_payload() -> dict[str, Any]:
         "transactions": canonical_public_testnet_v1_genesis_transactions(),
         "miner": PUBLIC_TESTNET_V1_GENESIS_MINER,
         "meme_text": PUBLIC_TESTNET_V1_GENESIS_TEXT,
+        "media_hash": PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+        "media_bytes": canonical_public_testnet_v1_genesis_media_bytes(),
+        "mime_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE,
+        "content_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE,
         "total_supply": PUBLIC_TESTNET_V1_TOTAL_SUPPLY,
         "initial_reward_pool": PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL,
     }
@@ -115,7 +228,7 @@ def _compute_public_testnet_v1_genesis_hash() -> str:
     )
 
 
-PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH = "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c"
+PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH = "2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061"
 
 
 def canonical_public_testnet_v1_genesis_hash() -> str:
@@ -138,6 +251,10 @@ def canonical_public_testnet_v1_genesis_record() -> dict[str, Any]:
         "transactions": canonical_public_testnet_v1_genesis_transactions(),
         "miner": PUBLIC_TESTNET_V1_GENESIS_MINER,
         "meme": {"text": PUBLIC_TESTNET_V1_GENESIS_TEXT},
+        "media_hash": PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+        "media_bytes": encode_canonical_bytes(canonical_public_testnet_v1_genesis_media_bytes()),
+        "mime_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE,
+        "content_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE,
         "hash": canonical_public_testnet_v1_genesis_hash(),
         "total_supply": PUBLIC_TESTNET_V1_TOTAL_SUPPLY,
         "initial_reward_pool": PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL,
@@ -218,6 +335,68 @@ def _normalize_transaction_payload(payload: Any, *, index: int) -> dict[str, Any
     }
 
 
+def _normalize_genesis_media_fields(record: Mapping[str, Any]) -> bytes:
+    required_fields = ("media_hash", "media_bytes", "mime_type", "content_type")
+    missing_fields = [
+        field_name
+        for field_name in required_fields
+        if record.get(field_name) is None
+    ]
+    if missing_fields:
+        raise GenesisValidationError(
+            "prelaunch_genesis_reset_required",
+            "Existing chain uses the superseded media-less Public Testnet v1 genesis and must be reset explicitly.",
+            details={
+                "missing_fields": missing_fields,
+                "obsolete_genesis_hash": PUBLIC_TESTNET_V1_OBSOLETE_MEDIALESS_GENESIS_HASH,
+                "expected_genesis_hash": canonical_public_testnet_v1_genesis_hash(),
+                "expected_media_hash": PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+            },
+        )
+
+    if str(record.get("mime_type") or "").strip().lower() != PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE:
+        raise GenesisValidationError(
+            "genesis_mismatch",
+            "Genesis MIME type does not match the frozen original meme metadata.",
+            details={
+                "expected_mime_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE,
+                "actual_mime_type": str(record.get("mime_type") or "").strip() or None,
+            },
+        )
+    if str(record.get("content_type") or "").strip().lower() != PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE:
+        raise GenesisValidationError(
+            "genesis_mismatch",
+            "Genesis content_type does not match the frozen original meme metadata.",
+            details={
+                "expected_content_type": PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE,
+                "actual_content_type": str(record.get("content_type") or "").strip() or None,
+            },
+        )
+
+    try:
+        media_bytes = decode_canonical_bytes(record.get("media_bytes"))
+    except ValueError as exc:
+        raise GenesisValidationError(
+            "genesis_mismatch",
+            "Genesis media_bytes must use the frozen Protocol v1 canonical bytes representation.",
+        ) from exc
+
+    actual_media_hash = hashlib.sha256(media_bytes).hexdigest()
+    declared_media_hash = str(record.get("media_hash") or "").strip().lower()
+    if declared_media_hash != actual_media_hash:
+        raise GenesisValidationError(
+            "genesis_media_hash_mismatch",
+            "Genesis media_hash does not match the embedded media_bytes.",
+            details={
+                "declared_media_hash": declared_media_hash or None,
+                "actual_media_hash": actual_media_hash,
+                "expected_media_hash": PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+            },
+        )
+
+    return _validate_public_testnet_v1_genesis_media_bytes(media_bytes)
+
+
 def canonical_public_testnet_v1_genesis_payload_from_record(record: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(record, Mapping):
         raise GenesisValidationError("missing_genesis", "Genesis record must be an object.")
@@ -276,6 +455,8 @@ def canonical_public_testnet_v1_genesis_payload_from_record(record: Mapping[str,
     if not isinstance(transactions, list):
         raise GenesisValidationError("genesis_mismatch", "Genesis transactions must be a list.")
 
+    media_bytes = _normalize_genesis_media_fields(record)
+
     return {
         "genesis_version": _require_non_negative_int(record.get("genesis_version"), field_name="genesis_version"),
         "index": _require_non_negative_int(record.get("index"), field_name="index"),
@@ -287,6 +468,10 @@ def canonical_public_testnet_v1_genesis_payload_from_record(record: Mapping[str,
         ],
         "miner": str(record.get("miner") or "").strip(),
         "meme_text": str(meme.get("text") or "").strip(),
+        "media_hash": str(record.get("media_hash") or "").strip().lower(),
+        "media_bytes": media_bytes,
+        "mime_type": str(record.get("mime_type") or "").strip().lower(),
+        "content_type": str(record.get("content_type") or "").strip().lower(),
         "total_supply": _require_non_negative_int(record.get("total_supply"), field_name="total_supply"),
         "initial_reward_pool": _require_non_negative_int(
             record.get("initial_reward_pool"),

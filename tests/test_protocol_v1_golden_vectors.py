@@ -22,8 +22,14 @@ from protocol_v1 import (
 )
 from protocol_v1_genesis import (
     PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_ENCODED_LENGTH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE,
     PUBLIC_TESTNET_V1_GENESIS_VERSION,
     canonical_public_testnet_v1_genesis_hash,
+    canonical_public_testnet_v1_genesis_media_bytes,
     canonical_public_testnet_v1_genesis_payload,
     canonical_public_testnet_v1_genesis_record,
 )
@@ -67,6 +73,12 @@ def _build_vector_block(constructor: dict, **overrides) -> Block:
     fields["media_bytes"] = bytes.fromhex(media_bytes_hex)
     fields.update(overrides)
     return Block(**fields)
+
+
+def _decode_genesis_payload(payload: dict) -> dict:
+    fields = dict(payload)
+    fields["media_bytes"] = decode_canonical_bytes(fields["media_bytes"])
+    return fields
 
 
 def test_protocol_v1_golden_fixture_matches_protocol_identity():
@@ -341,23 +353,42 @@ def test_peer_message_vectors_match_runtime():
 
 def test_genesis_vectors_match_runtime():
     vectors = _load_vectors()["genesis"]
+    payload = _decode_genesis_payload(vectors["payload"])
+    media = vectors["media"]
+    mutated_media = bytearray(payload["media_bytes"])
+    mutated_media[0] ^= 1
 
     assert PUBLIC_TESTNET_V1_GENESIS_VERSION == vectors["version"]
-    assert canonical_public_testnet_v1_genesis_payload() == vectors["payload"]
+    assert media["source_fixture"] == "public_testnet_v1_genesis_meme_base64.txt"
+    assert media["source_field_path"] == "legacy-chain-backup/blockchain.json:chain[0].meme.encoded_image"
+    assert media["legacy_encoding"] == "base64"
+    assert media["mime_embedded"] is False
+    assert media["media_hash"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
+    assert media["mime_type"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE
+    assert media["content_type"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE
+    assert media["encoded_length"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_ENCODED_LENGTH
+    assert media["byte_length"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH
+    assert decode_canonical_bytes(media["canonical_bytes"]) == canonical_public_testnet_v1_genesis_media_bytes()
+    assert canonical_public_testnet_v1_genesis_payload() == payload
     assert canonical_public_testnet_v1_genesis_hash() == vectors["hash"]
     assert canonical_public_testnet_v1_genesis_record() == vectors["record"]
     assert Block.from_dict(vectors["record"]).hash == vectors["hash"]
     assert canonical_domain_hash(
-        vectors["payload"],
+        payload,
         object_type=OBJECT_TYPE_GENESIS,
         network_id="zoidberg-public-testnet-v1-reset-1",
     ) == vectors["alternate_hashes"]["network"]
-    mutated_payload = dict(vectors["payload"], timestamp=1785542401)
+    mutated_payload = dict(payload, timestamp=1785542401)
     assert canonical_domain_hash(
         mutated_payload,
         object_type=OBJECT_TYPE_GENESIS,
         network_id=PUBLIC_TESTNET_V1_NETWORK_ID,
     ) == vectors["alternate_hashes"]["timestamp"]
+    assert canonical_domain_hash(
+        dict(payload, media_bytes=bytes(mutated_media)),
+        object_type=OBJECT_TYPE_GENESIS,
+        network_id=PUBLIC_TESTNET_V1_NETWORK_ID,
+    ) == vectors["alternate_hashes"]["media_bytes"]
 
 
 def test_legacy_control_vectors_remain_distinct_from_protocol_v1_vectors():

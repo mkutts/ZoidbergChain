@@ -16,7 +16,11 @@ from native_transfer import (
 )
 from peers import PeerStore
 from protocol_v1 import PROTOCOL_VERSION, decode_canonical_bytes
-from protocol_v1_genesis import PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
+from protocol_v1_genesis import (
+    PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+    canonical_public_testnet_v1_genesis_media_bytes,
+)
 from protocol_v1_native_transfer import (
     PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
     build_protocol_v1_native_transfer_message,
@@ -213,7 +217,10 @@ def test_export_includes_core_state_and_excludes_private_keys_by_default(backend
     assert "native_transactions" in exported["state"]
     assert exported["state"]["originality_certificates"]
     assert exported["state"]["peers"]
+    genesis_block = exported["state"]["chain"][0]
     latest_block = exported["state"]["chain"][-1]
+    assert genesis_block["media_hash"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
+    assert decode_canonical_bytes(genesis_block["media_bytes"]) == canonical_public_testnet_v1_genesis_media_bytes()
     assert latest_block["block_version"] == 1
     assert latest_block["network_id"] == "zoidberg-public-testnet-v1"
     assert decode_canonical_bytes(latest_block["media_bytes"]) == seeded["blockchain"].get_latest_block().media_bytes
@@ -297,6 +304,8 @@ def test_import_round_trip_into_empty_backend(backend_factory, isolated_data_dir
     assert reloaded.get_originality_certificate(seeded["certificate"].certificate_id) is not None
     assert reloaded.get_submission_votes(seeded["submission"].submission_id)["votes"]
     assert reloaded.get_latest_block().hash == seeded["backend"].load_chain()[-1]["hash"]
+    assert reloaded.chain[0].media_hash == PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
+    assert reloaded.chain[0].media_bytes == canonical_public_testnet_v1_genesis_media_bytes()
     assert reloaded.get_latest_block().media_bytes == seeded["blockchain"].get_latest_block().media_bytes
 
 

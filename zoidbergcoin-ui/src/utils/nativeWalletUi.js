@@ -72,7 +72,7 @@ export function describeTransferIntentStatus(status) {
     return 'Failed';
   }
   if (normalized === 'expired') {
-    return 'Expired';
+    return 'Expired before inclusion. Sign again to submit a fresh transfer.';
   }
   if (!normalized) {
     return 'Native ZOID transaction';
@@ -105,6 +105,12 @@ export function humanizeNativeTransferError(message) {
   }
   if (lower.includes('invalid_signature')) {
     return 'The native ZOID signature could not be verified.';
+  }
+  if (lower.includes('expired') || lower.includes('already been used')) {
+    return 'This transfer signing window expired. Sign again to request a fresh Protocol v1 message.';
+  }
+  if (lower.includes('wallet_address must match the verified wallet session')) {
+    return 'The signed wallet does not match your verified session. Reconnect the same wallet and try again.';
   }
   if (lower.includes('wrong_network') || lower.includes('different network') || lower.includes('network does not match')) {
     return 'This transfer belongs to a different ZoidbergChain network.';

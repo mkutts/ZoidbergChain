@@ -11,6 +11,7 @@ from wallet_auth import WalletAuthManager
 
 def _client(blockchain):
     import api
+    from peers import PeerStore
 
     api.limiter.reset()
     api.blockchain = blockchain
@@ -19,6 +20,8 @@ def _client(blockchain):
         environment=api.ENVIRONMENT,
     )
     api.access_session_manager = AccessSessionManager()
+    # Reset peer_store to use the same isolated storage backend as the blockchain fixture
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     return TestClient(api.app)
 
 

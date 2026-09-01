@@ -1,10 +1,13 @@
+import hashlib
+
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from fastapi.testclient import TestClient
 
 from block import Block
 from peers import PeerStore
-from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID, decode_canonical_bytes, encode_canonical_bytes
+from protocol_v1_genesis import PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from test_support import fund_native_wallet_with_block
 from transaction import Transaction
@@ -31,7 +34,8 @@ def _client(blockchain):
     config.PUBLIC_NODE_URL = "http://localhost:8000"
     config.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
-    api.peer_store = PeerStore()
+    # Reset peer_store to use the same isolated storage backend as the blockchain fixture
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     return TestClient(api.app)
 
 
@@ -218,6 +222,26 @@ def _peer_chain_with_native_transfer(blockchain, submission_image, wallets):
         "peer-sync-native-voter",
     )
     return list(blockchain.chain), block, tx_id, sender.address.lower(), recipient.address.lower()
+
+
+def test_chain_blocks_exposes_lightweight_genesis_media_download(blockchain):
+    client = _client(blockchain)
+
+    response = client.get("/chain/blocks")
+    assert response.status_code == 200
+    genesis = response.json()["blocks"][0]
+
+    assert genesis["is_genesis"] is True
+    assert genesis["media_embedded"] is True
+    assert genesis["media_hash"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
+    assert genesis["mime_type"] == "image/jpeg"
+    assert genesis["download_url"] == f"/blocks/{genesis['hash']}/media"
+    assert "media_bytes" not in genesis
+
+    media_response = client.get(genesis["download_url"])
+    assert media_response.status_code == 200
+    assert media_response.headers["content-type"].startswith("image/jpeg")
+    assert hashlib.sha256(media_response.content).hexdigest() == PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
 
 
 def _summary(
@@ -581,6 +605,29 @@ def test_sync_rejects_peer_with_different_genesis_hash(blockchain, wallets, monk
     assert response.json()["results"][0]["decision"] == "invalid_candidate"
     assert response.json()["results"][0]["reason"] == "different_genesis_hash"
     assert all(not call["url"].endswith("/chain/blocks") for call in calls)
+    assert blockchain.get_latest_block().hash == blockchain.chain[0].hash
+
+
+def test_sync_rejects_peer_with_mutated_genesis_media(blockchain, wallets, monkeypatch):
+    client = _client(blockchain)
+    _register_peer()
+    peer_chain = _legacy_chain(blockchain.chain, wallets["contributor_one"].public_key, count=1)
+    mutated_genesis = peer_chain[0].to_dict()
+    mutated_media = bytearray(decode_canonical_bytes(mutated_genesis["media_bytes"]))
+    mutated_media[0] ^= 1
+    mutated_genesis["media_bytes"] = encode_canonical_bytes(bytes(mutated_media))
+    blocks_override = [
+        mutated_genesis,
+        *[block.to_dict() for block in peer_chain[1:]],
+    ]
+    _mock_peer_chain(monkeypatch, peer_chain, blocks_override=blocks_override)
+
+    response = client.post("/chain/sync")
+
+    assert response.status_code == 200
+    assert response.json()["failed"] == 1
+    assert response.json()["results"][0]["status"] == "failed"
+    assert "Genesis media_hash does not match the embedded media_bytes" in response.json()["results"][0]["reason"]
     assert blockchain.get_latest_block().hash == blockchain.chain[0].hash
 
 

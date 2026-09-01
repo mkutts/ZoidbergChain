@@ -4,9 +4,24 @@
   "version_tag": "v1",
   "network_id": "zoidberg-public-testnet-v1",
   "network_alias": "zoidberg-testnet",
-  "genesis_hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+  "genesis_hash": "2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061",
   "confirmation_depth": 2,
   "finality_depth": 6,
+  "genesis_media": {
+    "present": true,
+    "source_fixture": "public_testnet_v1_genesis_meme_base64.txt",
+    "source_field_path": "legacy-chain-backup/blockchain.json:chain[0].meme.encoded_image",
+    "legacy_encoding": "base64",
+    "mime_embedded": false,
+    "media_hash": "dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7",
+    "mime_type": "image/jpeg",
+    "content_type": "image",
+    "byte_length": 57343,
+    "encoded_length": 76460,
+    "authoritative_field": "media_bytes",
+    "storage_representation": "Protocol v1 canonical bytes object",
+    "reconstruction_test_result": "block 0 media_bytes reconstruct the original genesis meme bytes"
+  },
   "version_domain_matrix": [
     {
       "object": "block",
@@ -177,7 +192,7 @@
       "domain_separated": true,
       "legacy_path": true,
       "hash_algorithm": "sha256",
-      "hash_input": "canonical_domain_bytes(canonical_public_testnet_v1_genesis_payload(), object_type=\"genesis\", network_id=network_id)",
+      "hash_input": "canonical_domain_bytes(canonical_public_testnet_v1_genesis_payload(), object_type=\"genesis\", network_id=network_id), including media_bytes and media_hash",
       "runtime_files": [
         "protocol_v1_genesis.py",
         "block.py",

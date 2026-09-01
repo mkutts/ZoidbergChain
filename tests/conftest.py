@@ -37,11 +37,29 @@ def wallets():
 @pytest.fixture
 def blockchain(isolated_data_dir, wallets):
     from blockchain import Blockchain
+    from storage import create_storage_backend
+
+    # Create storage backend with explicit test directory paths (not frozen config paths).
+    # This ensures each test fixture instance loads/saves to its own isolated directory,
+    # never touching repository-root blockchain.json, wallets, or feedback/audit state.
+    storage_backend = create_storage_backend(
+        blockchain_file=str(isolated_data_dir / "blockchain.json"),
+        peers_file=str(isolated_data_dir / "peers.json"),
+        sqlite_db_path=str(isolated_data_dir / "zoidbergchain.db"),
+    )
+
+    # Diagnostic: verify storage is not pointing to repository root.
+    assert str(isolated_data_dir) in storage_backend.blockchain_file, (
+        f"Storage backend blockchain_file must be inside test directory. "
+        f"Expected substring: {isolated_data_dir}, "
+        f"Got: {storage_backend.blockchain_file}"
+    )
 
     return Blockchain(
         project_owner_wallet=wallets["owner"],
         Contributor_one=wallets["contributor_one"],
         Contributor_two=wallets["contributor_two"],
+        storage_backend=storage_backend,
     )
 
 

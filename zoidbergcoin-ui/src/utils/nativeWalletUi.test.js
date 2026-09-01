@@ -76,6 +76,7 @@ test('describeTransferIntentStatus keeps signed pending copy non-final', () => {
     'In local mempool. Not settled yet.',
   );
   assert.equal(describeTransferIntentStatus('settled'), 'Settled on ZoidbergChain.');
+  assert.match(describeTransferIntentStatus('expired'), /sign again/i);
   assert.doesNotMatch(describeTransferIntentStatus('signed_pending'), /settled on zoidbergchain/i);
   assert.doesNotMatch(describeTransferIntentStatus('mempool'), /confirmed/i);
 });
@@ -100,6 +101,10 @@ test('humanizeNativeTransferError maps common backend reasons to account-friendl
   assert.equal(
     humanizeNativeTransferError('network does not match the active ZoidbergChain network.'),
     'This transfer belongs to a different ZoidbergChain network.',
+  );
+  assert.match(
+    humanizeNativeTransferError('Challenge expired before verification.'),
+    /fresh protocol v1 message/i,
   );
 });
 

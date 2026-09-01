@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import hmac
+import hashlib
 import json
 from decimal import Decimal
 from typing import Annotated, Any, Literal
@@ -667,6 +668,15 @@ def _content_download_url(content_object):
     return f"/content/{content_object.content_hash}"
 
 
+def _block_media_download_url(block):
+    if getattr(block, "media_bytes", None) is None:
+        return None
+    block_hash = str(getattr(block, "hash", "") or "").strip()
+    if not block_hash:
+        return None
+    return f"/blocks/{block_hash}/media"
+
+
 def _validate_uploaded_image_payload(image: UploadFile, file_bytes: bytes) -> tuple[str, str]:
     try:
         safe_original_filename = sanitize_original_filename(image.filename)
@@ -776,6 +786,10 @@ def _serialize_block(block, *, include_media_bytes=False):
     if not include_media_bytes and getattr(block, "media_bytes", None) is not None:
         body["media_embedded"] = True
         body["media_size_bytes"] = len(block.media_bytes)
+        body["storage_status"] = body.get("storage_status") or "embedded"
+        download_url = _block_media_download_url(block)
+        if download_url:
+            body["download_url"] = download_url
     content_hash = body.get("content_hash")
     content_object = blockchain.get_content_object_by_hash(content_hash) if content_hash else None
     if content_object is not None:
@@ -1736,6 +1750,20 @@ async def lifespan(app):
                 check["code"],
                 check["message"],
             )
+    # Initialize or recreate the global blockchain instance at app startup.
+    # This avoids loading repository-root persistent state at import time
+    # (which breaks test isolation). Tests can still import this module and
+    # then replace `api.blockchain` with a fixture-provided instance.
+    global blockchain, project_owner, contributor1, contributor2
+    if blockchain is None:
+        try:
+            project_owner = Wallet()
+            contributor1 = Wallet()
+            contributor2 = Wallet()
+            blockchain = Blockchain(project_owner, contributor1, contributor2)
+        except Exception:
+            logger.exception("Failed to initialize blockchain at startup")
+
     wallet_auth_manager.clear()
     yield
 
@@ -1821,9 +1849,19 @@ def _admin_cookie_should_be_secure(request: Request) -> bool:
     forwarded_proto = str(request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
     if forwarded_proto == "https":
         return True
+
+    request_scheme = str(getattr(request.url, "scheme", "") or "").lower()
+    if request_scheme == "https":
+        return True
+
     if str(API_BASE_URL).startswith("https://") or str(PUBLIC_NODE_URL).startswith("https://"):
         return True
-    return not is_development()
+
+    host = str(request.headers.get("host") or "").lower()
+    if request_scheme == "http" and host and host.split(":", 1)[0] in {"localhost", "127.0.0.1", "testserver.local"}:
+        return False
+
+    return False
 
 
 def _set_admin_session_cookie(response: Response, *, request: Request, token: str, expires_at: str) -> None:
@@ -3184,10 +3222,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return _safe_server_error()
 
-# ✅ Serve the Home Page (Splash Page)
+# Backend info page for deployments where the Vue app is served separately.
 @app.get("/")
 async def home():
-    """Serve the splash page (index.html)."""
+    """Serve the backend info page."""
     index_path = os.path.join("static", "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
@@ -3213,8 +3251,10 @@ project_owner = Wallet()  # ✅ Project owner (holds 79% of the supply)
 contributor1 = Wallet()  # ✅ First contributor (receives 10%)
 contributor2 = Wallet()  # ✅ Second contributor (receives 1%)
 
-# ✅ Load blockchain properly when FastAPI starts
-blockchain = Blockchain(project_owner, contributor1, contributor2)
+# Defer creating the global Blockchain instance until the app startup/lifespan
+# so importing this module in tests does not load repository-root persistent
+# files (blockchain.json) before test fixtures can set an isolated cwd/data dir.
+blockchain = None
 
 def _reset_blockchain_to_genesis():
     global project_owner, contributor1, contributor2, blockchain
@@ -5292,6 +5332,36 @@ async def sync_chain(request: Request):
         network_name=NETWORK_NAME,
         origin_node_id=NODE_ID,
     )
+
+
+@app.get("/blocks/{block_hash}/media")
+@api_limit("public_read")
+async def download_block_media(request: Request, block_hash: str):
+    if not is_valid_block_hash(block_hash):
+        raise HTTPException(status_code=422, detail="block_hash must be a 64-character lowercase hexadecimal string.")
+
+    block = blockchain.get_block_by_hash(block_hash)
+    if block is None:
+        raise HTTPException(status_code=404, detail=f"Block not found: {block_hash}")
+
+    try:
+        media_bytes = blockchain.recover_block_media_bytes(block)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=f"Block does not contain recoverable media bytes: {block_hash}") from exc
+
+    media_hash = str(getattr(block, "media_hash", "") or "").strip().lower()
+    actual_media_hash = hashlib.sha256(media_bytes).hexdigest()
+    if media_hash and media_hash != actual_media_hash:
+        raise HTTPException(status_code=409, detail="Block media bytes failed integrity verification.")
+
+    mime_type = str(getattr(block, "mime_type", "") or "").strip().lower() or "application/octet-stream"
+    if mime_type == TEXT_MIME_TYPE:
+        try:
+            return PlainTextResponse(content=media_bytes.decode("utf-8"), media_type=TEXT_MIME_TYPE)
+        except UnicodeDecodeError as exc:
+            raise HTTPException(status_code=409, detail="Block text media could not be decoded safely.") from exc
+
+    return Response(content=media_bytes, media_type=mime_type)
 
 
 @app.post("/blocks/{block_hash}/broadcast")

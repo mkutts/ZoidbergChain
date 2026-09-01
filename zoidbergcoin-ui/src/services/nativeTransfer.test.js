@@ -38,6 +38,9 @@ function createApi(overrides = {}) {
         return {
           data: {
             message: 'Exact backend transfer message',
+            transaction_version: 1,
+            protocol_version: 1,
+            network_id: 'zoidberg-public-testnet-v1',
             nonce: 'random-nonce',
             expires_at: '2099-01-01T00:00:00+00:00',
             transfer_preview: {
@@ -45,7 +48,8 @@ function createApi(overrides = {}) {
               to_address: payload.to_address,
               amount: payload.amount,
               fee: payload.fee,
-              network: 'zoidberg-testnet',
+              protocol_version: 1,
+              network_id: 'zoidberg-public-testnet-v1',
             },
           },
         };
@@ -54,6 +58,10 @@ function createApi(overrides = {}) {
         return {
           data: {
             transfer_id: 'transfer-1',
+            tx_id: 'tx-1',
+            transaction_version: 1,
+            protocol_version: 1,
+            network_id: 'zoidberg-public-testnet-v1',
             status: 'signed_pending',
             from_address: payload.from_address,
             to_address: payload.to_address,
@@ -83,6 +91,22 @@ test('validateNativeTransferDraft rejects invalid addresses and zero amount', ()
       amount: '0',
     }),
     /greater than zero/i,
+  );
+  assert.throws(
+    () => validateNativeTransferDraft({
+      fromAddress: '0x1111111111111111111111111111111111111111',
+      toAddress: '0x2222222222222222222222222222222222222222',
+      amount: '1e3',
+    }),
+    /up to 6 decimal places/i,
+  );
+  assert.throws(
+    () => validateNativeTransferDraft({
+      fromAddress: '0x1111111111111111111111111111111111111111',
+      toAddress: '0x2222222222222222222222222222222222222222',
+      amount: '1,25',
+    }),
+    /up to 6 decimal places/i,
   );
 });
 
@@ -120,6 +144,9 @@ test('submitSignedTransferIntent signs exact backend message and returns pending
   assert.equal(api.calls[0].path, '/auth/wallet/transfer-challenge');
   assert.equal(api.calls[1].path, '/transfers/submit');
   assert.equal(result.status, 'signed_pending');
+  assert.equal(result.transaction_version, 1);
+  assert.equal(result.protocol_version, 1);
+  assert.equal(result.network_id, 'zoidberg-public-testnet-v1');
 });
 
 test('submitSignedTransferIntent surfaces MetaMask rejection clearly', async () => {

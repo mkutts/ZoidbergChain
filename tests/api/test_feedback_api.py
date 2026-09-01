@@ -17,6 +17,7 @@ def _api_module():
 
 def _client(blockchain):
     api = _api_module()
+    from peers import PeerStore
     api.limiter.reset()
     api.blockchain = blockchain
     api.wallet_auth_manager = WalletAuthManager(
@@ -25,6 +26,8 @@ def _client(blockchain):
     )
     api.access_session_manager = AccessSessionManager()
     api.admin_session_manager = AdminSessionManager(session_ttl_seconds=api.ADMIN_SESSION_TTL_SECONDS)
+    # Reset peer_store to use the same isolated storage backend as the blockchain fixture
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     return TestClient(api.app)
 
 
@@ -126,6 +129,8 @@ def _bind_wallet(client, access_session_token, verified_headers):
 
 def _login_admin(client, password="super-secret-admin"):
     response = client.post("/admin/login", json={"password": password})
+    import api
+    print("DEBUG_ADMIN_LOGIN", api.ADMIN_AUTH_ENABLED, bool(api.ADMIN_PASSWORD_HASH), response.status_code, response.text)
     assert response.status_code == 200
     return response
 

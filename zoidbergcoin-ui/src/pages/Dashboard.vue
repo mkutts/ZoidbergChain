@@ -113,17 +113,35 @@
           </div>
           <div class="metric-card">
             <span>Network</span>
-            <strong>{{ chainSummary.network_name || 'Unknown' }}</strong>
+            <strong>{{ networkIdentity.displayName }}</strong>
           </div>
           <div class="metric-card">
             <span>Waiting For Votes</span>
             <strong>{{ pendingSubmissions.length }}</strong>
           </div>
           <div class="metric-card">
-            <span>Certified Memes</span>
+            <span>Certified Or Later</span>
             <strong>{{ approvedCertificateSubmissions.length }}</strong>
           </div>
         </div>
+
+        <div v-if="chainSummary" class="detail-grid protocol-identity-grid">
+          <div>
+            <span>Network ID</span>
+            <strong>{{ networkIdentity.networkId || 'Unknown' }}</strong>
+          </div>
+          <div>
+            <span>Protocol</span>
+            <strong>{{ networkIdentity.protocolLabel }}</strong>
+          </div>
+          <div>
+            <span>Genesis Hash</span>
+            <strong>{{ networkIdentity.genesisHash || 'Unknown' }}</strong>
+          </div>
+        </div>
+        <p v-if="chainSummary" class="hint">
+          Runtime alias {{ chainSummary.network_name || 'Unknown' }} is only a display label. Protocol v1 identity comes from the network ID, protocol version, and genesis hash.
+        </p>
 
         <div v-else-if="!summaryError" class="empty-state">
           Loading the current beta activity summary...
@@ -313,11 +331,15 @@
 
         <div v-if="lastSubmission" class="submission-result">
           <div class="submission-header">
-            <span class="status-pill">{{ formatStatus(lastSubmission.status) }}</span>
+            <span class="status-pill" :class="submissionLifecycleDisplay(lastSubmission).tone">{{ submissionLifecycleDisplay(lastSubmission).label }}</span>
             <span>{{ formatDate(lastSubmission.created_at) }}</span>
           </div>
           <p><strong>Tracking ID:</strong> {{ shortenHash(lastSubmission.submission_id) }}</p>
           <div class="detail-grid">
+            <div>
+              <span>Protocol Lifecycle</span>
+              <strong>{{ submissionLifecycleDisplay(lastSubmission).label }}</strong>
+            </div>
             <div>
               <span>Content Type</span>
               <strong>{{ lastSubmission.content_type || 'Missing' }}</strong>
@@ -329,12 +351,12 @@
           </div>
           <div v-if="hasContentPreview(lastSubmission)" class="content-preview">
             <img v-if="isImageContent(lastSubmission) && lastSubmission.download_url" :src="contentUrl(lastSubmission.download_url)" alt="Submitted content preview" class="content-image">
-            <pre v-else-if="isTextContent(lastSubmission)">{{ lastSubmission.text_content }}</pre>
+            <pre v-else-if="isTextContent(lastSubmission)">{{ previewText(lastSubmission) }}</pre>
           </div>
           <p v-if="lastSubmission.download_url" class="content-link-row">
             <a :href="contentUrl(lastSubmission.download_url)" target="_blank" rel="noreferrer">Open submitted content</a>
           </p>
-          <p class="hint">Your submission is now waiting for community voting before it can become certified.</p>
+          <p class="hint">{{ submissionLifecycleDisplay(lastSubmission).detail }}</p>
         </div>
       </section>
 
@@ -353,14 +375,12 @@
         <div v-else class="submission-list">
           <article v-for="submission in userRecentSubmissions" :key="submission.submission_id" class="submission-card">
             <div class="submission-header">
-              <span class="status-pill" :class="submission.status === 'approved' ? 'ready' : submission.status === 'rejected' ? 'pending' : ''">
-                {{ formatStatus(submission.status) }}
-              </span>
+              <span class="status-pill" :class="submissionLifecycleDisplay(submission).tone">{{ submissionLifecycleDisplay(submission).label }}</span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
             <div v-if="hasContentPreview(submission)" class="content-preview">
               <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Recent submission preview" class="content-image">
-              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+              <pre v-else-if="isTextContent(submission)">{{ previewText(submission) }}</pre>
             </div>
             <p class="submission-text">{{ submission.text_content || 'Uploaded submission content' }}</p>
             <div class="detail-grid">
@@ -369,10 +389,15 @@
                 <strong>{{ shortenHash(submission.submission_id) }}</strong>
               </div>
               <div>
+                <span>Lifecycle</span>
+                <strong>{{ submissionLifecycleDisplay(submission).label }}</strong>
+              </div>
+              <div>
                 <span>Storage Status</span>
                 <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
               </div>
             </div>
+            <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
           </article>
         </div>
       </section>
@@ -458,11 +483,9 @@
           <p v-for="line in voterRewardPolicyLines" :key="line" class="hint">{{ line }}</p>
         </div>
 
-        <div v-if="voteMessage || voteError || evaluateMessage || evaluateError" class="message-grid">
+        <div v-if="voteMessage || voteError" class="message-grid">
           <p v-if="voteMessage" class="status-message success">{{ voteMessage }}</p>
           <p v-if="voteError" class="status-message error">{{ voteError }}</p>
-          <p v-if="evaluateMessage" class="status-message success">{{ evaluateMessage }}</p>
-          <p v-if="evaluateError" class="status-message error">{{ evaluateError }}</p>
         </div>
 
         <div v-if="pendingSubmissions.length === 0" class="empty-state">
@@ -472,28 +495,21 @@
         <div v-else class="submission-list">
           <article v-for="submission in pendingSubmissions" :key="submission.submission_id" class="submission-card">
             <div class="submission-header">
-              <span class="status-pill pending">{{ formatStatus(submission.status) }}</span>
+              <span class="status-pill" :class="submissionLifecycleDisplay(submission).tone">{{ submissionLifecycleDisplay(submission).label }}</span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
 
             <div v-if="hasContentPreview(submission)" class="content-preview">
             <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Submission content preview" class="content-image">
-              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+              <pre v-else-if="isTextContent(submission)">{{ previewText(submission) }}</pre>
             </div>
 
             <p class="submission-text">{{ submission.text_content }}</p>
             <p class="meta">Submitted by {{ shortenKey(submission.submitter) }}</p>
+            <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
             <div class="content-state-line">
               <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
-              <button
-                v-if="submission.content_hash && needsContentSync(submission)"
-                @click="syncContent(submission.content_hash)"
-                class="btn ghost sync-btn"
-                :disabled="syncingContentHash === submission.content_hash"
-              >
-                {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
-              </button>
-              <a v-else-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
+              <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
@@ -517,9 +533,6 @@
                   Unsure
                 </button>
               </div>
-              <button v-if="showMintQueueTools" @click="evaluateSubmission(submission.submission_id)" class="btn evaluate">
-                Evaluate
-              </button>
             </div>
           </article>
         </div>
@@ -543,17 +556,21 @@
         <div v-else class="submission-list">
           <article v-for="submission in approvedCertificateSubmissions" :key="submission.submission_id" class="submission-card">
             <div class="submission-header">
-              <span class="status-pill ready">{{ formatStatus(submission.status) }}</span>
+              <span class="status-pill" :class="submissionLifecycleDisplay(submission).tone">{{ submissionLifecycleDisplay(submission).label }}</span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
 
             <div v-if="hasContentPreview(submission)" class="content-preview">
             <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Certificate content preview" class="content-image">
-              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+              <pre v-else-if="isTextContent(submission)">{{ previewText(submission) }}</pre>
             </div>
 
             <p class="submission-text">{{ submission.text_content }}</p>
             <div class="detail-grid">
+              <div>
+                <span>Lifecycle</span>
+                <strong>{{ submissionLifecycleDisplay(submission).label }}</strong>
+              </div>
               <div>
                 <span>Certificate Status</span>
                 <strong class="text-success">exists</strong>
@@ -595,6 +612,7 @@
                 <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
               </div>
             </div>
+            <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
             <div class="content-state-line">
               <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
               <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
@@ -621,12 +639,12 @@
         <div class="submission-list">
           <article v-for="submission in rejectedSubmissions" :key="submission.submission_id" class="submission-card">
             <div class="submission-header">
-              <span class="status-pill pending">{{ formatStatus(submission.status) }}</span>
+              <span class="status-pill" :class="submissionLifecycleDisplay(submission).tone">{{ submissionLifecycleDisplay(submission).label }}</span>
               <span>{{ formatDate(submission.created_at) }}</span>
             </div>
             <div v-if="hasContentPreview(submission)" class="content-preview">
               <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Rejected submission preview" class="content-image">
-              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+              <pre v-else-if="isTextContent(submission)">{{ previewText(submission) }}</pre>
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
             <div class="detail-grid">
@@ -647,6 +665,7 @@
                 <strong>{{ shortenKey(submission.creator_wallet_address || submission.submitter) }}</strong>
               </div>
             </div>
+            <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
             <div class="reward-summary-panel">
               <p class="section-label">Voter Reward</p>
               <strong>{{ describeSubmissionReward(submission) }}</strong>
@@ -655,70 +674,7 @@
         </div>
       </section>
 
-      <section v-if="isActivityPage && showMintQueueTools && approvedMissingCertificateSubmissions.length > 0" class="section-panel missing-panel">
-        <div class="card-heading">
-          <div>
-            <p class="section-label">Approved / Certificate Missing</p>
-            <h2>Needs Certificate Repair</h2>
-          </div>
-          <span class="workflow-chip warning-chip">Not Mintable</span>
-        </div>
-
-        <div class="submission-list">
-          <article v-for="submission in approvedMissingCertificateSubmissions" :key="submission.submission_id" class="submission-card">
-            <div class="submission-header">
-              <span class="status-pill pending">{{ formatStatus(submission.status) }}</span>
-              <span>{{ formatDate(submission.created_at) }}</span>
-            </div>
-            <div v-if="hasContentPreview(submission)" class="content-preview">
-            <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Missing certificate submission preview" class="content-image">
-              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
-            </div>
-            <p class="submission-text">{{ submission.text_content }}</p>
-            <p class="queue-warning">Originality certificate is missing. This submission is not certificate-ready and cannot be minted.</p>
-
-            <div class="detail-grid">
-              <div>
-                <span>Submission ID</span>
-                <strong>{{ shortenHash(submission.submission_id) }}</strong>
-              </div>
-              <div>
-                <span>Content Hash</span>
-                <strong>{{ shortenHash(submission.content_hash) }}</strong>
-              </div>
-              <div>
-                <span>Content ID</span>
-                <strong>{{ shortenHash(submission.content_id) }}</strong>
-              </div>
-              <div>
-                <span>Creator Account</span>
-                <strong>{{ shortenKey(submission.submitter) }}</strong>
-              </div>
-              <div>
-                <span>Certificate Status</span>
-                <strong class="text-warning">missing</strong>
-              </div>
-              <div>
-                <span>Storage Status</span>
-                <strong>{{ formatContentStatus(submission.storage_status) }}</strong>
-              </div>
-            </div>
-            <div class="content-state-line">
-              <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
-              <button
-                v-if="submission.content_hash && needsContentSync(submission)"
-                @click="syncContent(submission.content_hash)"
-                class="btn ghost sync-btn"
-                :disabled="syncingContentHash === submission.content_hash"
-              >
-                {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section v-if="isActivityPage && showMintQueueTools" class="section-panel queue-panel">
+      <section v-if="isActivityPage" class="section-panel queue-panel">
         <div class="card-heading">
           <div>
             <p class="section-label">Mint Queue</p>
@@ -729,8 +685,7 @@
           </button>
         </div>
 
-        <div v-if="mintMessage || mintError" class="message-stack">
-          <p v-if="mintMessage" class="status-message success">{{ mintMessage }}</p>
+        <div v-if="mintError" class="message-stack">
           <p v-if="mintError" class="status-message error">{{ mintError }}</p>
         </div>
 
@@ -748,14 +703,19 @@
             </div>
             <div v-if="hasContentPreview(submission)" class="content-preview">
               <img v-if="isImageContent(submission) && submission.download_url" :src="contentUrl(submission.download_url)" alt="Mint queue content preview" class="content-image">
-              <pre v-else-if="isTextContent(submission)">{{ submission.text_content }}</pre>
+              <pre v-else-if="isTextContent(submission)">{{ previewText(submission) }}</pre>
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
+            <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
 
             <div class="detail-grid">
               <div>
                 <span>Submission ID</span>
                 <strong>{{ shortenHash(submission.submission_id) }}</strong>
+              </div>
+              <div>
+                <span>Lifecycle</span>
+                <strong>{{ submissionLifecycleDisplay(submission).label }}</strong>
               </div>
               <div>
                 <span>Certificate ID</span>
@@ -801,14 +761,6 @@
               <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
-              <button
-                v-if="submission.content_hash && needsContentSync(submission)"
-                @click="syncContent(submission.content_hash)"
-                class="btn ghost sync-btn"
-                :disabled="syncingContentHash === submission.content_hash"
-              >
-                {{ syncingContentHash === submission.content_hash ? 'Syncing...' : 'Sync Content' }}
-              </button>
             </div>
 
             <p v-if="submission.mint_block_reason" class="queue-warning">
@@ -818,30 +770,6 @@
             <div class="reward-summary-panel">
               <p class="section-label">Voter Reward</p>
               <strong>{{ describeSubmissionReward(submission) }}</strong>
-            </div>
-
-            <div class="card-actions">
-              <button
-                v-if="showMintQueueTools && submission.submission_id && !submission.mint_blocked"
-                @click="blockMinting(submission)"
-                class="btn ghost"
-              >
-                Quarantine
-              </button>
-              <button
-                v-if="showMintQueueTools && submission.mint_blocked"
-                @click="unblockMinting(submission)"
-                class="btn ghost"
-              >
-                Unblock
-              </button>
-              <button
-                @click="mintSubmission(submission.submission_id)"
-                class="btn primary"
-                :disabled="!submission.mintable || mintingSubmissionId === submission.submission_id"
-              >
-                {{ mintingSubmissionId === submission.submission_id ? 'Minting...' : 'Mint Block' }}
-              </button>
             </div>
           </article>
         </div>
@@ -867,16 +795,19 @@
         <div v-else class="block-list">
           <article v-for="block in recentBlocks" :key="block.hash || block.index" class="block-card">
             <div class="block-heading">
-              <h3>Block #{{ block.index }}</h3>
-              <span :class="block.certificate_id ? 'status-pill ready' : 'status-pill'">
-                {{ block.certificate_id ? 'Certified Meme' : 'Genesis / Legacy' }}
+              <div>
+                <p class="section-label">Block #{{ block.index }}</p>
+                <h3>{{ blockDisplay(block).title }}</h3>
+              </div>
+              <span class="status-pill" :class="blockDisplay(block).statusTone">
+                {{ blockDisplay(block).statusLabel }}
               </span>
             </div>
+            <p class="hint">{{ blockDisplay(block).detail }}</p>
 
             <div v-if="hasContentPreview(block)" class="content-preview">
               <img v-if="isImageContent(block) && block.download_url" :src="contentUrl(block.download_url)" alt="Block content preview" class="content-image">
-              <pre v-else-if="isTextContent(block)">{{ block.meme && block.meme.text ? block.meme.text : 'Text preview unavailable.' }}</pre>
-              <img v-else-if="block.meme && block.meme.encoded_image" :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Block meme preview" class="content-image">
+              <pre v-else-if="isTextContent(block)">{{ previewText(block) }}</pre>
             </div>
 
             <div class="detail-grid">
@@ -888,47 +819,71 @@
                 <span>Previous Hash</span>
                 <strong>{{ shortenHash(block.previous_hash) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div>
+                <span>Block Version</span>
+                <strong>{{ block.block_version ?? 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Protocol</span>
+                <strong>{{ block.protocol_version ? `Protocol v${block.protocol_version}` : 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Network ID</span>
+                <strong>{{ block.network_id || networkIdentity.networkId || 'Missing' }}</strong>
+              </div>
+              <div>
+                <span>Canonical State</span>
+                <strong>{{ blockDisplay(block).statusLabel }}</strong>
+              </div>
+              <div>
+                <span>Confirmations</span>
+                <strong>{{ block.confirmations ?? 0 }}</strong>
+              </div>
+              <div v-if="blockDisplay(block).isGenesis">
+                <span>Canonical Genesis Hash</span>
+                <strong>{{ block.canonical_genesis_hash || networkIdentity.genesisHash || 'Missing' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Submission ID</span>
                 <strong>{{ shortenHash(block.submission_id) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Certificate ID</span>
                 <strong>{{ shortenHash(block.certificate_id) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Content Hash</span>
                 <strong>{{ shortenHash(block.content_hash) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Content ID</span>
                 <strong>{{ shortenHash(block.content_id) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Content Type</span>
                 <strong>{{ block.content_type || 'Missing' }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>MIME Type</span>
                 <strong>{{ block.mime_type || 'Missing' }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Originality Score</span>
                 <strong>{{ formatScore(block.originality_score) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Creator Account</span>
                 <strong>{{ shortenKey(block.creator_wallet) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Reward Type</span>
                 <strong>{{ block.reward_type || 'Missing' }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Native Reward Recipient</span>
                 <strong>{{ shortenKey(block.reward_recipient) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Native ZOID Reward Amount</span>
                 <strong>{{ block.reward_amount ?? 'Missing' }}</strong>
               </div>
@@ -936,29 +891,26 @@
                 <span>Voter Reward Settlements</span>
                 <strong>{{ block.voter_rewards.length }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Approval</span>
                 <strong>{{ formatPercent(block.approval_percentage) }}</strong>
               </div>
-              <div v-if="block.certificate_id">
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Storage Status</span>
                 <strong>{{ formatContentStatus(block.storage_status) }}</strong>
               </div>
             </div>
 
             <div class="content-state-line">
-              <span v-if="block.storage_status" class="status-pill" :class="contentStatusClass(block)">{{ contentStatusLabel(block) }}</span>
+              <span class="status-pill" :class="blockContentAvailability(block).chipTone">{{ blockContentAvailability(block).chipLabel }}</span>
               <a v-if="block.download_url" :href="contentUrl(block.download_url)" target="_blank" rel="noreferrer" class="meta-link">
                 View Content
               </a>
             </div>
+            <p class="hint">{{ blockContentAvailability(block).detail }}</p>
             <p v-if="Array.isArray(block.voter_rewards) && block.voter_rewards.length" class="hint">
               {{ describeBlockVoterRewards(block) }}
             </p>
-
-            <div v-if="!hasContentPreview(block) && block.meme && block.meme.encoded_image" class="meme-container">
-              <img :src="'data:image/png;base64,' + block.meme.encoded_image" alt="Meme submitted for this block" class="meme-image" />
-            </div>
           </article>
         </div>
       </section>
@@ -1033,10 +985,22 @@ import {
   describeBlockVoterRewardSettlements,
   describeSubmissionVoterReward,
 } from '../utils/voterRewards';
-import { isPublicDemoMode, showDevelopmentTools } from '../utils/runtimeConfig';
+import { isPublicDemoMode } from '../utils/runtimeConfig';
 import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.js';
 import { getEligibilityRuleChecks } from '../utils/eligibilityChecklist.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
+import {
+  buildBlockContentAvailability,
+  buildBlockDisplay,
+  buildProtocolNetworkIdentity,
+  buildSubmissionLifecycleDisplay,
+  hasRenderableProtocolPreview,
+  humanizeProtocolActionError,
+  isProtocolImageContent,
+  isProtocolTextContent,
+  resolveProtocolTextPreview,
+  shouldRetryProtocolAction,
+} from '../utils/protocolV1Ui.js';
 
 export default {
   components: {
@@ -1059,7 +1023,6 @@ export default {
       contentUploadMessage: '',
       contentUploadError: '',
       isContentUploading: false,
-      syncingContentHash: '',
       submissionContentHash: '',
       submissionContentId: '',
       submissions: [],
@@ -1075,9 +1038,6 @@ export default {
       voteError: '',
       reviewPolicy: null,
       reviewPolicyError: '',
-      evaluateMessage: '',
-      evaluateError: '',
-      mintMessage: '',
       mintError: '',
       summaryError: '',
       certificateError: '',
@@ -1088,16 +1048,17 @@ export default {
       isBlocksLoading: false,
       isSummaryLoading: false,
       isRefreshing: false,
-      mintingSubmissionId: '',
       showReviewOverrideForm: false,
       showSubmissionAdvancedFields: false,
       reviewOverrideScope: 'review',
       reviewOverrideReason: '',
-      showMintQueueTools: showDevelopmentTools(),
       showPublicDemoBanner: isPublicDemoMode(),
     };
   },
   computed: {
+    networkIdentity() {
+      return buildProtocolNetworkIdentity(this.chainSummary || {});
+    },
     appSection() {
       return this.$route.meta?.appSection || 'home';
     },
@@ -1279,21 +1240,16 @@ export default {
       ];
     },
     pendingSubmissions() {
-      return this.submissions.filter((submission) => submission.status === 'pending');
+      return this.submissions.filter((submission) => submission.protocol_v1_lifecycle?.voting === true);
     },
     approvedCertificateSubmissions() {
       return this.approvedSubmissions.filter((submission) => this.getCertificate(submission));
     },
     rejectedSubmissions() {
-      return this.submissions.filter((submission) => submission.status === 'rejected');
-    },
-    approvedMissingCertificateSubmissions() {
-      return this.approvedSubmissions.filter(
-        (submission) => this.certificateLookupComplete(submission) && !this.getCertificate(submission),
-      );
+      return this.submissions.filter((submission) => submission.protocol_v1_lifecycle?.rejected === true);
     },
     approvedSubmissions() {
-      return this.submissions.filter((submission) => ['approved', 'queued'].includes(submission.status));
+      return this.submissions.filter((submission) => submission.protocol_v1_lifecycle?.certified === true);
     },
     identityWalletAddress() {
       return this.walletManager.state.verifiedWalletAddress || this.walletManager.state.normalizedWalletAddress;
@@ -1431,35 +1387,6 @@ export default {
     openFeedbackPanel() {
       requestFeedbackPanelOpen({ panelId: 'feedback-panel' });
     },
-    async blockMinting(submission) {
-      if (!submission?.submission_id) {
-        return;
-      }
-      try {
-        const response = await apiClient.post(`/submissions/${submission.submission_id}/block-minting`, {
-          reason: submission.mint_block_reason || 'legacy bad queue item',
-          notes: 'Quarantined from the mint queue UI.',
-        });
-        this.mintMessage = response.data.message || 'Submission minting blocked successfully.';
-        await this.fetchMintQueue();
-      } catch (error) {
-        console.error('Error blocking minting:', error);
-        this.mintError = getApiErrorMessage(error, 'Failed to quarantine submission.');
-      }
-    },
-    async unblockMinting(submission) {
-      if (!submission?.submission_id) {
-        return;
-      }
-      try {
-        const response = await apiClient.post(`/submissions/${submission.submission_id}/unblock-minting`);
-        this.mintMessage = response.data.message || 'Submission minting unblocked successfully.';
-        await this.fetchMintQueue();
-      } catch (error) {
-        console.error('Error unblocking minting:', error);
-        this.mintError = getApiErrorMessage(error, 'Failed to unblock submission.');
-      }
-    },
     uploadMeme(event) {
       this.memeFile = event.target.files[0] || null;
     },
@@ -1525,6 +1452,13 @@ export default {
 
         const finalContentHash = this.submissionContentHash || preparedContent?.content_hash || '';
         const finalContentId = this.submissionContentId || preparedContent?.content_id || '';
+        const finalSubmissionText = String(
+          this.textContent
+          || this.contentUploadText
+          || preparedContent?.text_content
+          || preparedContent?.caption
+          || '',
+        ).trim();
 
         if (!finalContentHash && !finalContentId) {
           this.errorMessage = 'Please upload content or enter text before submitting.';
@@ -1538,30 +1472,16 @@ export default {
           caption: this.textContent || preparedContent?.caption || this.contentCaption || null,
         });
 
-        if (typeof window === 'undefined' || !window.ethereum?.request) {
-          this.errorMessage = 'MetaMask is unavailable for signing right now.';
-          return;
-        }
-
-        let signature;
-        try {
-          signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [challengeResponse.data.message, this.walletManager.state.walletAddress],
-          });
-        } catch (error) {
-          if (error?.code === 4001) {
-            this.errorMessage = 'Signature request was rejected in MetaMask.';
-            return;
-          }
-          throw error;
-        }
+        const signature = await this.signWalletMessage(challengeResponse.data.message);
 
         const formData = new FormData();
         formData.append('wallet_address', this.submissionWalletAddress);
         formData.append('content_hash', finalContentHash);
         if (finalContentId) {
           formData.append('content_id', finalContentId);
+        }
+        if (finalSubmissionText) {
+          formData.append('text_content', finalSubmissionText);
         }
         formData.append('message', challengeResponse.data.message);
         formData.append('signature', signature);
@@ -1571,7 +1491,7 @@ export default {
         });
 
         this.lastSubmission = response.data.submission;
-        this.submitMessage = `${response.data.message || 'Content submitted successfully.'} Status: ${this.formatStatus(this.lastSubmission.status)}.`;
+        this.submitMessage = `${response.data.message || 'Content submitted successfully.'} Lifecycle: ${this.submissionLifecycleDisplay(this.lastSubmission).label}.`;
         this.textContent = '';
         this.memeFile = null;
         this.submissionContentHash = '';
@@ -1583,7 +1503,10 @@ export default {
         await this.refreshWorkflow();
       } catch (error) {
         console.error('Error submitting meme:', error);
-        this.errorMessage = getApiErrorMessage(error, 'Failed to submit meme.');
+        this.errorMessage = humanizeProtocolActionError(
+          getApiErrorMessage(error, 'Failed to submit meme.'),
+          { action: 'submission' },
+        );
       } finally {
         this.isSubmitting = false;
       }
@@ -1685,30 +1608,6 @@ export default {
       }
 
       throw new Error('Choose a file or enter text before uploading content.');
-    },
-    async syncContent(contentHash) {
-      if (!contentHash) {
-        return;
-      }
-
-      this.syncingContentHash = contentHash;
-      this.contentUploadError = '';
-      try {
-        await apiClient.post(`/content/${contentHash}/sync`);
-        const response = await apiClient.get(`/content/${contentHash}/metadata`);
-        const content = response.data.content || null;
-        if (content) {
-          this.uploadedContent = this.uploadedContent?.content_hash === contentHash ? content : this.uploadedContent;
-          this.resetUploadedPreviewState(content);
-        }
-        this.contentUploadMessage = 'Content synced successfully.';
-        await this.refreshWorkflow();
-      } catch (error) {
-        console.error('Error syncing content:', error);
-        this.contentUploadError = getApiErrorMessage(error, 'Failed to sync content.');
-      } finally {
-        this.syncingContentHash = '';
-      }
     },
     async fetchChainSummary() {
       this.isSummaryLoading = true;
@@ -1886,16 +1785,16 @@ export default {
       );
     },
     hasContentPreview(record) {
-      return Boolean(record?.download_url || this.isTextContent(record) || this.isImageContent(record));
+      return hasRenderableProtocolPreview(record);
     },
     isImageContent(record) {
-      const value = String(record?.mime_type || record?.content_type || '').toLowerCase();
-      return value.startsWith('image/');
+      return isProtocolImageContent(record);
     },
     isTextContent(record) {
-      const mimeType = String(record?.mime_type || '').toLowerCase();
-      const contentType = String(record?.content_type || '').toLowerCase();
-      return mimeType === 'text/plain' || contentType === 'text' || contentType === 'mixed';
+      return isProtocolTextContent(record);
+    },
+    previewText(record) {
+      return resolveProtocolTextPreview(record);
     },
     needsContentSync(record) {
       const status = String(record?.storage_status || '').toLowerCase();
@@ -1904,6 +1803,9 @@ export default {
     contentStatusLabel(record) {
       if (record?.content_metadata_missing) {
         return 'Content Metadata Missing';
+      }
+      if (record?.media_embedded) {
+        return 'Immutable In Block';
       }
       const status = String(record?.storage_status || '').toLowerCase();
       if (!status) {
@@ -1926,6 +1828,9 @@ export default {
     contentStatusClass(record) {
       if (record?.content_metadata_missing) {
         return 'warning-chip';
+      }
+      if (record?.media_embedded) {
+        return 'ready';
       }
       const status = String(record?.storage_status || '').toLowerCase();
       if (status === 'verified') {
@@ -1985,14 +1890,47 @@ export default {
       }
       return String(status).replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
     },
-    mintDisabledReason(submission, index) {
-      if (!submission) {
-        return 'Cannot mint: queue item is missing.';
+    async signWalletMessage(message) {
+      if (typeof window === 'undefined' || !window.ethereum?.request) {
+        throw new Error('MetaMask is unavailable for signing right now.');
       }
-      if (!submission.mintable) {
-        return this.formatMintReason(submission.mint_block_reason || 'unknown_error');
+
+      try {
+        return await window.ethereum.request({
+          method: 'personal_sign',
+          params: [message, this.walletManager.state.walletAddress],
+        });
+      } catch (error) {
+        if (error?.code === 4001) {
+          throw new Error('Signature request was rejected in MetaMask.');
+        }
+        throw error;
       }
-      return '';
+    },
+    async submitSignedVote(submissionId, voteType) {
+      const challengeResponse = await apiClient.post('/auth/wallet/vote-challenge', {
+        wallet_address: this.voteWalletAddress,
+        submission_id: submissionId,
+        vote: voteType,
+      });
+      const signature = await this.signWalletMessage(challengeResponse.data.message);
+      const formData = new FormData();
+      formData.append('wallet_address', this.voteWalletAddress);
+      formData.append('vote_type', voteType);
+      formData.append('message', challengeResponse.data.message);
+      formData.append('signature', signature);
+      return apiClient.post(`/submissions/${submissionId}/vote`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    submissionLifecycleDisplay(submission) {
+      return buildSubmissionLifecycleDisplay(submission);
+    },
+    blockDisplay(block) {
+      return buildBlockDisplay(block);
+    },
+    blockContentAvailability(block) {
+      return buildBlockContentAvailability(block);
     },
     async vote(submissionId, voteType) {
       this.voteMessage = '';
@@ -2026,100 +1964,30 @@ export default {
       }
 
       try {
-        const challengeResponse = await apiClient.post('/auth/wallet/vote-challenge', {
-          wallet_address: this.voteWalletAddress,
-          submission_id: submissionId,
-          vote: voteType,
-        });
-
-        if (typeof window === 'undefined' || !window.ethereum?.request) {
-          this.voteError = 'MetaMask is unavailable for signing right now.';
-          return;
-        }
-
-        let signature;
+        let response;
+        let refreshedChallenge = false;
         try {
-          signature = await window.ethereum.request({
-            method: 'personal_sign',
-            params: [challengeResponse.data.message, this.walletManager.state.walletAddress],
-          });
+          response = await this.submitSignedVote(submissionId, voteType);
         } catch (error) {
-          if (error?.code === 4001) {
-            this.voteError = 'Signature request was rejected in MetaMask.';
-            return;
+          const detail = getApiErrorMessage(error, '');
+          if (!shouldRetryProtocolAction(detail)) {
+            throw error;
           }
-          throw error;
+          refreshedChallenge = true;
+          response = await this.submitSignedVote(submissionId, voteType);
         }
-
-        const formData = new FormData();
-        formData.append('wallet_address', this.voteWalletAddress);
-        formData.append('vote_type', voteType);
-        formData.append('message', challengeResponse.data.message);
-        formData.append('signature', signature);
-
-        const response = await apiClient.post(`/submissions/${submissionId}/vote`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        this.voteMessage = `${response.data.message || 'Vote recorded successfully.'} Vote: ${this.formatStatus(voteType)}.`;
+        this.voteMessage = refreshedChallenge
+          ? `Vote signing window expired, so the app requested a fresh message and recorded your ${this.formatStatus(voteType)} vote.`
+          : `${response.data.message || 'Vote recorded successfully.'} Vote: ${this.formatStatus(voteType)}.`;
         await this.fetchSubmissions();
         await this.fetchReviewPolicy();
       } catch (error) {
         console.error('Error recording vote:', error);
-        this.voteError = getApiErrorMessage(error, 'Failed to record vote.');
+        this.voteError = humanizeProtocolActionError(
+          getApiErrorMessage(error, 'Failed to record vote.'),
+          { action: 'vote' },
+        );
         await this.fetchReviewPolicy();
-      }
-    },
-    async evaluateSubmission(submissionId) {
-      this.evaluateMessage = '';
-      this.evaluateError = '';
-
-      try {
-        const formData = new FormData();
-        formData.append('automated_originality_passed', 'true');
-        const response = await apiClient.post(`/submissions/${submissionId}/evaluate`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        if (response.data.certificate) {
-          this.certificatesBySubmission = {
-            ...this.certificatesBySubmission,
-            [submissionId]: response.data.certificate,
-          };
-        }
-        const status = response.data.submission?.status;
-        const certificateId = response.data.certificate?.certificate_id;
-        this.evaluateMessage = `${response.data.message || 'Submission evaluated successfully.'} Status: ${this.formatStatus(status)}${certificateId ? `, certificate ${this.shortenHash(certificateId)}.` : '.'}`;
-        await this.refreshWorkflow();
-      } catch (error) {
-        console.error('Error evaluating submission:', error);
-        this.evaluateError = getApiErrorMessage(error, 'Failed to evaluate submission.');
-      }
-    },
-    async mintSubmission(submissionId) {
-      this.mintMessage = '';
-      this.mintError = '';
-
-      const submission = this.mintQueue.find((item) => item.submission_id === submissionId);
-      if (!submission?.mintable) {
-        this.mintError = this.formatMintReason(submission?.mint_block_reason || 'unknown_error');
-        return;
-      }
-
-      this.mintingSubmissionId = submissionId;
-      try {
-        const response = await apiClient.post(`/mint/${submissionId}`);
-        const certificateId = response.data.block?.certificate_id;
-        const rewardRecipient = response.data.reward_recipient || response.data.block?.reward_recipient;
-        const rewardAmount = response.data.reward_amount ?? response.data.block?.reward_amount;
-        this.mintMessage = `${response.data.message || 'Submission minted successfully.'} Block #${response.data.block?.index ?? 'created'}${certificateId ? ` with certificate ${this.shortenHash(certificateId)}` : ''}${rewardRecipient ? `, reward recipient ${this.shortenKey(rewardRecipient)}` : ''}${rewardAmount !== null && rewardAmount !== undefined ? `, reward ${rewardAmount} ZOID.` : '.'}`;
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('zoidberg-wallet-balance-refresh'));
-        }
-        await this.refreshWorkflow();
-      } catch (error) {
-        console.error('Error minting submission:', error);
-        this.mintError = getApiErrorMessage(error, 'Failed to mint submission.');
-      } finally {
-        this.mintingSubmissionId = '';
       }
     },
     formatStatus(status) {

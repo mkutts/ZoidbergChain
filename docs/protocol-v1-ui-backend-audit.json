@@ -1,0 +1,330 @@
+{
+  "summary": {
+    "critical": 0,
+    "high": 6,
+    "medium": 6,
+    "low": 3
+  },
+  "mismatches": [
+    {
+      "severity": "high",
+      "category": "STALE LEGACY",
+      "frontend_file_function": "static/index.html; backend root entrypoint",
+      "backend_route_function": "GET / in api.py:home",
+      "mismatch": "The backend root still serves the old splash page instead of the maintained Vue app.",
+      "user_impact": "Users landing on the local backend root do not reach the Protocol v1 beta UI.",
+      "required_fix": "Serve the maintained frontend entrypoint or replace the stale splash page in UI-2."
+    },
+    {
+      "severity": "high",
+      "category": "STALE LEGACY",
+      "frontend_file_function": "zoidbergcoin-ui/zoidbergchain-dist.zip",
+      "backend_route_function": "deployment artifact",
+      "mismatch": "The committed zip artifact appears unrelated to the current Vue application.",
+      "user_impact": "Manual packaging or deployment could publish the wrong UI bundle.",
+      "required_fix": "Rebuild or remove the zip and use source plus rebuilt dist as the only trusted frontend artifacts."
+    },
+    {
+      "severity": "high",
+      "category": "STALE LEGACY",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue computed submission grouping and mint messaging",
+      "backend_route_function": "_serialize_submission(...), GET /submissions, GET /mint-queue, POST /mint/{submission_id}",
+      "mismatch": "Dashboard behavior still depends on legacy persisted status strings instead of Protocol v1 lifecycle and finality fields.",
+      "user_impact": "Users cannot distinguish certified, canonical, confirmed, and finalized states.",
+      "required_fix": "Rebase submission grouping, labels, and mint results on protocol_v1_lifecycle, confirmation, and finality fields."
+    },
+    {
+      "severity": "high",
+      "category": "PROTOCOL MISREPRESENTATION",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Blockchain.vue and zoidbergcoin-ui/src/pages/Dashboard.vue block explorer cards",
+      "backend_route_function": "_serialize_block(...), GET /chain, GET /chain/summary",
+      "mismatch": "Explorer views omit block version, network binding, canonical/finality state, and render genesis like a normal content block.",
+      "user_impact": "The frozen Protocol v1 block and genesis model is hidden behind pre-freeze explorer assumptions.",
+      "required_fix": "Render explicit block/genesis identity and finality state in the explorer."
+    },
+    {
+      "severity": "high",
+      "category": "MISSING FEATURE",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue and zoidbergcoin-ui/src/pages/Blockchain.vue content preview and storage-state logic",
+      "backend_route_function": "_serialize_block(...), MODEL A block format",
+      "mismatch": "The UI treats auxiliary download/storage state as the practical source of truth and ignores embedded media metadata.",
+      "user_impact": "Accepted content can look missing or remote even when the authoritative bytes are in the block.",
+      "required_fix": "Add MODEL A-aware detail behavior and use embedded media metadata in accepted block views."
+    },
+    {
+      "severity": "high",
+      "category": "PROTOCOL MISREPRESENTATION",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue, zoidbergcoin-ui/src/pages/Blockchain.vue, zoidbergcoin-ui/src/components/WalletPanel.vue",
+      "backend_route_function": "GET /chain/summary, _build_account_summary(...)",
+      "mismatch": "The frontend shows network_name only and never surfaces canonical network_id, protocol_version, or genesis hash.",
+      "user_impact": "Users see the runtime alias but not the frozen Public Testnet v1 consensus identity.",
+      "required_fix": "Show compact Public Testnet v1 network identity in the key chain and wallet views."
+    },
+    {
+      "severity": "medium",
+      "category": "PROTOCOL MISREPRESENTATION",
+      "frontend_file_function": "zoidbergcoin-ui/src/services/wallet.js and zoidbergcoin-ui/src/components/WalletPanel.vue",
+      "backend_route_function": "wallet auth session routes",
+      "mismatch": "The UI highlights MetaMask chainId and invalidates ZoidbergChain verification on any chainChanged event.",
+      "user_impact": "Users can infer that Ethereum network selection controls ZoidbergChain identity.",
+      "required_fix": "De-emphasize chainId and explain the difference between wallet network state and ZoidbergChain consensus identity."
+    },
+    {
+      "severity": "medium",
+      "category": "MISSING FEATURE",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue vote flow",
+      "backend_route_function": "POST /auth/wallet/vote-challenge, POST /submissions/{submission_id}/vote",
+      "mismatch": "Vote challenge issued_at/expires_at metadata is ignored and expired challenges fall back to generic errors.",
+      "user_impact": "Users can sign stale vote forms and get opaque failures.",
+      "required_fix": "Add vote challenge refresh/retry UX and explicit expired-message handling."
+    },
+    {
+      "severity": "medium",
+      "category": "BREAKING",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue submitContent",
+      "backend_route_function": "POST /submit_content",
+      "mismatch": "Signed text submissions omit text_content in the final submission request.",
+      "user_impact": "Text submission previews and serialized submission text can be blank or inconsistent later in the UI.",
+      "required_fix": "Include mirrored text_content when finalizing a signed text submission."
+    },
+    {
+      "severity": "medium",
+      "category": "MISSING FEATURE",
+      "frontend_file_function": "zoidbergcoin-ui/src/components/WalletPanel.vue and zoidbergcoin-ui/src/services/nativeTransfer.js",
+      "backend_route_function": "POST /auth/wallet/transfer-challenge, GET /accounts/{wallet_address}/transactions",
+      "mismatch": "Transfer UI ignores version/network/expiry metadata and only partially explains settlement context.",
+      "user_impact": "Transfers work, but users cannot see the frozen Protocol v1 identity and settlement model.",
+      "required_fix": "Surface transaction identity fields and add expiry-aware transfer UX."
+    },
+    {
+      "severity": "medium",
+      "category": "STALE LEGACY",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue, zoidbergcoin-ui/src/components/WalletPanel.vue, zoidbergcoin-ui/src/pages/HomePage.vue",
+      "backend_route_function": "dev and ops routes exposed behind showDevelopmentTools()",
+      "mismatch": "Shared public pages still contain dev/ops actions behind environment flags.",
+      "user_impact": "A misconfigured build could expose operator workflows in the normal tester UI.",
+      "required_fix": "Move dev/ops controls into explicitly separate operator or local-dev surfaces."
+    },
+    {
+      "severity": "medium",
+      "category": "MISSING FEATURE",
+      "frontend_file_function": "zoidbergcoin-ui/src/config/api.js, zoidbergcoin-ui/src/pages/Dashboard.vue, zoidbergcoin-ui/src/services/wallet.js",
+      "backend_route_function": "multiple Protocol v1 routes",
+      "mismatch": "Vote, submission, network, genesis, and finality failures mostly fall through generic error formatting.",
+      "user_impact": "Users receive errors without protocol-aware next steps.",
+      "required_fix": "Add targeted handling for expired challenge, wrong network, wrong signer, already-minted, and legacy/reset-required cases."
+    },
+    {
+      "severity": "low",
+      "category": "COSMETIC",
+      "frontend_file_function": "zoidbergcoin-ui/src/pages/Dashboard.vue, zoidbergcoin-ui/src/pages/Blockchain.vue, zoidbergcoin-ui/src/components/WalletPanel.vue",
+      "backend_route_function": "multiple chain and wallet routes",
+      "mismatch": "User-facing copy still leans on phrases such as Certified Meme, Genesis / Legacy, and alias-only Network.",
+      "user_impact": "The UI language understates the frozen Protocol v1 model.",
+      "required_fix": "Refresh labels and helper copy to align with Protocol v1 terminology."
+    },
+    {
+      "severity": "low",
+      "category": "STALE LEGACY",
+      "frontend_file_function": "zoidbergcoin-ui/src/router/index.js and zoidbergcoin-ui/src/pages/Blockchain.vue",
+      "backend_route_function": "GET /chain, GET /chain/summary",
+      "mismatch": "A dedicated Blockchain.vue explorer remains in source even though /blockchain redirects to /activity.",
+      "user_impact": "Duplicate explorer implementations can drift apart.",
+      "required_fix": "Consolidate or intentionally retire the duplicate explorer in UI-2."
+    },
+    {
+      "severity": "low",
+      "category": "STALE LEGACY",
+      "frontend_file_function": "zoidbergcoin-ui/dist and deployment runbooks",
+      "backend_route_function": "manual build/publish path",
+      "mismatch": "Deployable artifacts still depend on a manual rebuild/publish flow and can drift from source.",
+      "user_impact": "UI-2 source fixes could fail to ship if dist publishing is skipped.",
+      "required_fix": "Rebuild and publish dist as an explicit UI-2 completion step."
+    }
+  ],
+  "legacy_routes": [
+    {
+      "route": "/add_block",
+      "frontend_surfaces": [],
+      "status": "not referenced by frontend source"
+    },
+    {
+      "route": "/wallets/{wallet_address}/...",
+      "frontend_surfaces": [],
+      "status": "not referenced by frontend source"
+    },
+    {
+      "route": "/generate_wallet",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/pages/HomePage.vue"
+      ],
+      "status": "dev-only exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/content/{content_hash}/sync",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/pages/Dashboard.vue"
+      ],
+      "status": "dev-only exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/submissions/{submission_id}/evaluate",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/pages/Dashboard.vue"
+      ],
+      "status": "dev/admin operational exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/mint/{submission_id}",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/pages/Dashboard.vue"
+      ],
+      "status": "dev/admin operational exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/submissions/{submission_id}/block-minting",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/pages/Dashboard.vue"
+      ],
+      "status": "dev/admin operational exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/submissions/{submission_id}/unblock-minting",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/pages/Dashboard.vue"
+      ],
+      "status": "dev/admin operational exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/mempool",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/components/WalletPanel.vue"
+      ],
+      "status": "dev/ops exposure behind showDevelopmentTools()"
+    },
+    {
+      "route": "/transactions/{tx_id}/admit",
+      "frontend_surfaces": [
+        "zoidbergcoin-ui/src/components/WalletPanel.vue"
+      ],
+      "status": "dev/ops exposure behind showDevelopmentTools()"
+    }
+  ],
+  "stale_models": [
+    {
+      "file": "zoidbergcoin-ui/src/pages/Dashboard.vue",
+      "current_fields": [
+        "status",
+        "certificate_id",
+        "mintable",
+        "mint_block_reason",
+        "storage_status"
+      ],
+      "required_fields": [
+        "protocol_v1_lifecycle",
+        "submission_status",
+        "certificate_status",
+        "mint_status",
+        "block_status",
+        "confirmations",
+        "confirmed",
+        "finalized"
+      ],
+      "fields_to_remove_deprecate": [
+        "status-only grouping"
+      ],
+      "fields_to_add": [
+        "canonical block state",
+        "finality thresholds",
+        "hard_rejected lifecycle display"
+      ]
+    },
+    {
+      "file": "zoidbergcoin-ui/src/pages/Blockchain.vue",
+      "current_fields": [
+        "network_name",
+        "download_url",
+        "storage_status",
+        "meme.encoded_image fallback"
+      ],
+      "required_fields": [
+        "block_version",
+        "network_id",
+        "object_type",
+        "is_genesis",
+        "canonical_genesis_hash",
+        "canonical",
+        "confirmations",
+        "confirmed",
+        "finalized",
+        "media_embedded",
+        "media_size_bytes"
+      ],
+      "fields_to_remove_deprecate": [
+        "certificate-only block classification"
+      ],
+      "fields_to_add": [
+        "genesis-specific rendering",
+        "MODEL A-aware media state"
+      ]
+    },
+    {
+      "file": "zoidbergcoin-ui/src/components/WalletPanel.vue",
+      "current_fields": [
+        "network_name",
+        "final_balance",
+        "status"
+      ],
+      "required_fields": [
+        "network_id",
+        "protocol_version",
+        "transaction_version",
+        "challenge expiry context"
+      ],
+      "fields_to_remove_deprecate": [
+        "prominent Chain ID display"
+      ],
+      "fields_to_add": [
+        "Public Testnet v1 identity",
+        "settlement/finality wording"
+      ]
+    },
+    {
+      "file": "zoidbergcoin-ui/src/utils/nativeWalletUi.js",
+      "current_fields": [
+        "simple status-to-copy mapping"
+      ],
+      "required_fields": [
+        "Protocol v1-aware settlement and network messaging"
+      ],
+      "fields_to_remove_deprecate": [],
+      "fields_to_add": [
+        "canonical/finality-aware status helpers"
+      ]
+    }
+  ],
+  "missing_ui_features": [
+    "Submission lifecycle rendering from protocol_v1_lifecycle",
+    "User-facing confirmation and finality display using the frozen 2/6 depth rules",
+    "Canonical network_id and genesis hash display",
+    "Genesis-specific explorer rendering",
+    "MODEL A-aware accepted media handling using embedded media metadata",
+    "Vote challenge expiry and retry UX",
+    "Transfer challenge expiry and retry UX",
+    "Protocol-aware error messaging for wrong network, wrong signer, already minted, and reset-required failures"
+  ],
+  "files_expected_for_ui2": [
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\pages\\Dashboard.vue",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\pages\\Blockchain.vue",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\components\\WalletPanel.vue",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\services\\wallet.js",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\services\\nativeTransfer.js",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\utils\\nativeWalletUi.js",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\utils\\runtimeConfig.js",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\pages\\HomePage.vue",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\src\\services\\nativeTransfer.test.js",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\dist",
+    "C:\\Users\\mattk\\ZoidbergChain\\zoidbergcoin-ui\\zoidbergchain-dist.zip",
+    "C:\\Users\\mattk\\ZoidbergChain\\static\\index.html"
+  ]
+}

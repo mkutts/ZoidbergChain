@@ -617,8 +617,16 @@ Protocol v1 genesis uses:
 - `previous_hash = 0000000000000000000000000000000000000000000000000000000000000000`
 - `miner = "GENESIS"`
 - `meme_text = "ZoidbergChain Public Testnet v1 Genesis"`
+- `media_hash = "dfba5a7e5e8e5f5da047a2ed58660c9d52665c39f2793da90cba51419f8525c7"`
+- `media_bytes` containing the exact original Zoidberg genesis meme bytes recovered from the pre-v1 genesis record
+- `mime_type = "image/jpeg"`
+- `content_type = "image"`
 - total supply `1000000000`
 - initial reward pool `100000000`
+
+The previous media-less Public Testnet v1 genesis hash was superseded before launch. The network ID remains `zoidberg-public-testnet-v1` only because this correction happened pre-launch; after launch, changing a genesis under the same network ID is forbidden.
+
+The Public Testnet v1 genesis block contains the exact original Zoidberg genesis meme bytes recovered from the pre-v1 genesis record. Genesis remains a special genesis object and is not a user submission, voted submission, originality certificate, or reward-earning accepted-media block.
 
 Canonical genesis transactions, in exact order:
 
@@ -633,17 +641,15 @@ Each genesis transaction also uses:
 - `payload_size_kb = 0`
 - `created_at = 1785542400`
 
-Genesis omits:
+Genesis stores immutable media, but still omits normal accepted-media workflow fields:
 
 - `block_version`
-- `media_hash`
-- `media_bytes`
 - `native_transactions`
 - submission and certificate metadata
 
 Validator membership is operational configuration, not genesis-hashed consensus state.
 
-PUBLIC TESTNET V1 GENESIS HASH = 585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c
+PUBLIC TESTNET V1 GENESIS HASH = 2b99e87f80e0e855ab98b3269b635be5415273f41d7d4bf1a2aeb8b277b13061
 
 ## 15. Chain validation and fork choice
 

@@ -19,7 +19,8 @@ def _client(blockchain):
     api.PUBLIC_NODE_URL = "http://localhost:8000"
     api.NETWORK_NAME = "zoidberg-testnet"
     api.blockchain = blockchain
-    api.peer_store = PeerStore()
+    # Reset peer_store to use the same isolated storage backend as the blockchain fixture
+    api.peer_store = PeerStore(storage_backend=blockchain.storage)
     clear_protocol_v1_peer_replay_store_cache(data_dir=api.peer_store.storage.data_dir)
     return TestClient(api.app)
 

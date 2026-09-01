@@ -86,7 +86,7 @@ Rules:
 - no line wrapping
 - no MIME dependence
 
-This is the frozen bytes representation used by Public Testnet v1 consensus objects, including MODEL A block media embedding.
+This is the frozen bytes representation used by Public Testnet v1 consensus objects, including MODEL A block media embedding and the embedded Public Testnet v1 genesis meme media.
 
 ## Unicode behavior
 

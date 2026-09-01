@@ -325,7 +325,7 @@ export function createWalletManager(options = {}) {
       if (state.sessionToken) {
         await authApi.logout();
       }
-      clearVerifiedSession('Network changed - verify again.');
+      clearVerifiedSession('MetaMask wallet network changed - verify again before signing.');
       if (state.isConnected) {
         state.connectionStatus = 'connected';
       }
@@ -464,7 +464,7 @@ export function createWalletManager(options = {}) {
       return onChainChanged(chainId);
     }
     state.chainId = typeof chainId === 'string' ? chainId : '';
-    clearVerifiedSession('Network changed - verify again.');
+    clearVerifiedSession('MetaMask wallet network changed - verify again before signing.');
     return state.chainId;
   }
 

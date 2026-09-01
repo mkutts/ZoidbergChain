@@ -1,6 +1,9 @@
 const IMPORT_META_ENV = {
   MODE: import.meta.env?.MODE,
   PROD: import.meta.env?.PROD,
+  VITE_API_BASE_URL: import.meta.env?.VITE_API_BASE_URL,
+  VITE_API_BASE: import.meta.env?.VITE_API_BASE,
+  VITE_BACKEND_URL: import.meta.env?.VITE_BACKEND_URL,
   VITE_ENVIRONMENT: import.meta.env?.VITE_ENVIRONMENT,
   VITE_APP_ENVIRONMENT: import.meta.env?.VITE_APP_ENVIRONMENT,
   VITE_PUBLIC_DEMO_MODE: import.meta.env?.VITE_PUBLIC_DEMO_MODE,
@@ -29,6 +32,10 @@ function envFlag(rawValue) {
   return null;
 }
 
+function normalizeApiBaseUrl(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
 export function getAppEnvironment(env = IMPORT_META_ENV) {
   return normalizeEnvironment(
     env.VITE_ENVIRONMENT
@@ -36,6 +43,26 @@ export function getAppEnvironment(env = IMPORT_META_ENV) {
     || env.MODE,
     env,
   );
+}
+
+export function createDefaultApiBaseUrl(env = IMPORT_META_ENV) {
+  return '/api';
+}
+
+export function resolveApiBaseUrl(env = IMPORT_META_ENV) {
+  if (!env.PROD) {
+    return createDefaultApiBaseUrl(env);
+  }
+
+  const configuredBaseUrl = [
+    env.VITE_API_BASE_URL,
+    env.VITE_API_BASE,
+    env.VITE_BACKEND_URL,
+  ]
+    .map(normalizeApiBaseUrl)
+    .find(Boolean);
+
+  return configuredBaseUrl || createDefaultApiBaseUrl(env);
 }
 
 export function isPublicDemoMode(env = IMPORT_META_ENV) {

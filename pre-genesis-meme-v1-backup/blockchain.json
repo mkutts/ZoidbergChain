@@ -1,0 +1,64 @@
+{
+    "chain": [
+        {
+            "index": 0,
+            "transactions": [
+                {
+                    "sender": "GENESIS",
+                    "recipient": "034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa",
+                    "amount": 790000000,
+                    "tip": 0,
+                    "signature": null,
+                    "payload_size_kb": 0,
+                    "created_at": 1785542400
+                },
+                {
+                    "sender": "GENESIS",
+                    "recipient": "02466d7fcae563e5cb09a0d1870bb580344804617879a14949cf22285f1bae3f27",
+                    "amount": 100000000,
+                    "tip": 0,
+                    "signature": null,
+                    "payload_size_kb": 0,
+                    "created_at": 1785542400
+                },
+                {
+                    "sender": "GENESIS",
+                    "recipient": "023c72addb4fdf09af94f0c94d7fe92a386a7e70cf8a1d85916386bb2535c7b1b1",
+                    "amount": 10000000,
+                    "tip": 0,
+                    "signature": null,
+                    "payload_size_kb": 0,
+                    "created_at": 1785542400
+                }
+            ],
+            "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+            "miner": "GENESIS",
+            "meme": {
+                "text": "ZoidbergChain Public Testnet v1 Genesis"
+            },
+            "timestamp": 1785542400,
+            "hash": "585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c",
+            "genesis_version": 1,
+            "protocol_version": 1,
+            "network_id": "zoidberg-public-testnet-v1",
+            "total_supply": 1000000000,
+            "initial_reward_pool": 100000000
+        }
+    ],
+    "submissions": [],
+    "content_objects": [],
+    "mint_queue": [],
+    "votes": [],
+    "transfer_intents": [],
+    "native_transactions": [],
+    "originality_certificates": [],
+    "access_requests": [],
+    "access_accounts": [],
+    "wallet_bindings": [],
+    "allowlist_entries": [],
+    "override_requests": [],
+    "feedback_records": [],
+    "audit_logs": [],
+    "wallets": {},
+    "peers": []
+}

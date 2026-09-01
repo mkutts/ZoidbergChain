@@ -85,8 +85,12 @@ test('dashboard keeps user-facing workflow copy and hides dev-only review contro
   assert.match(dashboardSource, /Prepare Your Content/i);
   assert.match(dashboardSource, /Vote On Originality/i);
   assert.match(dashboardSource, /Need the walkthrough again\? Open the Beta Guide/i);
-  assert.match(dashboardSource, /v-if="showMintQueueTools"/i);
-  assert.match(dashboardSource, /v-if="showMintQueueTools" @click="evaluateSubmission/i);
+  assert.doesNotMatch(dashboardSource, /showMintQueueTools/i);
+  assert.doesNotMatch(dashboardSource, /evaluateSubmission/i);
+  assert.doesNotMatch(dashboardSource, /syncContent/i);
+  assert.doesNotMatch(dashboardSource, /mintSubmission/i);
+  assert.doesNotMatch(dashboardSource, /blockMinting/i);
+  assert.doesNotMatch(dashboardSource, /unblockMinting/i);
 });
 
 test('public beta banner keeps tester-facing warnings visible', () => {

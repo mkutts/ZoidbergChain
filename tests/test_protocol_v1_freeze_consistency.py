@@ -8,6 +8,10 @@ from config import PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH
 from protocol_v1 import OBJECT_DOMAINS, PROTOCOL_NAME, PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
 from protocol_v1_genesis import (
     PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH,
+    PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE,
     PUBLIC_TESTNET_V1_GENESIS_VERSION,
 )
 from protocol_v1_native_transfer import PROTOCOL_V1_NATIVE_TRANSFER_VERSION
@@ -44,6 +48,11 @@ def test_freeze_report_matches_runtime_constants():
     assert report["version_tag"] == "v1"
     assert report["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
     assert report["genesis_hash"] == PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH
+    assert report["genesis_media"]["present"] is True
+    assert report["genesis_media"]["media_hash"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH
+    assert report["genesis_media"]["mime_type"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_MIME_TYPE
+    assert report["genesis_media"]["content_type"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_CONTENT_TYPE
+    assert report["genesis_media"]["byte_length"] == PUBLIC_TESTNET_V1_GENESIS_MEDIA_BYTE_LENGTH
     assert report["confirmation_depth"] == PROTOCOL_V1_CONFIRMATION_DEPTH
     assert report["finality_depth"] == PROTOCOL_V1_FINALITY_DEPTH
     assert report["objects"]["block"]["object_version"] == PROTOCOL_V1_BLOCK_VERSION
@@ -75,7 +84,9 @@ def test_authoritative_spec_exists_and_contains_required_frozen_identity():
     assert "## 1. Scope and status" in spec
     assert "## 23. Known limitations" in spec
     assert "zoidberg-public-testnet-v1" in spec
-    assert "PUBLIC TESTNET V1 GENESIS HASH = 585474a5164f0afb811b624ae342d537dbef5f68337b3e64bb0ebcf8ca0dc49c" in spec
+    assert f"PUBLIC TESTNET V1 GENESIS HASH = {PUBLIC_TESTNET_V1_CANONICAL_GENESIS_HASH}" in spec
+    assert PUBLIC_TESTNET_V1_GENESIS_MEDIA_HASH in spec
+    assert "exact original Zoidberg genesis meme bytes recovered from the pre-v1 genesis record" in spec
     assert "Native ZOID transfers are Layer 1 ZoidbergChain transactions and are not Ethereum/ERC-20 transactions." in spec
     assert "Peer authentication never bypasses inner-object validation." in spec
 

@@ -343,6 +343,8 @@ For Protocol v1, the full accepted media bytes are part of the immutable persist
 
 That means a node can recover the accepted media from `media_bytes` inside the block record even if the auxiliary content cache has been deleted.
 
+The Public Testnet v1 genesis object is special and is not an accepted-media block, but it now separately embeds the exact original Zoidberg genesis meme bytes in its own `media_bytes` field. The genesis hash commits to those bytes and to the frozen genesis `media_hash`, `mime_type`, and `content_type`; no submission, vote, certificate, creator reward, or voter reward fields are introduced for genesis.
+
 Legacy pre-v1 blocks do not satisfy MODEL A.
 
 ## 21. Remaining limitations

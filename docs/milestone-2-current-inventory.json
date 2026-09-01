@@ -1,0 +1,109 @@
+{
+  "report": "milestone-2-current-inventory",
+  "inventory_date": "2026-09-01",
+  "scope": "Milestone 2 Task 1 diagnostic baseline only",
+  "repository": {
+    "remote": "https://github.com/mkutts/ZoidbergChain.git",
+    "branch": "Repository-Hygiene-and-Core-Refactor",
+    "head": "5bd09cb39d25189c8918460b3ca3e63f824ac4ee",
+    "head_decoration": "public-testnet-v1-protocol-freeze",
+    "origin_main": "5bd09cb39d25189c8918460b3ca3e63f824ac4ee",
+    "head_vs_origin_main": {"ahead": 0, "behind": 0},
+    "relevant_tags": ["public-testnet-v1-protocol-freeze", "backup-broken-privy-merge-before-rollback"],
+    "old_protocol_branch": {"ref": "origin/Freeze-ZoidbergChain-Public-Testnet-v1-Protocol", "head": "173251c", "behind_origin_main": 1},
+    "worktree": "clean",
+    "fetch": {"command": "git fetch origin --prune", "result": "succeeded_without_merge_or_rebase"}
+  },
+  "environment": {
+    "os": "Windows 10 Home build 2009 x64",
+    "python": "3.13.5 (.venv)",
+    "pip": "25.1.1",
+    "node": "v24.13.0",
+    "npm": "npm.cmd available; npm.ps1 blocked by PowerShell execution policy",
+    "interpreter_probe": "PyCharm probe failed on inaccessible .pytest_cache; explicit .venv executable used",
+    "tracked_venv": "venv is broken and points to another user's absolute Python 3.12 path"
+  },
+  "mismatches": [
+    {"finding": "Historical old protocol branch is one commit behind main", "status": "verified_for_remote_refs"},
+    {"finding": "Historical hygiene observations remain present", "status": "verified"},
+    {"finding": "No explicit Milestone 2 Task 1 definition found in tracked repository", "status": "prompt_used_as_authority"},
+    {"finding": "Current production is FastAPI while requirements retain Flask-era packages", "status": "verified"},
+    {"finding": "Frontend npm ci is documented but Windows EPERM-blocked", "status": "verified"}
+  ],
+  "baseline": {
+    "backend": {"command": ".venv\\Scripts\\python.exe -m pytest", "status": "passed", "passed": 898, "failed": 0, "skipped": 0, "duration": "83.04s"},
+    "integration": {"command": ".venv\\Scripts\\python.exe -m pytest tests\\integration -q", "status": "passed", "passed": 21, "failed": 0, "skipped": 0, "duration": "7.67s"},
+    "frontend_install": {"command": "cd zoidbergcoin-ui; npm.cmd ci", "status": "blocked", "failure": "EPERM unlinking node_modules/@esbuild/win32-x64/esbuild.exe", "cause": "likely Windows file lock or permissions"},
+    "frontend_test": {"command": "npm.cmd test", "status": "failed_due_to_incomplete_install", "discovered": 87, "passed": 82, "failed": 5, "skipped": 0, "duration": "300.58ms", "failure_categories": ["missing axios module", "missing vue module"]},
+    "frontend_build": {"command": "npm.cmd run build", "status": "failed_due_to_incomplete_install", "failure_category": "missing vite module"}
+  },
+  "tracked_file_hygiene": {
+    "tracked_paths": 1323,
+    "tracked_venv_paths": 1031,
+    "findings": [
+      {"classification": "runtime_state", "paths": ["blockchain.json", "peers.json", "wallets.json"]},
+      {"classification": "backup", "paths": ["blockchain.json.bak", "peers.json.bak", "legacy-chain-backup/", "pre-genesis-meme-v1-backup/"]},
+      {"classification": "runtime_media_or_cache", "paths": ["content/", "temp/download.jpg", "preprocessed_image.jpg"]},
+      {"classification": "virtual_environment", "paths": ["venv/"]},
+      {"classification": "environment_file", "paths": [".env"]},
+      {"classification": "obsolete_or_debug_artifact", "paths": ["collect.txt", "rollback-prep-working-tree.patch", "zoidberg-runtime-config-fix.patch"]},
+      {"classification": "required_static_documentation_asset", "paths": ["static/", "zoidbergcoin-ui/public/", "README.md", "docs/"]}
+    ]
+  },
+  "secret_findings": [
+    {"file": ".env", "line_or_category": "line 1 / API_KEYS", "type": "concrete API credentials", "confidence": "high", "owner_action": "revoke_or_rotate; remove from repository state; decide history cleanup"},
+    {"file": "blockchain.json", "line_or_category": "repeated private_key fields", "type": "private-key material in runtime state", "confidence": "high", "owner_action": "treat as compromised; assess identities; rotate/remove; decide history cleanup"},
+    {"file": "wallets.json and peers.json", "line_or_category": "runtime identity fields", "type": "possible operational credential or identity exposure", "confidence": "medium/uncertain", "owner_action": "owner review without blind rotation"}
+  ],
+  "secret_scanner": {"available": false, "tools_checked": ["gitleaks", "trufflehog", "detect-secrets"], "targeted_current_and_history_search": true, "secret_values_in_report": false},
+  "canonical_assets": {
+    "authoritative_media_fixture": "public_testnet_v1_genesis_meme_base64.txt",
+    "authoritative_builder": "protocol_v1_genesis.py",
+    "golden_vectors": "tests/fixtures/protocol_v1_golden_vectors.json",
+    "runtime_genesis_record": "blockchain.json contains serialized genesis with Model A media; mutable runtime state, not source of truth",
+    "disposable_cache_distinction": "content/ is runtime content storage and must not be confused with canonical genesis media",
+    "classification": {"source_code": ["protocol_v1*.py"], "canonical_protocol_genesis_fixture": ["public_testnet_v1_genesis_meme_base64.txt", "tests/fixtures/protocol_v1_golden_vectors.json"], "runtime_state": ["blockchain.json"], "backup": ["legacy-chain-backup/", "pre-genesis-meme-v1-backup/"]}
+  },
+  "dependencies": {
+    "groups": ["FastAPI/Pydantic/Starlette/Uvicorn", "signing/security", "HTTP/storage", "content/originality", "rate limiting/configuration", "legacy data-science/ML", "forecasting/Spark/Mongo", "test/development"],
+    "production_import_evidence": ["fastapi", "pydantic", "slowapi", "Pillow", "ImageHash", "pytesseract", "eth-account", "cryptography", "ecdsa", "requests", "python-dotenv"],
+    "legacy_or_script_import_evidence": ["sentence-transformers in zoidbergCoin.py", "requests in sync.py", "Pillow/pytesseract in legacy/content paths"],
+    "likely_unused_or_legacy_groups": ["Flask-era packages", "pyspark/py4j", "pymongo", "prophet/cmdstanpy/holidays/stanio", "xgboost/lightgbm", "broad pandas/scipy/matplotlib/scikit-learn/torch/transformers stack"],
+    "test_only": ["pytest", "pytest-cov"],
+    "caveat": "Static import analysis is evidence, not proof of dispensability; no dependency files changed."
+  },
+  "architecture": {
+    "modules": {
+      "api.py": {"lines": 6913, "responsibility": "FastAPI app, lifespan, routers and service orchestration"},
+      "blockchain.py": {"lines": 6424, "responsibility": "chain, consensus validation, fork replacement, submissions, rewards, ledger, nonces, mempool"},
+      "peer_sync.py": {"lines": 3026, "responsibility": "signed peer networking, content and chain synchronization"},
+      "content.py": {"lines": 1290, "responsibility": "content objects, hashes, MIME validation, local content storage"},
+      "storage.py": {"lines": 1121, "responsibility": "JSON/SQLite backends, atomic persistence, backups, queries, integrity"},
+      "submission.py": {"lines": 163, "responsibility": "submission model, statuses, transitions, content hash"},
+      "native_transfer.py": {"lines": 832, "responsibility": "native ZOID transactions, IDs, validation, MetaMask signatures"},
+      "protocol_v1.py": {"lines": 303, "responsibility": "protocol identifiers, canonical serialization and domains"},
+      "protocol_v1_genesis.py": {"lines": 593, "responsibility": "frozen genesis and Model A media validation"},
+      "protocol_v1_native_transfer.py": {"lines": 262, "responsibility": "frozen native transfer serialization and parsing"},
+      "protocol_v1_originality.py": {"lines": 333, "responsibility": "frozen votes/certificates serialization and IDs"},
+      "protocol_v1_peer_message.py": {"lines": 883, "responsibility": "frozen peer envelopes, signatures, replay and verification"}
+    },
+    "risks": ["duplicate remove_invalid_mint_queue_entries in blockchain.py:5200 and :5226", "duplicate extract_text import in api.py:42 and :6286", "protocol_v1_native_transfer.py <-> native_transfer.py import-cycle candidate", "startup side effects around api.py:1738 and :1771"]
+  },
+  "task2_cleanup_list": ["remove tracked .env after rotation", "remove tracked venv", "remove or relocate mutable chain/peer/wallet state and backups", "remove generated content/cache/media", "remove or archive obsolete patches", "remove debug/collection artifacts", "preserve canonical genesis assets", "propose dependency reduction", "resolve duplicate definitions/import cycle in separately scoped code work", "add ignore and CI hygiene checks"],
+  "owner_actions": ["rotate API credentials", "treat blockchain private keys as compromised", "decide history rewrite", "decide backup and identity retention", "confirm legacy ML support", "approve cleanup around genesis reproducibility"],
+  "uncertainties": ["no dedicated secret scanner installed", "wallet/peer field semantics not printed", "static imports do not prove dependency necessity", "frontend verification blocked by npm install issue", "ignored generated local state remains present"],
+  "acceptance": {
+    "status": "pass_with_documented_limitations",
+    "baseline_identity_fetch_comparison": "pass",
+    "existing_changes_preserved": "pass",
+    "repository_tests_inspected": "pass",
+    "hygiene_secret_audit": "pass_with_scanner_unavailable_limitation",
+    "genesis_runtime_distinction": "pass",
+    "dependency_architecture_inventory": "pass",
+    "backend_integration_baselines": "pass",
+    "frontend_commands_attempted": "pass_with_environment_block",
+    "only_two_reports_changed": "pass",
+    "production_dependencies_history_changed": false,
+    "task2_started": false
+  }
+}

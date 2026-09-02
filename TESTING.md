@@ -22,6 +22,10 @@ For local development validation, install:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
+## Continuous integration
+
+GitHub Actions partitions backend and integration tests, verifies frontend installation/test/build, blocks tracked runtime artifacts and current-tree secrets, and audits Python and frontend dependencies. See [docs/continuous-integration.md](docs/continuous-integration.md) for the exact jobs, local-equivalent commands, dependency-audit thresholds, and the documented Windows frontend-lock limitation. Lint and formatting gates are intentionally not enabled yet.
+
 ## Run tests with coverage
 
 ```powershell

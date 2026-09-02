@@ -1,0 +1,189 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATA_DIR: ${{ runner.temp }}/zoidbergchain-backend-data
+      NODE_DATA_DIR: ${{ runner.temp }}/zoidbergchain-backend-data
+      CONTENT_STORAGE_DIR: ${{ runner.temp }}/zoidbergchain-backend-content
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-core.txt
+            requirements-originality.txt
+            requirements-test.txt
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-test.txt
+
+      - name: Verify installed dependencies
+        run: python -m pip check
+
+      - name: Verify major imports use temporary state
+        run: |
+          mkdir -p "$DATA_DIR" "$CONTENT_STORAGE_DIR"
+          python -c "import api, blockchain, storage, protocol_v1, protocol_v1_genesis"
+
+      - name: Run non-integration backend tests
+        run: python -m pytest --ignore=tests/integration
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATA_DIR: ${{ runner.temp }}/zoidbergchain-integration-data
+      NODE_DATA_DIR: ${{ runner.temp }}/zoidbergchain-integration-data
+      CONTENT_STORAGE_DIR: ${{ runner.temp }}/zoidbergchain-integration-content
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-core.txt
+            requirements-originality.txt
+            requirements-test.txt
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-test.txt
+
+      - name: Run integration tests
+        run: python -m pytest tests/integration
+
+  frontend:
+    name: Frontend test, build, and audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: zoidbergcoin-ui
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.13.0"
+          cache: npm
+          cache-dependency-path: zoidbergcoin-ui/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Build frontend production bundle
+        run: npm run build
+
+      - name: Audit high and critical frontend vulnerabilities
+        run: npm audit --audit-level=high
+
+  repository-hygiene:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Check tracked repository hygiene
+        run: python scripts/check_repository_hygiene.py
+
+      - name: Test repository hygiene rules
+        run: |
+          python -m pip install pytest==8.4.1
+          python -m pytest tests/scripts/test_repository_hygiene.py
+
+  secret-scan:
+    name: Current-tree secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Export current tracked tree
+        run: |
+          mkdir -p "$RUNNER_TEMP/zoidbergchain-current-tree"
+          git archive --format=tar HEAD | tar -x -C "$RUNNER_TEMP/zoidbergchain-current-tree"
+
+      - name: Scan current tracked tree for secrets
+        run: >-
+          docker run --rm
+          --volume "$RUNNER_TEMP/zoidbergchain-current-tree:/repo:ro"
+          zricethezav/gitleaks:v8.21.2
+          dir --source /repo --redact --no-banner
+
+  python-dependency-security:
+    name: Python dependency security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-core.txt
+            requirements-originality.txt
+            requirements-test.txt
+
+      - name: Install complete test dependencies and pip-audit
+        run: |
+          python -m pip install -r requirements-test.txt
+          python -m pip install pip-audit==2.9.0
+
+      - name: Resolve and audit complete test dependencies
+        run: python -m pip_audit -r requirements-test.txt --strict

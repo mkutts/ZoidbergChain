@@ -1,0 +1,150 @@
+{
+  "task": "Milestone 2 Task 4C",
+  "analysis_only": true,
+  "initial_state": {
+    "branch": "Repository-Hygiene-and-Core-Refactor",
+    "head": "c067116cb9f5f5880ddf9a1dcfdcf6372b493457",
+    "worktree_clean": true,
+    "task_4a_commit": "48dd93a",
+    "task_4b_commit": "c067116",
+    "task_4b_precondition": {
+      "separate_commit": true,
+      "clean_worktree": true,
+      "recorded_task_4a_pip_check_and_hygiene": "pass",
+      "task_4b_duplicate_pip_check_and_hygiene_timestamped": false,
+      "interpretation": "No failed verification is recorded; Task 4B documentation only records its frontend verification."
+    }
+  },
+  "audit": {
+    "python_version": "3.13",
+    "environment": "fresh external virtual environment",
+    "install_input": "requirements-test.txt",
+    "pip_audit_version": "2.9.0",
+    "pip_check": "pass",
+    "command": "python -m pip_audit -r requirements-test.txt --strict",
+    "result": "fail: 6 advisories in 2 packages",
+    "reproduced_advisories": [
+      {"package": "ecdsa", "version": "0.19.2", "id": "PYSEC-2026-1325", "fixed_versions": []},
+      {"package": "transformers", "version": "4.57.6", "id": "PYSEC-2025-217", "fixed_versions": []},
+      {"package": "transformers", "version": "4.57.6", "id": "PYSEC-2026-2290", "fixed_versions": []},
+      {"package": "transformers", "version": "4.57.6", "id": "PYSEC-2026-2288", "fixed_versions": ["5.0.0"]},
+      {"package": "transformers", "version": "4.57.6", "id": "PYSEC-2026-2289", "fixed_versions": ["5.3.0"]},
+      {"package": "transformers", "version": "4.57.6", "id": "GHSA-xrqw-3rrv-vx5w", "fixed_versions": ["5.10.0"], "excluded_reason": "yanked"}
+    ],
+    "changed_since_task_4a": false
+  },
+  "prior_summary_mismatches": [
+    "ecdsa is also imported and used during supported FastAPI startup through Wallet construction; current public user signing remains separate MetaMask personal_sign recovery.",
+    "zoidbergCoin.py is not referenced by supported deployment, README, scripts, UI, CI, or tests; its SentenceTransformer is constructed remotely at import and never used afterward."
+  ],
+  "ecdsa": {
+    "source_importers": ["wallet.py", "transaction.py", "zoidbergCoin.py"],
+    "advisory": {
+      "id": "PYSEC-2026-1325",
+      "aliases": ["CVE-2024-23342", "GHSA-wj6h-64fc-37mp"],
+      "behavior": "Minerva timing attack on P-256 sign_digest, P-256 key generation, or ECDH; verification unaffected; no upstream fix."
+    },
+    "actual_operations": ["SECP256k1 key generation", "private-scalar parsing", "randomized SHA-1 signing", "signature verification"],
+    "not_used": ["P-256", "sign_digest", "ECDH", "signature recovery"],
+    "public_testnet": {
+      "backend_import_requires_ecdsa": true,
+      "startup_generates_legacy_secp256k1_wallets": true,
+      "canonical_user_identity_and_native_signing": "eth-account MetaMask personal_sign",
+      "protocol_requires_ecdsa": false
+    },
+    "call_paths": [
+      "uvicorn api:app -> api imports Wallet/Transaction -> Wallet() x3 -> ecdsa SECP256k1 key generation",
+      "POST /generate_wallet (development only) -> Wallet()",
+      "POST /add_transaction -> validate_private_key -> Transaction.sign_transaction -> Transaction.is_valid",
+      "peer block receive -> Block.from_dict -> Transaction.from_dict -> Transaction.is_valid"
+    ],
+    "legacy_components_active": true,
+    "attacker_control": "Legacy route accepts request data and a private-key query parameter, but successful signing requires a registered matching wallet. Peer payloads can reach verification. Neither reaches the advisory condition.",
+    "compatibility": {
+      "curve": "SECP256k1",
+      "private_key_encoding": "32-byte lowercase hexadecimal scalar",
+      "public_key_encoding": "33-byte compressed SEC point lowercase hexadecimal",
+      "signature_encoding": "base64 of 64-byte raw r||s, not DER and not recoverable",
+      "hash": "SHA-1 default of ecdsa.sign",
+      "deterministic_signing": false,
+      "existing_signature_verification_with_cryptography": true,
+      "cryptography_curve_and_public_key_compatibility": true,
+      "malleability_requirement": "Characterize and preserve existing high-S/low-S verification behavior.",
+      "hash_effect": "Legacy signature bytes affect legacy block hashes and Protocol v1 block consensus transaction payloads; native transaction IDs are derived before signature."
+    },
+    "decision": "Migrate to cryptography after characterization; do not remove legacy signing now.",
+    "temporary_exception": {
+      "defensible": true,
+      "only_for": "PYSEC-2026-1325",
+      "conditions": ["named security owner", "explicit risk acceptance", "review date", "removal on ecdsa migration"],
+      "selected": false
+    }
+  },
+  "transformers": {
+    "dependency_chain": "requirements-originality.txt -> sentence-transformers==3.3.1 -> transformers==4.57.6",
+    "source_importers": {"sentence_transformers": ["zoidbergCoin.py"], "transformers": [], "torch": []},
+    "legacy_entrypoint": {
+      "file": "zoidbergCoin.py",
+      "remote_model_identifier": "all-MiniLM-L6-v2",
+      "model_load": "SentenceTransformer construction at module import; remote artifacts download when not cached",
+      "model_use_after_load": false,
+      "supported": false,
+      "referenced_by": []
+    },
+    "supported_node": {
+      "entrypoint": "uvicorn api:app",
+      "requires_sentence_transformers": false,
+      "originality_dependencies": ["Pillow", "ImageHash", "pytesseract"],
+      "originality_consensus_path": "submission/evaluation/certificate/mint uses content and vote/certificate validation, not ML embeddings"
+    },
+    "untrusted_model_inputs": {
+      "user_controlled_model_name_path_repo_or_tokenizer": false,
+      "project_calls_from_pretrained_trainer_torch_load_save_pretrained_or_trust_remote_code": false
+    },
+    "advisory_reachability": {
+      "PYSEC-2025-217": "unreachable: no X-CLIP checkpoint path",
+      "PYSEC-2026-2290": "unreachable: no LightGlue loader/config path",
+      "PYSEC-2026-2288": "unreachable: no Trainer/checkpoint path",
+      "PYSEC-2026-2289": "unreachable: no causal-LM config path",
+      "GHSA-xrqw-3rrv-vx5w": "unreachable: no tokenizer/processor save path"
+    },
+    "stable_options": {
+      "current_stable": {"sentence_transformers": "6.0.1", "transformers": "5.16.1", "torch": "2.13.0"},
+      "python_3_13": "candidate resolved and imported successfully",
+      "candidate_dependencies": ["tokenizers 0.23.1", "huggingface-hub 1.29.0", "hf-xet", "typer"],
+      "upgrade": "possible but major migration; needs model output and threshold fixtures; unnecessary for unsupported code",
+      "retain_v3": "not viable because 3.3.1 constrains Transformers to <5",
+      "remove": "recommended: remove unsupported executable and sentence-transformers from main supported requirements",
+      "isolate": "possible only with owner-approved optional unsupported tool packaging and documentation",
+      "replace": "not justified without a product requirement",
+      "temporary_exceptions": "defensible only while removal/isolation is actively completed; one exact advisory per exception; not selected"
+    }
+  },
+  "recommended_sequence": [
+    {"order": 1, "task": "Add legacy cryptography characterization vectors and tests", "stop_condition": "any protocol-visible byte or historical verification behavior cannot be preserved"},
+    {"order": 2, "task": "Migrate wallet.py and transaction.py from ecdsa to cryptography and remove ecdsa only after passing vectors", "approval": "security/protocol owner for any behavior difference"},
+    {"order": 3, "task": "Remove unsupported zoidbergCoin.py and sentence-transformers from supported requirements", "approval": "owner confirms no operator/data compatibility contract"},
+    {"order": 4, "task": "Re-run clean Python 3.13 exact audit, tests, hygiene, and diff checks", "success": "audit green without exclusions"}
+  ],
+  "tests_required_first": [
+    "legacy scalar/public compressed-point compatibility",
+    "legacy raw base64 signature valid/invalid/malformed cases and raw-to-DER conversion",
+    "legacy signed-message formatting, SHA-1, and high-S behavior",
+    "legacy block hash and peer block verification",
+    "FastAPI startup and development legacy route behavior",
+    "unchanged Protocol v1/genesis/native-transfer/vote golden vectors"
+  ],
+  "implementation_recommendation": {
+    "agent": "high-reasoning security-focused implementation agent with independent cryptography review",
+    "approval_required": ["legacy operator/data retirement", "any signature/key/hash/verification semantic change", "any temporary audit exception"]
+  },
+  "task_4c_acceptance": {
+    "status": "pass",
+    "production_source_changed": false,
+    "dependencies_changed": false,
+    "ci_changed": false,
+    "suppressions_added": false,
+    "protocol_changed": false,
+    "only_intended_repository_changes": ["docs/python-security-blocker-decision.md", "docs/python-security-blocker-decision.json"]
+  }
+}

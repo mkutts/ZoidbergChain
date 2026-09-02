@@ -1,6 +1,90 @@
-# Milestone 2 Task 3: Dependency Audit
+# Milestone 2 Tasks 3 and 4A: Dependency Audit
 
 Audit date: 2026-09-01. Scope: dependency declarations and installation documentation only. No application, protocol, API, storage-format, signature, consensus, or frontend dependency behavior was changed.
+
+## Task 4A: Python Security Remediation
+
+Task 4A reproduced the CI command in a new external Python 3.13 environment after
+installing `requirements-test.txt` and `pip-audit==2.9.0`:
+
+```powershell
+python -m pip_audit -r requirements-test.txt --strict
+```
+
+The baseline was 47 advisories in eight packages. There are no pip-audit
+suppression flags, ignore lists, or advisory exclusions. The table maps every
+baseline advisory to its resolver origin and records the smallest version that
+clears all fixable findings for that package.
+
+| Package | Origin and declaration | Before -> after | Baseline advisories | Resolution |
+|---|---|---|---|---|
+| `cryptography` | Direct core, `requirements-core.txt` | `45.0.6` -> `50.0.0` | `PYSEC-2026-36`, `PYSEC-2026-35`, `PYSEC-2026-2141`, `PYSEC-2026-3552`, `PYSEC-2026-3553`, `PYSEC-2026-3554`, `GHSA-537c-gmf6-5ccf` | Fixed; `50.0.0` is the maximum listed fixed version. |
+| `ecdsa` | Direct core, `requirements-core.txt` | `0.19.0` -> `0.19.2` | `PYSEC-2026-1325`, `PYSEC-2026-2467` | `PYSEC-2026-2467` fixed by `0.19.2`; `PYSEC-2026-1325` has no listed fix. |
+| `python-multipart` | Direct core, `requirements-core.txt` | `0.0.20` -> `0.0.31` | `PYSEC-2026-1852`, `PYSEC-2026-3038`, `PYSEC-2026-3037`, `PYSEC-2026-3036`, `PYSEC-2026-3040`, `PYSEC-2026-3039` | Fixed; `0.0.31` is the maximum listed fixed version. |
+| `requests` | Direct core, `requirements-core.txt` | `2.32.3` -> `2.33.0` | `PYSEC-2026-1872`, `PYSEC-2026-2275` | Fixed; `2.33.0` is the maximum listed fixed version. |
+| `pillow` | Direct originality, `requirements-originality.txt` | `11.0.0` -> `12.3.0` | `PYSEC-2026-165`, `PYSEC-2026-2250`, `PYSEC-2026-2253`, `PYSEC-2026-2255`, `PYSEC-2026-2257`, `PYSEC-2026-2256`, `PYSEC-2026-2254`, `PYSEC-2026-2252`, `PYSEC-2026-2249`, `PYSEC-2026-2874`, `PYSEC-2026-3453`, `PYSEC-2026-3451`, `PYSEC-2026-3454`, `PYSEC-2026-3495`, `PYSEC-2026-3496`, `PYSEC-2026-3494`, `PYSEC-2026-3493` | Fixed; `12.3.0` is the maximum listed fixed version. |
+| `pytest` | Direct test, `requirements-test.txt` | `8.4.1` -> `9.0.3` | `PYSEC-2026-1845` | Fixed by `9.0.3`; compatible with retained `pytest-cov==6.2.1`. |
+| `starlette` | Transitive through FastAPI; security pin in `requirements-core.txt` | `0.41.3` -> `1.3.1` | `PYSEC-2026-161`, `PYSEC-2026-249`, `PYSEC-2026-248`, `PYSEC-2026-1942`, `PYSEC-2026-1941`, `PYSEC-2026-2281`, `PYSEC-2026-2280` | Fixed; a direct pin is necessary to keep the resolved FastAPI dependency at the audited fixed version. |
+| `transformers` | Transitive through direct originality dependency `sentence-transformers==3.3.1` | `4.57.6` -> unchanged | `PYSEC-2025-217`, `PYSEC-2026-2290`, `PYSEC-2026-2288`, `PYSEC-2026-2289`, `GHSA-xrqw-3rrv-vx5w` | Not fixed in the compatible `<5` parent range. The audit lists no fix for the first two and requires `5.0.0`, `5.3.0`, and yanked `5.10.0` for the others. |
+
+### Compatibility Decisions
+
+- Every selected fixed release has a Python 3.13 wheel or was successfully resolved
+  by the fresh Python 3.13 environment. `pip check` confirms compatible parent
+  constraints after installation.
+- `fastapi==0.133.0` is the minimum release tested that accepts
+  `starlette==1.3.1`; `0.132.0` and earlier reject Starlette 1.x. It retains the
+  pinned `pydantic==2.10.5`. FastAPI and Starlette are exercised by the complete
+  API suite, including uploads, multipart parsing, CORS, middleware, rate limits,
+  TestClient, routing, and lifespan behavior.
+- `cryptography==50.0.0` preserves the RSA APIs used by `wallet.py`; the
+  repository's Protocol v1 vectors, wallet-auth/MetaMask recovery, native-transfer
+  signing, peer-auth/replay, and signature-verification tests protect message and
+  signature compatibility. `ecdsa==0.19.2` keeps the same SECP256k1 API used for
+  legacy wallet signing and verification.
+- `pillow==12.3.0` remains compatible with ImageHash and pytesseract. Content
+  hashing, canonical genesis validation, media validation, content storage, and
+  certificate tests protect image decoding and originality-facing behavior.
+- `sentence-transformers==3.3.1` remains intentionally unchanged because
+  `zoidbergCoin.py` is a tracked executable entry point that imports it. Moving to
+  a Transformers 5 fixed release requires a sentence-transformers major upgrade,
+  pulls new model-stack dependencies, and selects the yanked `transformers==5.10.0`
+  release. That is a separately scoped ML compatibility migration, not a safe
+  dependency-only remediation.
+
+### Remaining Blockers
+
+- `ecdsa==0.19.2` remains reachable through legacy wallet SECP256k1 signing and
+  verification. `PYSEC-2026-1325` has no listed patched release. Replacing that
+  library would change cryptographic implementation scope and requires explicit
+  protocol-compatible security review; it has not been suppressed.
+- `transformers==4.57.6` remains reachable when the retained legacy
+  `zoidbergCoin.py` entry point is used. Its five advisory IDs above cannot be
+  cleared within sentence-transformers 3.3.1's `<5` constraint. No model names,
+  preprocessing, thresholds, scoring, or originality interfaces were changed.
+- Consequently the exact audit command remains red for these six unsuppressed
+  advisories after all behavior-preserving fixed-version upgrades. Owner/security
+  review is required for the `ecdsa` finding and a separately scoped ML-stack
+  compatibility migration is required for Transformers.
+
+### Task 4A Verification Results
+
+The second fresh external Python 3.13 environment installed the complete test
+requirements plus `pip-audit==2.9.0` successfully. `python -m pip check` passed.
+The exact audit command reported the six remaining advisories listed above in two
+packages; it did not report the 41 remediated advisories. `python -m pytest
+--collect-only -q` collected 900 tests. The focused API, Protocol v1, signing,
+content/media, certificate, and storage suite passed with 659 tests; `python -m
+pytest tests/integration -q` passed with 21 tests; and the full backend suite
+passed with 900 tests. `python scripts/check_repository_hygiene.py` and `git diff
+--check` passed.
+
+The FastAPI/Starlette test run emits Starlette's upstream warning that its
+`TestClient` compatibility path for `httpx` is deprecated in favor of `httpx2`.
+The existing TestClient tests pass, and no compatibility source change was made.
+
+No frontend manifest, lockfile, dependency, or Windows npm/esbuild state is in
+scope.
 
 ## Baseline and Mismatches
 
@@ -24,21 +108,22 @@ The Task 1 inventory records pre-Task-2 repository state and HEAD `5bd09cb`; Tas
 
 | Dependency | Version | Group | Evidence and purpose |
 |---|---:|---|---|
-| cryptography | 45.0.6 | core | `wallet.py` RSA key/signature operations. |
-| ecdsa | 0.19.0 | core | `wallet.py`, `blockchain.py`, and legacy entry point signing. |
+| cryptography | 50.0.0 | core | `wallet.py` RSA key/signature operations. |
+| ecdsa | 0.19.2 | core | `wallet.py`, `blockchain.py`, and legacy entry point signing. |
 | eth-account | 0.13.7 | core | MetaMask personal-sign recovery in `wallet_auth.py` and native-transfer paths. |
-| fastapi | 0.115.6 | core | Current `api.py` application and route entry point. |
+| fastapi | 0.133.0 | core | Current `api.py` application and route entry point. |
+| starlette | 1.3.1 | core, transitive security pin | FastAPI ASGI dependency pinned to the audited fixed line. |
 | pydantic | 2.10.5 | core | API request/response models. |
-| python-multipart | 0.0.20 | core | FastAPI file/form upload handling. |
-| requests | 2.32.3 | core | Peer synchronization and `sync.py`. |
+| python-multipart | 0.0.31 | core | FastAPI file/form upload handling. |
+| requests | 2.33.0 | core | Peer synchronization and `sync.py`. |
 | slowapi | 0.1.9 | core | API rate limiting. |
 | uvicorn | 0.34.0 | core | Documented FastAPI server and systemd entry point. |
 | ImageHash | 4.3.1 | originality | Perceptual hashes in `blockchain.py` and `utils.py`. |
-| pillow | 11.0.0 | originality | Image decoding in originality/OCR paths. |
+| pillow | 12.3.0 | originality | Image decoding in originality/OCR paths. |
 | pytesseract | 0.3.13 | originality | OCR in `blockchain.py`, `utils.py`, and `tessTest.py`; requires external Tesseract. |
 | sentence-transformers | 3.3.1 | originality | Legacy executable `zoidbergCoin.py` embedding model. Retained as uncertain/legacy support. |
 | httpx | 0.28.1 | test | FastAPI/Starlette TestClient compatibility and test collection. |
-| pytest | 8.4.1 | test | Backend and integration test runner. |
+| pytest | 9.0.3 | test | Backend and integration test runner. |
 | pytest-cov | 6.2.1 | test | Documented optional coverage command. |
 
 ## Removed Direct Declarations

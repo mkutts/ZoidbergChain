@@ -1,0 +1,14 @@
+{
+  "forbidden_edges": [],
+  "protocol_fastapi_imports": [],
+  "cycles": [
+    [
+      "content",
+      "submission"
+    ],
+    [
+      "native_transfer",
+      "protocol_v1_native_transfer"
+    ]
+  ]
+}

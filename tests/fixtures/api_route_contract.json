@@ -1,0 +1,1649 @@
+[
+  {
+    "method": "GET",
+    "path": "/",
+    "name": "home",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/about",
+    "name": "about",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/access/bind-wallet",
+    "name": "bind_access_wallet",
+    "classification": "public",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_access_session_dependency",
+      "_verified_wallet_dependency"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/access/login",
+    "name": "login_with_access_code",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "AccessLoginRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/access/me",
+    "name": "get_access_me",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/access/request",
+    "name": "create_access_request",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "AccessRequestCreate",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/access/status",
+    "name": "get_access_status",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}",
+    "name": "get_native_account_summary",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/balance",
+    "name": "get_native_account_balance",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/nonce",
+    "name": "get_native_account_nonce",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/rewards",
+    "name": "get_native_account_rewards",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/submissions",
+    "name": "get_native_account_submissions",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/transactions",
+    "name": "get_native_account_transactions",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/transfers",
+    "name": "get_native_account_transfers",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/accounts/{wallet_address}/votes",
+    "name": "get_native_account_votes",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/active-users",
+    "name": "active_users",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/add_block",
+    "name": "add_block",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_legacy_direct_block_access"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/add_transaction",
+    "name": "add_transaction",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/access/accounts",
+    "name": "admin_list_access_accounts",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/access/accounts/{access_account_id}",
+    "name": "admin_get_access_account",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/accounts/{access_account_id}/reactivate",
+    "name": "admin_reactivate_access_account",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/accounts/{access_account_id}/revoke",
+    "name": "admin_revoke_access_account",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/accounts/{access_account_id}/suspend",
+    "name": "admin_suspend_access_account",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/invites",
+    "name": "admin_create_access_invite",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminCreateInviteRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/access/requests",
+    "name": "admin_list_access_requests",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/requests/{request_id}/approve",
+    "name": "admin_approve_access_request",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminApproveAccessRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/requests/{request_id}/reject",
+    "name": "admin_reject_access_request",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminRejectAccessRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/access/wallet-bindings/{wallet_address}/revoke",
+    "name": "admin_revoke_wallet_binding",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/allowlist",
+    "name": "admin_list_allowlist",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/allowlist",
+    "name": "admin_create_allowlist_entry",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminAllowlistCreateRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/allowlist/{allowlist_entry_id}",
+    "name": "admin_get_allowlist_entry",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/allowlist/{allowlist_entry_id}",
+    "name": "admin_update_allowlist_entry",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminAllowlistUpdateRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/allowlist/{allowlist_entry_id}/reactivate",
+    "name": "admin_reactivate_allowlist_entry",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminAllowlistReactivateRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/allowlist/{allowlist_entry_id}/revoke",
+    "name": "admin_revoke_allowlist_entry",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminAllowlistRevokeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/audit-log",
+    "name": "admin_audit_log",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/feedback",
+    "name": "admin_list_feedback",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/feedback/{feedback_id}",
+    "name": "admin_get_feedback",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "PATCH",
+    "path": "/admin/feedback/{feedback_id}",
+    "name": "admin_update_feedback",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminFeedbackUpdateRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/feedback/{feedback_id}/note",
+    "name": "admin_add_feedback_note",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminFeedbackNoteRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/feedback/{feedback_id}/status",
+    "name": "admin_update_feedback_status",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminFeedbackStatusRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/login",
+    "name": "admin_login",
+    "classification": "admin",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "AdminLoginRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/logout",
+    "name": "admin_logout",
+    "classification": "admin",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/ops/status",
+    "name": "admin_ops_status",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/override-requests",
+    "name": "admin_list_override_requests",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/override-requests/{override_request_id}/approve",
+    "name": "admin_approve_override_request",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminOverrideRequestDecision",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/admin/override-requests/{override_request_id}/reject",
+    "name": "admin_reject_override_request",
+    "classification": "admin",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "_require_admin_session"
+    ],
+    "request_model": "AdminOverrideRequestDecision",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/admin/session",
+    "name": "admin_session_status",
+    "classification": "admin",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/auth/wallet/challenge",
+    "name": "create_wallet_challenge",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "WalletChallengeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/auth/wallet/logout",
+    "name": "logout_wallet_session",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/auth/wallet/session",
+    "name": "get_wallet_session",
+    "classification": "public",
+    "authentication_expected": true,
+    "authorization_expected": false,
+    "security_dependencies": [
+      "_verified_wallet_dependency"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/auth/wallet/submission-challenge",
+    "name": "create_wallet_submission_challenge",
+    "classification": "public",
+    "authentication_expected": true,
+    "authorization_expected": false,
+    "security_dependencies": [
+      "_verified_wallet_dependency"
+    ],
+    "request_model": "WalletSubmissionChallengeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/auth/wallet/transfer-challenge",
+    "name": "create_wallet_transfer_challenge",
+    "classification": "public",
+    "authentication_expected": true,
+    "authorization_expected": false,
+    "security_dependencies": [
+      "_verified_wallet_dependency"
+    ],
+    "request_model": "WalletTransferChallengeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/auth/wallet/verify",
+    "name": "verify_wallet_challenge",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "WalletVerifyRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/auth/wallet/vote-challenge",
+    "name": "create_wallet_vote_challenge",
+    "classification": "public",
+    "authentication_expected": true,
+    "authorization_expected": false,
+    "security_dependencies": [
+      "_verified_wallet_dependency"
+    ],
+    "request_model": "WalletVoteChallengeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/blocks/{block_hash}/broadcast",
+    "name": "broadcast_block",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/blocks/{block_hash}/media",
+    "name": "download_block_media",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/certificates/{certificate_id}",
+    "name": "get_certificate",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/certificates/{certificate_id}/broadcast",
+    "name": "broadcast_certificate",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/chain",
+    "name": "get_chain",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/chain/blocks",
+    "name": "chain_blocks",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/chain/summary",
+    "name": "chain_summary",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/chain/sync",
+    "name": "sync_chain",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/content/text",
+    "name": "upload_text_content",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "TextContentUpload",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/content/upload",
+    "name": "upload_content",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/content/{content_hash}",
+    "name": "download_content",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/content/{content_hash}/metadata",
+    "name": "get_content_metadata",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/content/{content_hash}/sync",
+    "name": "sync_content_from_peers_endpoint",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/dev/debug",
+    "name": "dev_debug",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/dev/mint-queue/cleanup-bad-items",
+    "name": "cleanup_bad_mint_queue_items",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_mint_queue_management_access"
+    ],
+    "request_model": "MintQueueCleanupRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/dev/reset",
+    "name": "dev_reset_blockchain",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/dev/submissions/{submission_id}/repair-certificate",
+    "name": "repair_submission_certificate",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/dev/wallets",
+    "name": "get_dev_wallets",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/download_whitepaper",
+    "name": "download_whitepaper",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/eligibility/override-requests",
+    "name": "create_override_request",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "OverrideRequestCreate",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/eligibility/status",
+    "name": "get_eligibility_status",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/feedback",
+    "name": "create_feedback",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "FeedbackCreateRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/generate_wallet",
+    "name": "generate_wallet",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/get_balance",
+    "name": "get_balance",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/get_reward_pool_balance",
+    "name": "get_reward_pool_balance",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/get_wallets",
+    "name": "get_wallets",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/health",
+    "name": "health",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/mempool",
+    "name": "get_mempool",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/mempool/revalidate",
+    "name": "revalidate_mempool",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/mempool/{tx_id}",
+    "name": "get_mempool_transaction",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/mint-queue",
+    "name": "mint_queue",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/mint-queue/{submission_id}/mint",
+    "name": "mint_queued_submission",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/mint/{submission_id}",
+    "name": "mint_queued_submission",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/node-info",
+    "name": "node_info",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/ops/status",
+    "name": "public_ops_status",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers",
+    "name": "get_peers",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/peers/blocks/receive",
+    "name": "receive_block_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerBlockReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/peers/certificates/receive",
+    "name": "receive_certificate_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerCertificateReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/chain/blocks",
+    "name": "peer_chain_blocks",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/chain/summary",
+    "name": "peer_chain_summary",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/content/{content_hash}",
+    "name": "download_peer_content",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/content/{content_hash}/metadata",
+    "name": "get_peer_content_metadata",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/mempool/summary",
+    "name": "get_peer_mempool_summary",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/peers/register",
+    "name": "register_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerRegistration",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/peers/submissions/receive",
+    "name": "receive_submission_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerSubmissionReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/peers/transactions/receive",
+    "name": "receive_transaction_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerTransactionReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/transactions/{tx_id}",
+    "name": "get_peer_transaction",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/peers/votes/receive",
+    "name": "receive_vote_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerVoteReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/reset_blockchain",
+    "name": "reset_blockchain",
+    "classification": "development",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/review/policy",
+    "name": "get_review_policy",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/status",
+    "name": "status",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions",
+    "name": "get_submissions",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submission_id}",
+    "name": "get_submission",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/block-minting",
+    "name": "block_submission_minting",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_mint_queue_management_access"
+    ],
+    "request_model": "MintBlockRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/broadcast",
+    "name": "broadcast_submission",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submission_id}/certificate",
+    "name": "get_submission_certificate",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/evaluate",
+    "name": "evaluate_submission",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/unblock-minting",
+    "name": "unblock_submission_minting",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_mint_queue_management_access"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/vote",
+    "name": "vote_on_submission",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submission_id}/voter-rewards",
+    "name": "get_submission_voter_rewards",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submission_id}/votes",
+    "name": "get_submission_votes",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/votes/broadcast",
+    "name": "broadcast_submission_votes",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submit_content",
+    "name": "submit_content",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/sync",
+    "name": "sync_blockchain",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/transaction_pool",
+    "name": "transaction_pool",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/transactions/{tx_id}",
+    "name": "get_native_transaction",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/transactions/{tx_id}/admit",
+    "name": "admit_native_transaction_to_mempool",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/transactions/{tx_id}/broadcast",
+    "name": "broadcast_native_transaction",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_transaction_broadcast_access"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/transfers/submit",
+    "name": "submit_transfer_intent",
+    "classification": "public",
+    "authentication_expected": true,
+    "authorization_expected": false,
+    "security_dependencies": [
+      "_verified_wallet_dependency"
+    ],
+    "request_model": "WalletTransferSubmitRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/transfers/{transfer_id}",
+    "name": "get_transfer_intent",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/voting-threshold",
+    "name": "voting_threshold",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/wallets/{wallet_address}/balance",
+    "name": "get_native_wallet_balance",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/wallets/{wallet_address}/rewards",
+    "name": "get_native_wallet_rewards",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/wallets/{wallet_address}/transactions",
+    "name": "get_wallet_transactions",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/wallets/{wallet_address}/transfers",
+    "name": "get_wallet_transfer_intents",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  }
+]

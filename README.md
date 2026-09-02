@@ -29,6 +29,40 @@ Current known limitations:
 
 Disabling dev multi-account tools does not solve anti-Sybil behavior by itself. One real person can still create many real MetaMask wallets. That work remains part of Task 10.
 
+## Installation
+
+Supported repository evidence is Python 3.13.5 and Node.js 24.13.0. Python 3.13 is the tested version; the frontend lockfile supports Node 18 or newer, but Node 24.13.0 is the recorded environment.
+
+Complete node installation (required for the current FastAPI node):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+`requirements.txt` installs both the core node/API group and the originality group. This is intentional: the current application imports image hashing and OCR through `blockchain.py` during FastAPI import, so `requirements-core.txt` alone is not a runnable node installation.
+
+Test installation:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-test.txt
+```
+
+Development-tool installation:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+Frontend installation:
+
+```powershell
+cd zoidbergcoin-ui
+npm.cmd ci
+```
+
+System prerequisites cannot be installed by pip or npm: install the Tesseract OCR executable and make `tesseract` available on `PATH` for OCR features. On Windows, use `npm.cmd` when PowerShell execution policy blocks `npm.ps1`.
+
 ## Deployment Notes
 
 Backend:

@@ -5,19 +5,27 @@ This project uses `pytest` for automated tests.
 ## Install test dependencies
 
 ```powershell
-python -m pip install -r requirements-test.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-test.txt
+```
+
+This includes the complete node dependencies and pytest tooling. The current test suite imports the FastAPI application, which imports the originality/OCR path; install `requirements.txt`, not `requirements-core.txt`, for backend testing.
+
+For local development validation, install:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
 
 ## Run all tests
 
 ```powershell
-python -m pytest
+.\.venv\Scripts\python.exe -m pytest
 ```
 
 ## Run tests with coverage
 
 ```powershell
-python -m pytest --cov=. --cov-report=term-missing
+.\.venv\Scripts\python.exe -m pytest --cov=. --cov-report=term-missing
 ```
 
 Coverage reporting is configured for local visibility only. There is no minimum coverage threshold yet.

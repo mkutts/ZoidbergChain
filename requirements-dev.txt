@@ -1,0 +1,2 @@
+# Local development and repository validation.
+-r requirements-test.txt

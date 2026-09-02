@@ -119,8 +119,10 @@ Python virtual environment:
 cd /srv/zoidbergchain/current
 sudo -u <DEPLOY_USER> python3 -m venv /srv/zoidbergchain/venv
 sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/python -m pip install --upgrade pip
-sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/pip install -r requirements.txt
+sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/python -m pip install -r requirements.txt
 ```
+
+`requirements.txt` is the complete node installation and includes the core and originality/OCR groups. Install the system Tesseract OCR executable separately before starting a node that processes image originality submissions.
 
 Frontend dependencies and build:
 

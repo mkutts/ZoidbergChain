@@ -82,7 +82,7 @@ sudo -u <DEPLOY_USER> git pull --ff-only
 cd /srv/zoidbergchain/current
 sudo -u <DEPLOY_USER> python3 -m venv /srv/zoidbergchain/venv
 sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/python -m pip install --upgrade pip
-sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/pip install -r requirements.txt
+sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/python -m pip install -r requirements.txt
 ```
 
 ## Frontend Build

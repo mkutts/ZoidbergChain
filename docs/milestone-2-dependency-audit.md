@@ -1,4 +1,4 @@
-# Milestone 2 Tasks 3 and 4A: Dependency Audit
+# Milestone 2 Tasks 3, 4A, and 4B: Dependency Audit
 
 Audit date: 2026-09-01. Scope: dependency declarations and installation documentation only. No application, protocol, API, storage-format, signature, consensus, or frontend dependency behavior was changed.
 
@@ -83,8 +83,72 @@ The FastAPI/Starlette test run emits Starlette's upstream warning that its
 `TestClient` compatibility path for `httpx` is deprecated in favor of `httpx2`.
 The existing TestClient tests pass, and no compatibility source change was made.
 
-No frontend manifest, lockfile, dependency, or Windows npm/esbuild state is in
-scope.
+## Task 4B: Frontend Security Remediation
+
+Task 4B reproduced the frontend CI audit in an isolated Windows temporary copy
+of `zoidbergcoin-ui`, using Node `24.13.0`, npm `11.6.2`, and a separate npm
+cache. The copy included only the source, public assets, scripts, manifest,
+lockfile, Vite configuration, and `index.html`; it excluded `node_modules`,
+`dist`, coverage, caches, logs, and all environment files. This avoided the
+repository-local `esbuild.exe` and PyCharm-managed npm-cache `EPERM` locks
+without killing processes or deleting shared state.
+
+### Baseline Findings and Dependency Chains
+
+The exact CI command, `npm audit --audit-level=high`, initially failed with
+eight advisories: one critical, five high, and two moderate. The affected
+installed packages, chains, and minimum safe versions were:
+
+| Package | Installed | Severity | Origin and chain | Advisory identifiers | Minimum fixed version |
+| --- | ---: | --- | --- | --- | ---: |
+| `axios` | 1.7.9 | high | Direct dependency | `GHSA-jr5f-v2jv-69x6`, `GHSA-4hjh-wcwx-xvwj`, `GHSA-pmwg-cvhr-8vh7`, `GHSA-pf86-5x62-jrwf`, `GHSA-6chq-wfr3-2hj9`, `GHSA-43fc-jf86-j433`, `GHSA-q8qp-cvcw-x6jj`, `GHSA-hfxv-24rg-xrqf`, `GHSA-777c-7fjr-54vf`, `GHSA-p92q-9vqr-4j8v`, `GHSA-j5f8-grm9-p9fc`, `GHSA-3g43-6gmg-66jw`, `GHSA-35jp-ww65-95wh` | 1.18.0 |
+| `form-data` | 4.0.1 | critical/high | Transitive: `axios@1.7.9 -> form-data` | `GHSA-fjxv-7rqg-78g4`, `GHSA-hmw2-7cc7-3qxx` | 4.0.6 |
+| `follow-redirects` | 1.15.9 | moderate | Transitive: `axios@1.7.9 -> follow-redirects` | `GHSA-r4q5-vmmm-2653` | 1.15.12 |
+| `vite` / `esbuild` | 6.0.11 / 0.24.2 | high/moderate | Direct `vite`; Vite resolves esbuild | `GHSA-p9ff-h696-f583`, `GHSA-fx2h-pf6j-xcff`; `GHSA-67mh-4wv8-2f99` | Vite 6.4.3 / esbuild 0.25.0 |
+| `rollup` | 4.34.0 | high | Transitive: `vite@6.0.11 -> rollup` | `GHSA-mw96-cpmx-2vgc` | 4.59.0 |
+| `postcss` / `nanoid` | 8.5.1 / 3.3.8 | high | Transitive: `vite@6.0.11 -> postcss -> nanoid` | `GHSA-6g55-p6wh-862q`, `GHSA-r28c-9q8g-f849`; `GHSA-28wg-ghj8-5hjv`, `GHSA-2v37-7h3g-55p8`, `GHSA-xwg4-73v4-xw9w` | PostCSS 8.5.23 / Nano ID 3.3.18 |
+
+`npm audit` offered a normal fix for every finding and did not require a
+semver-major change. Task 4's earlier documentation described a lockfile-only
+audit; the clean isolated audit confirmed the same count and affected families
+against the complete project copy.
+
+### Remediation and Compatibility
+
+Only the controlling direct dependencies changed:
+
+| Direct dependency | Before | After | Reason |
+| --- | ---: | ---: | --- |
+| `axios` | `^1.7.9` | `^1.18.0` | Minimum current stable Axios version above every reported vulnerable range; resolves safe supported `form-data` and `follow-redirects` releases. |
+| `vite` | `^6.0.5` | `^6.4.3` | Minimum Vite 6 release above the reported direct high-severity range; its supported ranges resolve fixed esbuild, Rollup, PostCSS, and Nano ID releases. |
+
+`@vitejs/plugin-vue@5.2.1`, Vue `3.5.13`, and Vue Router `4.5.0` are unchanged.
+Plugin Vue 5 accepts Vite 6 and Vue 3.2+, and Vite 6.4.3 supports Node 24.
+The regenerated npm lockfile resolves Axios 1.18.0, form-data 4.0.6,
+follow-redirects 1.16.0, Vite 6.4.3, esbuild 0.25.12, Rollup 4.63.1, PostCSS
+8.5.26, and Nano ID 3.3.18. No override, suppression, prerelease, forced audit
+fix, source change, Vite-configuration migration, or CI-threshold change was
+used.
+
+### Task 4B Verification Results
+
+After npm regenerated the manifest and lockfile, a fresh isolated frontend
+copy with its own npm cache passed `npm ci`, `npm test`, `npm run build`, and
+`npm audit --audit-level=high`. `npm ci` did not rewrite the lockfile. The test
+command covers 21 named frontend test files and passed 130 tests, including API-base/runtime-config,
+API authorization and error handling, MetaMask wallet behavior, native ZOID
+transfers, submissions, voting, certificates, and explorer/dashboard behavior.
+The production build completed and generated only expected ignored `dist`
+assets; it copied no runtime `.env` file and generated no source maps. The
+audit JSON reports zero critical, high, moderate, low, and informational
+findings, so there are no remaining moderate/low findings to document and the
+configured high/critical CI gate passes.
+
+The repository-local `esbuild.exe` process and managed npm-cache lock were not
+modified and may still block direct repository `npm ci`; the isolated method is
+the verified Windows workaround. Python remains unchanged: the six unresolved
+advisories are the existing `ecdsa` and `transformers` blockers described
+above.
 
 ## Baseline and Mismatches
 

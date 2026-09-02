@@ -1,6 +1,5 @@
-# Media validation, perceptual hashing, OCR, and the legacy embedding entry point.
+# Media validation, perceptual hashing, and OCR.
 ImageHash==4.3.1
 # 10.3.0 has no Python 3.13 wheel and fails to build in the documented test environment.
 pillow==12.3.0
 pytesseract==0.3.13
-sentence-transformers==3.3.1

@@ -170,5 +170,31 @@
       "hygiene": "passed",
       "targeted_integration_full_pytest": "processes completed with no failure trace; Windows execution wrapper detached final summaries and no lastfailed cache was created"
     }
+  },
+  "task_4f": {
+    "status": "verified",
+    "scope": "Retain zoidbergCoin.py and remove only its unused sentence_transformers import and all-MiniLM-L6-v2 initialization.",
+    "model_reachability": {
+      "variable": "model",
+      "consumers": [],
+      "endpoint_or_originality_consumers": [],
+      "dynamic_lookup_consumers": [],
+      "deployment_test_script_or_import_consumers": []
+    },
+    "dependency_change": "Removed direct sentence-transformers==3.3.1 from requirements-originality.txt; Transformers and Torch had no direct declarations.",
+    "supported_originality_path": ["Pillow", "ImageHash", "pytesseract"],
+    "clean_python_3_13_5": {
+      "pip_check": "pass",
+      "absent_packages": ["sentence-transformers", "transformers", "torch"],
+      "exact_pip_audit": "python -m pip_audit -r requirements-test.txt --strict: No known vulnerabilities found (exit 0)",
+      "audit_exceptions_or_suppressions": false
+    },
+    "verification": {
+      "targeted": "219 passed",
+      "integration": "21 passed",
+      "full": "932 passed",
+      "application_imports": "api, blockchain, storage, protocol_v1, and protocol_v1_genesis passed"
+    },
+    "all_task_4_ci_gates_expected_green": true
   }
 }

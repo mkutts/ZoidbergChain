@@ -63,7 +63,7 @@ There is no allowlist in the current-tree scan. If a verified placeholder, fixtu
 
 Do not use `npm audit fix`, `npm audit fix --force`, automatic Python upgrades, or broad advisory suppressions in CI. Record each finding by package and advisory, determine the smallest compatible dependency update in a separately scoped change, update the relevant declaration or lockfile there, and re-run these gates. A false-positive suppression requires concrete evidence and narrow documentation.
 
-### Task 4 Audit Baseline
+### Historical Task 4 Audit Baseline
 
 The Task 4 local `pip-audit -r requirements-test.txt --strict` result intentionally fails with 47 advisories in the declared environment. No finding is suppressed. The affected packages and advisory identifiers are:
 
@@ -79,5 +79,20 @@ The Task 4 local `pip-audit -r requirements-test.txt --strict` result intentiona
 | `transformers==4.57.6` | `PYSEC-2025-217`, `PYSEC-2026-2290`, `PYSEC-2026-2288`, `PYSEC-2026-2289`, `GHSA-xrqw-3rrv-vx5w` |
 
 The Task 4 lockfile-only `npm audit --audit-level=high` result also intentionally fails: five high and one critical finding, with two additional moderate findings. The high/critical affected packages are `axios`, `form-data`, `nanoid`, `postcss`, and `rollup`; `esbuild` and `follow-redirects` are the moderate findings. These require a separate lockfile/dependency remediation task.
+
+### Task 4F Current Python Result
+
+Task 4F retains `zoidbergCoin.py` but removes only its unused
+`SentenceTransformer('all-MiniLM-L6-v2')` import-time initialization and the
+direct `sentence-transformers` declaration. The model had no consumers, and the
+supported Pillow, ImageHash, and pytesseract originality path is unchanged.
+
+In a new external Python 3.13.5 environment, the exact current CI input,
+`requirements-test.txt`, passed `python -m pip check`; `sentence-transformers`,
+`transformers`, and `torch` were absent; and the exact command
+`python -m pip_audit -r requirements-test.txt --strict` reported `No known
+vulnerabilities found` with exit code 0. The five historical Transformers
+advisories are resolved without an exception, suppression, dependency upgrade,
+or CI-threshold change. The Python dependency-security gate is expected to pass.
 
 Lint and formatting enforcement are deliberately deferred to a later milestone task.

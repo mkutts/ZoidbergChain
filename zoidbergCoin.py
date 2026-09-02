@@ -9,16 +9,11 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
 import imagehash
-from sentence_transformers import SentenceTransformer
 from concurrent.futures import ThreadPoolExecutor
 import random
 import pytesseract
 from config import COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY
 from wallet import _legacy_der_signature_from_raw, _legacy_private_key_from_hex, _legacy_raw_signature_from_der
-
-# Load the pre-trained model for text similarity
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
 
 class Wallet:
     def __init__(self, private_key=None):

@@ -1,6 +1,6 @@
-# Milestone 2 Tasks 3, 4A, 4B, and 4E: Dependency Audit
+# Milestone 2 Tasks 3, 4A, 4B, 4E, and 4F: Dependency Audit
 
-Audit date: 2026-09-01. Scope: dependency declarations and installation documentation only. No application, protocol, API, storage-format, signature, consensus, or frontend dependency behavior was changed.
+Audit date: 2026-09-02. Task 4F removes only an unused model import and initialization from the retained legacy `zoidbergCoin.py` file and its now-unused direct dependency. No supported application, protocol, API, storage-format, signature, consensus, or frontend behavior was changed.
 
 ## Task 4A: Python Security Remediation
 
@@ -25,7 +25,7 @@ clears all fixable findings for that package.
 | `pillow` | Direct originality, `requirements-originality.txt` | `11.0.0` -> `12.3.0` | `PYSEC-2026-165`, `PYSEC-2026-2250`, `PYSEC-2026-2253`, `PYSEC-2026-2255`, `PYSEC-2026-2257`, `PYSEC-2026-2256`, `PYSEC-2026-2254`, `PYSEC-2026-2252`, `PYSEC-2026-2249`, `PYSEC-2026-2874`, `PYSEC-2026-3453`, `PYSEC-2026-3451`, `PYSEC-2026-3454`, `PYSEC-2026-3495`, `PYSEC-2026-3496`, `PYSEC-2026-3494`, `PYSEC-2026-3493` | Fixed; `12.3.0` is the maximum listed fixed version. |
 | `pytest` | Direct test, `requirements-test.txt` | `8.4.1` -> `9.0.3` | `PYSEC-2026-1845` | Fixed by `9.0.3`; compatible with retained `pytest-cov==6.2.1`. |
 | `starlette` | Transitive through FastAPI; security pin in `requirements-core.txt` | `0.41.3` -> `1.3.1` | `PYSEC-2026-161`, `PYSEC-2026-249`, `PYSEC-2026-248`, `PYSEC-2026-1942`, `PYSEC-2026-1941`, `PYSEC-2026-2281`, `PYSEC-2026-2280` | Fixed; a direct pin is necessary to keep the resolved FastAPI dependency at the audited fixed version. |
-| `transformers` | Transitive through direct originality dependency `sentence-transformers==3.3.1` | `4.57.6` -> unchanged | `PYSEC-2025-217`, `PYSEC-2026-2290`, `PYSEC-2026-2288`, `PYSEC-2026-2289`, `GHSA-xrqw-3rrv-vx5w` | Not fixed in the compatible `<5` parent range. The audit lists no fix for the first two and requires `5.0.0`, `5.3.0`, and yanked `5.10.0` for the others. |
+| `transformers` | Transitive through former direct originality dependency `sentence-transformers==3.3.1` | `4.57.6` -> absent | `PYSEC-2025-217`, `PYSEC-2026-2290`, `PYSEC-2026-2288`, `PYSEC-2026-2289`, `GHSA-xrqw-3rrv-vx5w` | Removed in Task 4F with the unused direct parent; all five advisories are absent from the clean supported installation. |
 
 ### Compatibility Decisions
 
@@ -45,12 +45,10 @@ clears all fixable findings for that package.
 - `pillow==12.3.0` remains compatible with ImageHash and pytesseract. Content
   hashing, canonical genesis validation, media validation, content storage, and
   certificate tests protect image decoding and originality-facing behavior.
-- `sentence-transformers==3.3.1` remains intentionally unchanged because
-  `zoidbergCoin.py` is a tracked executable entry point that imports it. Moving to
-  a Transformers 5 fixed release requires a sentence-transformers major upgrade,
-  pulls new model-stack dependencies, and selects the yanked `transformers==5.10.0`
-  release. That is a separately scoped ML compatibility migration, not a safe
-  dependency-only remediation.
+- Task 4F retains `zoidbergCoin.py` but removes its consumer-free
+  `SentenceTransformer('all-MiniLM-L6-v2')` module-load initialization and import.
+  The supported node originality path remains Pillow, ImageHash, and pytesseract;
+  no model preprocessing, thresholds, scoring, or originality interfaces changed.
 
 ### Remaining Blockers
 
@@ -58,13 +56,10 @@ clears all fixable findings for that package.
   Task 4E removes `PYSEC-2026-1325` without a suppression by replacing its
   legacy SECP256K1 use with `cryptography` and retaining fixed historical
   compatibility vectors.
-- `transformers==4.57.6` remains reachable when the retained legacy
-  `zoidbergCoin.py` entry point is used. Its five advisory IDs above cannot be
-  cleared within sentence-transformers 3.3.1's `<5` constraint. No model names,
-  preprocessing, thresholds, scoring, or originality interfaces were changed.
-- Consequently the exact audit command remains red only for the five
-  unsuppressed Transformers advisories. A separately scoped ML-stack/legacy
-  executable decision is still required; no audit suppression was added.
+- Task 4F removes `sentence-transformers`, so its Transformers and Torch
+  transitive chain is absent from the clean supported installation. The five
+  Transformers advisories are resolved without an upgrade or audit suppression.
+- Consequently the exact audit command is green with zero known vulnerabilities.
 
 ### Task 4A Verification Results
 
@@ -183,7 +178,6 @@ The Task 1 inventory records pre-Task-2 repository state and HEAD `5bd09cb`; Tas
 | ImageHash | 4.3.1 | originality | Perceptual hashes in `blockchain.py` and `utils.py`. |
 | pillow | 12.3.0 | originality | Image decoding in originality/OCR paths. |
 | pytesseract | 0.3.13 | originality | OCR in `blockchain.py`, `utils.py`, and `tessTest.py`; requires external Tesseract. |
-| sentence-transformers | 3.3.1 | originality | Legacy executable `zoidbergCoin.py` embedding model. Retained as uncertain/legacy support. |
 | httpx | 0.28.1 | test | FastAPI/Starlette TestClient compatibility and test collection. |
 | pytest | 9.0.3 | test | Backend and integration test runner. |
 | pytest-cov | 6.2.1 | test | Documented optional coverage command. |
@@ -196,7 +190,7 @@ Removed declarations are not removed packages from all resolved environments. Th
 |---|---|
 | Flask-era, unreferenced | Flask, Flask-Cors, Flask-JWT-Extended, Flask-SQLAlchemy, blinker, itsdangerous, Jinja2, MarkupSafe, PyJWT, Werkzeug. |
 | Forecasting/data/Spark/Mongo, unreferenced | cmdstanpy, holidays, prophet, py4j, pyarrow, pymongo, pyspark, stanio, lightgbm, xgboost, pandas, matplotlib, Cython. |
-| Unreferenced ML/data direct declarations | numpy, scipy, scikit-learn, torch, transformers, tokenizers, huggingface-hub, safetensors, fsspec, regex, joblib, threadpoolctl, sympy, networkx, mpmath, tqdm, PyWavelets. These remain transitive where required by ImageHash or sentence-transformers. |
+| Unreferenced ML/data direct declarations | numpy, scipy, scikit-learn, torch, transformers, tokenizers, huggingface-hub, safetensors, fsspec, regex, joblib, threadpoolctl, sympy, networkx, mpmath, tqdm, PyWavelets. The clean installation retains only the ImageHash-related NumPy, SciPy, and PyWavelets chain. |
 | Runtime transitive declarations | annotated-types, anyio, certifi, charset-normalizer, click, colorama, Deprecated, dnspython, email_validator, filelock, greenlet, h11, httpcore, httptools, idna, importlib_resources, limits, orjson, packaging, pydantic-core, pydantic-extra-types, Pygments, python-dateutil, pytz, PyYAML, rich, rich-toolkit, shellingham, six, sniffio, SQLAlchemy, starlette, typer, typing-extensions, tzdata, ujson, urllib3, watchfiles, websockets, wrapt. |
 | Packaging/tooling or apparently unused | fastapi-cli, pypi, python-dotenv, setuptools. `python-dotenv` has no current source import, dynamic use, or documented command. |
 | Crypto transitive declaration | eth-keys is installed through eth-account and has no direct project import. |
@@ -206,7 +200,7 @@ No direct code import, documented command, dynamic import, optional import, or s
 
 ## Retained Uncertainty and Risks
 
-- `sentence-transformers` is retained because `zoidbergCoin.py` is still present as an executable entry point and imports it at module load. The modern FastAPI node does not import it, but removal needs an explicit legacy-entry-point decision.
+- `zoidbergCoin.py` remains retained legacy code. Task 4F removed only its unused model import and initialization after repository-wide consumer tracing; it is not a supported deployment entry point.
 - ImageHash, Pillow, and pytesseract remain mandatory for the current full node because FastAPI import reaches `blockchain.py`; mocked tests are not evidence that production originality dependencies are removable.
 - `pytesseract` needs the operating-system Tesseract executable. pip installs only its Python wrapper.
 - Python 3.13.5 and Node 24.13.0 are the recorded tested environment. The frontend lockfile’s Vite engine accepts Node 18+; no broader compatibility claim is made.
@@ -294,3 +288,39 @@ reports exactly five remaining findings, all in `transformers==4.57.6`:
 new advisory or suppression was introduced. `python scripts/check_repository_hygiene.py`
 passed, modified JSON reports parsed successfully, and active source/requirements
 searches found no `ecdsa` imports or declarations.
+
+## Task 4F: Unused Legacy Model Cleanup
+
+Task 4F retains `zoidbergCoin.py` and removes only `from sentence_transformers
+import SentenceTransformer`, its directly related model-load comment, and the
+unused `model = SentenceTransformer('all-MiniLM-L6-v2')` initialization. A
+repository-wide trace found no reads of `model`, no endpoint or originality
+decision consumer, no dynamic lookup, and no deployment, test, script, or module
+import path that relies on `zoidbergCoin.py`. Its supported originality path
+remains Pillow, ImageHash, and pytesseract unchanged.
+
+`requirements-originality.txt` removes only the direct
+`sentence-transformers==3.3.1` declaration. No direct Transformers or Torch
+declaration exists, so removing that parent removes the unused transitive model
+chain without manually pinning or removing transitive packages.
+
+A new source-level AST regression test verifies the legacy script contains no
+SentenceTransformer import, model identifier, or model assignment; that supported
+production sources do not import sentence-transformers or Transformers; and that
+ImageHash, Pillow, and pytesseract remain declared. It does not import the legacy
+script, access the network, or download a model.
+
+A new external Python 3.13.5 environment installed `requirements-test.txt` and
+`pip-audit==2.9.0`. `pip check` passed. `pip show sentence-transformers`, `pip
+show transformers`, and `pip show torch` each reported `Package(s) not found`.
+The exact CI command, `python -m pip_audit -r requirements-test.txt --strict`,
+reported `No known vulnerabilities found` with exit code 0. No exception,
+suppression, upgrade, or CI-threshold change was added.
+
+With unique external Windows temporary `--basetemp`, JUnit XML, and logs, the
+Task 4F plus legacy/originality/content/Protocol v1 targeted suite passed 219
+tests; integration passed 21; and the complete suite passed 932. Application
+imports of `api`, `blockchain`, `storage`, `protocol_v1`, and
+`protocol_v1_genesis` passed from the clean installation. All Task 4 CI gates are
+now expected to be green; Task 4F leaves the already-green frontend audit
+untouched.

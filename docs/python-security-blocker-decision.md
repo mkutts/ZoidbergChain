@@ -333,3 +333,24 @@ This resolves `PYSEC-2026-1325` by removing `ecdsa` from the supported
 installation. The five Transformers advisories remain unresolved and are still
 reserved for the separately scoped legacy-ML decision; this migration does not
 claim that the complete audit gate is green.
+
+## Task 4F: Unused Legacy Model Cleanup
+
+Task 4F implements the separate legacy-ML decision without deleting or
+refactoring `zoidbergCoin.py`. It removes only the unused
+`sentence_transformers` import, `SentenceTransformer('all-MiniLM-L6-v2')`
+module-load initialization, and their directly related comment. The resulting
+`model` variable had no source reads, endpoint consumer, originality decision,
+dynamic lookup, deployment command, test, script, or importer.
+
+The supported entry point remains `uvicorn api:app`; its originality processing
+continues to use Pillow, ImageHash, and pytesseract independently. Task 4F does
+not change cryptography, legacy wallet or transaction behavior, content hashing,
+Protocol v1, frontend files, or CI thresholds.
+
+Removing the sole direct `sentence-transformers==3.3.1` declaration from
+`requirements-originality.txt` removes its unused Transformers and Torch
+transitive chain. A new clean Python 3.13.5 installation passed `pip check`; all
+three packages were absent; and `python -m pip_audit -r requirements-test.txt
+--strict` reported `No known vulnerabilities found` with exit code 0. The five
+Transformers advisories are resolved with no audit exception or suppression.

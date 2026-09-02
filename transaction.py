@@ -1,7 +1,11 @@
-# Import statements
-import ecdsa
 import base64
 import time
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+
+from wallet import _legacy_der_signature_from_raw, _legacy_private_key_from_hex, _legacy_raw_signature_from_der
 
 class Transaction:
     def __init__(self, sender, recipient, amount, tip=0, payload_size_kb=0, signature=None, created_at=None):
@@ -51,9 +55,11 @@ class Transaction:
         print(f"Debug: Signing transaction data: {transaction_data}")
 
         try:
-            # Attempt to sign the transaction
-            sk = ecdsa.SigningKey.from_string(bytes.fromhex(private_key), curve=ecdsa.SECP256k1)
-            self.signature = base64.b64encode(sk.sign(transaction_data.encode())).decode()
+            private_key_object = _legacy_private_key_from_hex(private_key)
+            der_signature = private_key_object.sign(
+                transaction_data.encode(), ec.ECDSA(hashes.SHA1())
+            )
+            self.signature = base64.b64encode(_legacy_raw_signature_from_der(der_signature)).decode()
             print(f"Debug: Transaction signed with signature: {self.signature}")
         except Exception as e:
             # Log any errors during the signing process
@@ -74,11 +80,17 @@ class Transaction:
             print(f"Debug: Validating transaction data: {transaction_data}")
             print(f"Debug: Signature: {self.signature}")
 
-            vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(self.sender), curve=ecdsa.SECP256k1)
-            vk.verify(base64.b64decode(self.signature), transaction_data.encode())
+            vk = ec.EllipticCurvePublicKey.from_encoded_point(
+                ec.SECP256K1(), bytes.fromhex(self.sender)
+            )
+            vk.verify(
+                _legacy_der_signature_from_raw(base64.b64decode(self.signature)),
+                transaction_data.encode(),
+                ec.ECDSA(hashes.SHA1()),
+            )
             print("Debug: Transaction is valid.")
             return True
-        except ecdsa.BadSignatureError:
+        except InvalidSignature:
             print("Debug: Invalid signature detected.")
             return False
         except Exception as e:

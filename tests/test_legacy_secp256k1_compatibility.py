@@ -1,11 +1,10 @@
-"""Characterization guardrails for the legacy ecdsa compatibility boundary."""
+"""Compatibility guardrails for historical raw SECP256K1 signatures."""
 
 import base64
 import hashlib
 import json
 from pathlib import Path
 
-import ecdsa
 import pytest
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
@@ -14,13 +13,10 @@ from cryptography.hazmat.primitives.asymmetric import ec, utils
 from block import Block
 from peer_sync import MalformedBlockError, receive_peer_block
 from transaction import Transaction
-from wallet import Wallet
+from wallet import SECP256K1_ORDER, Wallet
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "legacy_secp256k1_compatibility_vectors.json"
-SECP256K1_ORDER = ecdsa.SECP256k1.order
-
-
 def _vectors():
     return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
@@ -58,8 +54,12 @@ def test_fixed_scalar_key_formats_and_loaders_match_fixture():
     wallet = Wallet(legacy["private_scalar_hex"])
     assert wallet.public_key == legacy["compressed_public_key_hex"]
     assert Wallet.validate_private_key(wallet.private_key, wallet.public_key) is True
-    verifying_key = ecdsa.VerifyingKey.from_string(bytes.fromhex(wallet.public_key), curve=ecdsa.SECP256k1)
-    assert verifying_key.to_string("compressed").hex() == wallet.public_key
+    verifying_key = ec.EllipticCurvePublicKey.from_encoded_point(
+        ec.SECP256K1(), bytes.fromhex(wallet.public_key)
+    )
+    assert verifying_key.public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.CompressedPoint
+    ).hex() == wallet.public_key
     assert Wallet.validate_private_key(legacy["private_scalar_hex"], "02") is False
 
 
@@ -83,7 +83,7 @@ def test_legacy_signature_fixture_uses_sha1_raw_base64_and_verifies():
     assert _transaction(vectors).is_valid() is True
 
 
-def test_current_signers_are_randomized_and_preserve_legacy_signature_structure():
+def test_current_signers_are_randomized_and_preserve_legacy_signature_structure(blockchain):
     vectors = _vectors()
     legacy = vectors["legacy_ecdsa"]
     wallet = Wallet(legacy["private_scalar_hex"])
@@ -91,14 +91,29 @@ def test_current_signers_are_randomized_and_preserve_legacy_signature_structure(
     for signature_text in (first, second):
         signature = base64.b64decode(signature_text, validate=True)
         assert len(signature) == 64
-        verifier = ecdsa.VerifyingKey.from_string(bytes.fromhex(wallet.public_key), curve=ecdsa.SECP256k1)
-        assert verifier.verify(signature, legacy["message_utf8"].encode("utf-8")) is True
-    assert first != vectors["legacy_ecdsa"]["signature_base64"] or second != first
+        verifier = ec.EllipticCurvePublicKey.from_encoded_point(
+            ec.SECP256K1(), bytes.fromhex(wallet.public_key)
+        )
+        r, s = utils.decode_dss_signature(
+            utils.encode_dss_signature(
+                int.from_bytes(signature[:32], "big"), int.from_bytes(signature[32:], "big")
+            )
+        )
+        assert 0 < r < SECP256K1_ORDER
+        assert 0 < s < SECP256K1_ORDER
+        verifier.verify(
+            utils.encode_dss_signature(r, s),
+            legacy["message_utf8"].encode("utf-8"),
+            ec.ECDSA(hashes.SHA1()),
+        )
 
     transaction = _transaction(vectors, signature=None)
     transaction.sign_transaction(legacy["private_scalar_hex"])
     assert len(base64.b64decode(transaction.signature, validate=True)) == 64
     assert transaction.is_valid() is True
+    block = _peer_block(blockchain, vectors, transaction)
+    assert block.transactions[0].signature == transaction.signature
+    assert block.calculate_hash()
 
 
 def test_transaction_verification_rejects_message_signature_and_encoding_tampering():
@@ -122,6 +137,63 @@ def test_legacy_verification_accepts_both_low_s_and_high_s_encodings():
     assert int.from_bytes(high_raw[32:], "big") == SECP256K1_ORDER - int.from_bytes(raw[32:], "big")
     assert _transaction(vectors).is_valid() is True
     assert _transaction(vectors, legacy["high_s_counterpart_base64"]).is_valid() is True
+
+
+@pytest.mark.parametrize(
+    "private_scalar_hex",
+    [
+        "00" * 31 + "01",
+        "00" * 30 + "01" + "02",
+    ],
+)
+def test_scalar_loading_preserves_32_byte_legacy_format(private_scalar_hex):
+    wallet = Wallet(private_scalar_hex)
+    expected = ec.derive_private_key(int(private_scalar_hex, 16), ec.SECP256K1()).public_key()
+    assert wallet.private_key == private_scalar_hex
+    assert wallet.public_key == expected.public_bytes(
+        serialization.Encoding.X962, serialization.PublicFormat.CompressedPoint
+    ).hex()
+
+
+@pytest.mark.parametrize(
+    "private_scalar_hex",
+    [
+        "00" * 32,
+        SECP256K1_ORDER.to_bytes(32, "big").hex(),
+        (SECP256K1_ORDER + 1).to_bytes(32, "big").hex(),
+        "not-hex",
+        "01",
+    ],
+)
+def test_invalid_legacy_private_scalars_are_rejected(private_scalar_hex):
+    assert Wallet.validate_private_key(private_scalar_hex, "02") is False
+    with pytest.raises(ValueError):
+        Wallet(private_scalar_hex)
+
+
+@pytest.mark.parametrize(
+    "raw_signature",
+    [
+        b"\x01" * 63,
+        b"\x01" * 65,
+        b"\x00" * 32 + b"\x01" * 32,
+        b"\x01" * 32 + b"\x00" * 32,
+        SECP256K1_ORDER.to_bytes(32, "big") + b"\x01" * 32,
+        b"\x01" * 32 + SECP256K1_ORDER.to_bytes(32, "big"),
+        (SECP256K1_ORDER + 1).to_bytes(32, "big") + b"\x01" * 32,
+        b"\x01" * 32 + (SECP256K1_ORDER + 1).to_bytes(32, "big"),
+    ],
+)
+def test_legacy_verifier_rejects_malformed_raw_signature_values(raw_signature):
+    vectors = _vectors()
+    assert _transaction(vectors, base64.b64encode(raw_signature).decode("ascii")).is_valid() is False
+
+
+def test_legacy_verifier_rejects_invalid_compressed_point():
+    vectors = _vectors()
+    transaction = _transaction(vectors)
+    transaction.sender = "02" + "00" * 32
+    assert transaction.is_valid() is False
 
 
 def test_legacy_transaction_and_block_serialization_hash_are_exact():

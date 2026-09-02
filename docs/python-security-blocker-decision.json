@@ -146,5 +146,29 @@
     "suppressions_added": false,
     "protocol_changed": false,
     "only_intended_repository_changes": ["docs/python-security-blocker-decision.md", "docs/python-security-blocker-decision.json"]
+  },
+  "task_4e": {
+    "status": "verified_with_detached_pytest_summary",
+    "migration": "Replace ecdsa with cryptography in legacy Wallet and Transaction paths while retaining zoidbergCoin.py.",
+    "production_files_changed": ["wallet.py", "transaction.py", "zoidbergCoin.py"],
+    "dependency_change": "Removed direct ecdsa declaration from requirements-core.txt.",
+    "compatibility": {
+      "curve": "SECP256k1",
+      "private_key_encoding": "32-byte lowercase hexadecimal scalar",
+      "public_key_encoding": "33-byte compressed SEC point lowercase hexadecimal",
+      "signing": "randomized SHA-1 over original UTF-8 bytes; DER translated to raw 64-byte r||s standard base64",
+      "verification": "raw r||s translated to DER; fixed low-S and high-S historical vectors accepted",
+      "storage": "No stored signatures, transactions, block hashes, or Protocol v1 fixtures were rewritten."
+    },
+    "resolved_advisory": "PYSEC-2026-1325",
+    "remaining_advisories": ["PYSEC-2025-217", "PYSEC-2026-2290", "PYSEC-2026-2288", "PYSEC-2026-2289", "GHSA-xrqw-3rrv-vx5w"],
+    "scope_exclusions": ["No Transformers or sentence-transformers change", "No frontend change", "No CI threshold or suppression change", "No Task 5 work"],
+    "verification": {
+      "pre_migration_clean_python_3_13": "ecdsa 0.19.2 and cryptography 50.0.0 installed; 13 Task 4D compatibility tests passed",
+      "post_migration_clean_python_3_13": "requirements-test.txt installed; pip check passed; pip show ecdsa reported absent; 29 compatibility tests passed; 929 tests collected",
+      "exact_pip_audit": "5 remaining transformers advisories only; PYSEC-2026-1325 and ecdsa absent",
+      "hygiene": "passed",
+      "targeted_integration_full_pytest": "processes completed with no failure trace; Windows execution wrapper detached final summaries and no lastfailed cache was created"
+    }
   }
 }

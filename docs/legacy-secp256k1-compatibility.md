@@ -2,10 +2,9 @@
 
 ## Scope and safety
 
-This record captures the behavior that a later replacement of the legacy
-`ecdsa` dependency must preserve for historical verification. It does not
-authorize a production cryptography migration, alter a protocol, or change
-current acceptance policy.
+Task 4E replaces the legacy `ecdsa` implementation with `cryptography` while
+preserving the historical formats and validation behavior recorded here. It
+does not alter a protocol, stored data, block hashes, or acceptance policy.
 
 The companion fixture is deliberately generated public test material. Its
 private scalar is labelled **TEST ONLY**, **PUBLIC TEST FIXTURE**, and **NEVER
@@ -14,8 +13,9 @@ wallet, user wallet, production/testnet identity, or repository history.
 
 ## Legacy surface
 
-`wallet.py` creates and loads legacy server wallets with `ecdsa.SECP256k1`.
-`transaction.py` signs and verifies legacy `Transaction` objects. A received
+`wallet.py` creates and loads legacy server wallets with
+`cryptography.ec.SECP256K1`. `transaction.py` signs and verifies legacy
+`Transaction` objects. A received
 legacy peer block is normalized through `Block.from_dict()` and
 `peer_sync._validate_block_transactions()` calls `Transaction.is_valid()`
 before chain acceptance. These are the compatibility uses covered here.
@@ -28,9 +28,9 @@ signing. None uses this legacy `ecdsa` signature representation.
 ## Exact formats and semantics
 
 - Curve: named curve `SECP256k1`.
-- Generation: `Wallet.generate_key_pair()` calls `SigningKey.generate` with that
-  curve, then serializes the signing key's 32-byte value and derives its public
-  point as compressed SEC.
+- Generation: `Wallet.generate_key_pair()` calls
+  `ec.generate_private_key(ec.SECP256K1())`, serializes its 32-byte scalar, and
+  derives its public point as compressed SEC.
 - Private key: valid 32-byte big-endian scalar, stored as lowercase hex in a
   `Wallet`.
 - Public key: 33-byte compressed SEC point (`02` or `03` plus 32-byte X), stored
@@ -38,17 +38,16 @@ signing. None uses this legacy `ecdsa` signature representation.
 - Signing input: `f"{sender}{recipient}{amount}{tip}".encode("utf-8")` for a
   `Transaction`; `Wallet.sign_data()` signs the UTF-8 bytes of its supplied
   string. `payload_size_kb` and `created_at` are serialized but not signed.
-- Hashing: `ecdsa.SigningKey.sign` and `VerifyingKey.verify` are called with no
-  `hashfunc`, therefore the current library default is SHA-1. Signing receives
-  original message bytes, not an already-calculated digest.
+- Hashing: historical `ecdsa` defaults were SHA-1. The replacement explicitly
+  uses `ec.ECDSA(hashes.SHA1())` over original message bytes, not an
+  already-calculated digest.
 - Signature: default `sigencode_string`, exactly 64 raw bytes `r || s`, each
   32 bytes, represented as standard base64 text. It is neither DER nor
   recoverable.
 
-The checked-in requirements pin `ecdsa==0.19.2`. The local `.venv` used for
-Task 4D characterization imports 0.19.0. Its observed `sign` and `verify`
-defaults match the required compatibility semantics above; the pinned CI
-environment must repeat these tests with 0.19.2 before migration.
+Before migration, a clean Python 3.13 environment installed the committed
+`ecdsa==0.19.2` and `cryptography==50.0.0` pins. Task 4D's 13 compatibility
+tests passed there. `ecdsa` is no longer a supported installation dependency.
 
 ## Signing and verification
 
@@ -104,7 +103,10 @@ compressed SECP256k1 public key. It verifies the fixture after converting raw
 with `ec.ECDSA(hashes.SHA1())`, DER-to-raw conversion, and base64 encoding
 produces a signature accepted by the current legacy verifier.
 
-This proves fixture-level migration feasibility, not authorization to migrate.
+Task 4E uses this conversion in production. New signatures remain randomized;
+the implementation does not normalize low-S values, while verification accepts
+both historical low-S and high-S values. Existing signature text is only read,
+never rewritten or normalized.
 
 ## Migration constraints and stopping conditions
 
@@ -114,9 +116,9 @@ base64 storage, historical high-S verification, legacy transaction fields, and
 all legacy block/peer validation outcomes. It must not alter current
 MetaMask/native/Protocol v1 systems or rewrite historical signature text.
 
-New-signature low-S policy, stricter malformed-input handling, replacement of
-SHA-1, repair/removal of `Wallet.verify_signature`, or retirement of historical
-high-S verification require a separately approved versioned compatibility
-change. Stop the migration for security/protocol review if any historical key,
-signature, transaction serialization, block hash, peer-validation outcome, or
-Protocol v1/genesis vector changes.
+The legacy `Wallet.verify_signature` compressed-key helper remains intentionally
+broken and returns false for the fixed compressed-key fixture, matching the
+pre-migration behavior. Repairing it, replacing SHA-1, changing malformed-input
+behavior, or retiring historical high-S verification requires a separately
+approved versioned compatibility change. No stored-data migration, signature
+rewrite, block rewrite, or Protocol v1 fixture rewrite is part of Task 4E.

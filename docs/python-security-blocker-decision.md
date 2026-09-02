@@ -303,3 +303,33 @@ available during Task 4D imported `ecdsa 0.19.0`, not 0.19.2. Its inspected
 documented SHA-1 and raw `r || s` compatibility behavior. This is local
 environment drift, not a changed audit conclusion; the pinned CI environment
 must execute the new compatibility suite before a dependency migration.
+
+## Task 4E: Legacy SECP256K1 Migration
+
+Task 4E replaced direct `ecdsa` use in `wallet.py`, `transaction.py`, and the
+retained `zoidbergCoin.py` legacy executable with the already pinned
+`cryptography==50.0.0`; it did not remove or otherwise change the executable's
+Transformers behavior. `requirements-core.txt` no longer declares `ecdsa`.
+
+The replacement generates and loads valid 32-byte SECP256K1 scalars, preserves
+lowercase generated scalar and compressed SEC public-key encodings, signs the
+original UTF-8 message once with SHA-1, and translates `cryptography` DER
+signatures to the historical fixed-width raw `r || s` standard-base64 format.
+Verification decodes the historical raw form, checks length and scalar ranges,
+translates it to DER, and accepts both Task 4D low-S and high-S fixture forms.
+Historical signature text remains stored verbatim, so legacy block hashes and
+Protocol v1 payload semantics are unchanged. No stored data migration or
+signature/block normalization was added.
+
+The Task 4D fixed vectors remain explicitly documented as originating from the
+historical `ecdsa` implementation and continue to be the compatibility oracle.
+The historical broken compressed-key `Wallet.verify_signature` helper remains
+false for that fixture; Transaction and peer validation continue to use the
+full compressed-point path. MetaMask `personal_sign`, wallet authentication,
+native transfers, votes, submissions, peer authentication, and Protocol v1
+signatures were not changed.
+
+This resolves `PYSEC-2026-1325` by removing `ecdsa` from the supported
+installation. The five Transformers advisories remain unresolved and are still
+reserved for the separately scoped legacy-ML decision; this migration does not
+claim that the complete audit gate is green.

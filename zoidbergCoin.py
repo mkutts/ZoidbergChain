@@ -2,9 +2,11 @@
 import os
 import hashlib
 import time
-import ecdsa
 import base64
 import re
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
 import imagehash
 from sentence_transformers import SentenceTransformer
@@ -12,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 import random
 import pytesseract
 from config import COIN_NAME, MEME_BLOCK_REWARD, REWARD_POOL_SUPPLY
+from wallet import _legacy_der_signature_from_raw, _legacy_private_key_from_hex, _legacy_raw_signature_from_der
 
 # Load the pre-trained model for text similarity
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -27,14 +30,17 @@ class Wallet:
 
     @staticmethod
     def generate_key_pair():
-        sk = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-        private_key = sk.to_string().hex()
-        public_key = sk.verifying_key.to_string().hex()
+        private_key_object = ec.generate_private_key(ec.SECP256K1())
+        private_key = private_key_object.private_numbers().private_value.to_bytes(32, "big").hex()
+        public_key = private_key_object.public_key().public_bytes(
+            serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
+        )[1:].hex()
         return private_key, public_key
 
     def generate_public_key(self):
-        sk = ecdsa.SigningKey.from_string(bytes.fromhex(self.private_key), curve=ecdsa.SECP256k1)
-        return sk.verifying_key.to_string().hex()
+        return _legacy_private_key_from_hex(self.private_key).public_key().public_bytes(
+            serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
+        )[1:].hex()
     
     def add_wallet(self, wallet):
         """Add a new wallet to the blockchain's wallet list."""
@@ -91,9 +97,11 @@ class Transaction:
         print(f"Debug: Signing transaction data: {transaction_data}")
 
         try:
-            # Attempt to sign the transaction
-            sk = ecdsa.SigningKey.from_string(bytes.fromhex(private_key), curve=ecdsa.SECP256k1)
-            self.signature = base64.b64encode(sk.sign(transaction_data.encode())).decode()
+            private_key_object = _legacy_private_key_from_hex(private_key)
+            der_signature = private_key_object.sign(
+                transaction_data.encode(), ec.ECDSA(hashes.SHA1())
+            )
+            self.signature = base64.b64encode(_legacy_raw_signature_from_der(der_signature)).decode()
             print(f"Debug: Transaction signed with signature: {self.signature}")
         except Exception as e:
             # Log any errors during the signing process
@@ -115,11 +123,17 @@ class Transaction:
             print(f"Debug: Validating transaction data: {transaction_data}")
             print(f"Debug: Signature: {self.signature}")
 
-            vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(self.sender), curve=ecdsa.SECP256k1)
-            vk.verify(base64.b64decode(self.signature), transaction_data.encode())
+            vk = ec.EllipticCurvePublicKey.from_encoded_point(
+                ec.SECP256K1(), b"\x04" + bytes.fromhex(self.sender)
+            )
+            vk.verify(
+                _legacy_der_signature_from_raw(base64.b64decode(self.signature)),
+                transaction_data.encode(),
+                ec.ECDSA(hashes.SHA1()),
+            )
             print("Debug: Transaction is valid.")
             return True
-        except ecdsa.BadSignatureError:
+        except InvalidSignature:
             # Specific handling for invalid signature
             print("Debug: Invalid signature detected.")
             return False

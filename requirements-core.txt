@@ -1,6 +1,5 @@
 # FastAPI node, protocol signing, peer networking, and normal operations.
 cryptography==50.0.0
-ecdsa==0.19.2
 eth-account==0.13.7
 # 0.133.0 is the first FastAPI release compatible with Starlette 1.x.
 fastapi==0.133.0

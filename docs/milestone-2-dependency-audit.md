@@ -1,4 +1,4 @@
-# Milestone 2 Tasks 3, 4A, and 4B: Dependency Audit
+# Milestone 2 Tasks 3, 4A, 4B, and 4E: Dependency Audit
 
 Audit date: 2026-09-01. Scope: dependency declarations and installation documentation only. No application, protocol, API, storage-format, signature, consensus, or frontend dependency behavior was changed.
 
@@ -37,11 +37,11 @@ clears all fixable findings for that package.
   pinned `pydantic==2.10.5`. FastAPI and Starlette are exercised by the complete
   API suite, including uploads, multipart parsing, CORS, middleware, rate limits,
   TestClient, routing, and lifespan behavior.
-- `cryptography==50.0.0` preserves the RSA APIs used by `wallet.py`; the
-  repository's Protocol v1 vectors, wallet-auth/MetaMask recovery, native-transfer
-  signing, peer-auth/replay, and signature-verification tests protect message and
-  signature compatibility. `ecdsa==0.19.2` keeps the same SECP256k1 API used for
-  legacy wallet signing and verification.
+- `cryptography==50.0.0` provides the SECP256K1 legacy signing and verification
+  implementation as well as the existing cryptographic APIs. Task 4E converts
+  DER signatures at the compatibility boundary to the historical raw 64-byte
+  `r || s` base64 form, preserving Protocol v1 vectors, legacy block hashes,
+  wallet-auth/MetaMask recovery, native-transfer signing, and peer validation.
 - `pillow==12.3.0` remains compatible with ImageHash and pytesseract. Content
   hashing, canonical genesis validation, media validation, content storage, and
   certificate tests protect image decoding and originality-facing behavior.
@@ -54,18 +54,17 @@ clears all fixable findings for that package.
 
 ### Remaining Blockers
 
-- `ecdsa==0.19.2` remains reachable through legacy wallet SECP256k1 signing and
-  verification. `PYSEC-2026-1325` has no listed patched release. Replacing that
-  library would change cryptographic implementation scope and requires explicit
-  protocol-compatible security review; it has not been suppressed.
+- `ecdsa` no longer appears in supported requirements or production/test imports.
+  Task 4E removes `PYSEC-2026-1325` without a suppression by replacing its
+  legacy SECP256K1 use with `cryptography` and retaining fixed historical
+  compatibility vectors.
 - `transformers==4.57.6` remains reachable when the retained legacy
   `zoidbergCoin.py` entry point is used. Its five advisory IDs above cannot be
   cleared within sentence-transformers 3.3.1's `<5` constraint. No model names,
   preprocessing, thresholds, scoring, or originality interfaces were changed.
-- Consequently the exact audit command remains red for these six unsuppressed
-  advisories after all behavior-preserving fixed-version upgrades. Owner/security
-  review is required for the `ecdsa` finding and a separately scoped ML-stack
-  compatibility migration is required for Transformers.
+- Consequently the exact audit command remains red only for the five
+  unsuppressed Transformers advisories. A separately scoped ML-stack/legacy
+  executable decision is still required; no audit suppression was added.
 
 ### Task 4A Verification Results
 
@@ -172,8 +171,7 @@ The Task 1 inventory records pre-Task-2 repository state and HEAD `5bd09cb`; Tas
 
 | Dependency | Version | Group | Evidence and purpose |
 |---|---:|---|---|
-| cryptography | 50.0.0 | core | `wallet.py` RSA key/signature operations. |
-| ecdsa | 0.19.2 | core | `wallet.py`, `blockchain.py`, and legacy entry point signing. |
+| cryptography | 50.0.0 | core | Legacy SECP256K1 Wallet/Transaction signing plus existing cryptographic primitives. |
 | eth-account | 0.13.7 | core | MetaMask personal-sign recovery in `wallet_auth.py` and native-transfer paths. |
 | fastapi | 0.133.0 | core | Current `api.py` application and route entry point. |
 | starlette | 1.3.1 | core, transitive security pin | FastAPI ASGI dependency pinned to the audited fixed line. |
@@ -260,3 +258,39 @@ The import check used temporary state paths. The full test suite passed using it
 ## Frontend Windows Blocker
 
 Task 1 recorded `npm.cmd ci` failing with `EPERM` while unlinking `zoidbergcoin-ui/node_modules/@esbuild/win32-x64/esbuild.exe`. This audit confirmed that `esbuild.exe` is currently active from that exact generated path (PID 38536). The lockfile root dependencies exactly match `package.json`; no package or lockfile change is required. `npm.cmd cache verify` is also blocked by `EPERM` while unlinking a file under PyCharm's managed Node 24.13.0 npm cache, and cannot write its npm log there. Do not kill the process or alter that managed cache without its owner's approval. After the owner releases the esbuild/cache lock or permission boundary, remove only the resolved ignored `zoidbergcoin-ui/node_modules` directory and rerun `npm.cmd ci`, `npm.cmd test`, and `npm.cmd run build`.
+
+## Task 4E: ecdsa Removal Verification
+
+Task 4E removes the direct `ecdsa` core requirement and replaces its legacy
+SECP256K1 implementation with the existing `cryptography==50.0.0` dependency.
+The retained `zoidbergCoin.py` executable was not removed and its Transformers
+imports were not changed; only its direct legacy `ecdsa` operations were
+translated to the same cryptography compatibility helpers.
+
+A clean Python 3.13.5 baseline installed the pre-migration requirements with
+`ecdsa==0.19.2` and `cryptography==50.0.0`. The command `python -m pytest
+tests/test_legacy_secp256k1_compatibility.py -q --basetemp <unique TEMP path>`
+passed 13 Task 4D tests. A second clean Python 3.13.5 environment installed the
+modified `requirements-test.txt`, passed `python -m pip check`, and reported
+`Package(s) not found: ecdsa` for `python -m pip show ecdsa`.
+
+The post-migration compatibility suite passed 29 tests, including fixed
+historical low-S/high-S signatures, compressed-point parsing, scalar bounds,
+raw signature lengths and ranges, legacy transaction serialization/block hash,
+and peer block validation. Isolated imports of `api`, `blockchain`, `storage`,
+`protocol_v1`, and `protocol_v1_genesis` passed with node/content/log paths
+redirected under a unique TEMP directory. Collection reported 929 tests.
+
+The requested targeted, integration, and full backend pytest processes each
+completed using unique TEMP `--basetemp` directories. The Windows execution
+wrapper detached their final summaries after emitting passing progress, but no
+failure trace was emitted and no `lastfailed` cache was created. This is a
+verification-output limitation, not a claim that the tests were rerun.
+
+The exact CI command, `python -m pip_audit -r requirements-test.txt --strict`,
+reports exactly five remaining findings, all in `transformers==4.57.6`:
+`PYSEC-2025-217`, `PYSEC-2026-2290`, `PYSEC-2026-2288`, `PYSEC-2026-2289`, and
+`GHSA-xrqw-3rrv-vx5w`. It does not report `ecdsa` or `PYSEC-2026-1325`, and no
+new advisory or suppression was introduced. `python scripts/check_repository_hygiene.py`
+passed, modified JSON reports parsed successfully, and active source/requirements
+searches found no `ecdsa` imports or declarations.

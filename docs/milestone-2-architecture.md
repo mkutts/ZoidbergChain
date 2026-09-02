@@ -87,6 +87,31 @@ The exact pre-existing cycles are `content -> submission -> content` and
 no current forbidden edges or Protocol-v1 FastAPI imports. Any new edge,
 changed cycle, or changed forbidden import fails the test.
 
+## Task 6 Access/Admin Service Extraction
+
+Task 6 adds `services.access_admin_service` and `services.feedback_service`.
+The former owns plain-record transitions for access requests/accounts/invites,
+wallet bindings, allowlist entries, override requests, and audit entries. The
+latter owns feedback normalization, lifecycle, filtering, summaries, and admin
+notes. Neither service imports `Blockchain`, `api`, or FastAPI.
+
+`Blockchain` remains the compatibility facade and owns the authoritative
+in-memory lists plus whole-document persistence. It constructs short-lived
+state views containing references to those lists and delegates to the services;
+there is no copied service state and no persistence callback. Reload/refresh
+continues assigning the same persisted sections to the facade attributes, and
+the existing `save_blockchain` lifecycle continues to write the full document.
+
+The dependency direction is `api -> blockchain -> services -> access_control /
+wallet_auth`; storage remains independent. Access decision policy stays in
+`access_control.py`, and admin session authentication stays in `admin_auth.py`
+and `api.py`. `api.py` is intentionally not thin in this task; router extraction
+remains a later boundary.
+
+`blockchain.py` changed from 6,425 lines before Task 6 to 5,544 lines after the
+extraction. Consensus, ledger, rewards, submissions, originality, networking,
+cryptography, and storage behavior remain in their existing owners.
+
 `tests/fixtures/api_route_contract.json` is generated from an isolated FastAPI
 application import and normalized by path, method, and name. It excludes the
 FastAPI OpenAPI/documentation routes and automatic `HEAD`/`OPTIONS` behavior.

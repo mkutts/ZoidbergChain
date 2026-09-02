@@ -294,3 +294,12 @@ The audit was reproduced; actual call paths, cryptographic compatibility,
 stable ML alternatives, advisory-exception eligibility, a smallest safe
 sequence, and owner decisions are documented. The two required decision reports
 are the only repository changes.
+
+## Task 4D characterization note
+
+The checked-in supported requirement remains `ecdsa==0.19.2`. The local `.venv`
+available during Task 4D imported `ecdsa 0.19.0`, not 0.19.2. Its inspected
+`SigningKey.sign` and `VerifyingKey.verify` defaults nevertheless matched the
+documented SHA-1 and raw `r || s` compatibility behavior. This is local
+environment drift, not a changed audit conclusion; the pinned CI environment
+must execute the new compatibility suite before a dependency migration.

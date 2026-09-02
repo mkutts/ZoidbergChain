@@ -1,0 +1,50 @@
+{
+  "fixture_safety_notice": "TEST ONLY. PUBLIC TEST FIXTURE. NEVER USE FOR FUNDS OR DEPLOYMENT. The scalar was deliberately generated for this repository test fixture and is not a runtime, user, server, production, or testnet identity.",
+  "format_version": 1,
+  "legacy_ecdsa": {
+    "curve": "SECP256k1",
+    "private_scalar_hex": "7a1f3d9c4e2b6f8051d8a37c9e0b4f12658da3917bc4e2f6a8d0c5b3e9f17426",
+    "private_scalar_format": "32-byte big-endian scalar, lowercase hexadecimal",
+    "compressed_public_key_hex": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d",
+    "public_key_format": "33-byte compressed SEC point, lowercase hexadecimal",
+    "message_utf8": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d12.50.75",
+    "message_hex": "30326563386166656666353730393461343132663439646239643932623931666339376237353937656632366437616362663838323563356265666234363934306430326563386166656666353730393461343132663439646239643932623931666339376237353937656632366437616362663838323563356265666234363934306431322e35302e3735",
+    "hash_algorithm": "SHA-1 through ecdsa.SigningKey.sign and VerifyingKey.verify defaults",
+    "signature_encoding": "64-byte fixed-width raw r || s, then standard base64 text",
+    "signature_base64": "ExNB6yFU3e0S444LzgP5BoAvsQaQ7BsrJzA6Sp+6iLxZjYXmmRDOCARM6SG5A2Lh30veU83XZKGtybgAtHyHcg==",
+    "signature_r_decimal": "8627969169923076690611955855433639385357115008002645990190481975255653583036",
+    "signature_s_decimal": "40505893109216011068405888717884831914786011702336379545241159861267550996338",
+    "signature_low_s": true,
+    "high_s_counterpart_base64": "ExNB6yFU3e0S444LzgP5BoAvsQaQ7BsrJzA6Sp+6iLymcnoZZu8x9/uzFt5G/J0c22L+kuFxO5oSCKaMG7m5zw==",
+    "high_s_counterpart_s_decimal": "75286196128100184355165096290803075938051552576738524837364003280250610497999",
+    "signing_determinism": "randomized by default; the known-valid fixture was produced only with test-injected deterministic entropy"
+  },
+  "legacy_transaction": {
+    "serialization": {
+      "sender": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d",
+      "recipient": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d",
+      "amount": 12.5,
+      "tip": 0.75,
+      "signature": "ExNB6yFU3e0S444LzgP5BoAvsQaQ7BsrJzA6Sp+6iLxZjYXmmRDOCARM6SG5A2Lh30veU83XZKGtybgAtHyHcg==",
+      "payload_size_kb": 3,
+      "created_at": 1700000000.25
+    },
+    "signed_message_rule": "f'{sender}{recipient}{amount}{tip}' encoded as UTF-8; payload_size_kb and created_at are not signed",
+    "transaction_identifier": null,
+    "transaction_identifier_rule": "Legacy Transaction defines no tx_id or standalone identifier. Protocol v1 native-transfer tx_id is a separate system."
+  },
+  "legacy_block": {
+    "serialization": {
+      "index": 7,
+      "transactions": [{"sender": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d", "recipient": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d", "amount": 12.5, "tip": 0.75, "signature": "ExNB6yFU3e0S444LzgP5BoAvsQaQ7BsrJzA6Sp+6iLxZjYXmmRDOCARM6SG5A2Lh30veU83XZKGtybgAtHyHcg==", "payload_size_kb": 3, "created_at": 1700000000.25}],
+      "previous_hash": "legacy-compatibility-previous-hash",
+      "miner": "02ec8afeff57094a412f49db9d92b91fc97b7597ef26d7acbf8825c5befb46940d",
+      "meme": {"encoded_image": "legacy-fixture", "text": "SECP256K1 compatibility"},
+      "timestamp": 1700000001.5,
+      "hash": "4882412bd8f79becbcc542eff1e1021989e88d23c9c08a8e2f3f7b61033f77a1"
+    },
+    "hash_rule": "SHA-256 of legacy concatenated block fields; raw base64 signature text participates in transaction_data",
+    "peer_validation": {"valid_fixture": "accepted when it extends the local chain and transaction balance policy permits it", "tampered_signature": "rejected after rehash because Transaction.is_valid returns false"}
+  },
+  "malformed_cases": {"invalid_base64_signature": "%%%not-base64%%%", "short_raw_signature_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "invalid_compressed_public_key_hex": "02"}
+}

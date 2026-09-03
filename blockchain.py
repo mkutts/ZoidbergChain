@@ -1,4 +1,4 @@
-﻿# Import statements
+# Import statements
 import os
 import hashlib
 import math
@@ -107,7 +107,7 @@ from protocol_v1_genesis import (
 from validators import is_valid_content_hash, is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, FeedbackService, FeedbackState
+from services import AccessAdminService, AccessAdminState, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, MintQueueService, MintQueueState, SubmissionOriginalityService, SubmissionOriginalityState
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -215,6 +215,9 @@ class Blockchain:
         self.audit_logs = []  # Persistent admin audit trail
         self._access_admin_service = AccessAdminService()
         self._feedback_service = FeedbackService()
+        self._content_coordination_service = ContentCoordinationService()
+        self._submission_originality_service = SubmissionOriginalityService()
+        self._mint_queue_service = MintQueueService()
         self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -478,6 +481,15 @@ class Blockchain:
     def _feedback_state(self):
         return FeedbackState(self.feedback_records)
 
+    def _content_coordination_state(self):
+        return ContentCoordinationState(self.submissions, self.content_objects, self.text_validation_cache, self.image_validation_cache, self.texts, self.image_hashes)
+
+    def _submission_originality_state(self):
+        return SubmissionOriginalityState(self.submissions, self.votes, self.originality_certificates, self.mint_queue)
+
+    def _mint_queue_state(self):
+        return MintQueueState(self.submissions, self.content_objects, self.originality_certificates, self.mint_queue)
+
     def refresh_access_control_state_from_storage(self):
         """Refresh access/admin/feedback records without reloading the chain."""
         loaded_data = AccessAdminService.refresh_from_storage(self.storage.load_blockchain_state)
@@ -709,83 +721,15 @@ class Blockchain:
 
     def is_image_unique(self, image_path):
         """Check if the image is unique with caching."""
-        if image_path in self.image_validation_cache:
-            new_hash = self.image_validation_cache[image_path]
-            print(f"Debug: Cache hit for image hash computation: {new_hash}")
-        else:
-            new_hash = hash_image(image_path)
-            self.image_validation_cache[image_path] = new_hash
-            print(f"Debug: Computed and cached image hash: {new_hash}")
-
-        print(f"Debug: Checking uniqueness for image hash: {new_hash}")
-        print(f"Debug: Current image hashes: {self.image_hashes}")
-
-        if new_hash in self.image_hashes:
-            print(f"Debug: Image hash {new_hash} is NOT unique (cached).")
-            return False
-
-        print(f"Debug: Image hash {new_hash} is unique.")
-        self.image_hashes.add(new_hash)
-        return True
-
+        return self._content_coordination_service.is_image_unique(self._content_coordination_state(), image_path)
     def is_text_unique(self, text_content):
         """Check if the text is unique with caching."""
-        normalized_text = re.sub(r'[^\w\s]', '', text_content).strip().lower()
-        print(f"Debug: Checking text: '{text_content}' (normalized: '{normalized_text}')")
-
-        if normalized_text in self.text_validation_cache:
-            print(f"Debug: Cache hit for text uniqueness: {normalized_text}")
-            return self.text_validation_cache[normalized_text]
-
-        if normalized_text in self.texts:
-            print(f"Debug: Text '{normalized_text}' is NOT unique.")
-            self.text_validation_cache[normalized_text] = False
-            return False
-
-        print(f"Debug: Text '{normalized_text}' is unique.")
-        self.text_validation_cache[normalized_text] = True
-        self.texts.append(normalized_text)
-        return True
-
+        return self._content_coordination_service.is_text_unique(self._content_coordination_state(), text_content)
     def is_meme_original(self, image_path, text_content):
         """Validate meme originality without caching."""
-        print(f"Debug: Validating meme originality for image: {image_path} and text: '{text_content}'")
-
-        # Validate image hash uniqueness
-        image_hash = hash_image(image_path)
-        print(f"Debug: Image hash: {image_hash}")
-        if image_hash in self.image_hashes:
-            print("Debug: Image is not unique.")
-            return False
-
-        # Validate text uniqueness
-        if not self.is_text_unique(text_content):
-            print("Debug: Text is not unique.")
-            return False
-
-        print("Debug: Meme is original.")
-        return True
-
+        return self._content_coordination_service.is_meme_original(self._content_coordination_state(), image_path, text_content)
     def _build_content_object_for_submission(self, submission, image_path="", text_content="", storage_status=None):
-        try:
-            return content_object_from_submission_data(
-                {
-                    "submission_id": submission.submission_id,
-                    "image_path": image_path,
-                    "text_content": text_content,
-                    "submitter": submission.submitter,
-                    "created_at": submission.created_at,
-                    "content_hash": submission.content_hash,
-                    "content_id": submission.content_id,
-                    "certificate_id": submission.certificate_id,
-                },
-                network_name=NETWORK_NAME,
-                storage_status=storage_status,
-                data_dir=self.storage.data_dir,
-            )
-        except ValueError:
-            return None
-
+        return self._content_coordination_service._build_content_object_for_submission(self._content_coordination_state(), self.storage, NETWORK_NAME, submission, image_path, text_content, storage_status)
     def _apply_stored_content_to_object(self, content_object, stored_content, *, submission_id=None, text_content=""):
         metadata = dict(content_object.metadata or {})
         if stored_content.get("byte_hash"):
@@ -948,77 +892,19 @@ class Blockchain:
         )
 
     def refresh_content_object_storage_statuses(self):
-        refreshed_any = False
-        for content_object in self.content_objects:
-            verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
-            new_status = content_object.storage_status
-            if verification["verified"]:
-                new_status = STORAGE_STATUS_VERIFIED
-            elif verification["error"] == "missing_file":
-                if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
-                    new_status = STORAGE_STATUS_MISSING
-            elif verification["exists"]:
-                new_status = STORAGE_STATUS_LOCAL
-
-            if content_object.storage_status != new_status:
-                content_object.storage_status = new_status
-                refreshed_any = True
-            if content_object.hash_scheme != verification["hash_scheme"]:
-                content_object.hash_scheme = verification["hash_scheme"]
-                refreshed_any = True
-            if content_object.verification_error != verification["error"]:
-                content_object.verification_error = verification["error"]
-                refreshed_any = True
-            if content_object.verified_at != verification["verified_at"]:
-                content_object.verified_at = verification["verified_at"]
-                refreshed_any = True
-            if verification["local_path"] and content_object.local_path != verification["local_path"]:
-                content_object.local_path = verification["local_path"]
-                refreshed_any = True
-            if verification["file_size_bytes"] is not None and content_object.file_size_bytes != verification["file_size_bytes"]:
-                content_object.file_size_bytes = verification["file_size_bytes"]
-                refreshed_any = True
-        return refreshed_any
-
+        return self._content_coordination_service.refresh_storage_statuses(self._content_coordination_state(), self.storage)
     def submit_content(self, image_path="", text_content="", submitter=""):
         """Create a pending content submission without minting a block."""
-        if image_path and not os.path.isfile(image_path):
-            raise ValueError("Invalid image path provided for the submission.")
-        if not image_path and not (text_content or "").strip():
-            raise ValueError("At least image_path or text_content is required for a submission.")
-
-        submission = Submission(
-            image_path=image_path or "",
-            text_content=text_content,
-            submitter=submitter,
-            status=PENDING,
-        )
-        stored_content = self._store_submission_content(
-            submission,
-            image_path=image_path or "",
-            text_content=text_content or "",
-        )
-        self.submissions.append(submission)
-        self._ensure_content_object_for_submission(
-            submission,
-            image_path=submission.image_path or "",
-            text_content=text_content or "",
-            stored_content=stored_content,
-        )
-        return submission
-
+        return self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
     def get_submission(self, submission_id):
         return self.storage.get_submission(submission_id, self.submissions)
 
     def get_content_object(self, content_id):
-        return self.storage.get_content_object(content_id, self.content_objects)
-
+        return self._content_coordination_service.get_content_object(self._content_coordination_state(), self.storage, content_id)
     def get_content_object_by_hash(self, content_hash):
-        return self.storage.get_content_object_by_hash(content_hash, self.content_objects)
-
+        return self._content_coordination_service.get_content_object_by_hash(self._content_coordination_state(), self.storage, content_hash)
     def list_content_objects(self, status=None):
-        return self.storage.list_content_objects(status=status, content_objects=self.content_objects)
-
+        return self._content_coordination_service.list_content_objects(self._content_coordination_state(), self.storage, status)
     @staticmethod
     def _block_field(block, field_name, default=None):
         if isinstance(block, dict):
@@ -1254,31 +1140,9 @@ class Blockchain:
         return changed
 
     def recover_block_media_bytes(self, block_or_hash):
-        block = block_or_hash
-        if isinstance(block_or_hash, str):
-            block = self.get_block_by_hash(block_or_hash)
-        if block is None:
-            raise ValueError("Block not found.")
-
-        media_bytes = self._block_field(block, "media_bytes")
-        if media_bytes is not None:
-            if isinstance(block, dict):
-                return Block.from_dict(block).media_bytes
-            return block.media_bytes
-
-        content_hash = self._block_field(block, "content_hash")
-        mime_type = self._block_field(block, "mime_type")
-        if not content_hash or not mime_type:
-            raise ValueError("Block does not contain recoverable media bytes.")
-        return load_content_bytes(content_hash, mime_type, data_dir=self.storage.data_dir)
-
+        return self._content_coordination_service.recover_block_media_bytes(self.storage, block_or_hash, self.get_block_by_hash)
     def _resolve_protocol_v1_block_media(self, block):
-        mime_type = self._block_field(block, "mime_type")
-        if not isinstance(mime_type, str) or not mime_type.strip():
-            raise ValueError("Protocol v1 blocks must include mime_type.")
-        media_bytes = self.recover_block_media_bytes(block)
-        return resolve_declared_payload_hash(media_bytes, mime_type)
-
+        return self._content_coordination_service.resolve_protocol_v1_block_media(self.storage, block, self.get_block_by_hash)
     def cache_protocol_v1_block_content(self, block, *, submission_id=None):
         if not self.is_protocol_v1_block_payload(block):
             return None
@@ -1511,34 +1375,7 @@ class Blockchain:
         caption=None,
         content_type_hint=None,
     ):
-        resolved_payload = resolve_payload_hash(file_bytes, mime_type)
-        content_hash = resolved_payload["content_hash"]
-        normalized_text_content = resolved_payload["text_content"]
-        stored_content = store_content_bytes(
-            content_hash,
-            resolved_payload["stored_bytes"],
-            mime_type=resolved_payload["mime_type"],
-            original_filename=sanitize_original_filename(original_filename),
-            data_dir=self.storage.data_dir,
-            hash_scheme=resolved_payload["hash_scheme"],
-        )
-        content_object = self.register_uploaded_content(
-            content_hash=content_hash,
-            submitted_by=submitted_by,
-            mime_type=stored_content["mime_type"],
-            file_size_bytes=stored_content["file_size_bytes"],
-            storage_status=stored_content["storage_status"],
-            local_path=stored_content["local_path"],
-            file_name=stored_content["file_name"],
-            original_filename=stored_content["original_filename"],
-            caption=validate_caption(caption),
-            text_content=normalized_text_content,
-            content_type_hint=content_type_hint,
-            byte_hash=stored_content["byte_hash"],
-            hash_scheme=stored_content["hash_scheme"],
-        )
-        return content_object
-
+        return self._content_coordination_service.upload_binary_content(self._content_coordination_state(), self.storage, NETWORK_NAME, file_bytes=file_bytes, submitted_by=submitted_by, mime_type=mime_type, original_filename=original_filename, caption=caption, content_type_hint=content_type_hint)
     def upload_text_content(
         self,
         *,
@@ -1546,32 +1383,7 @@ class Blockchain:
         submitted_by,
         caption=None,
     ):
-        normalized_text = validate_text_content(text_content)
-        content_hash = compute_text_content_hash(normalized_text)
-        stored_content = store_content_bytes(
-            content_hash,
-            normalized_text.encode("utf-8"),
-            mime_type=TEXT_MIME_TYPE,
-            data_dir=self.storage.data_dir,
-            hash_scheme=HASH_SCHEME_SHA256_TEXT,
-        )
-        content_object = self.register_uploaded_content(
-            content_hash=content_hash,
-            submitted_by=submitted_by,
-            mime_type=TEXT_MIME_TYPE,
-            file_size_bytes=stored_content["file_size_bytes"],
-            storage_status=stored_content["storage_status"],
-            local_path=stored_content["local_path"],
-            file_name=stored_content["file_name"],
-            original_filename=stored_content["original_filename"],
-            caption=validate_caption(caption),
-            text_content=normalized_text,
-            content_type_hint=CONTENT_TYPE_TEXT,
-            byte_hash=stored_content["byte_hash"],
-            hash_scheme=stored_content["hash_scheme"],
-        )
-        return content_object
-
+        return self._content_coordination_service.upload_text_content(self._content_coordination_state(), self.storage, NETWORK_NAME, text_content=text_content, submitted_by=submitted_by, caption=caption)
     def submit_existing_content(self, *, content_hash=None, submitter, text_content="", content_id=None):
         content_object = None
         if content_id:
@@ -1636,137 +1448,25 @@ class Blockchain:
         return submission
 
     def update_submission_status(self, submission_id, new_status):
-        submission = self.get_submission(submission_id)
-        if not submission:
-            raise ValueError(f"Submission not found: {submission_id}")
-
-        return submission.transition_to(new_status)
-
+        return self._submission_originality_service.update_submission_status(self._submission_originality_state(), self.storage, submission_id, new_status)
     def hard_reject_submission(self, submission_id, reason):
-        submission = self.get_submission(submission_id)
-        if not submission:
-            raise ValueError(f"Submission not found: {submission_id}")
-        if not reason:
-            raise ValueError("Hard reject reason is required.")
-
-        submission.hard_reject_reason = reason
-        submission.transition_to(HARD_REJECTED)
-        self.mint_queue = [
-            queued_submission_id
-            for queued_submission_id in self.mint_queue
-            if queued_submission_id != submission_id
-        ]
-        return submission
-
+        return self._submission_originality_service.hard_reject_submission(self._submission_originality_state(), self.storage, submission_id, reason)
     def record_vote(self, voter, submission_id=None, created_at=None):
-        vote = {
-            "voter": voter,
-            "submission_id": submission_id,
-            "vote_type": None,
-            "created_at": created_at if created_at is not None else time.time(),
-        }
-        self.votes.append(vote)
-        return vote
-
+        return self._submission_originality_service.record_vote(self._submission_originality_state(), voter, submission_id, created_at)
     def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None):
-        submission = self.get_submission(submission_id)
-        if not submission:
-            raise ValueError(f"Submission not found: {submission_id}")
-
-        if vote_type not in VOTE_TYPES:
-            raise ValueError(f"Invalid vote type: {vote_type}")
-
-        if voter == submission.submitter:
-            raise ValueError("Submission creator cannot vote on their own submission.")
-
-        if self.storage.get_vote(submission_id, voter, self.votes):
-            raise ValueError("Wallet has already voted on this submission.")
-
-        if self.is_submission_voting_locked(submission):
-            raise ValueError("Finalized or certified submissions cannot receive votes.")
-
-        vote = {
-            "voter": voter,
-            "submission_id": submission_id,
-            "vote_type": vote_type,
-            "created_at": created_at if created_at is not None else time.time(),
-        }
-        self.votes.append(vote)
-        return vote
-
+        return self._submission_originality_service.cast_submission_vote(self._submission_originality_state(), self.storage, submission_id, voter, vote_type, created_at)
     def get_submission_votes(self, submission_id):
-        if not self.get_submission(submission_id):
-            raise ValueError(f"Submission not found: {submission_id}")
-
-        votes = self.storage.get_votes_for_submission(submission_id, self.votes)
-        original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_ORIGINAL)
-        not_original_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_NOT_ORIGINAL)
-        unsure_votes = sum(1 for vote in votes if vote.get("vote_type") == VOTE_UNSURE)
-        decisive_votes = original_votes + not_original_votes
-        approval_percentage = original_votes / decisive_votes if decisive_votes else 0
-
-        return {
-            "submission_id": submission_id,
-            "votes": votes,
-            "counts": {
-                VOTE_ORIGINAL: original_votes,
-                VOTE_NOT_ORIGINAL: not_original_votes,
-                VOTE_UNSURE: unsure_votes,
-            },
-            "approval_percentage": approval_percentage,
-        }
-
+        return self._submission_originality_service.get_submission_votes(self._submission_originality_state(), self.storage, submission_id)
     def is_submission_voting_locked(self, submission):
-        return (
-            submission.status in {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
-            or self.get_originality_certificate_for_submission(submission.submission_id) is not None
-        )
-
+        return self._submission_originality_service.is_submission_voting_locked(self._submission_originality_state(), self.storage, submission)
     def get_originality_certificate(self, certificate_id):
-        return self.storage.get_certificate(certificate_id, self.originality_certificates)
-
+        return self._submission_originality_service.get_certificate(self._submission_originality_state(), self.storage, certificate_id)
     def get_originality_certificate_for_submission(self, submission_id):
-        return self.storage.get_certificate_for_submission(submission_id, self.originality_certificates)
-
+        return self._submission_originality_service.get_certificate_for_submission(self._submission_originality_state(), self.storage, submission_id)
     def link_certificates_to_submissions(self):
-        linked_any = False
-        for certificate in self.originality_certificates:
-            submission = self.get_submission(certificate.submission_id)
-            if submission and submission.certificate_id != certificate.certificate_id:
-                submission.certificate_id = certificate.certificate_id
-                linked_any = True
-        return linked_any
-
+        return self._submission_originality_service.link_certificates_to_submissions(self._submission_originality_state(), self.storage)
     def link_content_objects_to_submissions(self):
-        linked_any = False
-        for submission in self.submissions:
-            content_object = self.get_content_object_by_hash(submission.content_hash)
-            if content_object:
-                if submission.content_id != content_object.content_id:
-                    submission.content_id = content_object.content_id
-                    linked_any = True
-                resolved_image_path = resolve_local_path(
-                    content_object.local_path,
-                    data_dir=self.storage.data_dir,
-                )
-                if (
-                    resolved_image_path
-                    and content_object.content_type in {"image", "mixed"}
-                    and submission.image_path != resolved_image_path
-                    and os.path.isfile(resolved_image_path)
-                ):
-                    submission.image_path = resolved_image_path
-                    linked_any = True
-            else:
-                created_content_object = self._ensure_content_object_for_submission(
-                    submission,
-                    image_path=submission.image_path,
-                    text_content=submission.text_content,
-                )
-                if created_content_object:
-                    linked_any = True
-        return linked_any
-
+        return self._content_coordination_service.link_content_objects_to_submissions(self._content_coordination_state(), self.storage, NETWORK_NAME)
     def certificate_block_metadata(self, certificate):
         submission = self.get_submission(certificate.submission_id)
         content_object = self.get_content_object_by_hash(certificate.content_hash)
@@ -3762,42 +3462,7 @@ class Blockchain:
         allow_pending=False,
         save=True,
     ):
-        submission = self.get_submission(submission_id)
-        if not submission:
-            raise ValueError(f"Submission not found: {submission_id}")
-        allowed_statuses = {APPROVED, QUEUED}
-        if allow_pending:
-            allowed_statuses.add(PENDING)
-        if submission.status not in allowed_statuses:
-            raise ValueError("Only approved unminted submissions can receive originality certificates.")
-
-        existing_certificate = self.get_originality_certificate_for_submission(submission_id)
-        if existing_certificate:
-            submission.certificate_id = existing_certificate.certificate_id
-            if save:
-                self.save_blockchain()
-            return existing_certificate
-
-        self._promote_submission_content_for_protocol_v1(submission)
-        approved_at = approved_at if approved_at is not None else time.time()
-        certificate = self._build_originality_certificate(
-            submission,
-            approved_at,
-            network_name,
-            issuing_node_id,
-        )
-        validate_certificate_for_submission(
-            certificate,
-            submission,
-            network_name=network_name,
-            allowed_submission_statuses=allowed_statuses,
-        )
-        self.originality_certificates.append(certificate)
-        submission.certificate_id = certificate.certificate_id
-        if save:
-            self.save_blockchain()
-        return certificate
-
+        return self._submission_originality_service.create_certificate(self._submission_originality_state(), self.storage, submission_id, approved_at=approved_at, network_name=network_name, issuing_node_id=issuing_node_id, allow_pending=allow_pending, promote_content=self._promote_submission_content_for_protocol_v1, save=self.save_blockchain if save else None, voting_threshold=self.get_voting_threshold)
     def evaluate_submission(self, submission_id, automated_originality_passed=None, now=None):
         submission = self.get_submission(submission_id)
         if not submission:
@@ -3901,212 +3566,17 @@ class Blockchain:
         )
 
     def calculate_minimum_votes_required(self, active_users):
-        return max(
-            MIN_VOTE_FLOOR,
-            math.ceil(active_users * ACTIVE_USER_PERCENT_FOR_MIN_VOTES),
-        )
-
+        return self._submission_originality_service.calculate_minimum_votes_required(active_users)
     def get_voting_threshold(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
-        active_users = self.get_active_users(lookback_days=lookback_days, now=now)
-        return {
-            "active_users": active_users,
-            "minimum_votes": self.calculate_minimum_votes_required(active_users),
-            "vote_floor": MIN_VOTE_FLOOR,
-            "active_percentage": ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
-        }
-
+        return self._submission_originality_service.get_voting_threshold(self.get_active_users, lookback_days, now)
     def add_to_mint_queue(self, submission_id):
-        submission = self.get_submission(submission_id)
-        if not submission:
-            raise ValueError(f"Submission not found: {submission_id}")
-        if submission.status == HARD_REJECTED:
-            raise ValueError("Hard rejected submissions cannot enter the mint queue.")
-        if submission.status != APPROVED:
-            raise ValueError("Only approved submissions can be added to the mint queue.")
-        if submission.mint_blocked:
-            raise ValueError(submission.mint_block_reason or "Submission is blocked from minting.")
-        self.require_valid_certificate_for_submission(submission)
-        if self.storage.mint_queue_contains(submission_id, self.mint_queue):
-            raise ValueError("Submission is already in the mint queue.")
-
-        self.mint_queue.append(submission_id)
-        submission.transition_to(QUEUED)
-        return submission
-
+        return self._mint_queue_service.add(self._mint_queue_state(), self.storage, submission_id, self.require_valid_certificate_for_submission)
     def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
-        record = submission.to_dict()
-        record["submission_status"] = submission.status
-        record["certificate_status"] = "missing" if certificate is None else "valid"
-        record["content_status"] = STORAGE_STATUS_MISSING
-        record["storage_status"] = STORAGE_STATUS_MISSING
-        record["content_metadata_missing"] = True
-        record["missing_fields"] = []
-        record["mintable"] = False
-        record["mint_block_reason"] = None
-        record["download_url"] = None
-
-        if certificate is not None:
-            record["certificate_id"] = certificate.certificate_id
-            record["originality_score"] = certificate.originality_score
-        else:
-            record["originality_score"] = None
-
-        record["mint_blocked"] = submission.mint_blocked
-        record["mint_blocked_at"] = submission.mint_blocked_at
-        record["mint_blocked_by"] = submission.mint_blocked_by
-        record["mint_block_notes"] = submission.mint_block_notes
-
-        if submission.mint_blocked:
-            record["mintable"] = False
-            record["mint_block_reason"] = submission.mint_block_reason or "mint_blocked_manually"
-            record["certificate_status"] = "blocked"
-            return record
-
-        if submission.status == MINTED:
-            record["mint_block_reason"] = "already_minted"
-            record["missing_fields"].append("status")
-            return record
-        if submission.status != QUEUED:
-            record["mint_block_reason"] = "submission_not_approved"
-            record["missing_fields"].append("status")
-            return record
-
-        if certificate is None:
-            record["mint_block_reason"] = "certificate_missing"
-            record["missing_fields"].append("certificate_id")
-            return record
-
-        try:
-            validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
-        except ValueError as exc:
-            message = str(exc).lower()
-            record["certificate_status"] = "invalid"
-            if "content_hash" in message and "mismatch" in message:
-                record["mint_block_reason"] = "certificate_content_hash_mismatch"
-            elif "content_id" in message and "mismatch" in message:
-                record["mint_block_reason"] = "certificate_content_hash_mismatch"
-            else:
-                record["mint_block_reason"] = "unknown_error"
-            record["missing_fields"].append("certificate")
-            record["validation_error"] = str(exc)
-            return record
-
-        if content_object is None:
-            record["mint_block_reason"] = "content_metadata_missing"
-            record["missing_fields"].extend(["content_hash", "content_id", "mime_type", "content_type"])
-            return record
-
-        record["content_metadata_missing"] = False
-        record["content_id"] = content_object.content_id
-        record["content_type"] = content_object.content_type
-        record["mime_type"] = content_object.mime_type
-        record["content_status"] = content_object.storage_status
-        record["storage_status"] = content_object.storage_status
-        if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
-            record["download_url"] = f"/content/{content_object.content_hash}"
-
-        if content_object.storage_status == STORAGE_STATUS_REMOTE:
-            record["mint_block_reason"] = "content_payload_missing"
-            record["missing_fields"].append("content_payload")
-            return record
-        if content_object.storage_status == STORAGE_STATUS_MISSING:
-            record["mint_block_reason"] = "content_metadata_missing"
-            record["missing_fields"].append("content_payload")
-            return record
-
-        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
-        if not verification["verified"]:
-            error = str(verification.get("error") or "").lower()
-            if error == "legacy_unverifiable":
-                record["mintable"] = True
-                record["mint_block_reason"] = None
-                record["content_metadata_missing"] = False
-                record["content_status"] = content_object.storage_status
-                record["storage_status"] = content_object.storage_status
-                if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}:
-                    record["download_url"] = f"/content/{content_object.content_hash}"
-                return record
-            if error == "missing_file":
-                record["mint_block_reason"] = "content_payload_missing"
-            elif error == "legacy_unverifiable":
-                record["mint_block_reason"] = "legacy_unverifiable_content"
-            elif error in {"hash_mismatch", "file_size_mismatch"}:
-                record["mint_block_reason"] = "content_hash_mismatch"
-            else:
-                record["mint_block_reason"] = "content_not_verified"
-            record["missing_fields"].append("content_payload")
-            record["verification_error"] = verification.get("error")
-            return record
-
-        record["mintable"] = True
-        record["mint_block_reason"] = None
-        record["missing_fields"] = []
-        record["certificate_status"] = "valid"
-        record["content_status"] = STORAGE_STATUS_VERIFIED if content_object.storage_status == STORAGE_STATUS_VERIFIED else content_object.storage_status
-
-        is_text_payload = (
-            content_object.mime_type == TEXT_MIME_TYPE
-            or content_object.content_type == CONTENT_TYPE_TEXT
-        )
-        if not is_text_payload and not str(submission.text_content or "").strip():
-            file_path = resolve_local_path(content_object.local_path, data_dir=self.storage.data_dir)
-            extracted_text = extract_text(file_path) if file_path and os.path.isfile(file_path) else ""
-            if not str(extracted_text or "").strip():
-                record["mintable"] = False
-                record["mint_block_reason"] = "no_text_content_extracted"
-                record["missing_fields"].append("text_content")
-
-        return record
-
+        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text)
     def _evaluate_mint_queue_item(self, submission_id):
-        submission = self.get_submission(submission_id)
-        if submission is None:
-            return {
-                "submission_id": submission_id,
-                "submission_status": None,
-                "certificate_status": "missing",
-                "content_status": STORAGE_STATUS_MISSING,
-                "storage_status": STORAGE_STATUS_MISSING,
-                "mintable": False,
-                "mint_block_reason": "submission_not_found",
-                "missing_fields": ["submission"],
-                "content_metadata_missing": True,
-                "mint_blocked": False,
-                "mint_blocked_at": None,
-                "mint_blocked_by": None,
-                "mint_block_notes": None,
-                "download_url": None,
-            }
-
-        content_object = None
-        if submission.content_hash:
-            content_object = self.get_content_object_by_hash(submission.content_hash)
-        if content_object is None and submission.content_id:
-            content_object = self.get_content_object(submission.content_id)
-
-        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
-        record = self._queue_submission_record(
-            submission,
-            content_object=content_object,
-            certificate=certificate,
-        )
-        if submission.status == QUEUED and certificate is None and record.get("mint_block_reason") == "certificate_missing":
-            submission.status = APPROVED
-            record["submission_status"] = APPROVED
-        return record
-
+        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text)
     def get_mint_queue(self, include_blocked=True, mintable_only=False):
-        queued_submissions = []
-        for submission_id in self.mint_queue:
-            record = self._evaluate_mint_queue_item(submission_id)
-            if mintable_only and not record.get("mintable"):
-                continue
-            if not include_blocked and not record.get("mintable"):
-                continue
-            queued_submissions.append(record)
-
-        return queued_submissions
-
+        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text)
     def _mint_submission_record(self, submission, certificate, miner=None, max_block_size_kb=500, validate_meme=True):
         reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
         block_added = self.add_block(
@@ -4221,18 +3691,7 @@ class Blockchain:
         )
 
     def block_minting_for_submission(self, submission_id, reason, notes=None, blocked_by=None):
-        submission = self.get_submission(submission_id)
-        if submission is None:
-            raise ValueError(f"Submission not found: {submission_id}")
-        if submission.status == MINTED:
-            raise ValueError("Minted submissions cannot be blocked from minting.")
-        submission.mint_blocked = True
-        submission.mint_block_reason = (reason or "mint_blocked_manually").strip() or "mint_blocked_manually"
-        submission.mint_blocked_at = time.time()
-        submission.mint_blocked_by = blocked_by
-        submission.mint_block_notes = notes
-        return submission
-
+        return self._mint_queue_service.block(self._mint_queue_state(), self.storage, submission_id, reason, notes, blocked_by)
     def _resolve_mintable_submission_certificate(self, submission):
         if submission is None:
             return None
@@ -4263,16 +3722,7 @@ class Blockchain:
         return None
 
     def unblock_minting_for_submission(self, submission_id):
-        submission = self.get_submission(submission_id)
-        if submission is None:
-            raise ValueError(f"Submission not found: {submission_id}")
-        submission.mint_blocked = False
-        submission.mint_block_reason = None
-        submission.mint_blocked_at = None
-        submission.mint_blocked_by = None
-        submission.mint_block_notes = None
-        return submission
-
+        return self._mint_queue_service.unblock(self._mint_queue_state(), self.storage, submission_id)
     def cleanup_bad_mint_queue_items(self, *, block_unmintable=False):
         report = {
             "checked": 0,
@@ -4318,31 +3768,7 @@ class Blockchain:
         return report
 
     def remove_invalid_mint_queue_entries(self):
-        valid_queue = []
-        removed_entries = []
-        for submission_id in self.mint_queue:
-            submission = self.get_submission(submission_id)
-            try:
-                certificate_ready = (
-                    submission
-                    and submission.status == QUEUED
-                    and self.require_valid_certificate_for_submission(submission)
-                )
-            except ValueError:
-                certificate_ready = False
-
-            if certificate_ready:
-                valid_queue.append(submission_id)
-            else:
-                if submission and submission.status == QUEUED:
-                    submission.status = APPROVED
-                if submission and not self.get_originality_certificate_for_submission(submission.submission_id):
-                    submission.certificate_id = None
-                removed_entries.append(submission_id)
-
-        self.mint_queue = valid_queue
-        return removed_entries
-
+        return self._mint_queue_service.remove_invalid(self._mint_queue_state(), self.storage, self.require_valid_certificate_for_submission)
     def remove_invalid_mint_queue_entries(self):
         valid_queue = []
         removed_entries = []

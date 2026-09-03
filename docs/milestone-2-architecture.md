@@ -112,6 +112,18 @@ remains a later boundary.
 extraction. Consensus, ledger, rewards, submissions, originality, networking,
 cryptography, and storage behavior remain in their existing owners.
 
+## Task 7 Content, Submission, Originality, and Mint Queue Extraction
+
+Task 7 adds stateless content coordination, submission/originality, and mint
+queue services. They receive explicit views over facade-owned persisted lists,
+so JSON/SQLite reloads rebind naturally without synchronized duplicate state.
+Blockchain remains the public compatibility facade and whole-document
+persistence owner. Queue rules moved, while block-mint orchestration stays in
+Blockchain because it is coupled to `add_block`, canonical reconciliation, and
+existing save timing. Rewards, native ledger behavior, and consensus remain in
+Blockchain. Model A immutable block media remains authoritative. `blockchain.py`
+is 4,970 lines after Task 7, down from the Task 6 baseline of 5,544 lines.
+
 `tests/fixtures/api_route_contract.json` is generated from an isolated FastAPI
 application import and normalized by path, method, and name. It excludes the
 FastAPI OpenAPI/documentation routes and automatic `HEAD`/`OPTIONS` behavior.

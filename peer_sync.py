@@ -1,5 +1,3 @@
-import hashlib
-import hmac
 import json
 import logging
 import math
@@ -16,10 +14,6 @@ from content import (
     CONTENT_TYPE_TEXT,
     STORAGE_STATUS_VERIFIED,
     TEXT_MIME_TYPE,
-    resolve_payload_hash,
-    store_content_bytes,
-    validate_content_size,
-    validate_mime_type,
 )
 from config import (
     MAX_CONTENT_FILE_SIZE_BYTES,
@@ -47,17 +41,6 @@ from protocol_v1_originality import (
     build_protocol_v1_vote_message,
     resolve_protocol_v1_network_id,
 )
-from protocol_v1_peer_message import (
-    HEADER_NETWORK_ID,
-    MissingProtocolV1PeerHeadersError,
-    ProtocolV1PeerMessageError,
-    ReplayedPeerMessageError,
-    build_protocol_v1_peer_request_headers,
-    build_protocol_v1_peer_request_payload,
-    normalize_protocol_v1_peer_timestamp,
-    resolve_protocol_v1_peer_network_id,
-    verify_protocol_v1_peer_request,
-)
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -76,213 +59,137 @@ from submission import (
 from transaction import Transaction
 from wallet_auth import hash_wallet_message, normalize_wallet_address, recover_signed_wallet_address
 from validators import (
-    MAX_METADATA_FIELD_LENGTH,
-    is_valid_block_hash,
-    is_valid_certificate_id,
     is_valid_content_hash,
-    is_valid_ethereum_address,
     is_valid_network_name,
     is_valid_node_id,
-    is_valid_submission_id,
     is_valid_user_wallet_identity,
     is_valid_wallet_public_key,
 )
+from services.peer_authentication_service import (
+    PeerAuthenticationConfig,
+    PeerAuthenticationService,
+)
+from services.peer_content_sync_service import (
+    ContentDiscoveryCollaborators,
+    ContentFetchCollaborators,
+    PeerContentSyncService,
+)
+from services.peer_chain_sync_service import (
+    ChainSyncCollaborators,
+    ChainSyncState,
+    PeerChainSyncService,
+)
+from services.peer_network_errors import (
+    ChainExtensionError,
+    ChainSyncError,
+    ConflictingCertificateError,
+    ConflictingTransactionError,
+    ConflictingVoteError,
+    ContentSyncError,
+    DuplicateBlockError,
+    DuplicateSubmissionError,
+    ExpiredPeerSignatureError,
+    InvalidPeerSignatureError,
+    InvalidPeerTimestampError,
+    MalformedBlockError,
+    MalformedCertificateError,
+    MalformedSubmissionError,
+    MalformedTransactionError,
+    MalformedVoteError,
+    MissingSignedPeerHeadersError,
+    PeerSyncError,
+    ReplayedPeerNonceError,
+    UnauthorizedPeerError,
+    UnknownSubmissionError,
+    WrongNetworkError,
+)
+from services.peer_transport_service import PeerBroadcastService, PeerHttpTransport
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
 _PEER_NONCE_CACHE: dict[str, dict[str, int]] = {}
 
 
-class PeerSyncError(ValueError):
-    pass
+def _peer_authentication_service():
+    return PeerAuthenticationService(
+        PeerAuthenticationConfig(
+            auth_required=peer_auth_required,
+            replay_protection_enabled=peer_replay_protection_enabled,
+            shared_secret=peer_shared_secret,
+            shared_secret_is_configured=peer_shared_secret_is_configured,
+            signature_window_seconds=peer_signature_window_seconds,
+            signed_messages_enabled=signed_peer_messages_enabled,
+            now=time.time,
+            nonce=secrets.token_hex,
+        ),
+        _PEER_NONCE_CACHE,
+    )
 
 
-class MissingSignedPeerHeadersError(PeerSyncError):
-    pass
+def _peer_http_transport():
+    return PeerHttpTransport(requests)
 
 
-class InvalidPeerTimestampError(PeerSyncError):
-    pass
+def _peer_broadcast_service():
+    return PeerBroadcastService(_peer_http_transport(), build_peer_request_headers, logging)
 
 
-class ExpiredPeerSignatureError(PeerSyncError):
-    pass
+def _peer_content_sync_service():
+    return PeerContentSyncService(
+        _peer_http_transport(),
+        build_peer_request_headers,
+        logging,
+        MAX_CONTENT_FILE_SIZE_BYTES,
+    )
 
 
-class InvalidPeerSignatureError(PeerSyncError):
-    pass
-
-
-class ReplayedPeerNonceError(PeerSyncError):
-    pass
-
-
-class ContentSyncError(PeerSyncError):
-    pass
-
-
-class MalformedTransactionError(PeerSyncError):
-    pass
-
-
-class ConflictingTransactionError(PeerSyncError):
-    pass
+def _peer_chain_sync_service():
+    return PeerChainSyncService(_peer_http_transport(), build_peer_request_headers, logging)
 
 
 def hash_body(body_bytes):
-    if body_bytes is None:
-        body_bytes = b""
-    if isinstance(body_bytes, str):
-        body_bytes = body_bytes.encode("utf-8")
-    return hashlib.sha256(body_bytes).hexdigest()
+    return PeerAuthenticationService.hash_body(body_bytes)
 
 
 def build_peer_signature_payload(method, path, timestamp, nonce, body_hash):
-    return "\n".join(
-        [
-            str(method).upper(),
-            str(path),
-            str(timestamp),
-            str(nonce),
-            str(body_hash),
-        ]
+    return PeerAuthenticationService.build_signature_payload(
+        method, path, timestamp, nonce, body_hash
     )
 
 
 def sign_peer_request(method, path, timestamp, nonce, body_bytes, secret=None):
-    secret = peer_shared_secret() if secret is None else secret
-    canonical_payload = build_peer_signature_payload(
-        method=method,
-        path=path,
-        timestamp=timestamp,
-        nonce=nonce,
-        body_hash=hash_body(body_bytes),
+    return _peer_authentication_service().sign_request(
+        method, path, timestamp, nonce, body_bytes, secret
     )
-    return hmac.new(
-        secret.encode("utf-8"),
-        canonical_payload.encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
 
 
 def _serialize_peer_body(payload):
-    if payload is None:
-        return b""
-    return json.dumps(
-        payload,
-        ensure_ascii=False,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode("utf-8")
+    return PeerAuthenticationService.serialize_body(payload)
 
 
 def _peer_request_headers(method, path, payload, origin_node_id, *, network_name=None):
-    if signed_peer_messages_enabled():
-        if not peer_shared_secret_is_configured():
-            raise ValueError("PEER_SHARED_SECRET must be configured for signed peer messages.")
-        if not isinstance(origin_node_id, str) or not origin_node_id.strip():
-            raise ValueError("origin_node_id is required for signed peer messages.")
-        timestamp = normalize_protocol_v1_peer_timestamp(int(time.time()))
-        nonce = secrets.token_hex(16)
-        payload_network_name = (
-            payload.get("network_name")
-            if isinstance(payload, dict) and isinstance(payload.get("network_name"), str)
-            else None
-        )
-        return build_protocol_v1_peer_request_headers(
-            method,
-            path,
-            payload if isinstance(payload, dict) else None,
-            origin_node_id,
-            network_name=network_name or payload_network_name,
-            secret=peer_shared_secret(),
-            timestamp=timestamp,
-            nonce=nonce,
-            query_params=payload if str(method).upper() == "GET" and isinstance(payload, dict) else None,
-        )
-    if peer_auth_required() and peer_shared_secret_is_configured():
-        return {"X-ZOID-Peer-Secret": peer_shared_secret()}
-    return {}
+    return _peer_authentication_service().build_request_headers(
+        method, path, payload, origin_node_id, network_name=network_name
+    )
 
 
 def _cleanup_peer_nonce_cache(now=None, window_seconds=None):
-    if not _PEER_NONCE_CACHE:
-        return
-
-    now = int(time.time()) if now is None else int(now)
-    window_seconds = peer_signature_window_seconds() if window_seconds is None else int(window_seconds)
-    cutoff = now - window_seconds
-    stale_node_ids = []
-
-    for node_id, nonces in list(_PEER_NONCE_CACHE.items()):
-        stale_nonces = [nonce for nonce, timestamp in nonces.items() if timestamp < cutoff]
-        for nonce in stale_nonces:
-            nonces.pop(nonce, None)
-        if not nonces:
-            stale_node_ids.append(node_id)
-
-    for node_id in stale_node_ids:
-        _PEER_NONCE_CACHE.pop(node_id, None)
+    return _peer_authentication_service().cleanup_nonce_cache(now, window_seconds)
 
 
 def _record_peer_nonce(node_id, nonce, timestamp):
-    _cleanup_peer_nonce_cache(int(time.time()), peer_signature_window_seconds())
-    _PEER_NONCE_CACHE.setdefault(node_id, {})[nonce] = int(timestamp)
+    return _peer_authentication_service().record_nonce(node_id, nonce, timestamp)
 
 
 def _is_replayed_peer_nonce(node_id, nonce):
-    _cleanup_peer_nonce_cache(int(time.time()), peer_signature_window_seconds())
-    return nonce in _PEER_NONCE_CACHE.get(node_id, {})
+    return _peer_authentication_service().is_replayed_nonce(node_id, nonce)
 
 
 def verify_peer_signature(method, path, headers, body_bytes):
-    if not signed_peer_messages_enabled():
-        return None
-
-    try:
-        body_payload = None
-        if body_bytes not in (None, b"", ""):
-            decoded_bytes = body_bytes if isinstance(body_bytes, bytes) else str(body_bytes).encode("utf-8")
-            body_payload = json.loads(decoded_bytes)
-            if not isinstance(body_payload, dict):
-                raise ProtocolV1PeerMessageError("Protocol v1 peer request payload must be a JSON object.")
-        payload = build_protocol_v1_peer_request_payload(
-            method,
-            path,
-            body_payload=body_payload,
-        )
-        expected_network_id = headers.get(HEADER_NETWORK_ID)
-        if expected_network_id in (None, ""):
-            raise MissingProtocolV1PeerHeadersError("Missing Protocol v1 peer headers.")
-        context = verify_protocol_v1_peer_request(
-            method=method,
-            path=path,
-            headers=headers,
-            payload=payload,
-            expected_network_id=resolve_protocol_v1_peer_network_id(network_id=expected_network_id),
-            secret=peer_shared_secret(),
-            timestamp_window_seconds=peer_signature_window_seconds(),
-            replay_store=None,
-            now=int(time.time()),
-        )
-    except MissingProtocolV1PeerHeadersError as exc:
-        raise MissingSignedPeerHeadersError(str(exc)) from exc
-    except ReplayedPeerMessageError as exc:
-        raise ReplayedPeerNonceError(str(exc)) from exc
-    except ProtocolV1PeerMessageError as exc:
-        message = str(exc)
-        if "timestamp outside the allowed window" in message.lower():
-            raise ExpiredPeerSignatureError(message) from exc
-        if "timestamp" in message.lower():
-            raise InvalidPeerTimestampError(message) from exc
-        raise InvalidPeerSignatureError(message) from exc
-
-    return str(context.sender_node_id)
+    return _peer_authentication_service().verify_signature(method, path, headers, body_bytes)
 
 
 def build_peer_request_headers(method, path, payload, origin_node_id, *, network_name=None):
-    if network_name is not None and payload is None and str(method).upper() == "GET":
-        payload = {"network_name": network_name}
     return _peer_request_headers(method, path, payload, origin_node_id, network_name=network_name)
 
 
@@ -294,134 +201,19 @@ def fetch_content_from_peer(
     origin_node_id,
     timeout_seconds=3,
 ):
-    if not is_valid_content_hash(content_hash):
-        raise ContentSyncError("content_hash must be a 64-character lowercase hexadecimal string.")
-
-    metadata_path = f"/peers/content/{content_hash}/metadata"
-    metadata_url = f"{peer['url'].rstrip('/')}{metadata_path}"
-    metadata_headers = build_peer_request_headers(
-        "GET",
-        metadata_path,
-        None,
-        origin_node_id,
-        network_name=peer.get("network_name"),
-    )
-    metadata_request_kwargs = {"timeout": timeout_seconds}
-    if metadata_headers:
-        metadata_request_kwargs["headers"] = metadata_headers
-    metadata_response = requests.get(
-        metadata_url,
-        **metadata_request_kwargs,
-    )
-    metadata_status = getattr(metadata_response, "status_code", None)
-    if metadata_status == 404:
-        return {"status": "not_found", "peer": peer.get("node_id"), "content_hash": content_hash}
-    if metadata_status is None or metadata_status >= 400:
-        raise ContentSyncError(
-            f"Peer content metadata returned status {metadata_status}: {getattr(metadata_response, 'text', '')}"
-        )
-
-    metadata_payload = metadata_response.json()
-    metadata = metadata_payload.get("content") if isinstance(metadata_payload, dict) else None
-    if not isinstance(metadata, dict):
-        raise ContentSyncError("Peer content metadata response is malformed.")
-
-    file_size_bytes = metadata.get("file_size_bytes")
-    if isinstance(file_size_bytes, int):
-        try:
-            validate_content_size(max(file_size_bytes, 1), mime_type=metadata.get("mime_type"))
-        except ValueError:
-            return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
-    if isinstance(metadata.get("mime_type"), str):
-        try:
-            validate_mime_type(metadata.get("mime_type"))
-        except ValueError:
-            return {"status": "failed_verification", "reason": "unsupported_mime_type", "peer": peer.get("node_id")}
-    if isinstance(file_size_bytes, int) and file_size_bytes > MAX_CONTENT_FILE_SIZE_BYTES:
-        return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
-
-    binary_path = f"/peers/content/{content_hash}"
-    binary_url = f"{peer['url'].rstrip('/')}{binary_path}"
-    binary_headers = build_peer_request_headers(
-        "GET",
-        binary_path,
-        None,
-        origin_node_id,
-        network_name=peer.get("network_name"),
-    )
-    binary_request_kwargs = {"timeout": timeout_seconds}
-    if binary_headers:
-        binary_request_kwargs["headers"] = binary_headers
-    binary_response = requests.get(
-        binary_url,
-        **binary_request_kwargs,
-    )
-    binary_status = getattr(binary_response, "status_code", None)
-    if binary_status == 404:
-        return {"status": "not_found", "peer": peer.get("node_id"), "content_hash": content_hash}
-    if binary_status is None or binary_status >= 400:
-        raise ContentSyncError(
-            f"Peer content returned status {binary_status}: {getattr(binary_response, 'text', '')}"
-        )
-
-    payload_bytes = binary_response.content
-    if not payload_bytes:
-        return {"status": "failed_verification", "reason": "empty_payload", "peer": peer.get("node_id")}
-    try:
-        validate_content_size(len(payload_bytes), mime_type=metadata.get("mime_type"))
-    except ValueError as exc:
-        reason = "oversized_payload" if "max size" in str(exc).lower() else "empty_payload"
-        return {"status": "failed_verification", "reason": reason, "peer": peer.get("node_id")}
-
-    try:
-        resolved_payload = resolve_payload_hash(
-            payload_bytes,
-            str(metadata.get("mime_type") or binary_response.headers.get("content-type") or "application/octet-stream").split(";")[0].strip(),
-        )
-    except (UnicodeDecodeError, ValueError) as exc:
-        raise ContentSyncError(str(exc)) from exc
-
-    if resolved_payload["content_hash"] != content_hash:
-        return {
-            "status": "failed_verification",
-            "reason": "hash_mismatch",
-            "peer": peer.get("node_id"),
-            "expected_content_hash": content_hash,
-            "actual_content_hash": resolved_payload["content_hash"],
-        }
-
-    try:
-        stored_content = store_content_bytes(
-            content_hash,
-            resolved_payload["stored_bytes"],
-            mime_type=resolved_payload["mime_type"],
+    result = _peer_content_sync_service().fetch_and_register(
+        ContentFetchCollaborators(
             data_dir=blockchain.storage.data_dir,
-            hash_scheme=resolved_payload["hash_scheme"],
-        )
-        content_object = blockchain.register_uploaded_content(
-            content_hash=content_hash,
-            submitted_by=metadata.get("submitted_by") or "peer-content",
-            mime_type=resolved_payload["mime_type"],
-            file_size_bytes=stored_content["file_size_bytes"],
-            storage_status=stored_content["storage_status"],
-            local_path=stored_content["local_path"],
-            file_name=stored_content["file_name"],
-            caption=metadata.get("caption"),
-            text_content=resolved_payload["text_content"],
-            content_type_hint=metadata.get("content_type"),
-            byte_hash=stored_content["byte_hash"],
-            hash_scheme=stored_content["hash_scheme"],
-        )
-    except (UnicodeDecodeError, ValueError) as exc:
-        raise ContentSyncError(str(exc)) from exc
-
-    blockchain.save_blockchain()
-    return {
-        "status": "fetched_and_verified",
-        "peer": peer.get("node_id"),
-        "content_hash": content_hash,
-        "content": content_object.to_dict(),
-    }
+            register_uploaded_content=blockchain.register_uploaded_content,
+        ),
+        peer,
+        content_hash,
+        origin_node_id=origin_node_id,
+        timeout_seconds=timeout_seconds,
+    )
+    if result.get("status") == "fetched_and_verified":
+        blockchain.save_blockchain()
+    return result
 
 
 def sync_missing_content(
@@ -433,47 +225,19 @@ def sync_missing_content(
     network_name,
     timeout_seconds=3,
 ):
-    content_object = blockchain.get_content_object_by_hash(content_hash)
-    if content_object is not None and content_object.storage_status == "verified":
-        return {"status": "already_verified", "content_hash": content_hash}
-
-    peers = peer_store.list_active_peers(network_name=network_name)
-    if not peers:
-        return {"status": "no_peers_available", "content_hash": content_hash}
-
-    saw_verification_failure = False
-    saw_not_found = False
-    for peer in peers:
-        try:
-            result = fetch_content_from_peer(
-                blockchain,
-                peer,
-                content_hash,
-                origin_node_id=origin_node_id,
-                timeout_seconds=timeout_seconds,
-            )
-        except Exception as exc:
-            logging.warning(
-                "Failed to fetch content %s from peer %s at %s: %s",
-                content_hash,
-                peer.get("node_id"),
-                peer.get("url"),
-                exc,
-            )
-            continue
-
-        if result["status"] == "fetched_and_verified":
-            return result
-        if result["status"] == "failed_verification":
-            saw_verification_failure = True
-        if result["status"] == "not_found":
-            saw_not_found = True
-
-    if saw_verification_failure:
-        return {"status": "failed_verification", "content_hash": content_hash}
-    if saw_not_found:
-        return {"status": "not_found", "content_hash": content_hash}
-    return {"status": "no_peers_available", "content_hash": content_hash}
+    return _peer_content_sync_service().sync_missing(
+        ContentDiscoveryCollaborators(
+            get_content_object_by_hash=blockchain.get_content_object_by_hash,
+            list_active_peers=peer_store.list_active_peers,
+            fetch_content=lambda peer, requested_hash, **kwargs: fetch_content_from_peer(
+                blockchain, peer, requested_hash, **kwargs
+            ),
+        ),
+        content_hash,
+        origin_node_id=origin_node_id,
+        network_name=network_name,
+        timeout_seconds=timeout_seconds,
+    )
 
 
 def _reject_forbidden_fields(payload, allowed_fields, error_cls, object_name):
@@ -555,26 +319,6 @@ def _require_valid_peer_string(value, validator, error_cls, field_name):
     return value.strip()
 
 
-class UnauthorizedPeerError(PeerSyncError):
-    pass
-
-
-class WrongNetworkError(PeerSyncError):
-    pass
-
-
-class MalformedSubmissionError(PeerSyncError):
-    pass
-
-
-class DuplicateSubmissionError(PeerSyncError):
-    pass
-
-
-class MalformedVoteError(PeerSyncError):
-    pass
-
-
 def receive_peer_transaction(
     blockchain,
     peer_store,
@@ -619,48 +363,6 @@ def receive_peer_transaction(
     }
 
 
-class MalformedCertificateError(PeerSyncError):
-    pass
-
-
-class ConflictingCertificateError(PeerSyncError):
-    pass
-
-
-class UnknownSubmissionError(PeerSyncError):
-    pass
-
-
-class ConflictingVoteError(PeerSyncError):
-    pass
-
-
-class MalformedBlockError(PeerSyncError):
-    def __init__(self, message, *, code=None, details=None):
-        super().__init__(message)
-        self.code = code
-        self.details = dict(details or {})
-
-    def to_detail(self):
-        if self.code or self.details:
-            payload = {"code": self.code or "invalid_block", "message": str(self)}
-            payload.update(self.details)
-            return payload
-        return str(self)
-
-
-class DuplicateBlockError(PeerSyncError):
-    pass
-
-
-class ChainExtensionError(PeerSyncError):
-    pass
-
-
-class ChainSyncError(PeerSyncError):
-    pass
-
-
 def should_update_submission_status(existing_status, incoming_status=PENDING):
     if existing_status is None:
         return True
@@ -682,40 +384,18 @@ def sync_chain_from_peers(
 ):
     if origin_node_id is None:
         origin_node_id = NODE_ID
-    results = []
-    active_peers = peer_store.list_active_peers(network_name=network_name)
-
-    for peer in active_peers:
-        try:
-            result = _sync_chain_from_peer(
-                blockchain=blockchain,
-                peer=peer,
-                origin_node_id=origin_node_id,
-                network_name=network_name,
-                timeout_seconds=timeout_seconds,
-            )
-        except Exception as exc:
-            logging.warning(
-                "Failed to sync chain from peer %s at %s: %s",
-                peer.get("node_id"),
-                peer.get("url"),
-                exc,
-            )
-            result = {
-                "node_id": peer.get("node_id"),
-                "url": peer.get("url"),
-                "status": "failed",
-                "reason": str(exc),
-            }
-        results.append(result)
-
-    return {
-        "attempted": len(results),
-        "synced": sum(1 for result in results if result["status"] == "synced"),
-        "skipped": sum(1 for result in results if result["status"] == "skipped"),
-        "failed": sum(1 for result in results if result["status"] == "failed"),
-        "results": results,
-    }
+    service = _peer_chain_sync_service()
+    peers = peer_store.list_active_peers(network_name=network_name)
+    return service.sync_all(
+        peers,
+        lambda peer: _sync_chain_from_peer(
+            blockchain=blockchain,
+            peer=peer,
+            origin_node_id=origin_node_id,
+            network_name=network_name,
+            timeout_seconds=timeout_seconds,
+        ),
+    )
 
 
 def receive_peer_block(
@@ -1009,61 +689,9 @@ def broadcast_submission_to_peers(
     network_name,
     timeout_seconds=3,
 ):
-    payload = {
-        "origin_node_id": origin_node_id,
-        "network_name": network_name,
-        "submission": submission.to_dict(),
-    }
-    results = []
-
-    for peer in peer_store.list_active_peers(network_name=network_name):
-        receive_url = f"{peer['url'].rstrip('/')}/peers/submissions/receive"
-        try:
-            response = requests.post(
-                receive_url,
-                json=payload,
-                headers=build_peer_request_headers(
-                    "POST",
-                    "/peers/submissions/receive",
-                    payload,
-                    origin_node_id,
-                ),
-                timeout=timeout_seconds,
-            )
-            status_code = getattr(response, "status_code", None)
-            if status_code is None or status_code >= 400:
-                raise requests.RequestException(
-                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
-                )
-
-            results.append({
-                "node_id": peer["node_id"],
-                "url": peer["url"],
-                "status": "sent",
-            })
-        except requests.RequestException as exc:
-            logging.warning(
-                "Failed to broadcast submission %s to peer %s at %s: %s",
-                submission.submission_id,
-                peer.get("node_id"),
-                receive_url,
-                exc,
-            )
-            results.append({
-                "node_id": peer.get("node_id"),
-                "url": peer.get("url"),
-                "status": "failed",
-                "error": str(exc),
-            })
-
-    succeeded = sum(1 for result in results if result["status"] == "sent")
-    failed = sum(1 for result in results if result["status"] == "failed")
-    return {
-        "attempted": len(results),
-        "succeeded": succeeded,
-        "failed": failed,
-        "results": results,
-    }
+    return _peer_broadcast_service().broadcast_submission(
+        submission, peer_store, origin_node_id, network_name, timeout_seconds
+    )
 
 
 def broadcast_vote_to_peers(
@@ -1073,82 +701,9 @@ def broadcast_vote_to_peers(
     network_name,
     timeout_seconds=3,
 ):
-    payload = {
-        "origin_node_id": origin_node_id,
-        "network_name": network_name,
-        "submission_id": vote.get("submission_id"),
-        "voter": vote.get("voter"),
-        "vote_type": vote.get("vote_type"),
-        "created_at": vote.get("created_at"),
-    }
-    for key in [
-        "vote_version",
-        "protocol_version",
-        "network_id",
-        "content_hash",
-        "voter_wallet_address",
-        "signature_scheme",
-        "vote_signature",
-        "vote_message",
-        "signed_message_hash",
-        "vote_nonce",
-        "vote_issued_at",
-        "vote_expires_at",
-        "signed_at",
-        "identity_source",
-    ]:
-        if vote.get(key) is not None:
-            payload[key] = vote.get(key)
-    results = []
-
-    for peer in peer_store.list_active_peers(network_name=network_name):
-        receive_url = f"{peer['url'].rstrip('/')}/peers/votes/receive"
-        try:
-            response = requests.post(
-                receive_url,
-                json=payload,
-                headers=build_peer_request_headers(
-                    "POST",
-                    "/peers/votes/receive",
-                    payload,
-                    origin_node_id,
-                ),
-                timeout=timeout_seconds,
-            )
-            status_code = getattr(response, "status_code", None)
-            if status_code is None or status_code >= 400:
-                raise requests.RequestException(
-                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
-                )
-
-            results.append({
-                "node_id": peer["node_id"],
-                "url": peer["url"],
-                "status": "sent",
-            })
-        except requests.RequestException as exc:
-            logging.warning(
-                "Failed to broadcast vote for submission %s to peer %s at %s: %s",
-                vote.get("submission_id"),
-                peer.get("node_id"),
-                receive_url,
-                exc,
-            )
-            results.append({
-                "node_id": peer.get("node_id"),
-                "url": peer.get("url"),
-                "status": "failed",
-                "error": str(exc),
-            })
-
-    succeeded = sum(1 for result in results if result["status"] == "sent")
-    failed = sum(1 for result in results if result["status"] == "failed")
-    return {
-        "attempted": len(results),
-        "succeeded": succeeded,
-        "failed": failed,
-        "results": results,
-    }
+    return _peer_broadcast_service().broadcast_vote(
+        vote, peer_store, origin_node_id, network_name, timeout_seconds
+    )
 
 
 def broadcast_votes_to_peers(
@@ -1188,61 +743,9 @@ def broadcast_certificate_to_peers(
     network_name,
     timeout_seconds=3,
 ):
-    payload = {
-        "origin_node_id": origin_node_id,
-        "network_name": network_name,
-        "certificate": certificate.to_dict(),
-    }
-    results = []
-
-    for peer in peer_store.list_active_peers(network_name=network_name):
-        receive_url = f"{peer['url'].rstrip('/')}/peers/certificates/receive"
-        try:
-            response = requests.post(
-                receive_url,
-                json=payload,
-                headers=build_peer_request_headers(
-                    "POST",
-                    "/peers/certificates/receive",
-                    payload,
-                    origin_node_id,
-                ),
-                timeout=timeout_seconds,
-            )
-            status_code = getattr(response, "status_code", None)
-            if status_code is None or status_code >= 400:
-                raise requests.RequestException(
-                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
-                )
-
-            results.append({
-                "node_id": peer["node_id"],
-                "url": peer["url"],
-                "status": "sent",
-            })
-        except requests.RequestException as exc:
-            logging.warning(
-                "Failed to broadcast certificate %s to peer %s at %s: %s",
-                certificate.certificate_id,
-                peer.get("node_id"),
-                receive_url,
-                exc,
-            )
-            results.append({
-                "node_id": peer.get("node_id"),
-                "url": peer.get("url"),
-                "status": "failed",
-                "error": str(exc),
-            })
-
-    succeeded = sum(1 for result in results if result["status"] == "sent")
-    failed = sum(1 for result in results if result["status"] == "failed")
-    return {
-        "attempted": len(results),
-        "succeeded": succeeded,
-        "failed": failed,
-        "results": results,
-    }
+    return _peer_broadcast_service().broadcast_certificate(
+        certificate, peer_store, origin_node_id, network_name, timeout_seconds
+    )
 
 
 def broadcast_block_to_peers(
@@ -1254,92 +757,10 @@ def broadcast_block_to_peers(
     certificate=None,
     timeout_seconds=3,
 ):
-    payload = {
-        "origin_node_id": origin_node_id,
-        "network_name": network_name,
-        "block": block.to_dict(),
-        "related_submission_id": related_submission_id,
-        "certificate": certificate.to_dict() if certificate else None,
-    }
-    results = []
-
-    for peer in peer_store.list_active_peers(network_name=network_name):
-        receive_url = f"{peer['url'].rstrip('/')}/peers/blocks/receive"
-        certificate_result = None
-        try:
-            if certificate:
-                certificate_url = f"{peer['url'].rstrip('/')}/peers/certificates/receive"
-                certificate_payload = {
-                    "origin_node_id": origin_node_id,
-                    "network_name": network_name,
-                    "certificate": certificate.to_dict(),
-                }
-                certificate_response = requests.post(
-                    certificate_url,
-                    json=certificate_payload,
-                    headers=build_peer_request_headers(
-                        "POST",
-                        "/peers/certificates/receive",
-                        certificate_payload,
-                        origin_node_id,
-                    ),
-                    timeout=timeout_seconds,
-                )
-                certificate_status_code = getattr(certificate_response, "status_code", None)
-                if certificate_status_code is None or certificate_status_code >= 400:
-                    raise requests.RequestException(
-                        "Certificate peer returned status "
-                        f"{certificate_status_code}: {getattr(certificate_response, 'text', '')}"
-                    )
-                certificate_result = {"status": "sent", "url": certificate_url}
-
-            response = requests.post(
-                receive_url,
-                json=payload,
-                headers=build_peer_request_headers(
-                    "POST",
-                    "/peers/blocks/receive",
-                    payload,
-                    origin_node_id,
-                ),
-                timeout=timeout_seconds,
-            )
-            status_code = getattr(response, "status_code", None)
-            if status_code is None or status_code >= 400:
-                raise requests.RequestException(
-                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
-                )
-
-            results.append({
-                "node_id": peer["node_id"],
-                "url": peer["url"],
-                "status": "sent",
-                "certificate": certificate_result,
-            })
-        except requests.RequestException as exc:
-            logging.warning(
-                "Failed to broadcast block %s to peer %s at %s: %s",
-                block.hash,
-                peer.get("node_id"),
-                receive_url,
-                exc,
-            )
-            results.append({
-                "node_id": peer.get("node_id"),
-                "url": peer.get("url"),
-                "status": "failed",
-                "error": str(exc),
-                "certificate": certificate_result,
-            })
-
-    succeeded = sum(1 for result in results if result["status"] == "sent")
-    failed = sum(1 for result in results if result["status"] == "failed")
-    return {
-        "attempted": len(results),
-        "succeeded": succeeded,
-        "failed": failed,
-        "results": results,
-    }
+    return _peer_broadcast_service().broadcast_block(
+        block, peer_store, origin_node_id, network_name,
+        related_submission_id, certificate, timeout_seconds,
+    )
 
 
 def broadcast_transaction_to_peers(
@@ -1353,69 +774,10 @@ def broadcast_transaction_to_peers(
     transaction = blockchain.get_native_transaction(tx_id)
     if transaction is None:
         raise ValueError(f"Transaction not found: {tx_id}")
-
-    payload = {
-        "origin_node_id": origin_node_id,
-        "network_name": network_name,
-        "transaction": _serialize_peer_transaction_payload(transaction),
-    }
-    results = []
-
-    for peer in peer_store.list_active_peers(network_name=network_name):
-        receive_url = f"{peer['url'].rstrip('/')}/peers/transactions/receive"
-        try:
-            response = requests.post(
-                receive_url,
-                json=payload,
-                headers=build_peer_request_headers(
-                    "POST",
-                    "/peers/transactions/receive",
-                    payload,
-                    origin_node_id,
-                ),
-                timeout=timeout_seconds,
-            )
-            status_code = getattr(response, "status_code", None)
-            body = response.json() if hasattr(response, "json") else {}
-            if status_code is None or status_code >= 400:
-                raise requests.RequestException(
-                    f"Peer returned status {status_code}: {getattr(response, 'text', '')}"
-                )
-
-            results.append({
-                "node_id": peer["node_id"],
-                "url": peer["url"],
-                "status": "sent",
-                "accepted": bool(body.get("accepted", True)),
-                "duplicate": bool(body.get("duplicate", False)),
-                "peer_status": body.get("status"),
-            })
-        except requests.RequestException as exc:
-            logging.warning(
-                "Failed to broadcast transaction %s to peer %s at %s: %s",
-                tx_id,
-                peer.get("node_id"),
-                receive_url,
-                exc,
-            )
-            results.append({
-                "node_id": peer.get("node_id"),
-                "url": peer.get("url"),
-                "status": "failed",
-                "accepted": False,
-                "error": str(exc),
-            })
-
-    succeeded = sum(1 for result in results if result["status"] == "sent")
-    accepted = sum(1 for result in results if result["status"] == "sent" and result.get("accepted"))
-    failed = sum(1 for result in results if result["status"] == "failed")
-    return {
-        "attempted": len(results),
-        "succeeded": succeeded,
-        "accepted": accepted,
-        "failed": failed,
-        "results": results,
-    }
+    return _peer_broadcast_service().broadcast_transaction(
+        _serialize_peer_transaction_payload(transaction), tx_id, peer_store,
+        origin_node_id, network_name, timeout_seconds,
+    )
 
 
 def sync_transaction_from_peer(
@@ -1439,7 +801,7 @@ def sync_transaction_from_peer(
     request_kwargs = {"timeout": timeout_seconds}
     if request_headers:
         request_kwargs["headers"] = request_headers
-    response = requests.get(
+    response = _peer_http_transport().get(
         f"{peer['url'].rstrip('/')}{transaction_path}",
         **request_kwargs,
     )
@@ -1485,7 +847,7 @@ def sync_mempool_from_peer(
     request_kwargs = {"timeout": timeout_seconds}
     if request_headers:
         request_kwargs["headers"] = request_headers
-    response = requests.get(
+    response = _peer_http_transport().get(
         f"{peer['url'].rstrip('/')}{summary_path}",
         **request_kwargs,
     )
@@ -1524,166 +886,37 @@ def sync_mempool_from_peer(
 
 
 def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeout_seconds):
-    local_height = blockchain.get_latest_block().index
-    local_latest_hash = blockchain.get_latest_block().hash
-    local_genesis_hash = blockchain.public_testnet_v1_genesis_hash()
-    local_score = blockchain.get_cumulative_originality_score()
-    local_network_id = blockchain.protocol_v1_network_id()
-
-    summary = _fetch_peer_chain_summary(
+    state = ChainSyncState(
+        local_height=blockchain.get_latest_block().index,
+        local_latest_hash=blockchain.get_latest_block().hash,
+        local_genesis_hash=blockchain.public_testnet_v1_genesis_hash(),
+        local_score=blockchain.get_cumulative_originality_score(),
+        local_network_id=blockchain.protocol_v1_network_id(),
+    )
+    collaborators = ChainSyncCollaborators(
+        compare_summaries=blockchain.compare_chain_summaries,
+        store_certificates=lambda payloads: _store_chain_sync_certificates(
+            blockchain, payloads, network_name
+        ),
+        validate_candidate=lambda blocks, **expected: _validate_candidate_chain(
+            blockchain, blocks, **expected
+        ),
+        compare_candidate=lambda candidate: blockchain.compare_chains_by_originality(
+            blockchain.chain, candidate
+        ),
+        adopt_candidate=lambda candidate: _adopt_candidate_chain(blockchain, candidate),
+    )
+    return _peer_chain_sync_service().sync_peer(
         peer,
         origin_node_id=origin_node_id,
         network_name=network_name,
         timeout_seconds=timeout_seconds,
+        state=state,
+        collaborators=collaborators,
     )
-    peer_score = summary["cumulative_originality_score"]
-    peer_height = summary["chain_height"]
-    peer_latest_hash = summary["latest_block_hash"]
-    if summary["network_name"] != network_name:
-        return _chain_sync_result(
-            peer,
-            "skipped",
-            "wrong_network",
-            local_height=local_height,
-            peer_height=peer_height,
-            candidate_height=peer_height,
-            local_latest_hash=local_latest_hash,
-            candidate_latest_hash=peer_latest_hash,
-            local_score=local_score,
-            peer_score=peer_score,
-            candidate_score=peer_score,
-            decision="invalid_candidate",
-        )
-    if summary["network_id"] != local_network_id:
-        return _chain_sync_result(
-            peer,
-            "skipped",
-            "wrong_network",
-            local_height=local_height,
-            peer_height=peer_height,
-            candidate_height=peer_height,
-            local_latest_hash=local_latest_hash,
-            candidate_latest_hash=peer_latest_hash,
-            local_score=local_score,
-            peer_score=peer_score,
-            candidate_score=peer_score,
-            decision="invalid_candidate",
-        )
-    if summary["genesis_hash"] != local_genesis_hash:
-        return _chain_sync_result(
-            peer,
-            "skipped",
-            "different_genesis_hash",
-            local_height=local_height,
-            peer_height=peer_height,
-            candidate_height=peer_height,
-            local_latest_hash=local_latest_hash,
-            candidate_latest_hash=peer_latest_hash,
-            local_score=local_score,
-            peer_score=peer_score,
-            candidate_score=peer_score,
-            decision="invalid_candidate",
-        )
 
-    if peer_score < local_score:
-        return _chain_sync_result(
-            peer,
-            "skipped",
-            "lower_originality_score",
-            local_height=local_height,
-            peer_height=peer_height,
-            candidate_height=peer_height,
-            local_latest_hash=local_latest_hash,
-            candidate_latest_hash=peer_latest_hash,
-            local_score=local_score,
-            peer_score=peer_score,
-            candidate_score=peer_score,
-            decision="keep_local",
-        )
-    if peer_score == local_score:
-        if peer_height < local_height:
-            return _chain_sync_result(
-                peer,
-                "skipped",
-                "lower_chain_height",
-                local_height=local_height,
-                peer_height=peer_height,
-                candidate_height=peer_height,
-                local_latest_hash=local_latest_hash,
-                candidate_latest_hash=peer_latest_hash,
-                local_score=local_score,
-                peer_score=peer_score,
-                candidate_score=peer_score,
-                decision="keep_local",
-            )
-        if peer_height == local_height:
-            if peer_latest_hash == local_latest_hash:
-                return _chain_sync_result(
-                    peer,
-                    "skipped",
-                    "same_latest_block_hash",
-                    local_height=local_height,
-                    peer_height=peer_height,
-                    candidate_height=peer_height,
-                    local_latest_hash=local_latest_hash,
-                    candidate_latest_hash=peer_latest_hash,
-                    local_score=local_score,
-                    peer_score=peer_score,
-                    candidate_score=peer_score,
-                    decision="equivalent",
-                )
-            if peer_latest_hash > local_latest_hash:
-                return _chain_sync_result(
-                    peer,
-                    "skipped",
-                    "higher_latest_block_hash",
-                    local_height=local_height,
-                    peer_height=peer_height,
-                    candidate_height=peer_height,
-                    local_latest_hash=local_latest_hash,
-                    candidate_latest_hash=peer_latest_hash,
-                    local_score=local_score,
-                    peer_score=peer_score,
-                    candidate_score=peer_score,
-                    decision="keep_local",
-                )
 
-    candidate_payload = _fetch_peer_blocks(
-        peer,
-        from_height=0,
-        origin_node_id=origin_node_id,
-        network_name=network_name,
-        timeout_seconds=timeout_seconds,
-    )
-    _store_chain_sync_certificates(
-        blockchain=blockchain,
-        certificates_payload=candidate_payload.get("certificates", []),
-        local_network_name=network_name,
-    )
-    candidate_chain = _validate_candidate_chain(
-        blockchain,
-        candidate_payload["blocks"],
-        expected_latest_hash=peer_latest_hash,
-        expected_genesis_hash=local_genesis_hash,
-        expected_height=peer_height,
-    )
-    comparison = blockchain.compare_chains_by_originality(blockchain.chain, candidate_chain)
-    if comparison["decision"] != "replace_with_candidate":
-        return _chain_sync_result(
-            peer,
-            "skipped",
-            comparison["reason"],
-            local_height=local_height,
-            peer_height=peer_height,
-            candidate_height=comparison["candidate_height"],
-            local_latest_hash=comparison["local_latest_hash"],
-            candidate_latest_hash=comparison["candidate_latest_hash"],
-            local_score=comparison["local_score"],
-            peer_score=peer_score,
-            candidate_score=comparison["candidate_score"],
-            decision=comparison["decision"],
-        )
-
+def _adopt_candidate_chain(blockchain, candidate_chain):
     previous_chain_length = len(blockchain.chain)
     for block in candidate_chain:
         _remove_confirmed_pending_transactions(blockchain, block.transactions)
@@ -1692,99 +925,29 @@ def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeou
     blockchain.reconcile_submission_canonical_state()
     blockchain.reconcile_native_transactions_with_chain(chain=candidate_chain)
     blockchain.save_blockchain()
-
-    return _chain_sync_result(
-        peer,
-        "synced",
-        comparison["reason"],
-        local_height=local_height,
-        peer_height=peer_height,
-        candidate_height=comparison["candidate_height"],
-        appended=max(0, len(candidate_chain) - previous_chain_length),
-        latest_block_hash=blockchain.get_latest_block().hash,
-        local_latest_hash=comparison["local_latest_hash"],
-        candidate_latest_hash=comparison["candidate_latest_hash"],
-        local_score=comparison["local_score"],
-        peer_score=peer_score,
-        candidate_score=comparison["candidate_score"],
-        decision=comparison["decision"],
-    )
+    return {
+        "appended": max(0, len(candidate_chain) - previous_chain_length),
+        "latest_block_hash": blockchain.get_latest_block().hash,
+    }
 
 
 def _fetch_peer_chain_summary(peer, *, origin_node_id, network_name, timeout_seconds):
-    summary_path = "/peers/chain/summary"
-    summary_url = f"{peer['url'].rstrip('/')}{summary_path}"
-    request_headers = build_peer_request_headers(
-        "GET",
-        summary_path,
-        None,
-        origin_node_id,
+    return _peer_chain_sync_service().fetch_summary(
+        peer,
+        origin_node_id=origin_node_id,
         network_name=network_name,
+        timeout_seconds=timeout_seconds,
     )
-    request_kwargs = {"timeout": timeout_seconds}
-    if request_headers:
-        request_kwargs["headers"] = request_headers
-    response = requests.get(
-        summary_url,
-        **request_kwargs,
-    )
-    status_code = getattr(response, "status_code", None)
-    if status_code is None or status_code >= 400:
-        raise ChainSyncError(f"Peer summary returned status {status_code}.")
-    return _normalize_chain_summary(response.json())
 
 
 def _fetch_peer_blocks(peer, from_height, *, origin_node_id, network_name, timeout_seconds):
-    blocks_path = "/peers/chain/blocks"
-    query_payload = {"from_height": from_height, "include_media_bytes": True}
-    blocks_url = f"{peer['url'].rstrip('/')}{blocks_path}"
-    request_headers = build_peer_request_headers(
-        "GET",
-        blocks_path,
-        query_payload,
-        origin_node_id,
+    return _peer_chain_sync_service().fetch_blocks(
+        peer,
+        from_height,
+        origin_node_id=origin_node_id,
         network_name=network_name,
+        timeout_seconds=timeout_seconds,
     )
-    request_kwargs = {
-        "params": {"from_height": from_height, "include_media_bytes": "true"},
-        "timeout": timeout_seconds,
-    }
-    if request_headers:
-        request_kwargs["headers"] = request_headers
-    response = requests.get(
-        blocks_url,
-        **request_kwargs,
-    )
-    status_code = getattr(response, "status_code", None)
-    if status_code is None or status_code >= 400:
-        raise ChainSyncError(f"Peer blocks returned status {status_code}.")
-
-    payload = response.json()
-    certificates = []
-    if isinstance(payload, dict):
-        blocks = payload.get("blocks")
-        certificates = payload.get("certificates", [])
-    else:
-        blocks = payload
-    if not isinstance(blocks, list):
-        raise ChainSyncError("Peer blocks response must include a blocks list.")
-    if not isinstance(certificates, list):
-        raise ChainSyncError("Peer blocks certificates must be a list when provided.")
-
-    normalized_blocks = []
-    normalized_certificates = list(certificates)
-    for block_payload in blocks:
-        if isinstance(block_payload, dict) and "block" in block_payload:
-            normalized_blocks.append(block_payload["block"])
-            if block_payload.get("certificate") is not None:
-                normalized_certificates.append(block_payload["certificate"])
-        else:
-            normalized_blocks.append(block_payload)
-
-    return {
-        "blocks": normalized_blocks,
-        "certificates": normalized_certificates,
-    }
 
 
 def _store_chain_sync_certificates(blockchain, certificates_payload, local_network_name):
@@ -2237,51 +1400,7 @@ def _validate_candidate_chain(
 
 
 def _normalize_chain_summary(summary):
-    if not isinstance(summary, dict):
-        raise ChainSyncError("Peer chain summary must be an object.")
-
-    for field_name in ["network_name", "network_id", "protocol_version", "node_id", "chain_height", "latest_block_hash", "genesis_hash"]:
-        if field_name not in summary:
-            raise ChainSyncError(f"Peer chain summary missing {field_name}.")
-
-    if not isinstance(summary["network_name"], str) or not summary["network_name"].strip():
-        raise ChainSyncError("Peer chain summary network_name is required.")
-    if not isinstance(summary["network_id"], str) or not summary["network_id"].strip():
-        raise ChainSyncError("Peer chain summary network_id is required.")
-    try:
-        network_id = resolve_protocol_v1_network_id(network_id=summary["network_id"].strip())
-    except ValueError as exc:
-        raise ChainSyncError("Peer chain summary network_id is invalid.") from exc
-    protocol_version = summary["protocol_version"]
-    if isinstance(protocol_version, bool) or not isinstance(protocol_version, int) or protocol_version != PROTOCOL_VERSION:
-        raise ChainSyncError("Peer chain summary protocol_version is unsupported.")
-    if not isinstance(summary["node_id"], str) or not summary["node_id"].strip():
-        raise ChainSyncError("Peer chain summary node_id is required.")
-    if not isinstance(summary["chain_height"], int) or summary["chain_height"] < 0:
-        raise ChainSyncError("Peer chain summary chain_height must be a non-negative integer.")
-    if not isinstance(summary["latest_block_hash"], str) or not summary["latest_block_hash"].strip():
-        raise ChainSyncError("Peer chain summary latest_block_hash is required.")
-    if not isinstance(summary["genesis_hash"], str) or not summary["genesis_hash"].strip():
-        raise ChainSyncError("Peer chain summary genesis_hash is required.")
-
-    cumulative_originality_score = summary.get("cumulative_originality_score", 0)
-    try:
-        cumulative_originality_score = float(cumulative_originality_score)
-    except (TypeError, ValueError):
-        raise ChainSyncError("Peer chain summary cumulative_originality_score must be numeric.")
-    if not math.isfinite(cumulative_originality_score) or cumulative_originality_score < 0:
-        raise ChainSyncError("Peer chain summary cumulative_originality_score must be non-negative.")
-
-    return {
-        **summary,
-        "network_name": summary["network_name"].strip(),
-        "network_id": network_id,
-        "protocol_version": protocol_version,
-        "node_id": summary["node_id"].strip(),
-        "latest_block_hash": summary["latest_block_hash"].strip(),
-        "genesis_hash": summary["genesis_hash"].strip(),
-        "cumulative_originality_score": round(cumulative_originality_score, 8),
-    }
+    return PeerChainSyncService.normalize_summary(summary)
 
 
 def _validate_missing_blocks(blockchain, blocks_payload, expected_latest_hash):
@@ -2320,34 +1439,11 @@ def _chain_sync_result(
     candidate_score=None,
     decision=None,
 ):
-    result = {
-        "node_id": peer.get("node_id"),
-        "url": peer.get("url"),
-        "status": status,
-        "reason": reason,
-        "appended": appended,
-    }
-    if local_height is not None:
-        result["local_height"] = local_height
-    if peer_height is not None:
-        result["peer_height"] = peer_height
-    if candidate_height is not None:
-        result["candidate_height"] = candidate_height
-    if latest_block_hash is not None:
-        result["latest_block_hash"] = latest_block_hash
-    if local_latest_hash is not None:
-        result["local_latest_hash"] = local_latest_hash
-    if candidate_latest_hash is not None:
-        result["candidate_latest_hash"] = candidate_latest_hash
-    if local_score is not None:
-        result["local_score"] = local_score
-    if peer_score is not None:
-        result["peer_score"] = peer_score
-    if candidate_score is not None:
-        result["candidate_score"] = candidate_score
-    if decision is not None:
-        result["decision"] = decision
-    return result
+    return PeerChainSyncService.result(
+        peer, status, reason, local_height, peer_height, candidate_height,
+        appended, latest_block_hash, local_latest_hash, candidate_latest_hash,
+        local_score, peer_score, candidate_score, decision,
+    )
 
 
 def _find_duplicate_submission(blockchain, submission_payload):

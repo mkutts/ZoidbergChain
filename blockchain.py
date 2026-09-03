@@ -2087,6 +2087,19 @@ class Blockchain:
             ForkChoiceCollaborators(self.chain_to_dicts, self.is_chain_valid),
         )
 
+    def compare_chain_summaries(
+        self, *, local_score, candidate_score, local_height, candidate_height,
+        local_latest_hash, candidate_latest_hash,
+    ):
+        return self._fork_choice_service.compare_summary_metrics(
+            local_score=local_score,
+            candidate_score=candidate_score,
+            local_height=local_height,
+            candidate_height=candidate_height,
+            local_latest_hash=local_latest_hash,
+            candidate_latest_hash=candidate_latest_hash,
+        )
+
     def extract_block_certificate_metadata(self, block_dict):
         return self._block_validation_service.extract_certificate_metadata(block_dict)
     def validate_protocol_v1_block_payload(self, block_dict):

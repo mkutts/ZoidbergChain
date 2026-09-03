@@ -35,6 +35,34 @@ class ForkChoiceService:
     def chain_latest_hash(chain_dicts):
         return chain_dicts[-1].get("hash") if chain_dicts else None
 
+    @staticmethod
+    def compare_summary_metrics(
+        *, local_score, candidate_score, local_height, candidate_height,
+        local_latest_hash, candidate_latest_hash,
+    ):
+        """Rank normalized summaries using the frozen fork-choice order."""
+        result = {
+            "local_score": local_score,
+            "candidate_score": candidate_score,
+            "local_height": local_height,
+            "candidate_height": candidate_height,
+            "local_latest_hash": local_latest_hash,
+            "candidate_latest_hash": candidate_latest_hash,
+        }
+        if candidate_score > local_score:
+            return {**result, "decision": "replace_with_candidate", "preferred": "candidate", "reason": "higher_originality_score"}
+        if candidate_score < local_score:
+            return {**result, "decision": "keep_local", "preferred": "local", "reason": "lower_originality_score"}
+        if candidate_height > local_height:
+            return {**result, "decision": "replace_with_candidate", "preferred": "candidate", "reason": "higher_chain_height"}
+        if candidate_height < local_height:
+            return {**result, "decision": "keep_local", "preferred": "local", "reason": "lower_chain_height"}
+        if candidate_latest_hash < local_latest_hash:
+            return {**result, "decision": "replace_with_candidate", "preferred": "candidate", "reason": "lower_latest_block_hash"}
+        if candidate_latest_hash > local_latest_hash:
+            return {**result, "decision": "keep_local", "preferred": "local", "reason": "higher_latest_block_hash"}
+        return {**result, "decision": "equivalent", "preferred": "equivalent", "reason": "same_latest_block_hash"}
+
     def compare(self, local_chain, candidate_chain, collaborators: ForkChoiceCollaborators):
         local = collaborators.chain_to_dicts(local_chain)
         candidate = collaborators.chain_to_dicts(candidate_chain)
@@ -59,16 +87,11 @@ class ForkChoiceService:
             return {**result, "decision": "invalid_candidate", "preferred": "local", "reason": "different_genesis_hash"}
         if not collaborators.validate_chain(candidate):
             return {**result, "decision": "invalid_candidate", "preferred": "local", "reason": "candidate_chain_invalid"}
-        if candidate_score > local_score:
-            return {**result, "decision": "replace_with_candidate", "preferred": "candidate", "reason": "higher_originality_score"}
-        if candidate_score < local_score:
-            return {**result, "decision": "keep_local", "preferred": "local", "reason": "lower_originality_score"}
-        if candidate_height > local_height:
-            return {**result, "decision": "replace_with_candidate", "preferred": "candidate", "reason": "higher_chain_height"}
-        if candidate_height < local_height:
-            return {**result, "decision": "keep_local", "preferred": "local", "reason": "lower_chain_height"}
-        if candidate_hash < local_hash:
-            return {**result, "decision": "replace_with_candidate", "preferred": "candidate", "reason": "lower_latest_block_hash"}
-        if candidate_hash > local_hash:
-            return {**result, "decision": "keep_local", "preferred": "local", "reason": "higher_latest_block_hash"}
-        return {**result, "decision": "equivalent", "preferred": "equivalent", "reason": "same_latest_block_hash"}
+        return self.compare_summary_metrics(
+            local_score=local_score,
+            candidate_score=candidate_score,
+            local_height=local_height,
+            candidate_height=candidate_height,
+            local_latest_hash=local_hash,
+            candidate_latest_hash=candidate_hash,
+        )

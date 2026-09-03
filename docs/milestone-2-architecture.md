@@ -165,3 +165,29 @@ reconciliation, persistence, and logging. The services never import `Blockchain`
 `api`, FastAPI, peer transport, or storage adapters, and never save independently.
 The dependency direction is `api/peer_sync -> Blockchain -> consensus services ->
 protocol objects and extracted ledger/mempool/reward services`.
+
+## Task 10 Peer Networking And Synchronization Extraction
+
+Task 10 keeps `peer_sync.py` as the API-compatible facade while adding focused,
+framework-independent peer services. `PeerAuthenticationService` owns legacy and
+Protocol v1 signing bytes, signed-header construction, inbound signature error
+normalization, timestamps, and nonce-cache operations. `PeerHttpTransport` is the
+raw client-library boundary, while `PeerBroadcastService` owns peer ordering,
+timeouts, per-peer results, logging, and broadcast aggregation. The content sync
+service owns metadata/download verification and exact Model A byte storage. The
+chain sync service owns summary/block retrieval, summary normalization, failure
+aggregation, and synchronization coordination.
+
+Networking no longer implements score/height/tip-hash comparisons. Preliminary
+summary ranking and full candidate fork choice both delegate through the
+`Blockchain` compatibility facade to `ForkChoiceService`; block and chain
+validation continue through the Task 9 validation facade methods. Actual chain
+replacement, canonical reconciliation, native-transaction reconciliation, and
+persistence remain in `peer_sync.py` so the service does not acquire authoritative
+chain state or an alternative adoption path.
+
+The dependency direction is `api -> peer_sync facade -> peer services -> protocol /
+content helpers`, with injected calls back through `Blockchain -> Task 9 consensus
+services` for ranking and validation. Peer services import neither `Blockchain`,
+`api`, nor FastAPI, cache no chain collections, and persist no blockchain state
+independently. The two characterized legacy cycles remain unchanged.

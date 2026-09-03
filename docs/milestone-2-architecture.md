@@ -145,3 +145,23 @@ reward planning, and reward-pool accounting are service-owned. Candidate block
 validation, full block-native validation, block metadata/hash validation,
 acceptance, chain validation, fork choice, finality, and replacement remain in
 `Blockchain` for Task 9.
+
+## Task 9 Block Production And Consensus Extraction
+
+Task 9 adds four framework-independent consensus services. `BlockProductionService`
+owns deterministic candidate assembly, including complete Model A media embedding,
+native-transaction selection metadata, reward transaction ordering, and the existing
+timestamp boundary. `BlockValidationService` owns candidate, block, certificate,
+reward, native-transaction, content-integrity, hash-link, genesis, and whole-chain
+validation. `ForkChoiceService` owns cumulative-originality scoring and the frozen
+score/height/lower-tip-hash tie-break order. `FinalityService` owns canonical depth
+views and the frozen confirmation/finality policy.
+
+`Blockchain` remains the compatibility facade and authoritative state owner. It
+constructs fresh immutable state/collaborator views for each production or validation
+call and retains accepted-candidate mutation, miner wallet bookkeeping, mempool
+settlement/rejection, cache mutation, chain replacement, canonical submission
+reconciliation, persistence, and logging. The services never import `Blockchain`,
+`api`, FastAPI, peer transport, or storage adapters, and never save independently.
+The dependency direction is `api/peer_sync -> Blockchain -> consensus services ->
+protocol objects and extracted ledger/mempool/reward services`.

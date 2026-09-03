@@ -4,18 +4,14 @@ import hashlib
 import math
 import time
 import base64
-import re
 import secrets
-from collections import Counter
 from PIL import Image
 import imagehash
-from concurrent.futures import ThreadPoolExecutor
 import pytesseract
 import time
 from block import Block, PROTOCOL_V1_BLOCK_VERSION
 from transaction import Transaction
 from wallet import Wallet
-from utils import hash_image
 from utils import extract_text
 import json
 from decimal import Decimal
@@ -64,11 +60,9 @@ from content import (
     ContentObject,
     canonicalize_text_content,
     content_object_from_submission_data,
-    compute_text_content_hash,
     ensure_content_storage_dir,
     guess_mime_type,
     load_content_bytes,
-    resolve_declared_payload_hash,
     resolve_payload_hash,
     resolve_local_path,
     sanitize_original_filename,
@@ -89,7 +83,6 @@ from native_transfer import (
     verify_transfer_signature,
 )
 from protocol_v1_native_transfer import (
-    PROTOCOL_V1_NATIVE_TRANSFER_VERSION,
     build_protocol_v1_native_transfer_message,
     looks_like_protocol_v1_native_transfer_message,
     resolve_protocol_v1_network_id,
@@ -104,10 +97,10 @@ from protocol_v1_genesis import (
     canonical_public_testnet_v1_genesis_record,
     validate_public_testnet_v1_genesis_record,
 )
-from validators import is_valid_content_hash, is_valid_ethereum_address, is_valid_user_wallet_identity
+from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, MintQueueService, MintQueueState, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState
+from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -164,18 +157,6 @@ def _coerce_timestamp(value):
 _NATIVE_ZOID_REWARD_SCALE = Decimal("1000000")
 
 
-class NativeBlockValidationError(ValueError):
-    def __init__(self, code, message, *, details=None):
-        super().__init__(message)
-        self.code = str(code).strip() or "invalid_block"
-        self.details = dict(details or {})
-
-    def to_detail(self):
-        payload = {"code": self.code, "message": str(self)}
-        payload.update(self.details)
-        return payload
-
-
 def _short_public_key(public_key):
     key = str(public_key or "")
     if len(key) <= 18:
@@ -221,6 +202,10 @@ class Blockchain:
         self._native_ledger_service = NativeLedgerService()
         self._native_mempool_service = NativeMempoolService(self._native_ledger_service)
         self._reward_service = RewardService()
+        self._fork_choice_service = ForkChoiceService()
+        self._finality_service = FinalityService()
+        self._block_validation_service = BlockValidationService()
+        self._block_production_service = BlockProductionService()
         self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -421,6 +406,73 @@ class Blockchain:
             get_wallet_binding=self.get_wallet_binding,
             get_access_account=self.get_access_account_for_wallet,
             find_allowlist_entry=lambda scope, wallet, account: self.find_matching_allowlist_entry(scope, wallet_address=wallet, access_account=account),
+        )
+
+    def _block_validation_collaborators(self):
+        return BlockValidationCollaborators(
+            chain=self.chain,
+            chain_to_dicts=self.chain_to_dicts,
+            calculate_balances_from_chain=self.calculate_balances_from_chain,
+            validate_signed_native_transaction=self.validate_signed_native_transaction,
+            is_protocol_v1_block_payload=self.is_protocol_v1_block_payload,
+            normalize_wallet_identity=self._normalize_native_wallet_identity,
+            coerce_native_nonce=self._coerce_native_nonce,
+            get_next_chain_nonce=self.get_next_chain_nonce,
+            native_block_sort_key=self._native_block_sort_key,
+            normalize_decimal_value=self._normalize_decimal_value,
+            compute_native_transactions_hash=self._compute_block_native_transactions_hash,
+            block_native_transactions=self._block_native_transactions,
+            resolve_protocol_v1_block_media=self._resolve_protocol_v1_block_media,
+            protocol_v1_network_id=self.protocol_v1_network_id,
+            get_settled_voter_reward_ids=self._get_settled_voter_reward_ids,
+            build_reward_transaction_key=self._build_reward_transaction_key,
+            expected_voter_reward_records_by_id=self._expected_voter_reward_records_by_id,
+            block_reward_transactions=self._block_reward_transactions,
+            get_originality_certificate=self.get_originality_certificate,
+            get_submission=self.get_submission,
+            resolve_meme_reward_recipient=self.resolve_meme_reward_recipient,
+            get_content_object_by_hash=self.get_content_object_by_hash,
+            verify_content_object_payload=lambda content_object: verify_content_object_payload(content_object, data_dir=self.storage.data_dir),
+            calculate_hash_from_dict=self.calculate_hash_from_dict,
+            validate_transaction=self.validate_transaction,
+            validate_genesis=self.validate_canonical_public_testnet_v1_genesis,
+            config={
+                "network_name": NETWORK_NAME,
+                "meme_block_reward": MEME_BLOCK_REWARD,
+                "voter_reward_approval_side": VOTER_REWARD_APPROVAL_SIDE,
+                "voter_reward_rejection_side": VOTER_REWARD_REJECTION_SIDE,
+            },
+        )
+
+    def _block_production_state(self):
+        return BlockProductionState(
+            self.chain,
+            self.pending_transactions,
+            self.texts,
+            self.image_hashes,
+            self.reward_pool,
+            self.initial_reward_pool,
+        )
+
+    def _block_production_collaborators(self):
+        return BlockProductionCollaborators(
+            is_valid_public_key=self.is_valid_public_key,
+            encode_image=self.encode_image,
+            select_native_transactions_for_block=self.select_native_transactions_for_block,
+            validate_transaction=self.validate_transaction,
+            normalize_wallet_identity=self._normalize_native_wallet_identity,
+            get_protocol_v1_block_for_submission=self.get_protocol_v1_block_for_submission,
+            get_protocol_v1_block_for_certificate=self.get_protocol_v1_block_for_certificate,
+            select_voter_reward_records_for_block=self._select_voter_reward_records_for_block,
+            get_submission=self.get_submission,
+            build_meme_reward_metadata=self.build_meme_reward_metadata,
+            certificate_block_metadata=self.certificate_block_metadata,
+            protocol_v1_network_id=self.protocol_v1_network_id,
+            config={
+                "max_transactions_per_block": MAX_TRANSACTIONS_PER_BLOCK,
+                "meme_block_reward": MEME_BLOCK_REWARD,
+                "voter_rewards_enabled": VOTER_REWARDS_ENABLED,
+            },
         )
 
     def refresh_access_control_state_from_storage(self):
@@ -838,96 +890,21 @@ class Blockchain:
 
     @staticmethod
     def protocol_v1_lifecycle_policy() -> dict[str, object]:
-        return {
-            "confirmation_depth": int(PROTOCOL_V1_CONFIRMATION_DEPTH),
-            "finality_depth": int(PROTOCOL_V1_FINALITY_DEPTH),
-            "finality_model": "operational_depth",
-            "finality_scope": "policy_not_bft",
-        }
+        return FinalityService.policy(FinalityPolicy(PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH))
 
     def get_protocol_v1_block_for_submission(self, submission_id, *, chain=None):
-        normalized_submission_id = str(submission_id or "").strip()
-        if not normalized_submission_id:
-            return None
-        for block in chain or self.chain:
-            if not self.is_protocol_v1_block_payload(block):
-                continue
-            if str(self._block_field(block, "submission_id") or "").strip() == normalized_submission_id:
-                return block
-        return None
+        return self._finality_service.find_protocol_block(chain or self.chain, field_name="submission_id", value=submission_id, is_protocol_block=self.is_protocol_v1_block_payload)
 
     def get_protocol_v1_block_for_certificate(self, certificate_id, *, chain=None):
-        normalized_certificate_id = str(certificate_id or "").strip()
-        if not normalized_certificate_id:
-            return None
-        for block in chain or self.chain:
-            if not self.is_protocol_v1_block_payload(block):
-                continue
-            if str(self._block_field(block, "certificate_id") or "").strip() == normalized_certificate_id:
-                return block
-        return None
+        return self._finality_service.find_protocol_block(chain or self.chain, field_name="certificate_id", value=certificate_id, is_protocol_block=self.is_protocol_v1_block_payload)
 
     def get_block_chain_state(self, block_or_hash, *, chain=None) -> dict[str, object]:
-        policy = self.protocol_v1_lifecycle_policy()
         chain_dicts = self.chain_to_dicts(chain or self.chain)
-        target_hash = (
-            str(block_or_hash or "").strip()
-            if isinstance(block_or_hash, str)
-            else str(self._block_field(block_or_hash, "hash") or "").strip()
+        return self._finality_service.block_chain_state(
+            block_or_hash,
+            chain_dicts,
+            FinalityPolicy(PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH),
         )
-        state = {
-            "accepted": False,
-            "block_created": False,
-            "block_accepted": False,
-            "canonical": False,
-            "confirmations": None,
-            "confirmed": False,
-            "finalized": False,
-            "confirmation_depth": policy["confirmation_depth"],
-            "finality_depth": policy["finality_depth"],
-            "finality_model": policy["finality_model"],
-            "finality_scope": policy["finality_scope"],
-            "block_hash": target_hash or None,
-            "block_height": None,
-            "phase": "none",
-        }
-        if not target_hash:
-            return state
-
-        target_block = next(
-            (
-                block_dict
-                for block_dict in chain_dicts
-                if str(block_dict.get("hash") or "").strip() == target_hash
-            ),
-            None,
-        )
-        if target_block is None:
-            return state
-
-        confirmations = int(chain_dicts[-1]["index"]) - int(target_block["index"])
-        confirmed = confirmations >= int(policy["confirmation_depth"])
-        finalized = confirmations >= int(policy["finality_depth"])
-        phase = "canonical"
-        if finalized:
-            phase = "finalized"
-        elif confirmed:
-            phase = "confirmed"
-
-        state.update(
-            {
-                "accepted": True,
-                "block_created": True,
-                "block_accepted": True,
-                "canonical": True,
-                "confirmations": confirmations,
-                "confirmed": confirmed,
-                "finalized": finalized,
-                "block_height": int(target_block["index"]),
-                "phase": phase,
-            }
-        )
-        return state
 
     def get_submission_certificate_state(self, submission) -> dict[str, object]:
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
@@ -1581,182 +1558,9 @@ class Blockchain:
         raise NativeBlockValidationError(code, message, details=details or None)
 
     def validate_block_native_transactions(self, block_dict, *, prior_chain=None):
-        native_transactions = list(block_dict.get("native_transactions", []) or [])
-        transaction_ids = list(block_dict.get("transaction_ids", []) or [])
-        transaction_count = block_dict.get("transaction_count", len(native_transactions))
-        transactions_hash = block_dict.get("transactions_hash")
-
-        if transaction_count != len(native_transactions):
-            self._raise_native_block_validation_error(
-                "invalid_transaction_count",
-                "Block transaction_count does not match native_transactions length.",
-                transaction_count=transaction_count,
-                actual_count=len(native_transactions),
-            )
-        expected_transaction_ids = [transaction.get("tx_id") for transaction in native_transactions]
-        if transaction_ids != expected_transaction_ids:
-            self._raise_native_block_validation_error(
-                "transaction_id_mismatch",
-                "Block transaction_ids do not match native_transactions.",
-                transaction_ids=transaction_ids,
-                expected_transaction_ids=expected_transaction_ids,
-            )
-        if native_transactions and transactions_hash != self._compute_block_native_transactions_hash(native_transactions):
-            self._raise_native_block_validation_error(
-                "transactions_hash_mismatch",
-                "Block transactions_hash does not match native_transactions.",
-                transactions_hash=transactions_hash,
-            )
-
-        if native_transactions and not self._native_block_requires_certificate_context(block_dict):
-            self._raise_native_block_validation_error(
-                "invalid_block_context",
-                "Blocks containing native transactions must remain meme-mined blocks.",
-            )
-
-        prior_chain = self.chain_to_dicts(prior_chain or self.chain)
-        chain_state = self.calculate_balances_from_chain(prior_chain)
-        seen_prior_tx_ids = set(chain_state["seen_tx_ids"])
-        next_nonces = dict(chain_state["next_nonces"])
-        balances: dict[str, Decimal] = dict(chain_state["balances"])
-        seen_block_tx_ids = set()
-        seen_block_nonces = set()
-        validated_transactions = []
-
-        for index, transaction in enumerate(native_transactions):
-            if not isinstance(transaction, dict):
-                self._raise_native_block_validation_error(
-                    "malformed_transaction",
-                    "Block native transaction payload must be an object.",
-                    transaction_index=index,
-                )
-            try:
-                validated_transaction = self.validate_signed_native_transaction(transaction)
-            except ValueError as exc:
-                message = str(exc)
-                code = "malformed_transaction"
-                if "tx_id does not match" in message:
-                    code = "transaction_id_mismatch"
-                elif "network does not match" in message:
-                    code = "wrong_network"
-                elif "transaction_type must be exactly" in message:
-                    code = "unsupported_transaction_type"
-                elif "signature_scheme must be" in message or "signature is required" in message or "Malformed signature" in message or "signature" in message:
-                    code = "invalid_transaction_signature"
-                elif "fee" in message:
-                    code = "invalid_fee"
-                self._raise_native_block_validation_error(
-                    code,
-                    message,
-                    transaction_index=index,
-                    tx_id=str(transaction.get("tx_id") or "").strip().lower() or None,
-                )
-
-            tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
-            if (
-                self.is_protocol_v1_block_payload(block_dict)
-                and validated_transaction.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION
-            ):
-                self._raise_native_block_validation_error(
-                    "unsupported_transaction_version",
-                    "Protocol v1 blocks cannot include legacy native transactions.",
-                    tx_id=tx_id,
-                    transaction_index=index,
-                )
-            if tx_id in seen_block_tx_ids:
-                self._raise_native_block_validation_error(
-                    "duplicate_transaction_id",
-                    "Block contains the same native transaction more than once.",
-                    tx_id=tx_id,
-                    transaction_index=index,
-                )
-            if tx_id in seen_prior_tx_ids:
-                self._raise_native_block_validation_error(
-                    "transaction_already_settled",
-                    "Block contains a native transaction that was already settled in an earlier block.",
-                    tx_id=tx_id,
-                    transaction_index=index,
-                )
-
-            sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
-            recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
-            transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
-            sender_nonce_key = (sender, transaction_nonce)
-            if sender_nonce_key in seen_block_nonces:
-                self._raise_native_block_validation_error(
-                    "duplicate_nonce",
-                    "Block contains multiple native transactions with the same sender nonce.",
-                    tx_id=tx_id,
-                    from_address=sender,
-                    nonce=transaction_nonce,
-                    transaction_index=index,
-                )
-
-            expected_nonce = next_nonces.get(sender, self.get_next_chain_nonce(sender, prior_chain))
-            if transaction_nonce < expected_nonce:
-                self._raise_native_block_validation_error(
-                    "nonce_too_low",
-                    "Block native transaction nonce is lower than the next expected chain nonce.",
-                    tx_id=tx_id,
-                    from_address=sender,
-                    expected_nonce=expected_nonce,
-                    received_nonce=transaction_nonce,
-                    transaction_index=index,
-                )
-            if transaction_nonce > expected_nonce:
-                self._raise_native_block_validation_error(
-                    "nonce_gap",
-                    "Block native transaction nonce creates a gap against the prior chain state.",
-                    tx_id=tx_id,
-                    from_address=sender,
-                    expected_nonce=expected_nonce,
-                    received_nonce=transaction_nonce,
-                    transaction_index=index,
-                )
-
-            amount = Decimal(str(validated_transaction.get("amount") or "0"))
-            fee = Decimal(str(validated_transaction.get("fee") or "0"))
-            if fee != Decimal("0"):
-                self._raise_native_block_validation_error(
-                    "invalid_fee",
-                    "Block native transaction fee must be zero under the current fee policy.",
-                    tx_id=tx_id,
-                    fee=str(validated_transaction.get("fee") or "0"),
-                    transaction_index=index,
-                )
-            required_total = amount + fee
-            sender_balance = balances.get(sender, Decimal("0"))
-            if sender_balance < required_total:
-                self._raise_native_block_validation_error(
-                    "insufficient_balance",
-                    "Block native transaction would overdraw the sender when applied in block order.",
-                    tx_id=tx_id,
-                    from_address=sender,
-                    available_balance=self._normalize_decimal_value(sender_balance),
-                    required_total=self._normalize_decimal_value(required_total),
-                    transaction_index=index,
-                )
-
-            recipient_balance = balances.get(recipient, Decimal("0"))
-            balances[sender] = sender_balance - required_total
-            balances[recipient] = recipient_balance + amount
-            next_nonces[sender] = expected_nonce + 1
-            seen_prior_tx_ids.add(tx_id)
-            seen_block_tx_ids.add(tx_id)
-            seen_block_nonces.add(sender_nonce_key)
-            validated_transactions.append(validated_transaction)
-
-        expected_order = sorted(validated_transactions, key=self._native_block_sort_key)
-        if [transaction.get("tx_id") for transaction in validated_transactions] != [
-            transaction.get("tx_id") for transaction in expected_order
-        ]:
-            self._raise_native_block_validation_error(
-                "transaction_order_invalid",
-                "Block native transaction ordering does not match the canonical block ordering policy.",
-            )
-
-        return True
-
+        return self._block_validation_service.validate_native_transactions(
+            block_dict, self._block_validation_collaborators(), prior_chain=prior_chain
+        )
     def settle_block_native_transactions(self, block):
         return self._native_ledger_service.settle_block_native_transactions(self._native_ledger_state(), self.storage, block)
 
@@ -2142,35 +1946,9 @@ class Blockchain:
         return removed_entries
 
     def validate_candidate_block_for_local_acceptance(self, block, *, current_chain=None):
-        working_chain = current_chain or self.chain
-        latest_block = working_chain[-1]
-        if block.previous_hash != latest_block.hash:
-            raise ValueError("Block does not extend the local chain tip.")
-        if block.index != latest_block.index + 1:
-            raise ValueError("Block index must extend the local chain by one.")
-
-        calculated_hash = block.calculate_hash()
-        if block.hash != calculated_hash:
-            raise ValueError("Block hash does not match block contents.")
-
-        block_dict = block.to_dict()
-        expected_hash = self.calculate_hash_from_dict(block_dict)
-        if block.hash != expected_hash:
-            raise ValueError("Block hash does not match existing block validation.")
-
-        for transaction in block.transactions:
-            if not transaction.is_valid():
-                raise ValueError("Block contains an invalid transaction.")
-            if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not self.validate_transaction(transaction):
-                raise ValueError("Block contains an invalid transaction.")
-
-        prior_chain = self.chain_to_dicts(working_chain)
-        self.validate_block_with_native_transactions(block_dict, prior_chain=prior_chain)
-        candidate_chain = prior_chain + [block_dict]
-        if not self.is_chain_valid(candidate_chain):
-            raise ValueError("Block failed chain validation.")
-        return True
-
+        return self._block_validation_service.validate_candidate(
+            block, self._block_validation_collaborators(), current_chain=current_chain
+        )
     def build_block_candidate(
         self,
         image_path,
@@ -2181,236 +1959,17 @@ class Blockchain:
         certificate=None,
         reward_recipient=None,
     ):
-        if not self.is_valid_public_key(miner):
-            print(f"Debug: Invalid miner public key: {miner}")
-            raise ValueError("Invalid public key provided for the miner.")
-
-        file_exists = bool(image_path) and os.path.isfile(image_path)
-        file_extension = os.path.splitext(image_path)[1].lower() if image_path else ""
-        guessed_mime_type = guess_mime_type(os.path.basename(image_path), "image/jpeg") if file_exists else ""
-        is_text_payload = bool(text_content and text_content.strip()) and (
-            not file_exists
-            or guessed_mime_type == TEXT_MIME_TYPE
-            or file_extension == ".txt"
-        )
-
-        if not file_exists and not is_text_payload:
-            print(f"Debug: Image path {image_path} does not exist.")
-            raise ValueError("Invalid image path provided for the meme.")
-
-        if not text_content:
-            if is_text_payload and file_exists:
-                print("Debug: Reading text content from the stored text payload.")
-                with open(image_path, "r", encoding="utf-8") as text_file:
-                    text_content = text_file.read()
-            else:
-                print("Debug: Extracting text content from the image.")
-                text_content = extract_text(image_path)
-            if not text_content:
-                print(f"Debug: No text extracted from image {image_path}.")
-                raise ValueError("No text content could be extracted from the image.")
-
-        normalized_text = re.sub(r'[^\w\s]', '', text_content).strip().lower()
-        if is_text_payload:
-            image_hash = compute_text_content_hash(text_content)
-        else:
-            image_hash = hash_image(image_path)
-
-        if validate_meme:
-            if is_text_payload:
-                if normalized_text in self.texts:
-                    print(f"Debug: Duplicate text payload detected: '{normalized_text}' already exists.")
-                    raise ValueError("This meme has already been submitted.")
-            elif image_hash in self.image_hashes and normalized_text in self.texts:
-                print(
-                    f"Debug: Duplicate meme detected! Image hash {image_hash} and text "
-                    f"'{normalized_text}' already exist."
-                )
-                raise ValueError("This meme has already been submitted.")
-
-        protocol_v1_media = None
-        canonical_block_text = text_content
-        if certificate is not None:
-            if is_text_payload:
-                protocol_v1_media = resolve_declared_payload_hash(
-                    text_content.encode("utf-8"),
-                    TEXT_MIME_TYPE,
-                )
-                canonical_block_text = protocol_v1_media["text_content"]
-            else:
-                with open(image_path, "rb") as image_file:
-                    protocol_v1_media = resolve_declared_payload_hash(
-                        image_file.read(),
-                        guessed_mime_type or guess_mime_type(os.path.basename(image_path), "image/jpeg"),
-                    )
-            declared_content_hash = str(getattr(certificate, "content_hash", "") or "").strip()
-            if declared_content_hash != protocol_v1_media["content_hash"]:
-                raise ValueError("Certified submission content_hash does not match canonical media bytes.")
-
-        if is_text_payload:
-            print("Debug: Encoding text payload for block storage.")
-            encoded_payload = (
-                protocol_v1_media["stored_bytes"]
-                if protocol_v1_media is not None
-                else text_content.encode("utf-8")
-            )
-            meme_encoded = base64.b64encode(encoded_payload).decode("utf-8")
-        else:
-            if protocol_v1_media is not None:
-                print(f"Debug: Encoding image at path {image_path}.")
-                meme_encoded = base64.b64encode(protocol_v1_media["stored_bytes"]).decode("utf-8")
-            else:
-                print(f"Debug: Encoding image at path {image_path}.")
-                meme_encoded = self.encode_image(image_path)
-
-        meme_size_kb = len(meme_encoded) / 1024
-        text_size_kb = len(text_content.encode()) / 1024
-
-        native_transaction_plan = self.select_native_transactions_for_block(
-            max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK,
-        )
-        native_transactions_for_block = native_transaction_plan["transactions"]
-        native_tx_size_kb = len(
-            json.dumps(
-                native_transactions_for_block,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=True,
-            ).encode("utf-8")
-        ) / 1024 if native_transactions_for_block else 0
-
-        valid_transactions = []
-        total_tx_size_kb = 0
-        total_miner_tips = 0.0
-        candidate_reward_pool = float(self.reward_pool)
-
-        print("Debug: Validating transactions concurrently...")
-        with ThreadPoolExecutor() as executor:
-            future_to_tx = {executor.submit(self.validate_transaction, tx): tx for tx in self.pending_transactions}
-            for future in future_to_tx:
-                tx = future_to_tx[future]
-                try:
-                    if future.result():
-                        tip = float(tx.tip or 0)
-                        if candidate_reward_pool < (self.initial_reward_pool * 0.25):
-                            tip_split = {"miner": 0.25, "reward_pool": 0.75}
-                        else:
-                            tip_split = {"miner": 0.5, "reward_pool": 0.5}
-
-                        miner_tip_share = tip * tip_split["miner"]
-                        reward_pool_tip_share = tip * tip_split["reward_pool"]
-                        candidate_reward_pool += reward_pool_tip_share
-                        total_miner_tips += miner_tip_share
-
-                        print(f"Debug: Transaction Distribution - Tip Total: {tip:.4f}")
-                        print(f"Debug: - Miner gets: {miner_tip_share:.4f}")
-                        print(f"Debug: - Reward Pool gets: {reward_pool_tip_share:.4f}")
-
-                        tx_size_kb = len(str(tx)) / 1024
-                        total_tx_size_kb += tx_size_kb
-                        valid_transactions.append(tx)
-                except Exception as e:
-                    print(f"Debug: Transaction validation error: {e}")
-
-        total_block_size_kb = meme_size_kb + text_size_kb + total_tx_size_kb + native_tx_size_kb
-        if total_block_size_kb > max_block_size_kb:
-            print(
-                f"Debug: Block size {total_block_size_kb:.2f} KB exceeds max limit of "
-                f"{max_block_size_kb} KB. Rejecting block."
-            )
-            return None
-
-        print(f"Debug: Final block size: {total_block_size_kb:.2f} KB (within limit: {max_block_size_kb} KB)")
-
-        mining_reward = float(MEME_BLOCK_REWARD)
-        reward_receiver = reward_recipient or miner
-        if reward_receiver not in {"GENESIS", "REWARD_POOL"}:
-            normalized_reward_receiver = self._normalize_native_wallet_identity(reward_receiver)
-            if normalized_reward_receiver is None:
-                raise ValueError("Minting reward recipient is missing or invalid for this submission.")
-            reward_receiver = normalized_reward_receiver
-        if certificate is not None and (
-            self.get_protocol_v1_block_for_submission(certificate.submission_id) is not None
-            or self.get_protocol_v1_block_for_certificate(certificate.certificate_id) is not None
-        ):
-            raise ValueError("Certified submission already minted into a block.")
-
-        voter_reward_plan = (
-            self._select_voter_reward_records_for_block(
-                prioritized_submission_id=certificate.submission_id,
-                reward_pool_balance=candidate_reward_pool,
-            )
-            if VOTER_REWARDS_ENABLED and certificate is not None
-            else {"selected": [], "skipped": []}
-        )
-        total_voter_reward_amount = sum(
-            float(reward_record["reward_amount"])
-            for reward_record in voter_reward_plan["selected"]
-        )
-        if candidate_reward_pool < (mining_reward + total_voter_reward_amount):
-            print("Error: Insufficient funds in the reward pool.")
-            return None
-
-        voter_reward_transactions = [
-            Transaction("REWARD_POOL", reward_record["reward_recipient"], float(reward_record["reward_amount"]))
-            for reward_record in voter_reward_plan["selected"]
-        ]
-        reward_transaction = Transaction("REWARD_POOL", reward_receiver, mining_reward)
-
-        latest_block = self.get_latest_block()
-        minted_at = time.time()
-        reward_metadata = {}
-        if certificate is not None:
-            certificate_submission = self.get_submission(certificate.submission_id)
-            if certificate_submission is None:
-                raise ValueError(f"Submission not found: {certificate.submission_id}")
-            reward_metadata = self.build_meme_reward_metadata(
-                certificate_submission,
-                certificate,
-                minted_at=minted_at,
-            )
-
-        new_block = Block(
-            index=latest_block.index + 1,
-            previous_hash=latest_block.hash,
-            timestamp=minted_at,
-            transactions=voter_reward_transactions + [reward_transaction] + valid_transactions,
-            meme={"encoded_image": meme_encoded, "text": canonical_block_text},
+        return self._block_production_service.build_candidate(
+            self._block_production_state(),
+            self._block_production_collaborators(),
+            image_path,
+            text_content=text_content,
             miner=miner,
-            block_version=PROTOCOL_V1_BLOCK_VERSION if certificate is not None else None,
-            network_id=self.protocol_v1_network_id() if certificate is not None else None,
-            media_hash=protocol_v1_media["content_hash"] if protocol_v1_media is not None else None,
-            media_bytes=protocol_v1_media["stored_bytes"] if protocol_v1_media is not None else None,
-            native_transactions=native_transactions_for_block,
-            transaction_ids=native_transaction_plan["transaction_ids"],
-            transaction_count=native_transaction_plan["transaction_count"],
-            transactions_hash=native_transaction_plan["transactions_hash"],
-            **(self.certificate_block_metadata(certificate) if certificate else {}),
-            **reward_metadata,
-            voter_rewards=voter_reward_plan["selected"],
+            max_block_size_kb=max_block_size_kb,
+            validate_meme=validate_meme,
+            certificate=certificate,
+            reward_recipient=reward_recipient,
         )
-        if certificate is not None:
-            new_block.reward_type = "meme_mining_reward"
-            new_block.reward_recipient = reward_transaction.recipient
-            new_block.reward_amount = mining_reward
-            new_block.reward_source = "reward_pool"
-            new_block.minted_at = minted_at
-            new_block.voter_rewards = list(voter_reward_plan["selected"])
-            new_block.hash = new_block.calculate_hash()
-
-        return {
-            "block": new_block,
-            "candidate_type": "protocol_v1" if certificate is not None else "legacy",
-            "image_path": image_path,
-            "text_content": text_content,
-            "normalized_text": normalized_text,
-            "image_hash": image_hash,
-            "total_block_size_kb": total_block_size_kb,
-            "total_miner_tips": total_miner_tips,
-            "valid_transactions": valid_transactions,
-            "native_transaction_plan": native_transaction_plan,
-        }
-
     def accept_block_candidate(self, candidate):
         if candidate is None:
             return False
@@ -2501,21 +2060,7 @@ class Blockchain:
 
     @staticmethod
     def calculate_cumulative_originality_score(chain):
-        cumulative_score = 0
-        for block in chain:
-            if isinstance(block, dict):
-                if block.get("index") == 0:
-                    continue
-                originality_score = block.get("originality_score", 0)
-            else:
-                if getattr(block, "index", None) == 0:
-                    continue
-                originality_score = getattr(block, "originality_score", 0)
-
-            if originality_score is not None:
-                cumulative_score += originality_score
-
-        return round(cumulative_score, 8)
+        return ForkChoiceService.cumulative_originality_score(chain)
 
     def get_cumulative_originality_score(self):
         return self.calculate_cumulative_originality_score(self.chain)
@@ -2529,699 +2074,46 @@ class Blockchain:
 
     @staticmethod
     def chain_height(chain_dicts):
-        if not chain_dicts:
-            return None
-        return chain_dicts[-1].get("index")
+        return ForkChoiceService.chain_height(chain_dicts)
 
     @staticmethod
     def chain_latest_hash(chain_dicts):
-        if not chain_dicts:
-            return None
-        return chain_dicts[-1].get("hash")
+        return ForkChoiceService.chain_latest_hash(chain_dicts)
 
     def compare_chains_by_originality(self, local_chain, candidate_chain):
-        local_chain_dicts = self.chain_to_dicts(local_chain)
-        candidate_chain_dicts = self.chain_to_dicts(candidate_chain)
-        local_score = self.calculate_cumulative_originality_score(local_chain_dicts)
-        candidate_score = self.calculate_cumulative_originality_score(candidate_chain_dicts)
-        local_height = self.chain_height(local_chain_dicts)
-        candidate_height = self.chain_height(candidate_chain_dicts)
-        local_latest_hash = self.chain_latest_hash(local_chain_dicts)
-        candidate_latest_hash = self.chain_latest_hash(candidate_chain_dicts)
-
-        result = {
-            "local_score": local_score,
-            "candidate_score": candidate_score,
-            "local_height": local_height,
-            "candidate_height": candidate_height,
-            "local_latest_hash": local_latest_hash,
-            "candidate_latest_hash": candidate_latest_hash,
-        }
-
-        if not local_chain_dicts or not candidate_chain_dicts:
-            return {
-                **result,
-                "decision": "invalid_candidate",
-                "preferred": "local",
-                "reason": "candidate_chain_invalid",
-            }
-        if candidate_chain_dicts[0].get("hash") != local_chain_dicts[0].get("hash"):
-            return {
-                **result,
-                "decision": "invalid_candidate",
-                "preferred": "local",
-                "reason": "different_genesis_hash",
-            }
-        if not self.is_chain_valid(candidate_chain_dicts):
-            return {
-                **result,
-                "decision": "invalid_candidate",
-                "preferred": "local",
-                "reason": "candidate_chain_invalid",
-            }
-        if candidate_score > local_score:
-            return {
-                **result,
-                "decision": "replace_with_candidate",
-                "preferred": "candidate",
-                "reason": "higher_originality_score",
-            }
-        if candidate_score < local_score:
-            return {
-                **result,
-                "decision": "keep_local",
-                "preferred": "local",
-                "reason": "lower_originality_score",
-            }
-        if candidate_height > local_height:
-            return {
-                **result,
-                "decision": "replace_with_candidate",
-                "preferred": "candidate",
-                "reason": "higher_chain_height",
-            }
-        if candidate_height < local_height:
-            return {
-                **result,
-                "decision": "keep_local",
-                "preferred": "local",
-                "reason": "lower_chain_height",
-            }
-        if candidate_latest_hash < local_latest_hash:
-            return {
-                **result,
-                "decision": "replace_with_candidate",
-                "preferred": "candidate",
-                "reason": "lower_latest_block_hash",
-            }
-        if candidate_latest_hash > local_latest_hash:
-            return {
-                **result,
-                "decision": "keep_local",
-                "preferred": "local",
-                "reason": "higher_latest_block_hash",
-            }
-        return {
-            **result,
-            "decision": "equivalent",
-            "preferred": "equivalent",
-            "reason": "same_latest_block_hash",
-        }
+        return self._fork_choice_service.compare(
+            local_chain,
+            candidate_chain,
+            ForkChoiceCollaborators(self.chain_to_dicts, self.is_chain_valid),
+        )
 
     def extract_block_certificate_metadata(self, block_dict):
-        fields = [
-            "submission_id",
-            "certificate_id",
-            "content_hash",
-            "content_id",
-            "content_type",
-            "mime_type",
-            "creator_wallet",
-            "vote_hash",
-            "approval_percentage",
-            "decisive_vote_total",
-            "minimum_votes_required",
-            "approved_at",
-            "originality_score",
-            "reward_type",
-            "reward_recipient",
-            "reward_amount",
-            "reward_source",
-            "minted_at",
-            "native_transactions",
-            "transaction_ids",
-            "transaction_count",
-            "transactions_hash",
-        ]
-        meme = block_dict.get("meme") if isinstance(block_dict.get("meme"), dict) else {}
-        metadata = {}
-        for field_name in fields:
-            if block_dict.get(field_name) is not None:
-                metadata[field_name] = block_dict.get(field_name)
-            elif meme.get(field_name) is not None:
-                metadata[field_name] = meme.get(field_name)
-        return metadata
-
+        return self._block_validation_service.extract_certificate_metadata(block_dict)
     def validate_protocol_v1_block_payload(self, block_dict):
-        if not self.is_protocol_v1_block_payload(block_dict):
-            return True
-
-        block_version = block_dict.get("block_version")
-        if block_version != PROTOCOL_V1_BLOCK_VERSION:
-            self._raise_native_block_validation_error(
-                "invalid_block_version",
-                "Unsupported Protocol v1 block_version.",
-                block_index=block_dict.get("index"),
-                block_version=block_version,
-            )
-
-        network_id = block_dict.get("network_id")
-        expected_network_id = self.protocol_v1_network_id()
-        if network_id != expected_network_id:
-            self._raise_native_block_validation_error(
-                "wrong_network",
-                "Protocol v1 block network_id does not match the local network.",
-                block_index=block_dict.get("index"),
-                network_id=network_id,
-                expected_network_id=expected_network_id,
-            )
-
-        media_hash = block_dict.get("media_hash")
-        if not is_valid_content_hash(media_hash):
-            self._raise_native_block_validation_error(
-                "invalid_media_hash",
-                "Protocol v1 block media_hash must be a 64-character lowercase hexadecimal string.",
-                block_index=block_dict.get("index"),
-            )
-
-        content_hash = block_dict.get("content_hash")
-        if not is_valid_content_hash(content_hash):
-            self._raise_native_block_validation_error(
-                "invalid_content_hash",
-                "Protocol v1 block content_hash must be a 64-character lowercase hexadecimal string.",
-                block_index=block_dict.get("index"),
-            )
-
-        if block_dict.get("media_bytes") is None:
-            self._raise_native_block_validation_error(
-                "missing_media_bytes",
-                "Protocol v1 blocks must embed immutable media bytes.",
-                block_index=block_dict.get("index"),
-            )
-
-        try:
-            content_type = _validate_content_type(block_dict.get("content_type"))
-        except ValueError as exc:
-            self._raise_native_block_validation_error(
-                "invalid_content_metadata",
-                str(exc),
-                block_index=block_dict.get("index"),
-            )
-
-        try:
-            resolved_media = self._resolve_protocol_v1_block_media(block_dict)
-        except (UnicodeDecodeError, ValueError) as exc:
-            self._raise_native_block_validation_error(
-                "invalid_embedded_media",
-                str(exc),
-                block_index=block_dict.get("index"),
-            )
-
-        if media_hash != resolved_media["content_hash"]:
-            self._raise_native_block_validation_error(
-                "media_hash_mismatch",
-                "Protocol v1 block media_hash does not match embedded media bytes.",
-                block_index=block_dict.get("index"),
-                media_hash=media_hash,
-                actual_media_hash=resolved_media["content_hash"],
-            )
-        if content_hash != resolved_media["content_hash"]:
-            self._raise_native_block_validation_error(
-                "content_hash_mismatch",
-                "Protocol v1 block content_hash does not match embedded media bytes.",
-                block_index=block_dict.get("index"),
-                content_hash=content_hash,
-                actual_content_hash=resolved_media["content_hash"],
-            )
-
-        if resolved_media["mime_type"] == TEXT_MIME_TYPE and content_type != CONTENT_TYPE_TEXT:
-            self._raise_native_block_validation_error(
-                "content_type_mismatch",
-                "Protocol v1 text blocks must declare content_type='text'.",
-                block_index=block_dict.get("index"),
-            )
-        if resolved_media["mime_type"] != TEXT_MIME_TYPE and content_type not in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
-            self._raise_native_block_validation_error(
-                "content_type_mismatch",
-                "Protocol v1 binary blocks must declare content_type='image' or 'mixed'.",
-                block_index=block_dict.get("index"),
-            )
-
-        return True
-
+        return self._block_validation_service.validate_protocol_v1_payload(
+            block_dict, self._block_validation_collaborators()
+        )
     def validate_block_native_transaction_metadata(self, block_dict, *, prior_chain=None):
         self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
         return True
 
     def validate_block_with_native_transactions(self, block_dict, *, prior_chain=None):
-        self.validate_protocol_v1_block_payload(block_dict)
-        self.validate_block_certificate_metadata(block_dict, prior_chain=prior_chain)
-        self.validate_block_native_transactions(block_dict, prior_chain=prior_chain)
-        return True
-
-    def _validate_block_voter_rewards(self, block_dict, *, prior_chain=None):
-        voter_rewards = block_dict.get("voter_rewards")
-        if voter_rewards in (None, []):
-            return []
-        if not isinstance(voter_rewards, list):
-            self._raise_native_block_validation_error(
-                "invalid_voter_reward_metadata",
-                "Block voter_rewards must be a list when provided.",
-                block_index=block_dict.get("index"),
-            )
-
-        prior_reward_ids = self._get_settled_voter_reward_ids(chain=self.chain_to_dicts(prior_chain or []))
-        seen_reward_ids = set()
-        validated_rewards = []
-
-        for reward_entry in voter_rewards:
-            if not isinstance(reward_entry, dict):
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Each voter reward entry must be an object.",
-                    block_index=block_dict.get("index"),
-                )
-
-            required_fields = [
-                "reward_id",
-                "reward_type",
-                "reward_recipient",
-                "reward_amount",
-                "reward_source",
-                "submission_id",
-                "vote_choice",
-                "final_decision",
-                "decision_reason",
-                "decision_finalized_at",
-                "created_at",
-                "network_name",
-            ]
-            for field_name in required_fields:
-                field_value = reward_entry.get(field_name)
-                if field_value is None or (isinstance(field_value, str) and not field_value.strip()):
-                    self._raise_native_block_validation_error(
-                        "invalid_voter_reward_metadata",
-                        f"Block voter reward metadata missing {field_name}.",
-                        block_index=block_dict.get("index"),
-                        field_name=field_name,
-                    )
-
-            reward_id = str(reward_entry["reward_id"]).strip()
-            if reward_id in seen_reward_ids:
-                self._raise_native_block_validation_error(
-                    "duplicate_reward",
-                    "Block contains duplicate voter reward IDs.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-            if reward_id in prior_reward_ids:
-                self._raise_native_block_validation_error(
-                    "duplicate_reward",
-                    "Block duplicates a voter reward that was already settled earlier in the chain.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-
-            reward_type = str(reward_entry["reward_type"]).strip()
-            if reward_type != "voter_majority_reward":
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward_type is invalid.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-
-            reward_source = str(reward_entry["reward_source"]).strip()
-            if reward_source != "reward_pool":
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward_source is invalid.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-
-            normalized_reward_recipient = self._normalize_native_wallet_identity(reward_entry["reward_recipient"])
-            if normalized_reward_recipient is None:
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward_recipient is invalid.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-
-            vote_choice = str(reward_entry["vote_choice"]).strip().lower()
-            final_decision = str(reward_entry["final_decision"]).strip().lower()
-            if vote_choice not in {VOTE_ORIGINAL, VOTE_NOT_ORIGINAL}:
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward vote_choice must be decisive.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-            if final_decision not in {VOTER_REWARD_APPROVAL_SIDE, VOTER_REWARD_REJECTION_SIDE}:
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward final_decision is invalid.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-            if (final_decision == VOTER_REWARD_APPROVAL_SIDE and vote_choice != VOTE_ORIGINAL) or (
-                final_decision == VOTER_REWARD_REJECTION_SIDE and vote_choice != VOTE_NOT_ORIGINAL
-            ):
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward vote_choice does not match final_decision.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-
-            try:
-                reward_key = self._build_reward_transaction_key(
-                    normalized_reward_recipient,
-                    reward_entry["reward_amount"],
-                )
-            except ValueError as exc:
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    str(exc),
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                )
-
-            submission_id = str(reward_entry["submission_id"]).strip()
-            expected_rewards = self._expected_voter_reward_records_by_id(submission_id)
-            expected_reward = expected_rewards.get(reward_id)
-            if expected_reward is None:
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Block voter reward does not match the deterministic reward plan for this submission.",
-                    block_index=block_dict.get("index"),
-                    reward_id=reward_id,
-                    submission_id=submission_id,
-                )
-
-            expected_fields = [
-                "reward_type",
-                "reward_recipient",
-                "reward_amount",
-                "reward_source",
-                "submission_id",
-                "certificate_id",
-                "content_hash",
-                "vote_choice",
-                "final_decision",
-                "decision_reason",
-                "decision_finalized_at",
-                "created_at",
-                "network_name",
-            ]
-            for field_name in expected_fields:
-                if reward_entry.get(field_name) != expected_reward.get(field_name):
-                    self._raise_native_block_validation_error(
-                        "invalid_voter_reward_metadata",
-                        f"Block voter reward {field_name} does not match the deterministic reward plan.",
-                        block_index=block_dict.get("index"),
-                        reward_id=reward_id,
-                        field_name=field_name,
-                    )
-
-            seen_reward_ids.add(reward_id)
-            validated_rewards.append(
-                {
-                    "reward_id": reward_id,
-                    "reward_key": reward_key,
-                }
-            )
-
-        return validated_rewards
-
-    def validate_block_certificate_metadata(self, block_dict, *, prior_chain=None):
-        if block_dict.get("index") == 0:
-            return True
-
-        metadata = self.extract_block_certificate_metadata(block_dict)
-        validated_voter_rewards = self._validate_block_voter_rewards(block_dict, prior_chain=prior_chain)
-        if not metadata:
-            if validated_voter_rewards:
-                self._raise_native_block_validation_error(
-                    "invalid_voter_reward_metadata",
-                    "Blocks with voter rewards must include certified meme block metadata.",
-                    block_index=block_dict.get("index"),
-                )
-            return True
-
-        required_fields = [
-            "submission_id",
-            "certificate_id",
-            "content_hash",
-            "creator_wallet",
-            "vote_hash",
-            "approval_percentage",
-            "decisive_vote_total",
-            "minimum_votes_required",
-            "approved_at",
-            "originality_score",
-        ]
-        if self._block_native_transactions(block_dict) and not self._native_block_requires_certificate_context(block_dict):
-            self._raise_native_block_validation_error(
-                "invalid_block_context",
-                "Blocks containing native transactions must include certified meme block metadata and reward metadata.",
-                block_index=block_dict.get("index"),
-            )
-        if not any(metadata.get(field_name) is not None for field_name in required_fields):
-            return True
-        for field_name in required_fields:
-            if field_name not in metadata:
-                self._raise_native_block_validation_error(
-                    "invalid_block_context",
-                    f"Block certificate metadata missing {field_name}.",
-                    block_index=block_dict.get("index"),
-                    field_name=field_name,
-                )
-
-        certificate = self.get_originality_certificate(metadata["certificate_id"])
-        if not certificate:
-            self._raise_native_block_validation_error(
-                "unknown_certificate",
-                "Block references unknown originality certificate.",
-                certificate_id=metadata["certificate_id"],
-            )
-
-        if certificate.submission_id != metadata["submission_id"]:
-            self._raise_native_block_validation_error(
-                "certificate_submission_mismatch",
-                "Block certificate_id does not match block submission_id.",
-                certificate_id=metadata["certificate_id"],
-                submission_id=metadata["submission_id"],
-            )
-        if certificate.content_hash != metadata["content_hash"]:
-            self._raise_native_block_validation_error(
-                "content_hash_mismatch",
-                "Block certificate content_hash does not match block content_hash.",
-                certificate_id=metadata["certificate_id"],
-                submission_id=metadata["submission_id"],
-            )
-        if metadata.get("content_id") is not None:
-            certificate_content_id = getattr(certificate, "content_id", None)
-            if certificate_content_id is not None and certificate_content_id != metadata["content_id"]:
-                self._raise_native_block_validation_error(
-                    "content_id_mismatch",
-                    "Block content_id does not match certificate content_id.",
-                    certificate_id=metadata["certificate_id"],
-                    submission_id=metadata["submission_id"],
-                )
-
-        submission = self.get_submission(metadata["submission_id"])
-        if submission:
-            validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
-            if metadata["content_hash"] != submission.content_hash:
-                self._raise_native_block_validation_error(
-                    "content_hash_mismatch",
-                    "Block content_hash does not match submission.",
-                    submission_id=metadata["submission_id"],
-                )
-            if metadata.get("content_id") is not None and metadata["content_id"] != submission.content_id:
-                self._raise_native_block_validation_error(
-                    "content_id_mismatch",
-                    "Block content_id does not match submission.",
-                    submission_id=metadata["submission_id"],
-                )
-
-        for field_name in required_fields:
-            certificate_value = getattr(certificate, field_name)
-            if metadata[field_name] != certificate_value:
-                self._raise_native_block_validation_error(
-                    "certificate_metadata_mismatch",
-                    f"Block certificate metadata {field_name} does not match certificate.",
-                    field_name=field_name,
-                    certificate_id=metadata["certificate_id"],
-                    submission_id=metadata["submission_id"],
-                )
-
-        reward_fields_present = any(
-            metadata.get(field_name) is not None
-            for field_name in ["reward_type", "reward_recipient", "reward_amount", "reward_source", "minted_at"]
+        return self._block_validation_service.validate_block(
+            block_dict, self._block_validation_collaborators(), prior_chain=prior_chain
         )
-        if reward_fields_present:
-            reward_required_fields = [
-                "reward_type",
-                "reward_recipient",
-                "reward_amount",
-                "reward_source",
-                "minted_at",
-            ]
-            for field_name in reward_required_fields:
-                if metadata.get(field_name) is None:
-                    self._raise_native_block_validation_error(
-                        "invalid_reward_metadata",
-                        f"Block reward metadata missing {field_name}.",
-                        submission_id=metadata["submission_id"],
-                        field_name=field_name,
-                    )
-            if metadata["reward_type"] != "meme_mining_reward":
-                self._raise_native_block_validation_error(
-                    "invalid_reward_metadata",
-                    "Block reward_type is invalid.",
-                    submission_id=metadata["submission_id"],
-                )
-            if metadata["reward_source"] != "reward_pool":
-                self._raise_native_block_validation_error(
-                    "invalid_reward_metadata",
-                    "Block reward_source is invalid.",
-                    submission_id=metadata["submission_id"],
-                )
-            normalized_reward_recipient = self._normalize_native_wallet_identity(metadata["reward_recipient"])
-            if normalized_reward_recipient is None:
-                self._raise_native_block_validation_error(
-                    "reward_recipient_mismatch",
-                    "Block reward_recipient is invalid.",
-                    submission_id=metadata["submission_id"],
-                )
-            if float(metadata["reward_amount"]) != float(MEME_BLOCK_REWARD):
-                self._raise_native_block_validation_error(
-                    "reward_amount_mismatch",
-                    "Block reward_amount does not match configured reward.",
-                    submission_id=metadata["submission_id"],
-                    reward_amount=metadata["reward_amount"],
-                )
-            if submission:
-                expected_reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
-                if normalized_reward_recipient != expected_reward_recipient:
-                    self._raise_native_block_validation_error(
-                        "reward_recipient_mismatch",
-                        "Block reward_recipient does not match submission creator wallet.",
-                        submission_id=metadata["submission_id"],
-                        reward_recipient=normalized_reward_recipient,
-                    )
-            prior_chain_dicts = self.chain_to_dicts(prior_chain or [])
-            if any(
-                prior_block.get("submission_id") == metadata["submission_id"]
-                and prior_block.get("reward_type") == "meme_mining_reward"
-                for prior_block in prior_chain_dicts
-            ):
-                self._raise_native_block_validation_error(
-                    "duplicate_reward",
-                    "Block duplicates the meme reward for an already minted submission.",
-                    submission_id=metadata["submission_id"],
-                )
-
-        expected_reward_transaction_keys = [
-            validated_reward["reward_key"]
-            for validated_reward in validated_voter_rewards
-        ]
-        if expected_reward_transaction_keys:
-            reward_transaction_counter = Counter()
-            for transaction in self._block_reward_transactions(block_dict):
-                try:
-                    reward_key = self._build_reward_transaction_key(
-                        transaction.get("recipient"),
-                        transaction.get("amount"),
-                    )
-                except ValueError:
-                    self._raise_native_block_validation_error(
-                        "invalid_reward_metadata",
-                        "Block contains an invalid REWARD_POOL transaction.",
-                        block_index=block_dict.get("index"),
-                    )
-                reward_transaction_counter[reward_key] += 1
-
-            expected_reward_counter = Counter(expected_reward_transaction_keys)
-            if any(
-                reward_transaction_counter[reward_key] < expected_count
-                for reward_key, expected_count in expected_reward_counter.items()
-            ):
-                self._raise_native_block_validation_error(
-                    "invalid_reward_metadata",
-                    "Block voter reward transactions do not match the declared reward metadata.",
-                    block_index=block_dict.get("index"),
-                    expected_voter_reward_transactions=sum(expected_reward_counter.values()),
-                    actual_reward_transactions=sum(reward_transaction_counter.values()),
-                )
-
-        content_object = self.get_content_object_by_hash(metadata["content_hash"])
-        if content_object is not None:
-            if metadata.get("content_id") is not None and metadata["content_id"] != content_object.content_id:
-                self._raise_native_block_validation_error(
-                    "content_id_mismatch",
-                    "Block content_id does not match content object.",
-                    submission_id=metadata["submission_id"],
-                )
-            if metadata.get("content_type") is not None and metadata["content_type"] != content_object.content_type:
-                if not (
-                    content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
-                    and content_object.content_type == CONTENT_TYPE_IMAGE
-                    and metadata["content_type"] in {CONTENT_TYPE_MIXED, CONTENT_TYPE_TEXT}
-                ):
-                    self._raise_native_block_validation_error(
-                        "content_type_mismatch",
-                        "Block content_type does not match content object.",
-                        submission_id=metadata["submission_id"],
-                    )
-            if metadata.get("mime_type") is not None and metadata["mime_type"] != content_object.mime_type:
-                if not (
-                    content_object.storage_status in {STORAGE_STATUS_REMOTE, STORAGE_STATUS_MISSING}
-                    and content_object.mime_type == "application/octet-stream"
-                ):
-                    self._raise_native_block_validation_error(
-                        "mime_type_mismatch",
-                        "Block mime_type does not match content object.",
-                        submission_id=metadata["submission_id"],
-                    )
-            if content_object.storage_status == STORAGE_STATUS_VERIFIED:
-                verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
-                if not verification["verified"]:
-                    self._raise_native_block_validation_error(
-                        "content_hash_mismatch",
-                        "Verified local content file does not match block content_hash.",
-                        submission_id=metadata["submission_id"],
-                    )
-
-        return True
-
+    def _validate_block_voter_rewards(self, block_dict, *, prior_chain=None):
+        return self._block_validation_service.validate_voter_rewards(
+            block_dict, self._block_validation_collaborators(), prior_chain=prior_chain
+        )
+    def validate_block_certificate_metadata(self, block_dict, *, prior_chain=None):
+        return self._block_validation_service.validate_certificate_metadata(
+            block_dict, self._block_validation_collaborators(), prior_chain=prior_chain
+        )
     def is_chain_valid(self, chain):
         """Validate a given chain."""
-        chain_dicts = self.chain_to_dicts(chain)
-        if not chain_dicts:
-            return False
-
-        try:
-            self.validate_canonical_public_testnet_v1_genesis(chain_dicts[0])
-        except GenesisValidationError as exc:
-            print(f"Debug: Genesis validation failed - {exc}")
-            return False
-
-        for i in range(1, len(chain_dicts)):
-            current_block = chain_dicts[i]
-            previous_block = chain_dicts[i - 1]
-
-            # Validate the hash of the block
-            if current_block["hash"] != self.calculate_hash_from_dict(current_block):
-                print(f"Debug: Block {current_block['index']} hash is invalid!")
-                return False
-
-            # Validate the previous hash link
-            if current_block["previous_hash"] != previous_block["hash"]:
-                print(f"Debug: Block {current_block['index']} previous hash does not match!")
-                return False
-
-            try:
-                self.validate_block_with_native_transactions(current_block, prior_chain=chain[:i])
-            except ValueError as e:
-                print(f"Debug: Block {current_block['index']} transaction or certificate metadata is invalid: {e}")
-                return False
-
-        return True
-
+        return self._block_validation_service.validate_chain(
+            chain, self._block_validation_collaborators()
+        )
     def get_native_balance(self, wallet_address):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:

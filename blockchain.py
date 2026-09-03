@@ -1,4 +1,4 @@
-# Import statements
+﻿# Import statements
 import os
 import hashlib
 import math
@@ -107,7 +107,7 @@ from protocol_v1_genesis import (
 from validators import is_valid_content_hash, is_valid_ethereum_address, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, MintQueueService, MintQueueState, SubmissionOriginalityService, SubmissionOriginalityState
+from services import AccessAdminService, AccessAdminState, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, MintQueueService, MintQueueState, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -218,6 +218,9 @@ class Blockchain:
         self._content_coordination_service = ContentCoordinationService()
         self._submission_originality_service = SubmissionOriginalityService()
         self._mint_queue_service = MintQueueService()
+        self._native_ledger_service = NativeLedgerService()
+        self._native_mempool_service = NativeMempoolService(self._native_ledger_service)
+        self._reward_service = RewardService()
         self._last_reward_excluded_voters = []
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
@@ -225,19 +228,19 @@ class Blockchain:
         ensure_content_storage_dir(data_dir=self.storage.data_dir)
         self._validate_frozen_public_testnet_v1_runtime_constants()
 
-        # âœ… Store wallets immediately before loading blockchain
+        # Ã¢Å“â€¦ Store wallets immediately before loading blockchain
         self.project_owner_wallet = project_owner_wallet
         self.Contributor_one = Contributor_one
         self.Contributor_two = Contributor_two
 
-        # âœ… Load blockchain from storage, ensuring wallets persist
+        # Ã¢Å“â€¦ Load blockchain from storage, ensuring wallets persist
         self.load_blockchain()
         if not self.chain:
             print("Debug: No valid blockchain found. Creating Genesis blockchain...")
             self.create_genesis_block(self.project_owner_wallet, self.Contributor_one, self.Contributor_two)
             self.save_blockchain()
 
-        # âœ… Ensure wallets are always assigned even after loading blockchain
+        # Ã¢Å“â€¦ Ensure wallets are always assigned even after loading blockchain
         if self.project_owner_wallet and self.project_owner_wallet.public_key not in self.wallets:
             self.wallets[self.project_owner_wallet.public_key] = self.project_owner_wallet
         if self.Contributor_one and self.Contributor_one.public_key not in self.wallets:
@@ -245,7 +248,7 @@ class Blockchain:
         if self.Contributor_two and self.Contributor_two.public_key not in self.wallets:
             self.wallets[self.Contributor_two.public_key] = self.Contributor_two
 
-        # âœ… Debugging - Print wallet storage
+        # Ã¢Å“â€¦ Debugging - Print wallet storage
         print("Debug: Registered Wallets -", [_short_public_key(key) for key in self.wallets.keys()])
 
     def _serialize_blockchain_state(self):
@@ -365,105 +368,7 @@ class Blockchain:
         return record
 
     def _restore_native_transaction_state(self, raw_transactions, raw_transfer_intents):
-        sanitized_transactions = []
-        sanitized_transfer_intents = []
-        seen_tx_ids = set()
-        seen_nonce_keys = {}
-        transfer_ids = set()
-        transfer_tx_ids = set()
-        changed = False
-        removed = 0
-
-        for transaction in list(raw_transactions or []):
-            if not isinstance(transaction, dict):
-                changed = True
-                removed += 1
-                continue
-            try:
-                validated_transaction = self.validate_signed_native_transaction(transaction)
-            except ValueError:
-                changed = True
-                removed += 1
-                continue
-
-            tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
-            if tx_id in seen_tx_ids:
-                changed = True
-                removed += 1
-                continue
-
-            status = str(validated_transaction.get("status") or "").strip().lower()
-            if status in self._native_nonce_unavailable_statuses():
-                nonce_key = (
-                    self._normalize_native_wallet_identity(validated_transaction.get("from_address")),
-                    self._coerce_native_nonce(validated_transaction.get("nonce")),
-                )
-                existing_tx_id = seen_nonce_keys.get(nonce_key)
-                if existing_tx_id is not None and existing_tx_id != tx_id:
-                    changed = True
-                    removed += 1
-                    continue
-                seen_nonce_keys[nonce_key] = tx_id
-
-            if dict(transaction) != validated_transaction:
-                changed = True
-            sanitized_transactions.append(validated_transaction)
-            seen_tx_ids.add(tx_id)
-
-        transactions_by_tx_id = {
-            str(transaction.get("tx_id") or "").strip().lower(): dict(transaction)
-            for transaction in sanitized_transactions
-        }
-
-        for transfer_intent in list(raw_transfer_intents or []):
-            if not isinstance(transfer_intent, dict):
-                changed = True
-                removed += 1
-                continue
-
-            transfer_id = str(transfer_intent.get("transfer_id") or "").strip()
-            tx_id = str(transfer_intent.get("tx_id") or "").strip().lower()
-            if not transfer_id or transfer_id in transfer_ids or not tx_id or tx_id in transfer_tx_ids:
-                changed = True
-                removed += 1
-                continue
-
-            transaction = transactions_by_tx_id.get(tx_id)
-            if transaction is None:
-                changed = True
-                removed += 1
-                continue
-
-            rebuilt_record = self._build_transfer_intent_record_from_transaction(
-                transaction,
-                transfer_id=transfer_id,
-                signed_at=transfer_intent.get("signed_at"),
-                created_at=transfer_intent.get("created_at"),
-                updated_at=transfer_intent.get("updated_at"),
-            )
-            if dict(transfer_intent) != rebuilt_record:
-                changed = True
-            sanitized_transfer_intents.append(rebuilt_record)
-            transfer_ids.add(transfer_id)
-            transfer_tx_ids.add(tx_id)
-
-        for transaction in sanitized_transactions:
-            tx_id = str(transaction.get("tx_id") or "").strip().lower()
-            if tx_id in transfer_tx_ids:
-                continue
-            sanitized_transfer_intents.append(
-                self._build_transfer_intent_record_from_transaction(transaction)
-            )
-            transfer_tx_ids.add(tx_id)
-            changed = True
-
-        return {
-            "native_transactions": sanitized_transactions,
-            "transfer_intents": sanitized_transfer_intents,
-            "changed": changed,
-            "removed": removed,
-        }
-
+        return self._native_ledger_service.restore_native_transaction_state(raw_transactions, raw_transfer_intents)
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
@@ -489,6 +394,34 @@ class Blockchain:
 
     def _mint_queue_state(self):
         return MintQueueState(self.submissions, self.content_objects, self.originality_certificates, self.mint_queue)
+
+    def _native_ledger_state(self):
+        return NativeLedgerState(self.chain, self.transfer_intents, self.native_transactions)
+
+    def _reward_state(self):
+        return RewardState(self.chain, self.submissions, self.reward_pool, {
+            "reward_pool_supply": REWARD_POOL_SUPPLY,
+            "require_access_for_rewards": REQUIRE_ACCESS_FOR_REWARDS,
+            "voter_rewards_enabled": VOTER_REWARDS_ENABLED,
+            "voter_reward_pool_per_decision_zoid": VOTER_REWARD_POOL_PER_DECISION_ZOID,
+            "voter_reward_max_per_wallet_zoid": VOTER_REWARD_MAX_PER_WALLET_ZOID,
+            "voter_reward_require_review_eligible": VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE,
+        })
+
+    def _reward_collaborators(self):
+        return RewardCollaborators(
+            normalize_wallet=self._native_ledger_service.normalize_wallet_identity,
+            get_submission=self.get_submission,
+            get_votes=self.get_submission_votes,
+            get_certificate=self.get_originality_certificate_for_submission,
+            get_voting_threshold=self.get_voting_threshold,
+            get_activity_summary=self.get_account_activity_summary,
+            count_votes_since=self.count_votes_by_wallet_since,
+            access_decision=lambda wallet: access_decision_for_wallet(self, wallet, feature="rewards"),
+            get_wallet_binding=self.get_wallet_binding,
+            get_access_account=self.get_access_account_for_wallet,
+            find_allowlist_entry=lambda scope, wallet, account: self.find_matching_allowlist_entry(scope, wallet_address=wallet, access_account=account),
+        )
 
     def refresh_access_control_state_from_storage(self):
         """Refresh access/admin/feedback records without reloading the chain."""
@@ -558,25 +491,9 @@ class Blockchain:
     def add_feedback_admin_note(self, feedback_id, *, note, created_by="operator"): return self._feedback_service.add_feedback_admin_note(self._feedback_state(), feedback_id, note=note, created_by=created_by)
 
     def recompute_reward_pool_balance(self, *, chain=None):
-        reward_pool = float(REWARD_POOL_SUPPLY)
-        initial_reward_pool = float(REWARD_POOL_SUPPLY)
-        for block in chain or self.chain:
-            transactions = block.get("transactions", []) if isinstance(block, dict) else block.transactions
-            for transaction in transactions:
-                sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
-                amount_value = transaction.get("amount") if isinstance(transaction, dict) else transaction.amount
-                tip_value = transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip
-                sender = self._normalize_native_wallet_identity(sender_value) or sender_value
-                tip = float(tip_value or 0)
-                if sender not in {None, "", "GENESIS", "REWARD_POOL"} and tip > 0:
-                    tip_split = {"miner": 0.25, "reward_pool": 0.75} if reward_pool < (initial_reward_pool * 0.25) else {"miner": 0.5, "reward_pool": 0.5}
-                    reward_pool += tip * tip_split["reward_pool"]
-                if sender_value == "REWARD_POOL":
-                    reward_pool -= float(amount_value or 0)
-        self.reward_pool = reward_pool
-        self.initial_reward_pool = initial_reward_pool
-        return reward_pool
-
+        self.reward_pool = self._reward_service.recompute_reward_pool_balance(self._reward_state(), self._reward_collaborators(), chain=chain)
+        self.initial_reward_pool = float(REWARD_POOL_SUPPLY)
+        return self.reward_pool
     def load_blockchain(self):
         """Load blockchain state from disk if it exists, ensuring wallets persist."""
         try:
@@ -1493,1648 +1410,175 @@ class Blockchain:
         return metadata
 
     def _normalize_native_wallet_identity(self, wallet_address):
-        candidate = str(wallet_address or "").strip()
-        normalized_wallet = normalize_wallet_address(candidate)
-        if normalized_wallet:
-            return normalized_wallet
-        if candidate and is_valid_user_wallet_identity(candidate):
-            return candidate
-        return None
+        return self._native_ledger_service.normalize_wallet_identity(wallet_address)
 
     def resolve_meme_reward_recipient(self, submission, certificate):
-        for candidate in [
-            getattr(submission, "creator_wallet_address", None),
-            getattr(certificate, "creator_wallet", None),
-            getattr(submission, "submitter", None),
-        ]:
-            normalized = self._normalize_native_wallet_identity(candidate)
-            if normalized:
-                return normalized
-        raise ValueError("Minting reward recipient is missing or invalid for this submission.")
+        return self._reward_service.resolve_meme_reward_recipient(submission, certificate, self._reward_collaborators())
 
     def build_meme_reward_metadata(self, submission, certificate, *, minted_at):
-        reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
-        return {
-            "reward_type": "meme_mining_reward",
-            "reward_recipient": reward_recipient,
-            "reward_amount": float(MEME_BLOCK_REWARD),
-            "reward_source": "reward_pool",
-            "minted_at": minted_at,
-        }
+        return self._reward_service.build_meme_reward_metadata(submission, certificate, self._reward_collaborators(), minted_at=minted_at)
 
-    @staticmethod
-    def _block_voter_rewards(block) -> list[dict[str, object]]:
-        if isinstance(block, dict):
-            return list(block.get("voter_rewards", []) or [])
-        return list(getattr(block, "voter_rewards", []) or [])
+    _block_voter_rewards = staticmethod(RewardService.block_voter_rewards)
+    _reward_record_sort_key = staticmethod(RewardService.reward_record_sort_key)
+    _reward_units_from_decimal = staticmethod(RewardService.reward_units_from_decimal)
+    _decimal_from_reward_units = staticmethod(RewardService.decimal_from_reward_units)
+    _normalize_decimal_value = staticmethod(RewardService.normalize_decimal_value)
+    _reward_id = staticmethod(RewardService.reward_id)
 
-    @staticmethod
-    def _reward_record_sort_key(record):
-        block_height = record.get("block_height")
-        minted_at = record.get("minted_at")
-        reward_id = record.get("reward_id") or ""
-        return (
-            -(int(block_height) if isinstance(block_height, int) else -1),
-            -(int(minted_at) if isinstance(minted_at, (int, float)) else -1),
-            str(reward_id),
-        )
+    def _reward_units_from_amount_string(self, amount, *, allow_zero=True):
+        return self._reward_service.reward_units_from_amount_string(amount, allow_zero=allow_zero)
 
-    @staticmethod
-    def _reward_units_from_decimal(amount: Decimal) -> int:
-        return int((amount * _NATIVE_ZOID_REWARD_SCALE).to_integral_value())
-
-    @staticmethod
-    def _decimal_from_reward_units(units: int) -> Decimal:
-        return Decimal(units) / _NATIVE_ZOID_REWARD_SCALE
-
-    def _reward_units_from_amount_string(self, amount, *, allow_zero=True) -> int:
-        normalized_amount = parse_native_zoid_amount(amount or "0", allow_zero=allow_zero)
-        return self._reward_units_from_decimal(Decimal(normalized_amount))
-
-    def _normalize_reward_amount(self, amount: Decimal | int) -> str:
-        decimal_amount = amount if isinstance(amount, Decimal) else self._decimal_from_reward_units(int(amount))
-        return self._normalize_decimal_value(decimal_amount)
-
-    def _reward_id(self, submission_id, wallet_address, final_decision):
-        return f"voter_reward:{submission_id}:{wallet_address}:{final_decision}"
-
-    @staticmethod
-    def _is_creator_reward_transaction(transaction) -> bool:
-        sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
-        if sender_value != "REWARD_POOL":
-            return False
-        return float(transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip) == 0.0
+    def _normalize_reward_amount(self, amount):
+        return self._reward_service.normalize_reward_amount(amount)
 
     def _build_creator_reward_record(self, block):
-        reward_recipient = self._normalize_native_wallet_identity(
-            block.get("reward_recipient") if isinstance(block, dict) else getattr(block, "reward_recipient", None)
-        )
-        if reward_recipient is None:
-            return None
-        reward_type = block.get("reward_type") if isinstance(block, dict) else getattr(block, "reward_type", None)
-        if reward_type != "meme_mining_reward":
-            return None
-        submission_id = block.get("submission_id") if isinstance(block, dict) else getattr(block, "submission_id", None)
-        minted_at = block.get("minted_at") if isinstance(block, dict) else getattr(block, "minted_at", None)
-        block_hash = block.get("hash") if isinstance(block, dict) else getattr(block, "hash", None)
-        block_height = block.get("index") if isinstance(block, dict) else getattr(block, "index", None)
-        certificate_id = block.get("certificate_id") if isinstance(block, dict) else getattr(block, "certificate_id", None)
-        content_hash = block.get("content_hash") if isinstance(block, dict) else getattr(block, "content_hash", None)
-        return {
-            "reward_id": f"creator_reward:{submission_id or block_hash}:{reward_recipient}",
-            "reward_type": reward_type,
-            "reward_recipient": reward_recipient,
-            "reward_amount": block.get("reward_amount") if isinstance(block, dict) else getattr(block, "reward_amount", None),
-            "reward_source": block.get("reward_source") if isinstance(block, dict) else getattr(block, "reward_source", None),
-            "reward_status": "settled",
-            "settlement_state": "final",
-            "submission_id": submission_id,
-            "certificate_id": certificate_id,
-            "content_hash": content_hash,
-            "block_hash": block_hash,
-            "block_height": block_height,
-            "created_at": minted_at,
-            "finalized_at": minted_at,
-            "minted_at": minted_at,
-            "network_name": NETWORK_NAME,
-        }
+        return self._reward_service.build_creator_reward_record(block, self._reward_collaborators())
 
     def _build_voter_reward_record(self, reward_entry, block):
-        reward_recipient = self._normalize_native_wallet_identity(reward_entry.get("reward_recipient"))
-        if reward_recipient is None:
-            return None
-        minted_at = block.get("minted_at") if isinstance(block, dict) else getattr(block, "minted_at", None)
-        block_hash = block.get("hash") if isinstance(block, dict) else getattr(block, "hash", None)
-        block_height = block.get("index") if isinstance(block, dict) else getattr(block, "index", None)
-        return {
-            "reward_id": reward_entry.get("reward_id"),
-            "reward_type": reward_entry.get("reward_type", "voter_majority_reward"),
-            "reward_recipient": reward_recipient,
-            "voter_wallet_address": reward_recipient,
-            "reward_amount": reward_entry.get("reward_amount"),
-            "reward_source": reward_entry.get("reward_source", "reward_pool"),
-            "reward_status": "settled",
-            "settlement_state": "final",
-            "submission_id": reward_entry.get("submission_id"),
-            "certificate_id": reward_entry.get("certificate_id"),
-            "content_hash": reward_entry.get("content_hash"),
-            "vote_choice": reward_entry.get("vote_choice"),
-            "final_decision": reward_entry.get("final_decision"),
-            "decision_reason": reward_entry.get("decision_reason"),
-            "decision_finalized_at": reward_entry.get("decision_finalized_at"),
-            "created_at": reward_entry.get("created_at") or minted_at,
-            "finalized_at": reward_entry.get("finalized_at") or minted_at,
-            "minted_at": minted_at,
-            "block_hash": block_hash,
-            "block_height": block_height,
-            "network_name": reward_entry.get("network_name") or NETWORK_NAME,
-        }
+        return self._reward_service.build_voter_reward_record(reward_entry, block, self._reward_collaborators())
 
     def _all_reward_records(self):
-        reward_records = []
-        for block in self.chain:
-            creator_record = self._build_creator_reward_record(block)
-            if creator_record is not None:
-                reward_records.append(creator_record)
-            for reward_entry in self._block_voter_rewards(block):
-                voter_record = self._build_voter_reward_record(reward_entry, block)
-                if voter_record is not None:
-                    reward_records.append(voter_record)
-        reward_records.sort(key=self._reward_record_sort_key)
-        return reward_records
+        return self._reward_service.all_reward_records(self._reward_state(), self._reward_collaborators())
 
     def _get_reward_record(self, reward_id):
-        for reward_record in self._all_reward_records():
-            if reward_record.get("reward_id") == reward_id:
-                return reward_record
-        return None
+        return next((record for record in self._all_reward_records() if record.get("reward_id") == reward_id), None)
 
     def _get_settled_voter_reward_ids(self, *, chain=None):
-        settled_ids = set()
-        for block in chain or self.chain:
-            for reward_entry in self._block_voter_rewards(block):
-                reward_id = str(reward_entry.get("reward_id") or "").strip()
-                if reward_id:
-                    settled_ids.add(reward_id)
-        return settled_ids
+        state = RewardState(chain if chain is not None else self.chain, self.submissions, self.reward_pool, self._reward_state().config)
+        return self._reward_service.settled_voter_reward_ids(state)
 
-    @staticmethod
-    def _block_reward_transactions(block) -> list[dict[str, object]]:
+    def _block_reward_transactions(self, block):
         transactions = block.get("transactions", []) if isinstance(block, dict) else getattr(block, "transactions", [])
-        reward_transactions = []
-        for transaction in transactions:
-            sender_value = transaction.get("sender") if isinstance(transaction, dict) else getattr(transaction, "sender", None)
-            if sender_value != "REWARD_POOL":
-                continue
-            reward_transactions.append(
-                transaction.to_dict() if hasattr(transaction, "to_dict") else dict(transaction)
-            )
-        return reward_transactions
+        return [transaction.to_dict() if hasattr(transaction, "to_dict") else dict(transaction) for transaction in transactions if (transaction.get("sender") if isinstance(transaction, dict) else getattr(transaction, "sender", None)) == "REWARD_POOL"]
 
-    def _build_reward_transaction_key(self, recipient, amount) -> tuple[str, int]:
-        normalized_recipient = self._normalize_native_wallet_identity(recipient)
-        if normalized_recipient is None:
+    def _build_reward_transaction_key(self, recipient, amount):
+        wallet = self._normalize_native_wallet_identity(recipient)
+        if wallet is None:
             raise ValueError("Reward recipient is invalid.")
-        reward_units = self._reward_units_from_amount_string(amount, allow_zero=False)
-        return normalized_recipient, reward_units
+        return wallet, self._reward_units_from_amount_string(amount, allow_zero=False)
 
     def _expected_voter_reward_records_by_id(self, submission_id):
         plan = self.build_submission_voter_reward_plan(submission_id)
-        if not plan.get("eligible"):
-            return {}
-        return {
-            str(record.get("reward_id")): record
-            for record in plan.get("reward_records", [])
-            if record.get("reward_id")
-        }
+        return {str(record.get("reward_id")): record for record in plan.get("reward_records", []) if plan.get("eligible") and record.get("reward_id")}
 
     def _decision_finalized_at_for_submission(self, submission, vote_summary, *, now=None):
-        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
-        if certificate is not None and certificate.approved_at is not None:
-            return certificate.approved_at
-        if getattr(submission, "decision_finalized_at", None) is not None:
-            return submission.decision_finalized_at
-        vote_timestamps = [
-            _coerce_timestamp(vote.get("created_at"))
-            for vote in vote_summary.get("votes", [])
-        ]
-        vote_timestamps = [timestamp for timestamp in vote_timestamps if timestamp is not None]
-        if vote_timestamps:
-            return max(vote_timestamps)
-        return float(now if now is not None else time.time())
+        return self._reward_service.decision_finalized_at(submission, vote_summary, self._reward_collaborators(), now=now)
 
     def get_submission_reward_decision(self, submission_id, *, now=None):
-        submission = self.get_submission(submission_id)
-        if submission is None:
-            raise ValueError(f"Submission not found: {submission_id}")
-
-        decision_now = float(now if now is not None else time.time())
-        vote_summary = self.get_submission_votes(submission_id)
-        decisive_vote_total = vote_summary["counts"][VOTE_ORIGINAL] + vote_summary["counts"][VOTE_NOT_ORIGINAL]
-        if decisive_vote_total < VOTER_REWARD_MIN_DECISIVE_VOTES:
-            return None
-
-        certificate = self.get_originality_certificate_for_submission(submission_id)
-        decision_reason = getattr(submission, "decision_reason", None)
-        if certificate is not None or submission.status in {APPROVED, QUEUED, MINTED}:
-            return {
-                "submission_id": submission_id,
-                "outcome": "approved_original",
-                "final_decision": VOTER_REWARD_APPROVAL_SIDE,
-                "vote_choice": VOTE_ORIGINAL,
-                "certificate_id": certificate.certificate_id if certificate else getattr(submission, "certificate_id", None),
-                "content_hash": submission.content_hash,
-                "decision_reason": decision_reason or "approved_by_vote",
-                "decision_finalized_at": self._decision_finalized_at_for_submission(
-                    submission,
-                    vote_summary,
-                    now=decision_now,
-                ),
-            }
-
-        if submission.status != REJECTED:
-            return None
-        if decision_reason not in {None, "rejected_by_vote"}:
-            return None
-
-        voting_window_expired = decision_now >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
-        minimum_votes = self.get_voting_threshold(now=decision_now)["minimum_votes"]
-        minimum_votes_reached = len(vote_summary["votes"]) >= minimum_votes
-        if not (voting_window_expired or minimum_votes_reached):
-            return None
-        if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
-            return None
-
-        return {
-            "submission_id": submission_id,
-            "outcome": "rejected_not_original",
-            "final_decision": VOTER_REWARD_REJECTION_SIDE,
-            "vote_choice": VOTE_NOT_ORIGINAL,
-            "certificate_id": None,
-            "content_hash": submission.content_hash,
-            "decision_reason": decision_reason or "rejected_by_vote",
-            "decision_finalized_at": self._decision_finalized_at_for_submission(
-                submission,
-                vote_summary,
-                now=decision_now,
-            ),
-        }
+        return self._reward_service.get_submission_reward_decision(submission_id, self._reward_collaborators(), now=now)
 
     def _eligible_voter_reward_wallets(self, reward_decision):
-        vote_summary = self.get_submission_votes(reward_decision["submission_id"])
-        target_vote = reward_decision["vote_choice"]
-        submission = self.get_submission(reward_decision["submission_id"])
-        creator_wallet = None
-        if submission is not None:
-            creator_wallet = self._normalize_native_wallet_identity(
-                getattr(submission, "creator_wallet_address", None) or getattr(submission, "submitter", None)
-            )
-        qualifying_votes = [
-            vote
-            for vote in vote_summary["votes"]
-            if vote.get("vote_type") == target_vote
-        ]
-        qualifying_votes.sort(
-            key=lambda vote: (
-                self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter")) or "",
-                _coerce_timestamp(vote.get("created_at")) or 0,
-            )
-        )
-        unique_votes = []
-        seen_wallets = set()
-        excluded_voters = []
-        for vote in qualifying_votes:
-            wallet_address = self._normalize_native_wallet_identity(
-                vote.get("voter_wallet_address") or vote.get("voter")
-            )
-            if wallet_address is None or wallet_address == creator_wallet or wallet_address in seen_wallets:
-                continue
-            seen_wallets.add(wallet_address)
-            unique_votes.append(vote)
-        qualifying_votes = unique_votes
-        config = load_review_policy_config(ENVIRONMENT)
-        eligible_votes = []
-        for vote in qualifying_votes:
-            wallet_address = self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter"))
-            if wallet_address is None:
-                continue
-            if REQUIRE_ACCESS_FOR_REWARDS:
-                access_decision = access_decision_for_wallet(self, wallet_address, feature="rewards")
-                if not access_decision.allowed:
-                    excluded_voters.append({
-                        "wallet_address": wallet_address,
-                        "reason": access_decision.reason,
-                    })
-                    continue
-            if VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE:
-                binding = self.get_wallet_binding(wallet_address)
-                access_account = self.get_access_account_for_wallet(wallet_address)
-                if binding and str(binding.get("status") or "").strip().lower() == "revoked":
-                    excluded_voters.append({
-                        "wallet_address": wallet_address,
-                        "reason": "wallet_binding_revoked",
-                    })
-                    continue
-                if access_account:
-                    account_status = str(access_account.get("status") or "").strip().lower()
-                    if account_status in {"suspended", "revoked"}:
-                        excluded_voters.append({
-                            "wallet_address": wallet_address,
-                            "reason": f"access_account_{account_status}",
-                        })
-                        continue
-                override_entry = self.find_matching_allowlist_entry(
-                    "rewards",
-                    wallet_address=wallet_address,
-                    access_account=access_account,
-                )
-                if override_entry:
-                    eligible_votes.append(vote)
-                    continue
-                activity_summary = self.get_account_activity_summary(wallet_address)
-                recent_vote_count = self.count_votes_by_wallet_since(wallet_address, current_day_window())
-                eligibility = evaluate_review_eligibility(
-                    config,
-                    wallet_address=wallet_address,
-                    activity_summary=activity_summary,
-                    recent_vote_count=recent_vote_count,
-                )
-                if not eligibility.eligible:
-                    excluded_voters.append({
-                        "wallet_address": wallet_address,
-                        "reason": "review_eligibility_required",
-                    })
-                    continue
-            eligible_votes.append(vote)
-        self._last_reward_excluded_voters = excluded_voters
-        return eligible_votes
+        votes, excluded = self._reward_service.eligible_voter_reward_wallets(reward_decision, self._reward_collaborators())
+        self._last_reward_excluded_voters = excluded
+        return votes
 
     def build_submission_voter_reward_plan(self, submission_id, *, now=None):
-        self._last_reward_excluded_voters = []
-        reward_decision = self.get_submission_reward_decision(submission_id, now=now)
-        if reward_decision is None:
-            return {
-                "submission_id": submission_id,
-                "rewards_enabled": VOTER_REWARDS_ENABLED,
-                "eligible": False,
-                "reason": "decision_not_reward_eligible",
-                "reward_records": [],
-                "excluded_voters": [],
-                "reward_count": 0,
-                "reward_amount_per_voter": "0",
-                "total_distributed": "0",
-                "undistributed_remainder": "0",
-            }
-
-        majority_votes = self._eligible_voter_reward_wallets(reward_decision)
-        if not VOTER_REWARDS_ENABLED:
-            return {
-                **reward_decision,
-                "rewards_enabled": False,
-                "eligible": False,
-                "reason": "voter_rewards_disabled",
-                "reward_records": [],
-                "excluded_voters": list(self._last_reward_excluded_voters),
-                "reward_count": 0,
-                "reward_amount_per_voter": "0",
-                "total_distributed": "0",
-                "undistributed_remainder": "0",
-            }
-
-        if not majority_votes:
-            return {
-                **reward_decision,
-                "rewards_enabled": True,
-                "eligible": False,
-                "reason": "no_eligible_majority_voters",
-                "reward_records": [],
-                "excluded_voters": list(self._last_reward_excluded_voters),
-                "reward_count": 0,
-                "reward_amount_per_voter": "0",
-                "total_distributed": "0",
-                "undistributed_remainder": self._normalize_reward_amount(
-                    self._reward_units_from_amount_string(
-                        VOTER_REWARD_POOL_PER_DECISION_ZOID,
-                        allow_zero=True,
-                    )
-                ),
-            }
-
-        total_units = self._reward_units_from_amount_string(
-            VOTER_REWARD_POOL_PER_DECISION_ZOID,
-            allow_zero=True,
-        )
-        if total_units <= 0:
-            return {
-                **reward_decision,
-                "rewards_enabled": True,
-                "eligible": False,
-                "reason": "reward_pool_zero",
-                "reward_records": [],
-                "excluded_voters": list(self._last_reward_excluded_voters),
-                "reward_count": 0,
-                "reward_amount_per_voter": "0",
-                "total_distributed": "0",
-                "undistributed_remainder": "0",
-            }
-
-        per_wallet_units = total_units // len(majority_votes)
-        max_per_wallet_units = self._reward_units_from_amount_string(
-            VOTER_REWARD_MAX_PER_WALLET_ZOID,
-            allow_zero=True,
-        )
-        if max_per_wallet_units > 0:
-            per_wallet_units = min(per_wallet_units, max_per_wallet_units)
-        if per_wallet_units <= 0:
-            return {
-                **reward_decision,
-                "rewards_enabled": True,
-                "eligible": False,
-                "reason": "reward_amount_rounds_to_zero",
-                "reward_records": [],
-                "excluded_voters": list(self._last_reward_excluded_voters),
-                "reward_count": 0,
-                "reward_amount_per_voter": "0",
-                "total_distributed": "0",
-                "undistributed_remainder": self._normalize_reward_amount(total_units),
-            }
-
-        reward_amount = self._normalize_reward_amount(per_wallet_units)
-        reward_records = []
-        for vote in majority_votes:
-            wallet_address = self._normalize_native_wallet_identity(vote.get("voter_wallet_address") or vote.get("voter"))
-            if wallet_address is None:
-                continue
-            reward_records.append(
-                {
-                    "reward_id": self._reward_id(submission_id, wallet_address, reward_decision["final_decision"]),
-                    "reward_type": "voter_majority_reward",
-                    "reward_recipient": wallet_address,
-                    "voter_wallet_address": wallet_address,
-                    "reward_amount": reward_amount,
-                    "reward_source": "reward_pool",
-                    "reward_status": "pending",
-                    "submission_id": submission_id,
-                    "certificate_id": reward_decision.get("certificate_id"),
-                    "content_hash": reward_decision.get("content_hash"),
-                    "vote_choice": reward_decision["vote_choice"],
-                    "final_decision": reward_decision["final_decision"],
-                    "decision_reason": reward_decision["decision_reason"],
-                    "decision_finalized_at": reward_decision["decision_finalized_at"],
-                    "created_at": reward_decision["decision_finalized_at"],
-                    "network_name": NETWORK_NAME,
-                }
-            )
-
-        distributed_units = per_wallet_units * len(reward_records)
-        return {
-            **reward_decision,
-            "rewards_enabled": True,
-            "eligible": True,
-            "reason": "reward_plan_ready",
-            "reward_records": reward_records,
-            "excluded_voters": list(self._last_reward_excluded_voters),
-            "reward_count": len(reward_records),
-            "reward_amount_per_voter": reward_amount,
-            "total_distributed": self._normalize_reward_amount(distributed_units),
-            "undistributed_remainder": self._normalize_reward_amount(total_units - distributed_units),
-        }
+        return self._reward_service.build_submission_voter_reward_plan(self._reward_state(), submission_id, self._reward_collaborators(), now=now)
 
     def _due_voter_reward_records(self):
-        settled_reward_ids = self._get_settled_voter_reward_ids()
-        due_records = []
-        for submission in self.submissions:
-            plan = self.build_submission_voter_reward_plan(submission.submission_id)
-            if not plan.get("eligible"):
-                continue
-            for reward_record in plan["reward_records"]:
-                if reward_record["reward_id"] in settled_reward_ids:
-                    continue
-                due_records.append(reward_record)
-        due_records.sort(
-            key=lambda record: (
-                record.get("decision_finalized_at") or 0,
-                record.get("submission_id") or "",
-                record.get("reward_recipient") or "",
-            )
-        )
-        return due_records
+        return self._reward_service.due_voter_reward_records(self._reward_state(), self._reward_collaborators())
 
     def _priority_voter_reward_records_for_submission(self, submission_id):
         plan = self.build_submission_voter_reward_plan(submission_id)
-        if not plan.get("eligible"):
-            return []
-        if plan.get("final_decision") != VOTER_REWARD_APPROVAL_SIDE:
-            return []
-        settled_reward_ids = self._get_settled_voter_reward_ids()
-        return [
-            reward_record
-            for reward_record in plan.get("reward_records", [])
-            if reward_record.get("reward_id") not in settled_reward_ids
-        ]
+        return [] if not plan.get("eligible") or plan.get("final_decision") != VOTER_REWARD_APPROVAL_SIDE else [record for record in plan["reward_records"] if record.get("reward_id") not in self._get_settled_voter_reward_ids()]
 
     def _select_voter_reward_records_for_block(self, *, prioritized_submission_id=None, reward_pool_balance=None):
-        selected = []
-        skipped = []
-        available_reward_pool = self.reward_pool if reward_pool_balance is None else reward_pool_balance
-        remaining_units = self._reward_units_from_decimal(Decimal(str(available_reward_pool))) - self._reward_units_from_decimal(Decimal(str(MEME_BLOCK_REWARD)))
-        if remaining_units <= 0:
-            return {"selected": [], "skipped": self._due_voter_reward_records()}
-        selected_reward_ids = set()
-
-        if prioritized_submission_id:
-            prioritized_records = self._priority_voter_reward_records_for_submission(prioritized_submission_id)
-            prioritized_units = sum(
-                self._reward_units_from_amount_string(record["reward_amount"], allow_zero=False)
-                for record in prioritized_records
-            )
-            if prioritized_units > remaining_units:
-                raise ValueError("Insufficient reward pool to finalize approved-original voter rewards in the mint block.")
-            selected.extend(prioritized_records)
-            selected_reward_ids.update(
-                str(record.get("reward_id") or "").strip()
-                for record in prioritized_records
-                if record.get("reward_id")
-            )
-            remaining_units -= prioritized_units
-
-        grouped_records: dict[str, list[dict[str, object]]] = {}
-        for reward_record in self._due_voter_reward_records():
-            reward_id = str(reward_record.get("reward_id") or "").strip()
-            if reward_id and reward_id in selected_reward_ids:
-                continue
-            grouped_records.setdefault(str(reward_record.get("submission_id") or ""), []).append(reward_record)
-
-        for submission_id in sorted(grouped_records.keys()):
-            group = grouped_records[submission_id]
-            group_units = sum(self._reward_units_from_amount_string(record["reward_amount"], allow_zero=False) for record in group)
-            if group_units > remaining_units:
-                skipped.extend(group)
-                continue
-            selected.extend(group)
-            remaining_units -= group_units
-        return {"selected": selected, "skipped": skipped}
+        return self._reward_service.select_voter_reward_records_for_block(self._reward_state(), self._reward_collaborators(), prioritized_submission_id=prioritized_submission_id, reward_pool_balance=reward_pool_balance)
 
     def get_submission_voter_reward_summary(self, submission_id, *, now=None):
-        plan = self.build_submission_voter_reward_plan(submission_id, now=now)
-        settled_records = [
-            reward_record
-            for reward_record in self._all_reward_records()
-            if reward_record.get("reward_type") == "voter_majority_reward"
-            and reward_record.get("submission_id") == submission_id
-        ]
-        settled_reward_ids = {reward_record.get("reward_id") for reward_record in settled_records}
-        pending_records = [
-            reward_record
-            for reward_record in plan.get("reward_records", [])
-            if reward_record.get("reward_id") not in settled_reward_ids
-        ]
-        reward_amount_per_voter = plan.get("reward_amount_per_voter", "0")
-        if settled_records:
-            reward_amount_per_voter = settled_records[0].get("reward_amount", reward_amount_per_voter)
-        total_distributed = self._normalize_reward_amount(
-            sum(
-                self._reward_units_from_amount_string(record.get("reward_amount") or "0", allow_zero=True)
-                for record in settled_records
-            )
-        )
-        return {
-            "submission_id": submission_id,
-            "voter_rewards_enabled": VOTER_REWARDS_ENABLED,
-            "eligible": bool(plan.get("eligible")),
-            "reason": plan.get("reason"),
-            "excluded_voters": plan.get("excluded_voters", []),
-            "final_majority_side": plan.get("final_decision"),
-            "decision_reason": plan.get("decision_reason"),
-            "reward_status": "finalized" if settled_records and not pending_records else ("pending" if pending_records else "none"),
-            "reward_amount_per_voter": reward_amount_per_voter,
-            "rewarded_voter_count": len(settled_records),
-            "pending_voter_count": len(pending_records),
-            "total_distributed": total_distributed,
-            "undistributed_remainder": plan.get("undistributed_remainder", "0"),
-            "review_eligibility_required": VOTER_REWARD_REQUIRE_REVIEW_ELIGIBLE,
-            "reward_records": settled_records,
-            "pending_reward_records": pending_records,
-        }
+        return self._reward_service.get_submission_voter_reward_summary(self._reward_state(), submission_id, self._reward_collaborators(), now=now)
 
     def get_reward_records_for_wallet(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
+        return self._reward_service.get_reward_records_for_wallet(self._reward_state(), wallet_address, self._reward_collaborators())
+    def create_signed_transfer_intent(self, *, from_address, to_address, amount, fee, memo, network, transaction_version=None, protocol_version=None, network_id=None, signature_scheme, signature, signed_message_hash, signed_message, transfer_nonce, transaction_timestamp=None, signed_at, status="signed_pending", created_at=None):
+        return self._native_ledger_service.create_signed_transfer_intent(self._native_ledger_state(), self.storage, from_address=from_address, to_address=to_address, amount=amount, fee=fee, memo=memo, network=network, transaction_version=transaction_version, protocol_version=protocol_version, network_id=network_id, signature_scheme=signature_scheme, signature=signature, signed_message_hash=signed_message_hash, signed_message=signed_message, transfer_nonce=transfer_nonce, transaction_timestamp=transaction_timestamp, signed_at=signed_at, status=status, created_at=created_at)
 
-        return [
-            reward_record
-            for reward_record in self._all_reward_records()
-            if self._normalize_native_wallet_identity(
-                reward_record.get("reward_recipient") or reward_record.get("voter_wallet_address")
-            ) == normalized_wallet
-        ]
-
-    def create_signed_transfer_intent(
-        self,
-        *,
-        from_address,
-        to_address,
-        amount,
-        fee,
-        memo,
-        network,
-        transaction_version=None,
-        protocol_version=None,
-        network_id=None,
-        signature_scheme,
-        signature,
-        signed_message_hash,
-        signed_message,
-        transfer_nonce,
-        transaction_timestamp=None,
-        signed_at,
-        status="signed_pending",
-        created_at=None,
-    ):
-        transaction = build_native_transaction(
-            network=str(network),
-            transaction_version=transaction_version,
-            protocol_version=protocol_version,
-            network_id=network_id,
-            from_address=from_address,
-            to_address=to_address,
-            amount=str(amount),
-            fee=str(fee),
-            nonce=str(transfer_nonce),
-            memo=str(memo or "").strip() or None,
-            timestamp=str(transaction_timestamp or signed_at),
-            signature=str(signature),
-            signature_scheme=str(signature_scheme),
-            signed_message=str(signed_message),
-            signed_message_hash=str(signed_message_hash),
-            status=str(status),
-            created_at=str(created_at) if created_at is not None else None,
-        )
-        existing_transaction = self.reserve_transaction_nonce(transaction.to_dict())
-        if existing_transaction is not None:
-            existing_transfer_intent = self._get_transfer_intent_by_tx_id(existing_transaction.get("tx_id"))
-            if existing_transfer_intent is None:
-                raise ValueError("Transaction already recorded, but the local transfer intent record is missing.")
-            duplicate_record = dict(existing_transfer_intent)
-            duplicate_record["duplicate"] = True
-            return duplicate_record
-        record = self._build_transfer_intent_record_from_transaction(
-            transaction,
-            signed_at=signed_at,
-            created_at=transaction.created_at,
-        )
-        if not record["from_address"] or not record["to_address"]:
-            raise ValueError("Transfer intent wallet addresses are invalid.")
-        self.transfer_intents.append(record)
-        self.native_transactions.append(transaction.to_dict())
-        return record
-
-    def get_transfer_intent(self, transfer_id):
-        return self.storage.get_transfer_intent(transfer_id, self.transfer_intents)
-
-    def get_transfer_intent_by_tx_id(self, tx_id):
-        return self._get_transfer_intent_by_tx_id(tx_id)
-
-    def get_native_transaction(self, tx_id):
-        return self.storage.get_native_transaction(tx_id, self.native_transactions)
+    def get_transfer_intent(self, transfer_id): return self._native_ledger_service.get_transfer_intent(self._native_ledger_state(), self.storage, transfer_id)
+    def get_transfer_intent_by_tx_id(self, tx_id): return self._native_ledger_service.get_transfer_intent_by_tx_id(self._native_ledger_state(), tx_id)
+    def get_native_transaction(self, tx_id): return self._native_ledger_service.get_native_transaction(self._native_ledger_state(), self.storage, tx_id)
 
     def _wallet_matches_submission(self, submission, normalized_wallet):
-        for candidate in [
-            getattr(submission, "creator_wallet_address", None),
-            getattr(submission, "submitter", None),
-        ]:
-            if self._normalize_native_wallet_identity(candidate) == normalized_wallet:
-                return True
-        return False
+        return any(self._normalize_native_wallet_identity(candidate) == normalized_wallet for candidate in (getattr(submission, "creator_wallet_address", None), getattr(submission, "submitter", None)))
 
     def _wallet_matches_vote(self, vote, normalized_wallet):
-        for candidate in [vote.get("voter_wallet_address"), vote.get("voter")]:
-            if self._normalize_native_wallet_identity(candidate) == normalized_wallet:
-                return True
-        return False
+        return any(self._normalize_native_wallet_identity(candidate) == normalized_wallet for candidate in (vote.get("voter_wallet_address"), vote.get("voter")))
 
     def count_votes_by_wallet_since(self, wallet_address, since_timestamp):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return 0
-        count = 0
-        for vote in self.votes:
-            created_at = _coerce_timestamp(vote.get("created_at")) or 0
-            if created_at < float(since_timestamp):
-                continue
-            if self._wallet_matches_vote(vote, normalized_wallet):
-                count += 1
-        return count
+        wallet = self._normalize_native_wallet_identity(wallet_address)
+        return 0 if wallet is None else sum(1 for vote in self.votes if (_coerce_timestamp(vote.get("created_at")) or 0) >= float(since_timestamp) and self._wallet_matches_vote(vote, wallet))
 
     def get_account_activity_summary(self, wallet_address, *, now=None):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return {
-                "wallet_address": str(wallet_address or "").strip(),
-                "normalized_wallet_address": None,
-                "exists": False,
-                "first_activity_at": None,
-                "account_age_seconds": 0,
-                "submission_count": 0,
-                "vote_count": 0,
-                "reward_count": 0,
-                "settled_transfer_count": 0,
-                "settled_balance_zoid": "0",
-            }
+        wallet = self._normalize_native_wallet_identity(wallet_address)
+        if wallet is None:
+            return {"wallet_address": str(wallet_address or "").strip(), "normalized_wallet_address": None, "exists": False, "first_activity_at": None, "account_age_seconds": 0, "submission_count": 0, "vote_count": 0, "reward_count": 0, "settled_transfer_count": 0, "settled_balance_zoid": "0"}
+        submissions = [item for item in self.submissions if self._wallet_matches_submission(item, wallet)]; votes = [item for item in self.votes if self._wallet_matches_vote(item, wallet)]; rewards = self.get_reward_records_for_wallet(wallet); transactions = self.get_native_transactions_for_wallet(wallet)
+        timestamps = [_coerce_timestamp(getattr(item, "created_at", None)) for item in submissions] + [_coerce_timestamp(item.get("created_at")) for item in votes] + [_coerce_timestamp(item.get("minted_at")) for item in rewards] + [_coerce_timestamp(item.get("created_at") or item.get("updated_at") or item.get("timestamp")) for item in transactions]
+        timestamps = [item for item in timestamps if item is not None]; first = min(timestamps) if timestamps else None; balance = self.get_native_balance_snapshot(wallet)["final_balance"]
+        return {"wallet_address": wallet, "normalized_wallet_address": wallet, "exists": bool(timestamps) or Decimal(balance) > Decimal("0"), "first_activity_at": first, "account_age_seconds": max(0, int(float(now if now is not None else time.time()) - first)) if first is not None else 0, "submission_count": len(submissions), "vote_count": len(votes), "reward_count": len(rewards), "settled_transfer_count": sum(1 for item in transactions if str(item.get("status") or "").strip().lower() == "settled"), "settled_balance_zoid": balance}
 
-        submissions = [
-            submission
-            for submission in self.submissions
-            if self._wallet_matches_submission(submission, normalized_wallet)
-        ]
-        votes = [
-            vote
-            for vote in self.votes
-            if self._wallet_matches_vote(vote, normalized_wallet)
-        ]
-        rewards = self.get_reward_records_for_wallet(normalized_wallet)
-        transactions = self.get_native_transactions_for_wallet(normalized_wallet)
-        settled_transfer_count = sum(
-            1
-            for transaction in transactions
-            if str(transaction.get("status") or "").strip().lower() == "settled"
-        )
+    def get_transfer_intents_for_wallet(self, wallet_address): return self._native_ledger_service.get_transfer_intents_for_wallet(self._native_ledger_state(), wallet_address)
+    def get_native_transactions_for_wallet(self, wallet_address): return self._native_ledger_service.get_native_transactions_for_wallet(self._native_ledger_state(), wallet_address)
+    _native_mempool_eligible_statuses = staticmethod(NativeLedgerService.native_mempool_eligible_statuses)
+    _native_ineligible_mempool_statuses = staticmethod(NativeLedgerService.native_ineligible_mempool_statuses)
+    _native_mempool_sort_key = staticmethod(NativeLedgerService.native_mempool_sort_key)
+    _native_finalized_statuses = staticmethod(NativeLedgerService.native_finalized_statuses)
+    _native_block_candidate_statuses = staticmethod(NativeLedgerService.native_block_candidate_statuses)
+    _native_block_sort_key = staticmethod(NativeLedgerService.native_block_sort_key)
+    _serialize_native_transaction_for_block = staticmethod(NativeLedgerService.serialize_native_transaction_for_block)
+    _compute_block_native_transactions_hash = staticmethod(NativeLedgerService.compute_block_native_transactions_hash)
+    _block_native_transactions = staticmethod(NativeLedgerService.block_native_transactions)
+    _native_nonce_used_statuses = staticmethod(NativeLedgerService.native_nonce_used_statuses)
+    _native_nonce_reserved_statuses = staticmethod(NativeLedgerService.native_nonce_reserved_statuses)
+    _native_nonce_unavailable_statuses = classmethod(lambda cls: NativeLedgerService.native_nonce_unavailable_statuses())
+    _coerce_native_nonce = staticmethod(NativeLedgerService.coerce_native_nonce)
+    _normalize_rejection_reason = staticmethod(NativeLedgerService.normalize_rejection_reason)
 
-        activity_timestamps = []
-        for submission in submissions:
-            timestamp = _coerce_timestamp(getattr(submission, "created_at", None))
-            if timestamp is not None:
-                activity_timestamps.append(timestamp)
-        for vote in votes:
-            timestamp = _coerce_timestamp(vote.get("created_at"))
-            if timestamp is not None:
-                activity_timestamps.append(timestamp)
-        for reward in rewards:
-            timestamp = _coerce_timestamp(reward.get("minted_at"))
-            if timestamp is not None:
-                activity_timestamps.append(timestamp)
-        for transaction in transactions:
-            timestamp = _coerce_timestamp(
-                transaction.get("created_at")
-                or transaction.get("updated_at")
-                or transaction.get("timestamp")
-            )
-            if timestamp is not None:
-                activity_timestamps.append(timestamp)
-
-        first_activity_at = min(activity_timestamps) if activity_timestamps else None
-        current_time = float(now if now is not None else time.time())
-        account_age_seconds = max(0, int(current_time - first_activity_at)) if first_activity_at is not None else 0
-        settled_balance_zoid = self.get_native_balance_snapshot(normalized_wallet)["final_balance"]
-        return {
-            "wallet_address": normalized_wallet,
-            "normalized_wallet_address": normalized_wallet,
-            "exists": bool(activity_timestamps) or Decimal(settled_balance_zoid) > Decimal("0"),
-            "first_activity_at": first_activity_at,
-            "account_age_seconds": account_age_seconds,
-            "submission_count": len(submissions),
-            "vote_count": len(votes),
-            "reward_count": len(rewards),
-            "settled_transfer_count": settled_transfer_count,
-            "settled_balance_zoid": settled_balance_zoid,
-        }
-
-    def get_transfer_intents_for_wallet(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        return [
-            record
-            for record in self.transfer_intents
-            if self._normalize_native_wallet_identity(record.get("from_address")) == normalized_wallet
-            or self._normalize_native_wallet_identity(record.get("to_address")) == normalized_wallet
-        ]
-
-    def get_native_transactions_for_wallet(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        return [
-            record
-            for record in self.native_transactions
-            if self._normalize_native_wallet_identity(record.get("from_address")) == normalized_wallet
-            or self._normalize_native_wallet_identity(record.get("to_address")) == normalized_wallet
-        ]
-
-    @staticmethod
-    def _native_mempool_eligible_statuses():
-        return {"signed_pending", "validated_pending", "mempool"}
-
-    @staticmethod
-    def _native_ineligible_mempool_statuses():
-        return {"included", "settled", "rejected", "expired", "failed"}
-
-    @staticmethod
-    def _native_mempool_sort_key(transaction):
-        admitted_at = str(transaction.get("admitted_at") or transaction.get("updated_at") or transaction.get("created_at") or "")
-        from_address = str(transaction.get("from_address") or "")
-        nonce = int(parse_transfer_nonce(transaction.get("nonce")))
-        tx_id = str(transaction.get("tx_id") or "")
-        return (admitted_at, from_address, nonce, tx_id)
-
-    def _find_native_transaction_index(self, tx_id):
-        normalized_tx_id = str(tx_id or "").strip().lower()
-        for index, transaction in enumerate(self.native_transactions):
-            if str(transaction.get("tx_id") or "").strip().lower() == normalized_tx_id:
-                return index
-        return None
-
-    def _find_transfer_intent_index_by_tx_id(self, tx_id):
-        normalized_tx_id = str(tx_id or "").strip().lower()
-        for index, record in enumerate(self.transfer_intents):
-            if str(record.get("tx_id") or "").strip().lower() == normalized_tx_id:
-                return index
-        return None
-
-    @staticmethod
-    def _normalize_rejection_reason(reason: str) -> str:
-        candidate = str(reason or "").strip().lower()
-        candidate = re.sub(r"[^a-z0-9]+", "_", candidate).strip("_")
-        return candidate or "validation_failed"
-
-    def _update_transfer_intent_status(self, tx_id, *, status, updated_at=None):
-        index = self._find_transfer_intent_index_by_tx_id(tx_id)
-        if index is None:
-            return None
-        record = dict(self.transfer_intents[index])
-        record["status"] = str(status).strip().lower()
-        if updated_at:
-            record["updated_at"] = updated_at
-        self.transfer_intents[index] = record
-        return record
-
-    def _replace_native_transaction(self, transaction):
-        index = self._find_native_transaction_index(transaction.get("tx_id"))
-        if index is None:
-            raise ValueError("Transaction not found.")
-        self.native_transactions[index] = dict(transaction)
-        return self.native_transactions[index]
-
-    def discard_native_transaction(self, tx_id):
-        native_index = self._find_native_transaction_index(tx_id)
-        if native_index is None:
-            return False
-        del self.native_transactions[native_index]
-
-        transfer_index = self._find_transfer_intent_index_by_tx_id(tx_id)
-        if transfer_index is not None:
-            del self.transfer_intents[transfer_index]
-        return True
-
-    def update_native_transaction_status(
-        self,
-        tx_id,
-        *,
-        status,
-        rejection_reason=None,
-        admitted_at=None,
-        included_block_hash=None,
-        included_block_height=None,
-        settled_at=None,
-        updated_at=None,
-    ):
-        transaction = self.get_native_transaction(tx_id)
-        if transaction is None:
-            raise ValueError(f"Transaction not found: {tx_id}")
-        normalized_status = str(status).strip().lower()
-        now_iso = str(updated_at or self._utc_now_iso())
-        updated_transaction = dict(transaction)
-        updated_transaction["status"] = normalized_status
-        updated_transaction["updated_at"] = now_iso
-        if admitted_at is not None:
-            updated_transaction["admitted_at"] = admitted_at
-        if included_block_hash is not None:
-            updated_transaction["included_block_hash"] = included_block_hash
-        if included_block_height is not None:
-            updated_transaction["included_block_height"] = included_block_height
-        if settled_at is not None:
-            updated_transaction["settled_at"] = settled_at
-        if rejection_reason is not None:
-            updated_transaction["rejection_reason"] = rejection_reason
-        elif updated_transaction["status"] not in {"rejected", "expired"}:
-            updated_transaction["rejection_reason"] = None
-        try:
-            validated = validate_transaction_shape(updated_transaction, network_name=NETWORK_NAME)
-            stored_record = validated.to_dict()
-        except ValueError:
-            if normalized_status not in {"rejected", "failed", "expired"}:
-                raise
-            stored_record = dict(updated_transaction)
-        self._replace_native_transaction(stored_record)
-        self._update_transfer_intent_status(stored_record["tx_id"], status=stored_record["status"], updated_at=now_iso)
-        return dict(stored_record)
-
-    def record_native_transaction(
-        self,
-        transaction_payload,
-        *,
-        status="signed_pending",
-        created_at=None,
-        updated_at=None,
-    ):
-        candidate_transaction = dict(transaction_payload or {})
-        now_iso = str(created_at or self._utc_now_iso())
-        candidate_transaction.setdefault("created_at", now_iso)
-        candidate_transaction.setdefault("updated_at", str(updated_at or now_iso))
-        validated_transaction = validate_transaction_shape(candidate_transaction, network_name=NETWORK_NAME)
-        existing_transaction = self.get_native_transaction(validated_transaction.tx_id)
-        if existing_transaction is not None:
-            return dict(existing_transaction), True
-
-        stored_transaction = validated_transaction.to_dict()
-        stored_transaction["status"] = str(status).strip().lower()
-        stored_transaction["created_at"] = now_iso
-        stored_transaction["updated_at"] = str(updated_at or now_iso)
-        stored_transaction["admitted_at"] = None
-        stored_transaction["included_block_hash"] = None
-        stored_transaction["included_block_height"] = None
-        stored_transaction["settled_at"] = None
-        stored_transaction["rejection_reason"] = None
-        validate_transaction_shape(stored_transaction, network_name=NETWORK_NAME)
-        self.native_transactions.append(stored_transaction)
-        return dict(stored_transaction), False
-
-    @staticmethod
-    def _native_finalized_statuses():
-        return {"included", "settled"}
-
-    @staticmethod
-    def _native_block_candidate_statuses():
-        return {"validated_pending", "mempool"}
-
-    @staticmethod
-    def _native_block_sort_key(transaction):
-        from_address = str(transaction.get("from_address") or "")
-        nonce = int(parse_transfer_nonce(transaction.get("nonce")))
-        tx_id = str(transaction.get("tx_id") or "")
-        return (from_address, nonce, tx_id)
-
-    @staticmethod
-    def _serialize_native_transaction_for_block(transaction):
-        payload = {
-            "tx_id": transaction.get("tx_id"),
-            "transaction_type": transaction.get("transaction_type"),
-            "network": transaction.get("network"),
-            "from_address": transaction.get("from_address"),
-            "to_address": transaction.get("to_address"),
-            "amount": transaction.get("amount"),
-            "fee": transaction.get("fee"),
-            "nonce": transaction.get("nonce"),
-            "memo": transaction.get("memo"),
-            "timestamp": transaction.get("timestamp"),
-            "signature": transaction.get("signature"),
-            "signature_scheme": transaction.get("signature_scheme"),
-            "signed_message": transaction.get("signed_message"),
-            "signed_message_hash": transaction.get("signed_message_hash"),
-        }
-        if transaction.get("transaction_version") is not None:
-            payload["transaction_version"] = transaction.get("transaction_version")
-        if transaction.get("protocol_version") is not None:
-            payload["protocol_version"] = transaction.get("protocol_version")
-        if transaction.get("network_id") is not None:
-            payload["network_id"] = transaction.get("network_id")
-        return payload
-
-    @staticmethod
-    def _compute_block_native_transactions_hash(transactions) -> str:
-        canonical = json.dumps(
-            [dict(transaction) for transaction in transactions or []],
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=True,
-        )
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _block_native_transactions(block):
-        if isinstance(block, dict):
-            return list(block.get("native_transactions", []) or [])
-        return list(getattr(block, "native_transactions", []) or [])
-
-    @staticmethod
-    def _native_nonce_used_statuses():
-        return {"included", "settled"}
-
-    @staticmethod
-    def _native_nonce_reserved_statuses():
-        return {"signed_pending", "validated_pending", "mempool"}
-
-    @classmethod
-    def _native_nonce_unavailable_statuses(cls):
-        return cls._native_nonce_used_statuses() | cls._native_nonce_reserved_statuses()
-
-    def _coerce_native_nonce(self, nonce) -> int:
-        return int(parse_transfer_nonce(nonce))
-
-    def _native_transaction_sender_matches(self, transaction, normalized_wallet: str) -> bool:
-        return self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
-
-    def _get_transfer_intent_by_tx_id(self, tx_id):
-        for record in self.transfer_intents:
-            if str(record.get("tx_id") or "").strip() == str(tx_id or "").strip():
-                return record
-        return None
-
-    def _find_sender_nonce_transaction(self, wallet_address, nonce):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return None
-        normalized_nonce = self._coerce_native_nonce(nonce)
-        for transaction in self.native_transactions:
-            if not self._native_transaction_sender_matches(transaction, normalized_wallet):
-                continue
-            if self._coerce_native_nonce(transaction.get("nonce")) != normalized_nonce:
-                continue
-            if str(transaction.get("status") or "").strip().lower() not in self._native_nonce_unavailable_statuses():
-                continue
-            return transaction
-        return None
-
-    def get_used_nonces(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        used = {
-            self._coerce_native_nonce(transaction.get("nonce"))
-            for transaction in self.native_transactions
-            if self._native_transaction_sender_matches(transaction, normalized_wallet)
-            and str(transaction.get("status") or "").strip().lower() in self._native_nonce_used_statuses()
-        }
-        return sorted(used)
-
-    def get_reserved_nonces(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        reserved = {
-            self._coerce_native_nonce(transaction.get("nonce"))
-            for transaction in self.native_transactions
-            if self._native_transaction_sender_matches(transaction, normalized_wallet)
-            and str(transaction.get("status") or "").strip().lower() in self._native_nonce_reserved_statuses()
-        }
-        return sorted(reserved)
-
-    def get_next_nonce(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return NATIVE_TRANSACTION_INITIAL_NONCE
-        used_nonces = set(self.get_used_nonces(normalized_wallet))
-        reserved_nonces = set(self.get_reserved_nonces(normalized_wallet))
-        unavailable_nonces = used_nonces | reserved_nonces
-        next_nonce = NATIVE_TRANSACTION_INITIAL_NONCE
-        while next_nonce in unavailable_nonces:
-            next_nonce += 1
-        return next_nonce
-
-    def is_nonce_available(self, wallet_address, nonce):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return False
-        return self._coerce_native_nonce(nonce) == self.get_next_nonce(normalized_wallet)
-
-    def validate_transaction_nonce(self, transaction):
-        normalized_wallet = self._normalize_native_wallet_identity(transaction.get("from_address"))
-        if normalized_wallet is None:
-            raise ValueError("Transaction from_address is invalid.")
-        transaction_nonce = self._coerce_native_nonce(transaction.get("nonce"))
-        tx_id = str(transaction.get("tx_id") or "").strip().lower()
-
-        existing_nonce_transaction = self._find_sender_nonce_transaction(normalized_wallet, transaction_nonce)
-        if existing_nonce_transaction:
-            existing_tx_id = str(existing_nonce_transaction.get("tx_id") or "").strip().lower()
-            if existing_tx_id == tx_id:
-                return existing_nonce_transaction
-            raise ValueError("Nonce already used or reserved. Refresh and try again.")
-
-        expected_nonce = self.get_next_nonce(normalized_wallet)
-        if transaction_nonce < expected_nonce:
-            raise ValueError("Transaction nonce is lower than the next expected nonce. Refresh and try again.")
-        if transaction_nonce > expected_nonce:
-            raise ValueError("Transaction nonce is ahead of the next expected nonce. Strict sequential nonces are required.")
-        return None
-
-    def reserve_transaction_nonce(self, transaction):
-        return self.validate_transaction_nonce(transaction)
-
-    def get_nonce_state(self, wallet_address):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            raise ValueError("wallet_address must be a valid Ethereum-style 0x address.")
-        return {
-            "wallet_address": normalized_wallet,
-            "next_nonce": self.get_next_nonce(normalized_wallet),
-            "used_nonces": self.get_used_nonces(normalized_wallet),
-            "reserved_nonces": self.get_reserved_nonces(normalized_wallet),
-            "policy": NATIVE_TRANSACTION_NONCE_POLICY,
-            "initial_nonce": NATIVE_TRANSACTION_INITIAL_NONCE,
-        }
-
-    @staticmethod
-    def _normalize_decimal_value(value: Decimal) -> str:
-        normalized_total = format(value.normalize(), "f")
-        if "." in normalized_total:
-            normalized_total = normalized_total.rstrip("0").rstrip(".")
-        return normalized_total if normalized_total and normalized_total != "-0" else "0"
-
-    @staticmethod
-    def _native_funds_reserved_statuses():
-        return {"signed_pending", "validated_pending", "mempool"}
-
-    def _get_reserved_native_transactions_for_wallet(self, wallet_address, *, exclude_tx_ids=None):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        excluded_ids = {
-            str(tx_id or "").strip().lower()
-            for tx_id in (exclude_tx_ids or set())
-            if str(tx_id or "").strip()
-        }
-        return [
-            transaction
-            for transaction in self.native_transactions
-            if str(transaction.get("status") or "").strip().lower() in self._native_funds_reserved_statuses()
-            and str(transaction.get("tx_id") or "").strip().lower() not in excluded_ids
-            and (
-                self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
-                or self._normalize_native_wallet_identity(transaction.get("to_address")) == normalized_wallet
-            )
-        ]
-
-    def _get_settled_native_transaction_records_for_wallet(self, wallet_address, *, chain=None):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        settled_transactions = []
-        for block in chain or self.chain:
-            for transaction in self._block_native_transactions(block):
-                sender = self._normalize_native_wallet_identity(transaction.get("from_address"))
-                recipient = self._normalize_native_wallet_identity(transaction.get("to_address"))
-                if sender == normalized_wallet or recipient == normalized_wallet:
-                    settled_transactions.append(transaction)
-        return settled_transactions
-
-    def get_chain_native_transaction_ids(self, *, chain=None):
-        tx_ids = []
-        for block in chain or self.chain:
-            for transaction in self._block_native_transactions(block):
-                tx_id = str(transaction.get("tx_id") or "").strip().lower()
-                if tx_id:
-                    tx_ids.append(tx_id)
-        return tx_ids
-
-    def get_settled_used_nonces(self, wallet_address, *, chain=None):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return []
-        used = {
-            self._coerce_native_nonce(transaction.get("nonce"))
-            for transaction in self._get_settled_native_transaction_records_for_wallet(normalized_wallet, chain=chain)
-            if self._normalize_native_wallet_identity(transaction.get("from_address")) == normalized_wallet
-        }
-        return sorted(used)
-
-    def get_next_settled_nonce(self, wallet_address, *, chain=None):
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return NATIVE_TRANSACTION_INITIAL_NONCE
-        used_nonces = set(self.get_settled_used_nonces(normalized_wallet, chain=chain))
-        next_nonce = NATIVE_TRANSACTION_INITIAL_NONCE
-        while next_nonce in used_nonces:
-            next_nonce += 1
-        return next_nonce
-
-    def get_next_chain_nonce(self, wallet_address, chain_before_block=None):
-        return self.get_next_settled_nonce(wallet_address, chain=chain_before_block)
-
-    def calculate_balances_from_chain(self, chain=None):
-        chain_dicts = self.chain_to_dicts(chain or self.chain)
-        balances: dict[str, Decimal] = {}
-        seen_tx_ids = set()
-        next_nonces: dict[str, int] = {}
-        rewarded_submissions = set()
-
-        def _balance_for(wallet_address):
-            if wallet_address is None:
-                return Decimal("0")
-            return balances.get(wallet_address, Decimal("0"))
-
-        for block_dict in chain_dicts:
-            submission_id = block_dict.get("submission_id")
-            reward_type = block_dict.get("reward_type")
-            if reward_type == "meme_mining_reward" and submission_id:
-                if submission_id in rewarded_submissions:
-                    raise NativeBlockValidationError(
-                        "duplicate_reward",
-                        "Chain contains duplicate meme reward settlement for the same submission.",
-                        details={"submission_id": submission_id},
-                    )
-                rewarded_submissions.add(submission_id)
-
-            for transaction in list(block_dict.get("transactions", []) or []):
-                sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
-                recipient_value = transaction.get("recipient") if isinstance(transaction, dict) else transaction.recipient
-                amount_value = transaction.get("amount") if isinstance(transaction, dict) else transaction.amount
-                tip_value = transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip
-                sender = self._normalize_native_wallet_identity(sender_value) or sender_value
-                recipient = self._normalize_native_wallet_identity(recipient_value) or recipient_value
-                transaction_total = Decimal(str(amount_value)) + Decimal(str(tip_value))
-                if sender not in {None, "", "GENESIS", "REWARD_POOL"}:
-                    balances[sender] = _balance_for(sender) - transaction_total
-                if recipient:
-                    balances[recipient] = _balance_for(recipient) + transaction_total
-
-            for transaction in self._block_native_transactions(block_dict):
-                validated_transaction = self.validate_signed_native_transaction(transaction)
-                tx_id = str(validated_transaction.get("tx_id") or "").strip().lower()
-                if tx_id in seen_tx_ids:
-                    raise NativeBlockValidationError(
-                        "duplicate_transaction_id",
-                        "Chain contains the same native transaction more than once.",
-                        details={"tx_id": tx_id},
-                    )
-
-                sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
-                recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
-                if sender is None or recipient is None:
-                    raise NativeBlockValidationError(
-                        "malformed_transaction",
-                        "Chain contains a native transaction with an invalid sender or recipient.",
-                        details={"tx_id": tx_id},
-                    )
-
-                transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
-                expected_nonce = next_nonces.get(sender, NATIVE_TRANSACTION_INITIAL_NONCE)
-                if transaction_nonce < expected_nonce:
-                    error_code = "duplicate_nonce" if transaction_nonce == expected_nonce - 1 else "nonce_too_low"
-                    raise NativeBlockValidationError(
-                        error_code,
-                        "Chain contains a native transaction with a nonce lower than the next expected chain nonce.",
-                        details={
-                            "tx_id": tx_id,
-                            "from_address": sender,
-                            "expected_nonce": expected_nonce,
-                            "received_nonce": transaction_nonce,
-                        },
-                    )
-                if transaction_nonce > expected_nonce:
-                    raise NativeBlockValidationError(
-                        "nonce_gap",
-                        "Chain contains a native transaction with a nonce gap.",
-                        details={
-                            "tx_id": tx_id,
-                            "from_address": sender,
-                            "expected_nonce": expected_nonce,
-                            "received_nonce": transaction_nonce,
-                        },
-                    )
-
-                fee_amount = Decimal(str(validated_transaction.get("fee") or "0"))
-                if fee_amount != Decimal("0"):
-                    raise NativeBlockValidationError(
-                        "invalid_fee",
-                        "Chain contains a native transaction with a nonzero fee.",
-                        details={"tx_id": tx_id, "fee": str(validated_transaction.get("fee") or "0")},
-                    )
-                amount = Decimal(str(validated_transaction.get("amount") or "0"))
-                required_total = amount + fee_amount
-                sender_balance = _balance_for(sender)
-                if sender_balance < required_total:
-                    raise NativeBlockValidationError(
-                        "insufficient_balance",
-                        "Chain contains a native transaction that would overdraw the sender.",
-                        details={
-                            "tx_id": tx_id,
-                            "from_address": sender,
-                            "available_balance": self._normalize_decimal_value(sender_balance),
-                            "required_total": self._normalize_decimal_value(required_total),
-                        },
-                    )
-
-                balances[sender] = sender_balance - required_total
-                balances[recipient] = _balance_for(recipient) + amount
-                next_nonces[sender] = expected_nonce + 1
-                seen_tx_ids.add(tx_id)
-
-        return {
-            "balances": balances,
-            "seen_tx_ids": seen_tx_ids,
-            "next_nonces": next_nonces,
-            "rewarded_submissions": rewarded_submissions,
-        }
-
-    def get_final_native_balance_amount(self, wallet_address, *, chain=None) -> Decimal:
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return Decimal("0")
-        balance = Decimal("0")
-        for block in chain or self.chain:
-            ledger_transactions = block.get("transactions", []) if isinstance(block, dict) else block.transactions
-            for transaction in ledger_transactions:
-                sender_value = transaction.get("sender") if isinstance(transaction, dict) else transaction.sender
-                recipient_value = transaction.get("recipient") if isinstance(transaction, dict) else transaction.recipient
-                amount_value = transaction.get("amount") if isinstance(transaction, dict) else transaction.amount
-                tip_value = transaction.get("tip", 0) if isinstance(transaction, dict) else transaction.tip
-                sender = self._normalize_native_wallet_identity(sender_value) or sender_value
-                recipient = self._normalize_native_wallet_identity(recipient_value) or recipient_value
-                transaction_total = Decimal(str(amount_value)) + Decimal(str(tip_value))
-                if sender == normalized_wallet:
-                    balance -= transaction_total
-                if recipient == normalized_wallet:
-                    balance += transaction_total
-            for transaction in self._block_native_transactions(block):
-                sender = self._normalize_native_wallet_identity(transaction.get("from_address"))
-                recipient = self._normalize_native_wallet_identity(transaction.get("to_address"))
-                transaction_total = Decimal(str(transaction.get("amount") or "0")) + Decimal(str(transaction.get("fee") or "0"))
-                if sender == normalized_wallet:
-                    balance -= transaction_total
-                if recipient == normalized_wallet:
-                    balance += Decimal(str(transaction.get("amount") or "0"))
-        return balance
+    def _find_native_transaction_index(self, tx_id): return self._native_ledger_service.find_native_transaction_index(self._native_ledger_state(), tx_id)
+    def _find_transfer_intent_index_by_tx_id(self, tx_id): return self._native_ledger_service.find_transfer_intent_index_by_tx_id(self._native_ledger_state(), tx_id)
+    def _update_transfer_intent_status(self, tx_id, *, status, updated_at=None): return self._native_ledger_service.update_transfer_intent_status(self._native_ledger_state(), tx_id, status=status, updated_at=updated_at)
+    def _replace_native_transaction(self, transaction): return self._native_ledger_service.replace_native_transaction(self._native_ledger_state(), transaction)
+    def discard_native_transaction(self, tx_id): return self._native_ledger_service.discard_native_transaction(self._native_ledger_state(), tx_id)
+    def update_native_transaction_status(self, tx_id, *, status, rejection_reason=None, admitted_at=None, included_block_hash=None, included_block_height=None, settled_at=None, updated_at=None): return self._native_ledger_service.update_native_transaction_status(self._native_ledger_state(), self.storage, tx_id, status=status, rejection_reason=rejection_reason, admitted_at=admitted_at, included_block_hash=included_block_hash, included_block_height=included_block_height, settled_at=settled_at, updated_at=updated_at)
+    def record_native_transaction(self, transaction_payload, *, status="signed_pending", created_at=None, updated_at=None): return self._native_ledger_service.record_native_transaction(self._native_ledger_state(), self.storage, transaction_payload, status=status, created_at=created_at, updated_at=updated_at)
+    def _native_transaction_sender_matches(self, transaction, normalized_wallet): return self._native_ledger_service.native_transaction_sender_matches(transaction, normalized_wallet)
+    def _get_transfer_intent_by_tx_id(self, tx_id): return self.get_transfer_intent_by_tx_id(tx_id)
+    def _find_sender_nonce_transaction(self, wallet_address, nonce): return self._native_ledger_service.find_sender_nonce_transaction(self._native_ledger_state(), wallet_address, nonce)
+    def get_used_nonces(self, wallet_address): return self._native_ledger_service.get_used_nonces(self._native_ledger_state(), wallet_address)
+    def get_reserved_nonces(self, wallet_address): return self._native_ledger_service.get_reserved_nonces(self._native_ledger_state(), wallet_address)
+    def get_next_nonce(self, wallet_address): return self._native_ledger_service.get_next_nonce(self._native_ledger_state(), wallet_address)
+    def is_nonce_available(self, wallet_address, nonce): return self._native_ledger_service.is_nonce_available(self._native_ledger_state(), wallet_address, nonce)
+    def validate_transaction_nonce(self, transaction): return self._native_ledger_service.validate_transaction_nonce(self._native_ledger_state(), transaction)
+    def reserve_transaction_nonce(self, transaction): return self._native_ledger_service.reserve_transaction_nonce(self._native_ledger_state(), transaction)
+    def get_nonce_state(self, wallet_address): return self._native_ledger_service.get_nonce_state(self._native_ledger_state(), wallet_address)
+    def _get_reserved_native_transactions_for_wallet(self, wallet_address, *, exclude_tx_ids=None): return self._native_ledger_service.get_reserved_native_transactions_for_wallet(self._native_ledger_state(), wallet_address, exclude_tx_ids=exclude_tx_ids)
+    def _get_settled_native_transaction_records_for_wallet(self, wallet_address, *, chain=None): return self._native_ledger_service.get_settled_native_transaction_records_for_wallet(self._native_ledger_state(), wallet_address, chain=chain)
+    def get_chain_native_transaction_ids(self, *, chain=None): return self._native_ledger_service.get_chain_native_transaction_ids(self._native_ledger_state(), chain=chain)
+    def get_settled_used_nonces(self, wallet_address, *, chain=None): return self._native_ledger_service.get_settled_used_nonces(self._native_ledger_state(), wallet_address, chain=chain)
+    def get_next_settled_nonce(self, wallet_address, *, chain=None): return self._native_ledger_service.get_next_settled_nonce(self._native_ledger_state(), wallet_address, chain=chain)
+    def get_next_chain_nonce(self, wallet_address, chain_before_block=None): return self._native_ledger_service.get_next_chain_nonce(self._native_ledger_state(), wallet_address, chain_before_block)
+    def calculate_balances_from_chain(self, chain=None): return self._native_ledger_service.calculate_balances_from_chain(self._native_ledger_state(), self.chain_to_dicts, chain=chain, error_type=NativeBlockValidationError)
+    def get_final_native_balance_amount(self, wallet_address, *, chain=None): return self._native_ledger_service.get_final_native_balance_amount(self._native_ledger_state(), wallet_address, chain=chain)
+    def get_pending_outgoing_balance_amount(self, wallet_address, *, exclude_tx_ids=None): return self._native_ledger_service.get_pending_outgoing_balance_amount(self._native_ledger_state(), wallet_address, exclude_tx_ids=exclude_tx_ids)
+    def get_pending_incoming_balance_amount(self, wallet_address, *, exclude_tx_ids=None): return self._native_ledger_service.get_pending_incoming_balance_amount(self._native_ledger_state(), wallet_address, exclude_tx_ids=exclude_tx_ids)
+    def get_available_native_balance_amount(self, wallet_address, *, exclude_tx_ids=None): return self._native_ledger_service.get_available_native_balance_amount(self._native_ledger_state(), wallet_address, exclude_tx_ids=exclude_tx_ids)
+    def get_native_balance_snapshot(self, wallet_address, *, exclude_tx_ids=None): return self._native_ledger_service.get_native_balance_snapshot(self._native_ledger_state(), wallet_address, exclude_tx_ids=exclude_tx_ids)
+    def validate_transaction_balance_sufficiency(self, transaction, *, exclude_tx_id=None): return self._native_ledger_service.validate_transaction_balance_sufficiency(self._native_ledger_state(), transaction, exclude_tx_id=exclude_tx_id)
+    def list_mempool_transactions(self): return self._native_mempool_service.list_transactions(self._native_ledger_state())
+    def get_mempool_transaction(self, tx_id): return self._native_mempool_service.get_transaction(self._native_ledger_state(), self.storage, tx_id)
+    def validate_signed_native_transaction(self, transaction_or_tx_id, *, allowed_statuses=None): return self._native_ledger_service.validate_signed_native_transaction(self._native_ledger_state(), self.storage, transaction_or_tx_id, allowed_statuses=allowed_statuses)
+    def validate_transaction_for_mempool(self, transaction_or_tx_id): return self._native_mempool_service.validate_transaction(self._native_ledger_state(), self.storage, transaction_or_tx_id)
+    def select_native_transactions_for_block(self, *, max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK): return self._native_mempool_service.select_for_block(self._native_ledger_state(), self.storage, self.chain_to_dicts, max_transactions_per_block=max_transactions_per_block, error_type=NativeBlockValidationError)
 
     @staticmethod
     def _native_block_requires_certificate_context(block_dict) -> bool:
         if not list(block_dict.get("native_transactions", []) or []):
             return False
-        required_fields = [
-            "submission_id",
-            "certificate_id",
-            "content_hash",
-            "creator_wallet",
-            "vote_hash",
-            "approval_percentage",
-            "decisive_vote_total",
-            "minimum_votes_required",
-            "approved_at",
-            "originality_score",
-            "reward_type",
-            "reward_recipient",
-            "reward_amount",
-            "reward_source",
-            "minted_at",
-        ]
-        metadata = {
-            field_name: block_dict.get(field_name)
-            for field_name in required_fields
-            if block_dict.get(field_name) is not None
-        }
-        return len(metadata) == len(required_fields)
+        fields = ("submission_id", "certificate_id", "content_hash", "creator_wallet", "vote_hash", "approval_percentage", "decisive_vote_total", "minimum_votes_required", "approved_at", "originality_score", "reward_type", "reward_recipient", "reward_amount", "reward_source", "minted_at")
+        return all(block_dict.get(field) is not None for field in fields)
 
     @staticmethod
     def _raise_native_block_validation_error(code, message, **details):
         raise NativeBlockValidationError(code, message, details=details or None)
-
-    def get_pending_outgoing_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return Decimal("0")
-        total = Decimal("0")
-        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet, exclude_tx_ids=exclude_tx_ids):
-            if self._normalize_native_wallet_identity(transaction.get("from_address")) != normalized_wallet:
-                continue
-            total += Decimal(str(transaction.get("amount") or "0"))
-            total += Decimal(str(transaction.get("fee") or "0"))
-        return total
-
-    def get_pending_incoming_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
-        normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
-        if normalized_wallet is None:
-            return Decimal("0")
-        total = Decimal("0")
-        for transaction in self._get_reserved_native_transactions_for_wallet(normalized_wallet, exclude_tx_ids=exclude_tx_ids):
-            if self._normalize_native_wallet_identity(transaction.get("to_address")) != normalized_wallet:
-                continue
-            total += Decimal(str(transaction.get("amount") or "0"))
-        return total
-
-    def get_available_native_balance_amount(self, wallet_address, *, exclude_tx_ids=None) -> Decimal:
-        return self.get_final_native_balance_amount(wallet_address) - self.get_pending_outgoing_balance_amount(
-            wallet_address,
-            exclude_tx_ids=exclude_tx_ids,
-        )
-
-    def get_native_balance_snapshot(self, wallet_address, *, exclude_tx_ids=None) -> dict[str, str]:
-        final_balance = self.get_final_native_balance_amount(wallet_address)
-        pending_outgoing = self.get_pending_outgoing_balance_amount(wallet_address, exclude_tx_ids=exclude_tx_ids)
-        pending_incoming = self.get_pending_incoming_balance_amount(wallet_address, exclude_tx_ids=exclude_tx_ids)
-        available_balance = final_balance - pending_outgoing
-        return {
-            "final_balance": self._normalize_decimal_value(final_balance),
-            "pending_outgoing": self._normalize_decimal_value(pending_outgoing),
-            "pending_incoming": self._normalize_decimal_value(pending_incoming),
-            "available_balance": self._normalize_decimal_value(available_balance),
-            "native_balance": self._normalize_decimal_value(final_balance),
-        }
-
-    def validate_transaction_balance_sufficiency(self, transaction, *, exclude_tx_id=None):
-        normalized_wallet = self._normalize_native_wallet_identity(transaction.get("from_address"))
-        if normalized_wallet is None:
-            raise ValueError("Transaction from_address is invalid.")
-        fee_amount = Decimal(parse_native_zoid_amount(transaction.get("fee") or "0", allow_zero=True))
-        if fee_amount != Decimal("0"):
-            raise ValueError("Nonzero fees are not enabled yet.")
-        amount = Decimal(parse_native_zoid_amount(transaction.get("amount") or "0", allow_zero=False))
-        required_total = amount + fee_amount
-        excluded_ids = {exclude_tx_id} if exclude_tx_id else None
-        available_balance = self.get_available_native_balance_amount(normalized_wallet, exclude_tx_ids=excluded_ids)
-        if required_total > available_balance:
-            snapshot = self.get_native_balance_snapshot(normalized_wallet, exclude_tx_ids=excluded_ids)
-            raise ValueError(
-                "Insufficient available balance. "
-                f"Final balance: {snapshot['final_balance']} ZOID, "
-                f"pending outgoing: {snapshot['pending_outgoing']} ZOID, "
-                f"available: {snapshot['available_balance']} ZOID."
-            )
-
-    def list_mempool_transactions(self):
-        mempool_transactions = [
-            dict(transaction)
-            for transaction in self.native_transactions
-            if str(transaction.get("status") or "").strip().lower() == "mempool"
-        ]
-        mempool_transactions.sort(key=self._native_mempool_sort_key)
-        return mempool_transactions
-
-    def get_mempool_transaction(self, tx_id):
-        transaction = self.get_native_transaction(tx_id)
-        if transaction is None:
-            return None
-        if str(transaction.get("status") or "").strip().lower() != "mempool":
-            return None
-        return transaction
-
-    def _resolve_native_transaction_record(self, transaction_or_tx_id):
-        if isinstance(transaction_or_tx_id, str):
-            transaction = self.get_native_transaction(transaction_or_tx_id)
-            if transaction is None:
-                raise ValueError(f"Transaction not found: {transaction_or_tx_id}")
-            return dict(transaction)
-        if not isinstance(transaction_or_tx_id, dict):
-            raise ValueError("transaction must be a tx_id string or transaction object.")
-        return dict(transaction_or_tx_id)
-
-    def validate_signed_native_transaction(self, transaction_or_tx_id, *, allowed_statuses=None):
-        transaction = self._resolve_native_transaction_record(transaction_or_tx_id)
-        transaction_payload = dict(transaction)
-        canonical_timestamp = transaction_payload.get("timestamp")
-        if canonical_timestamp not in (None, ""):
-            transaction_payload.setdefault("created_at", canonical_timestamp)
-            transaction_payload.setdefault("updated_at", canonical_timestamp)
-        validated_transaction = validate_transaction_shape(transaction_payload, network_name=NETWORK_NAME)
-        status = validated_transaction.status
-        if allowed_statuses is not None and status not in allowed_statuses:
-            raise ValueError(f"Transaction status {status} is not eligible for this operation.")
-
-        if validated_transaction.signed_message_hash != hash_wallet_message(validated_transaction.signed_message):
-            raise ValueError("signed_message_hash does not match signed_message.")
-
-        if validated_transaction.transaction_version == PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-            if validated_transaction.protocol_version != PROTOCOL_VERSION:
-                raise ValueError("protocol_version is required for Protocol v1 native transfers.")
-            if validated_transaction.network_id is None:
-                raise ValueError("network_id is required for Protocol v1 native transfers.")
-            expected_network_id = resolve_protocol_v1_network_id(network_name=NETWORK_NAME)
-            if validated_transaction.network_id != expected_network_id:
-                raise ValueError("Transaction belongs to a different network.")
-            expected_message = build_protocol_v1_native_transfer_message(
-                from_address=validated_transaction.from_address,
-                to_address=validated_transaction.to_address,
-                amount=validated_transaction.amount,
-                fee=validated_transaction.fee,
-                nonce=validated_transaction.nonce,
-                timestamp=validated_transaction.timestamp,
-                memo=validated_transaction.memo,
-                network_id=validated_transaction.network_id,
-            )
-            if validated_transaction.signed_message != expected_message:
-                raise ValueError("signed_message does not match the Protocol v1 native transfer payload.")
-        else:
-            if looks_like_protocol_v1_native_transfer_message(validated_transaction.signed_message):
-                raise ValueError("transaction_version is required for Protocol v1 native transfer messages.")
-
-            signed_transfer = parse_transfer_signing_message(
-                validated_transaction.signed_message,
-                network_name=NETWORK_NAME,
-            )
-            expected_fields = {
-                "from_address": validated_transaction.from_address,
-                "to_address": validated_transaction.to_address,
-                "amount": validated_transaction.amount,
-                "fee": validated_transaction.fee,
-                "nonce": validated_transaction.nonce,
-                "timestamp": validated_transaction.timestamp,
-                "memo": validated_transaction.memo,
-            }
-            actual_fields = {
-                "from_address": signed_transfer.from_address,
-                "to_address": signed_transfer.to_address,
-                "amount": signed_transfer.amount,
-                "fee": signed_transfer.fee,
-                "nonce": signed_transfer.nonce,
-                "timestamp": signed_transfer.timestamp,
-                "memo": signed_transfer.memo,
-            }
-            if actual_fields != expected_fields:
-                raise ValueError("signed_message does not match the canonical transaction payload.")
-
-        verify_transfer_signature(
-            validated_transaction.signed_message,
-            validated_transaction.signature,
-            validated_transaction.from_address,
-        )
-        return validated_transaction.to_dict()
-
-    def validate_transaction_for_mempool(self, transaction_or_tx_id):
-        validated_transaction = self.validate_signed_native_transaction(
-            transaction_or_tx_id,
-            allowed_statuses=self._native_mempool_eligible_statuses(),
-        )
-        if validated_transaction.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-            raise ValueError("Protocol v1 native transaction version is required for mempool admission.")
-        self.validate_transaction_nonce(validated_transaction)
-        self.validate_transaction_balance_sufficiency(
-            validated_transaction,
-            exclude_tx_id=validated_transaction["tx_id"],
-        )
-        return validated_transaction
-
-    def select_native_transactions_for_block(self, *, max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK):
-        candidates = [
-            dict(transaction)
-            for transaction in self.native_transactions
-            if str(transaction.get("status") or "").strip().lower() in self._native_block_candidate_statuses()
-        ]
-        candidates.sort(key=self._native_block_sort_key)
-
-        selected = []
-        skipped = []
-        chain_state = self.calculate_balances_from_chain()
-        seen_tx_ids = set(chain_state["seen_tx_ids"])
-        next_nonces = dict(chain_state["next_nonces"])
-        balances: dict[str, Decimal] = dict(chain_state["balances"])
-
-        for transaction in candidates:
-            tx_id = str(transaction.get("tx_id") or "").strip().lower()
-            if not tx_id or tx_id in seen_tx_ids:
-                skipped.append({"tx_id": tx_id, "reason": "already_settled"})
-                continue
-
-            try:
-                validated_transaction = self.validate_signed_native_transaction(
-                    transaction,
-                    allowed_statuses=self._native_block_candidate_statuses(),
-                )
-            except ValueError as exc:
-                skipped.append(
-                    {
-                        "tx_id": tx_id,
-                        "reason": self._normalize_rejection_reason(str(exc)),
-                        "message": str(exc),
-                    }
-                )
-                continue
-
-            if validated_transaction.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-                skipped.append(
-                    {
-                        "tx_id": tx_id,
-                        "reason": "unsupported_transaction_version",
-                        "message": "Protocol v1 blocks cannot include legacy native transactions.",
-                    }
-                )
-                continue
-
-            sender = self._normalize_native_wallet_identity(validated_transaction.get("from_address"))
-            recipient = self._normalize_native_wallet_identity(validated_transaction.get("to_address"))
-            expected_nonce = next_nonces.get(sender, self.get_next_chain_nonce(sender))
-            transaction_nonce = self._coerce_native_nonce(validated_transaction.get("nonce"))
-            if transaction_nonce != expected_nonce:
-                skipped.append(
-                    {
-                        "tx_id": tx_id,
-                        "reason": "invalid_nonce",
-                        "message": f"Expected nonce {expected_nonce}, got {transaction_nonce}.",
-                    }
-                )
-                continue
-
-            amount = Decimal(str(validated_transaction.get("amount") or "0"))
-            fee = Decimal(str(validated_transaction.get("fee") or "0"))
-            required_total = amount + fee
-            sender_balance = balances.get(sender, Decimal("0"))
-            if sender_balance < required_total:
-                skipped.append(
-                    {
-                        "tx_id": tx_id,
-                        "reason": "insufficient_available_balance",
-                        "message": "Transaction would overdraw the sender when applied in block order.",
-                    }
-                )
-                continue
-
-            recipient_balance = balances.get(recipient, Decimal("0"))
-
-            balances[sender] = sender_balance - required_total
-            balances[recipient] = recipient_balance + amount
-            next_nonces[sender] = expected_nonce + 1
-            selected.append(self._serialize_native_transaction_for_block(validated_transaction))
-            seen_tx_ids.add(tx_id)
-
-            if len(selected) >= max_transactions_per_block:
-                break
-
-        return {
-            "transactions": selected,
-            "transaction_ids": [transaction["tx_id"] for transaction in selected],
-            "transaction_count": len(selected),
-            "transactions_hash": self._compute_block_native_transactions_hash(selected),
-            "skipped": skipped,
-        }
 
     def validate_block_native_transactions(self, block_dict, *, prior_chain=None):
         native_transactions = list(block_dict.get("native_transactions", []) or [])
@@ -3314,113 +1758,16 @@ class Blockchain:
         return True
 
     def settle_block_native_transactions(self, block):
-        native_transactions = self._block_native_transactions(block)
-        if not native_transactions:
-            return []
-        block_hash = getattr(block, "hash", None) if not isinstance(block, dict) else block.get("hash")
-        block_height = getattr(block, "index", None) if not isinstance(block, dict) else block.get("index")
-        settled_at = self._coerce_native_event_timestamp(
-            getattr(block, "minted_at", None) if not isinstance(block, dict) else block.get("minted_at")
-        ) or self._coerce_native_event_timestamp(
-            getattr(block, "timestamp", None) if not isinstance(block, dict) else block.get("timestamp")
-        ) or self._utc_now_iso()
-        settled_tx_ids = []
-        for transaction in native_transactions:
-            stored_transaction, _duplicate = self.record_native_transaction(transaction, status="validated_pending")
-            settled = self.update_native_transaction_status(
-                stored_transaction["tx_id"],
-                status="settled",
-                included_block_hash=block_hash,
-                included_block_height=block_height,
-                settled_at=settled_at,
-                updated_at=settled_at,
-            )
-            settled_tx_ids.append(settled["tx_id"])
-        return settled_tx_ids
+        return self._native_ledger_service.settle_block_native_transactions(self._native_ledger_state(), self.storage, block)
 
     def reconcile_native_transactions_with_chain(self, *, chain=None):
-        accepted_chain = self.chain_to_dicts(chain or self.chain)
-        accepted_block_hashes = {
-            str(block.get("hash") or "").strip()
-            for block in accepted_chain
-            if str(block.get("hash") or "").strip()
-        }
-
-        for index, transaction in enumerate(list(self.native_transactions)):
-            if str(transaction.get("status") or "").strip().lower() != "settled":
-                continue
-            included_block_hash = str(transaction.get("included_block_hash") or "").strip()
-            if included_block_hash and included_block_hash in accepted_block_hashes:
-                continue
-            downgraded = dict(transaction)
-            downgraded["status"] = "validated_pending"
-            downgraded["included_block_hash"] = None
-            downgraded["included_block_height"] = None
-            downgraded["settled_at"] = None
-            downgraded["updated_at"] = self._utc_now_iso()
-            validated = validate_transaction_shape(downgraded, network_name=NETWORK_NAME)
-            self.native_transactions[index] = validated.to_dict()
-            self._update_transfer_intent_status(validated.tx_id, status=validated.status, updated_at=validated.updated_at)
-
-        settled_tx_ids = []
-        for block in accepted_chain:
-            settled_tx_ids.extend(self.settle_block_native_transactions(block))
-        return settled_tx_ids
+        return self._native_ledger_service.reconcile_native_transactions_with_chain(self._native_ledger_state(), self.storage, self.chain_to_dicts, chain=chain)
 
     def admit_transaction_to_mempool(self, tx_id):
-        validated_transaction = self.validate_transaction_for_mempool(tx_id)
-        existing_transaction = self.get_native_transaction(validated_transaction["tx_id"])
-        admitted_at = str(existing_transaction.get("admitted_at") or self._utc_now_iso())
-        updated_transaction = self.update_native_transaction_status(
-            validated_transaction["tx_id"],
-            status="mempool",
-            admitted_at=admitted_at,
-        )
-        return {
-            "tx_id": updated_transaction["tx_id"],
-            "status": updated_transaction["status"],
-            "admitted": True,
-            "admitted_at": updated_transaction.get("admitted_at"),
-            "message": "Transaction admitted to local mempool. It is not settled until included in a block.",
-        }
+        return self._native_mempool_service.admit(self._native_ledger_state(), self.storage, tx_id, now_iso=self._utc_now_iso)
 
     def revalidate_mempool_transactions(self, *, save=False):
-        report = {
-            "checked": 0,
-            "kept": 0,
-            "removed": 0,
-            "items": [],
-        }
-        for transaction in list(self.list_mempool_transactions()):
-            report["checked"] += 1
-            tx_id = transaction.get("tx_id")
-            try:
-                self.validate_transaction_for_mempool(transaction)
-                report["kept"] += 1
-                report["items"].append(
-                    {
-                        "tx_id": tx_id,
-                        "valid": True,
-                        "status": "mempool",
-                    }
-                )
-            except ValueError as exc:
-                reason = str(exc)
-                self.update_native_transaction_status(
-                    tx_id,
-                    status="rejected",
-                    rejection_reason=self._normalize_rejection_reason(reason),
-                )
-                report["removed"] += 1
-                report["items"].append(
-                    {
-                        "tx_id": tx_id,
-                        "valid": False,
-                        "status": "rejected",
-                        "reason": self._normalize_rejection_reason(reason),
-                        "message": reason,
-                    }
-                )
+        report = self._native_mempool_service.revalidate(self._native_ledger_state(), self.storage, now_iso=self._utc_now_iso)
         if save and report["checked"] > 0:
             self.save_blockchain()
         return report
@@ -3430,7 +1777,6 @@ class Blockchain:
 
     def get_pending_incoming_transfer_amount(self, wallet_address):
         return self.get_native_balance_snapshot(wallet_address)["pending_incoming"]
-
     def require_valid_certificate_for_submission(self, submission):
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
@@ -4895,7 +3241,7 @@ class Blockchain:
                 raise Exception("Invalid transaction: Signature is not valid.")
 
             sender_balance = self.get_balance(transaction.sender)
-            total_deduction = transaction.amount + transaction.tip  # âœ… Only deduct amount + tip (NO FEE)
+            total_deduction = transaction.amount + transaction.tip  # Ã¢Å“â€¦ Only deduct amount + tip (NO FEE)
             print(f"Debug: Sender balance: {sender_balance}, Total Deduction: {total_deduction}")
 
             if sender_balance < total_deduction:
@@ -4919,7 +3265,7 @@ class Blockchain:
                 return False
 
             sender_balance = self.get_balance(transaction.sender)
-            total_deduction = transaction.amount + transaction.tip  # âœ… Only deduct amount + tip (NO FEE)
+            total_deduction = transaction.amount + transaction.tip  # Ã¢Å“â€¦ Only deduct amount + tip (NO FEE)
             print(f"Debug: Validating Transaction - Sender Balance: {sender_balance}, Required: {total_deduction}")
 
             if sender_balance < total_deduction:
@@ -4965,6 +3311,3 @@ class Blockchain:
             return True
         print(f"Debug: Invalid public key: {public_key}")
         return False
-    
-
-

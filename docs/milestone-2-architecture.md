@@ -131,3 +131,17 @@ For every application route it records method, path, handler name, public/admin/
 peer/development classification, resolved dependency guards, authentication and
 authorization expectations, body/response model names, and a declared status
 code where FastAPI supplies one.
+
+## Task 8 Native Ledger, Mempool, And Rewards Extraction
+
+Task 8 adds `NativeLedgerService`, `NativeMempoolService`, and `RewardService`.
+Their short-lived views reference facade-owned `chain`, `transfer_intents`, and
+`native_transactions` state. Reward records remain canonical-chain-derived.
+Blockchain retains whole-document persistence, reload, and accepted-block
+orchestration, so each call observes the authoritative collections after JSON or
+SQLite reload. Transaction identity verification, transfer records, nonce and
+balance calculations, mempool admission/selection, settlement/reconciliation,
+reward planning, and reward-pool accounting are service-owned. Candidate block
+validation, full block-native validation, block metadata/hash validation,
+acceptance, chain validation, fork choice, finality, and replacement remain in
+`Blockchain` for Task 9.

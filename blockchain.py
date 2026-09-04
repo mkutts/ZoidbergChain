@@ -363,6 +363,67 @@ class Blockchain:
             return {"height": None, "hash": None}
         return {"height": self.chain[-1].index, "hash": self.chain[-1].hash}
 
+    @staticmethod
+    def certified_commit_identity(certificate):
+        """The immutable certificate ID is the certified-commit replay key."""
+        certificate_id = str(getattr(certificate, "certificate_id", "") or "").strip().lower()
+        if not certificate_id:
+            raise ValueError("Certified commit requires an immutable certificate identity.")
+        return certificate_id
+
+    def _prepare_certified_commit_request(self, submission_id, miner):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError("Submission not found for certified commit.")
+        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
+        if certificate is None:
+            raise ValueError("Certified commit requires an originality certificate.")
+        validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        return {
+            "commit_identity": self.certified_commit_identity(certificate),
+            "submission_id": str(submission.submission_id),
+            "certificate_id": str(certificate.certificate_id),
+            "content_hash": str(submission.content_hash),
+            "content_id": submission.content_id,
+            "creator_wallet": str(submission.submitter),
+            "miner": str(miner or submission.submitter),
+        }
+
+    @staticmethod
+    def _committed_certified_blocks(document, request):
+        matches = []
+        for block in list(document.get("chain", []) or []):
+            if not isinstance(block, dict):
+                continue
+            if (
+                str(block.get("submission_id") or "") == request["submission_id"]
+                or str(block.get("certificate_id") or "") == request["certificate_id"]
+            ):
+                matches.append(block)
+        return matches
+
+    def _resolve_certified_commit_replay(self, document, request):
+        """Return a matching committed block or reject a conflicting reuse."""
+        matches = self._committed_certified_blocks(document, request)
+        if not matches:
+            return None
+        if len(matches) != 1:
+            raise ValueError("Conflicting replay: canonical state has multiple blocks for one certified commit.")
+        block = matches[0]
+        expected = {
+            "submission_id": request["submission_id"],
+            "certificate_id": request["certificate_id"],
+            "content_hash": request["content_hash"],
+            "creator_wallet": request["creator_wallet"],
+            "miner": request["miner"],
+        }
+        actual = {field: str(block.get(field) or "") for field in expected}
+        if actual != expected:
+            raise ValueError("Conflicting replay: existing certified block does not match the requested immutable commitment.")
+        if request["content_id"] is not None and block.get("content_id") != request["content_id"]:
+            raise ValueError("Conflicting replay: existing certified block content ID does not match the request.")
+        return block
+
     def _restore_blockchain_state_document(self, loaded_data):
         """Restore a durable state without running repair or persistence hooks.
 
@@ -2351,6 +2412,7 @@ class Blockchain:
         acquired its transaction/lock.  A stale caller receives
         ``StaleCanonicalHeadError`` and must explicitly prepare again.
         """
+        request = self._prepare_certified_commit_request(submission_id, miner)
         expected_head = dict(expected_head or self._current_canonical_head())
         memory_snapshot = json.loads(json.dumps(self._serialize_blockchain_state()))
         # Native mempool records and the configurable reward-pool test value
@@ -2359,6 +2421,19 @@ class Blockchain:
         # records are still fully revalidated against the locked chain below.
         local_native_transactions = json.loads(json.dumps(self.native_transactions))
         local_reward_pool = self.reward_pool
+        replayed = False
+
+        def replay(document):
+            nonlocal replayed
+            block = self._resolve_certified_commit_replay(document, request)
+            if block is None:
+                return False
+            # A successful replay is deliberately resolved before the expected
+            # head check.  A lost response must not turn into a stale-head
+            # failure or another state transition.
+            self._restore_blockchain_state_document(document)
+            replayed = True
+            return True
 
         def mutate(document):
             # The backend has already locked and reread this document.  Restore
@@ -2381,6 +2456,9 @@ class Blockchain:
             submission = self.get_submission(submission_id)
             if submission is None:
                 raise ValueError("Submission not found for atomic certified commit.")
+            current_request = self._prepare_certified_commit_request(submission_id, miner)
+            if current_request != request:
+                raise ValueError("Conflicting certified commit: durable submission or certificate changed before commit.")
             if submission.status != QUEUED:
                 raise ValueError("Only a queued certified submission can be committed.")
             certificate = self.require_valid_certificate_for_submission(submission)
@@ -2407,10 +2485,17 @@ class Blockchain:
             self._apply_certified_candidate_in_commit(candidate, submission)
             return self._serialize_blockchain_state()
 
+        committed = False
         try:
-            self.storage.atomic_commit_blockchain_document(expected_head, mutate)
+            self.storage.atomic_commit_blockchain_document(expected_head, mutate, replay=replay)
+            committed = True
+            if not replayed:
+                # Test seam for the real uncertain-outcome window: persistence
+                # has succeeded, but the caller has not received its result.
+                self._commit_fault("after_durable_commit_before_response")
         except Exception:
-            self._restore_blockchain_state_document(memory_snapshot)
+            if not committed:
+                self._restore_blockchain_state_document(memory_snapshot)
             raise
         finally:
             self.__dict__.pop("_atomic_commit_native_overlay", None)

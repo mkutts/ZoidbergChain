@@ -26,6 +26,39 @@ transaction-bound state, settles transfers/rewards, marks the submission
 minted, removes it from the queue, and advances the canonical tip by appending
 the block. Any exception rolls back the whole document/SQLite transaction.
 
+## Certified-commit replay safety (Milestone 3.4)
+
+One logical certified-content commit is identified by the originality
+`certificate_id`. That ID is deterministically derived from the certificate's
+immutable certified submission/content and vote-set data, and the commit path
+also verifies the matching `submission_id`, content hash/content ID, creator,
+and requested miner against the canonical block. It never depends on local
+time, a process, database row, request UUID, or arrival order.
+
+The coordinator checks this identity *inside* the existing Task 3.3 lock or
+SQLite transaction before comparing the requested head. A matching canonical
+block is a successful replay: it reloads and returns the existing committed
+state without writing a block, settling a transaction, advancing a nonce, or
+paying a reward again. This covers a crash or lost response after the durable
+commit. A reused identity with mismatched immutable content, certificate,
+creator, content ID, or miner is rejected as a conflict. A different ready
+submission has no matching identity, so an old expected head remains a normal
+`StaleCanonicalHeadError` and must be prepared against the new tip.
+
+Persistence projects immutable chain claims on every save/atomic commit:
+
+- certified commit identity, submission, certificate, block height, and block hash;
+- canonical native transaction ID and `(sender, nonce)`;
+- creator reward per certified submission and deterministic voter reward ID.
+
+SQLite materializes these projections in unique-indexed claim tables as an
+idempotent initialization migration. JSON storage runs the same full-chain
+claim validation while holding its OS lock before atomically replacing the
+document. Thus JSON retains the same logical uniqueness guarantees even though
+it has no relational indexes. Conflicting native transaction data for an
+existing transaction ID and attempts to settle that ID into another block are
+also rejected by the native ledger service.
+
 - JSON uses an OS-held lock file around durable reread, expected-head compare,
   and atomic document replacement.
 - SQLite uses `BEGIN IMMEDIATE` before rereading the tip and writes every state

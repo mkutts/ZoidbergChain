@@ -196,7 +196,12 @@ class NativeLedgerService:
         candidate = dict(transaction_payload or {}); candidate.setdefault("created_at", now_value); candidate.setdefault("updated_at", str(updated_at or now_value))
         validated = validate_transaction_shape(candidate, network_name=NETWORK_NAME)
         existing = self.get_native_transaction(state, storage, validated.tx_id)
-        if existing is not None: return dict(existing), True
+        if existing is not None:
+            validated_payload = validated.to_dict()
+            immutable_fields = ("tx_id", "transaction_type", "network", "from_address", "to_address", "amount", "fee", "nonce", "memo", "timestamp", "signature", "signature_scheme", "signed_message", "signed_message_hash", "transaction_version", "protocol_version", "network_id")
+            if any(existing.get(field) != validated_payload.get(field) for field in immutable_fields):
+                raise ValueError("Conflicting native transaction replay: tx_id is already bound to different signed transaction data.")
+            return dict(existing), True
         stored = validated.to_dict()
         stored.update({"status": str(status).strip().lower(), "created_at": now_value, "updated_at": str(updated_at or now_value), "admitted_at": None, "included_block_hash": None, "included_block_height": None, "settled_at": None, "rejection_reason": None})
         validate_transaction_shape(stored, network_name=NETWORK_NAME)
@@ -420,6 +425,11 @@ class NativeLedgerService:
         settled_at = self.coerce_native_event_timestamp(minted, now_iso=now_iso) or self.coerce_native_event_timestamp(timestamp, now_iso=now_iso) or now_iso or self.utc_now_iso(); ids = []
         for tx in transactions:
             stored, _ = self.record_native_transaction(state, storage, tx, status="validated_pending", now_iso=now_iso)
+            if str(stored.get("status") or "").strip().lower() == "settled":
+                if stored.get("included_block_hash") != hash_value or stored.get("included_block_height") != height:
+                    raise ValueError("Native transaction is already settled in a different canonical block.")
+                ids.append(stored["tx_id"])
+                continue
             settled = self.update_native_transaction_status(state, storage, stored["tx_id"], status="settled", included_block_hash=hash_value, included_block_height=height, settled_at=settled_at, updated_at=settled_at, now_iso=now_iso); ids.append(settled["tx_id"])
         return ids
 

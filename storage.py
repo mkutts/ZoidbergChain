@@ -106,6 +106,106 @@ class StaleCanonicalHeadError(RuntimeError):
     """A prepared commit no longer extends the durable canonical head."""
 
 
+class StorageUniquenessError(RuntimeError):
+    """Durable canonical state attempted to reuse an immutable claim."""
+
+
+def _normalized_claim_value(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _canonical_record(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Validate and project the immutable claims represented by a chain.
+
+    JSON storage has no relational indexes, so this is its equivalent invariant
+    check.  SQLite persists the returned projections in unique-indexed tables.
+    Keeping the projection derived from the immutable canonical chain avoids a
+    second source of truth for settlement or mint state.
+    """
+    claims = {"commits": [], "native_transactions": [], "rewards": []}
+    seen_heights: set[Any] = set()
+    seen_hashes: set[str] = set()
+    seen_submissions: set[str] = set()
+    seen_certificates: set[str] = set()
+    seen_native_ids: set[str] = set()
+    seen_nonces: set[tuple[str, str]] = set()
+    seen_rewards: dict[str, str] = {}
+
+    for block in list(document.get("chain", []) or []):
+        if not isinstance(block, dict):
+            raise StorageUniquenessError("Canonical chain contains a malformed block record.")
+        height = block.get("index")
+        block_hash = _normalized_claim_value(block.get("hash"))
+        if height in seen_heights:
+            raise StorageUniquenessError(f"Canonical block height {height!r} is duplicated.")
+        if block_hash and block_hash in seen_hashes:
+            raise StorageUniquenessError(f"Canonical block hash {block_hash} is duplicated.")
+        seen_heights.add(height)
+        if block_hash:
+            seen_hashes.add(block_hash)
+
+        submission_id = _normalized_claim_value(block.get("submission_id"))
+        certificate_id = _normalized_claim_value(block.get("certificate_id"))
+        if submission_id or certificate_id:
+            if not submission_id or not certificate_id:
+                raise StorageUniquenessError("Certified canonical block must retain submission and certificate identities.")
+            if submission_id in seen_submissions:
+                raise StorageUniquenessError(f"Submission {submission_id} is already minted in the canonical chain.")
+            if certificate_id in seen_certificates:
+                raise StorageUniquenessError(f"Certificate {certificate_id} is already consumed in the canonical chain.")
+            seen_submissions.add(submission_id)
+            seen_certificates.add(certificate_id)
+            claims["commits"].append({
+                "commit_identity": certificate_id,
+                "submission_id": submission_id,
+                "certificate_id": certificate_id,
+                "block_hash": block_hash,
+                "block_height": height,
+                "content_hash": _normalized_claim_value(block.get("content_hash")),
+                "creator_wallet": _normalized_claim_value(block.get("creator_wallet")),
+            })
+
+        for transaction in list(block.get("native_transactions", []) or []):
+            if not isinstance(transaction, dict):
+                raise StorageUniquenessError("Canonical block contains a malformed native transaction.")
+            tx_id = _normalized_claim_value(transaction.get("tx_id"))
+            sender = _normalized_claim_value(transaction.get("from_address"))
+            nonce = str(transaction.get("nonce") or "").strip()
+            if not tx_id or not sender or not nonce:
+                raise StorageUniquenessError("Canonical native transaction is missing its immutable identity fields.")
+            if tx_id in seen_native_ids:
+                raise StorageUniquenessError(f"Native transaction {tx_id} is already settled in the canonical chain.")
+            nonce_key = (sender, nonce)
+            if nonce_key in seen_nonces:
+                raise StorageUniquenessError(f"Native sender nonce {sender}:{nonce} is already settled in the canonical chain.")
+            seen_native_ids.add(tx_id)
+            seen_nonces.add(nonce_key)
+            claims["native_transactions"].append({"tx_id": tx_id, "sender": sender, "nonce": nonce, "block_hash": block_hash, "block_height": height})
+
+        if block.get("reward_type") == "meme_mining_reward" and submission_id:
+            creator_reward_id = f"creator:{submission_id}"
+            seen_rewards[creator_reward_id] = _canonical_record({"reward_recipient": block.get("reward_recipient"), "reward_amount": block.get("reward_amount"), "submission_id": submission_id})
+            claims["rewards"].append({"reward_id": creator_reward_id, "reward_kind": "creator", "block_hash": block_hash, "block_height": height, "payload": seen_rewards[creator_reward_id]})
+        for reward in list(block.get("voter_rewards", []) or []):
+            if not isinstance(reward, dict):
+                raise StorageUniquenessError("Canonical block contains malformed voter reward metadata.")
+            reward_id = _normalized_claim_value(reward.get("reward_id"))
+            if not reward_id:
+                raise StorageUniquenessError("Canonical voter reward is missing reward_id.")
+            payload = _canonical_record(reward)
+            if reward_id in seen_rewards:
+                if seen_rewards[reward_id] != payload:
+                    raise StorageUniquenessError(f"Reward {reward_id} conflicts with an existing canonical reward.")
+                raise StorageUniquenessError(f"Reward {reward_id} is already settled in the canonical chain.")
+            seen_rewards[reward_id] = payload
+            claims["rewards"].append({"reward_id": reward_id, "reward_kind": "voter", "block_hash": block_hash, "block_height": height, "payload": payload})
+    return claims
+
+
 def canonical_head_identity(document: dict[str, Any] | None) -> dict[str, Any]:
     """Return the durable tip identity used by the block-commit CAS guard."""
     chain = (document or {}).get("chain") or []
@@ -329,12 +429,14 @@ class StorageBackend(ABC):
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
         raise NotImplementedError
 
-    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate):
+    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate, replay=None):
         """Atomically compare the durable tip and replace the complete state.
 
         ``mutate`` receives a fresh, durable document and returns the complete
-        replacement document.  Backends override this so the read, comparison,
-        mutation, and write are one recoverable persistence boundary.
+        replacement document.  ``replay`` may resolve an already committed
+        logical operation under that same boundary before the head comparison.
+        Backends override this so the read, comparison, mutation, and write are
+        one recoverable persistence boundary.
         """
         raise NotImplementedError
 
@@ -827,6 +929,7 @@ class JSONStorageBackend(StorageBackend):
 
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
         document = self._normalize_blockchain_document(document)
+        canonical_document_claims(document)
         backup_path = _backup_path_for(self.blockchain_file)
         create_backup = False
         if os.path.exists(self.blockchain_file) and not self._blockchain_recovered_from_backup:
@@ -896,9 +999,11 @@ class JSONStorageBackend(StorageBackend):
                 else:  # pragma: no cover - exercised on POSIX nodes
                     fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
-    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate):
+    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate, replay=None):
         with self._commit_lock():
             document = self._load_or_new_blockchain_document()
+            if replay is not None and replay(deepcopy(document)):
+                return document
             _verify_expected_canonical_head(document, expected_head)
             replacement = mutate(deepcopy(document))
             self.save_blockchain_document(replacement)
@@ -977,6 +1082,42 @@ class SQLiteStorageBackend(StorageBackend):
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS certified_commit_claims (
+                    commit_identity TEXT PRIMARY KEY,
+                    submission_id TEXT NOT NULL UNIQUE,
+                    certificate_id TEXT NOT NULL UNIQUE,
+                    block_hash TEXT NOT NULL UNIQUE,
+                    block_height INTEGER NOT NULL UNIQUE,
+                    content_hash TEXT NOT NULL,
+                    creator_wallet TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS canonical_native_transaction_claims (
+                    tx_id TEXT PRIMARY KEY,
+                    sender TEXT NOT NULL,
+                    nonce TEXT NOT NULL,
+                    block_hash TEXT NOT NULL,
+                    block_height INTEGER NOT NULL,
+                    UNIQUE(sender, nonce)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS canonical_reward_claims (
+                    reward_id TEXT PRIMARY KEY,
+                    reward_kind TEXT NOT NULL,
+                    block_hash TEXT NOT NULL,
+                    block_height INTEGER NOT NULL,
+                    payload TEXT NOT NULL
+                )
+                """
+            )
             for section_name in _STORAGE_SECTIONS:
                 connection.execute(
                     """
@@ -985,6 +1126,7 @@ class SQLiteStorageBackend(StorageBackend):
                     """,
                     (section_name, json.dumps(_default_section_value(section_name)), _utc_now_iso()),
                 )
+            self._synchronize_canonical_claims(connection, self._load_sections_from_connection(connection, strict=False))
 
     def _load_sections(self, *, strict: bool = True) -> dict[str, Any]:
         defaults = {section: deepcopy(_default_section_value(section)) for section in _STORAGE_SECTIONS}
@@ -1056,9 +1198,35 @@ class SQLiteStorageBackend(StorageBackend):
                 (section_name, json.dumps(payload), _utc_now_iso()),
             )
 
+    @staticmethod
+    def _synchronize_canonical_claims(connection, document: dict[str, Any]) -> None:
+        claims = canonical_document_claims(document)
+        connection.execute("DELETE FROM certified_commit_claims")
+        connection.execute("DELETE FROM canonical_native_transaction_claims")
+        connection.execute("DELETE FROM canonical_reward_claims")
+        connection.executemany(
+            """INSERT INTO certified_commit_claims
+               (commit_identity, submission_id, certificate_id, block_hash, block_height, content_hash, creator_wallet)
+               VALUES (:commit_identity, :submission_id, :certificate_id, :block_hash, :block_height, :content_hash, :creator_wallet)""",
+            claims["commits"],
+        )
+        connection.executemany(
+            """INSERT INTO canonical_native_transaction_claims
+               (tx_id, sender, nonce, block_hash, block_height)
+               VALUES (:tx_id, :sender, :nonce, :block_hash, :block_height)""",
+            claims["native_transactions"],
+        )
+        connection.executemany(
+            """INSERT INTO canonical_reward_claims
+               (reward_id, reward_kind, block_hash, block_height, payload)
+               VALUES (:reward_id, :reward_kind, :block_hash, :block_height, :payload)""",
+            claims["rewards"],
+        )
+
     def _save_sections(self, sections: dict[str, Any]) -> None:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            self._synchronize_canonical_claims(connection, sections)
             self._save_sections_to_connection(connection, sections)
 
     def load_blockchain_document(self) -> dict[str, Any] | None:
@@ -1095,15 +1263,18 @@ class SQLiteStorageBackend(StorageBackend):
         }
         self._save_sections(merged_document)
 
-    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate):
+    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate, replay=None):
         # BEGIN IMMEDIATE obtains SQLite's reserved write lock before reading
         # the head, so separate processes cannot both win the compare-and-swap.
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
+            if replay is not None and replay(deepcopy(document)):
+                return document
             _verify_expected_canonical_head(document, expected_head)
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
+            self._synchronize_canonical_claims(connection, replacement)
             self._save_sections_to_connection(connection, replacement)
             return replacement
 

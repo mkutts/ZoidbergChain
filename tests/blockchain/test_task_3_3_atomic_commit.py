@@ -99,7 +99,9 @@ def test_competing_expected_head_commits_allow_exactly_one_winner(isolated_data_
     with ThreadPoolExecutor(max_workers=2) as executor:
         outcomes = list(executor.map(attempt, (first, second)))
 
-    assert sorted(outcomes, key=str) == [True, "stale"]
+    # Task 3.4 resolves the loser as the same successful logical commit rather
+    # than incorrectly treating an identical retry as a stale new contender.
+    assert outcomes == [True, True]
     persisted = storage.load_blockchain_state()
     assert len(persisted["chain"]) == 2
     assert persisted["chain"][-1]["previous_hash"] == expected_head["hash"]

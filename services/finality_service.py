@@ -168,16 +168,27 @@ class FinalityService:
             raise FinalityAttestationError("Finality evidence attestations are not deterministically ordered and unique.")
         return record
 
-    def block_chain_state(self, block_or_hash, chain_dicts, policy: FinalityPolicy, *, finalized_blocks=(), validator_set=()) -> dict[str, object]:
+    def block_chain_state(self, block_or_hash, chain_dicts, policy: FinalityPolicy, *, finalized_blocks=(), validator_set=(), attestations=(), expected_network_id=None) -> dict[str, object]:
         policy_dict = self.policy(policy, validator_set)
         target_hash = str(block_or_hash or "").strip() if isinstance(block_or_hash, str) else str(self.block_field(block_or_hash, "hash") or "").strip()
-        state = {"accepted": False, "block_created": False, "block_accepted": False, "canonical": False, "confirmations": None, "confirmed": False, "finalized": False, **policy_dict, "block_hash": target_hash or None, "block_height": None, "phase": "none"}
+        state = {"accepted": False, "block_created": False, "block_accepted": False, "canonical": False, "confirmations": None, "confirmed": False, "finalized": False, "valid_attestation_count": 0, "attesting_validators": [], "validator_set_size": policy_dict["validator_count"], "quorum_required": policy_dict["required_quorum"], "finalized_at": None, **policy_dict, "block_hash": target_hash or None, "block_height": None, "phase": "none", "lifecycle_state": "unknown", "finality_evidence": None}
         if not target_hash:
             return state
         target_block = next((block for block in chain_dicts if str(block.get("hash") or "").strip() == target_hash), None)
         if target_block is None:
             return state
         confirmations = int(chain_dicts[-1]["index"]) - int(target_block["index"])
-        finalized = bool(self._finalized_match(finalized_blocks, int(target_block["index"]), target_hash))
-        state.update({"accepted": True, "block_created": True, "block_accepted": True, "canonical": True, "confirmations": confirmations, "confirmed": confirmations >= policy.confirmation_depth, "finalized": finalized, "block_height": int(target_block["index"]), "phase": "finalized" if finalized else ("confirmed" if confirmations >= policy.confirmation_depth else "canonical")})
+        height = int(target_block["index"])
+        evidence = self._finalized_match(finalized_blocks, height, target_hash)
+        finalized = bool(evidence)
+        effective_validators = normalize_validator_set(evidence["validator_set"]) if evidence else normalize_validator_set(validator_set)
+        effective_quorum = int(evidence["required_quorum"]) if evidence else required_quorum(len(effective_validators))
+        if evidence:
+            counted = list(evidence.get("attestations", []))
+        elif expected_network_id is not None:
+            counted, _ = self.votes_for_block(attestations, validator_set=effective_validators, expected_network_id=expected_network_id, block_height=height, block_hash=target_hash)
+        else:
+            counted = []
+        attesting_validators = [vote["validator_address"] for vote in counted]
+        state.update({"accepted": True, "block_created": True, "block_accepted": True, "canonical": True, "confirmations": confirmations, "confirmed": confirmations >= policy.confirmation_depth, "finalized": finalized, "block_height": height, "phase": "finalized" if finalized else ("confirmed" if confirmations >= policy.confirmation_depth else "canonical"), "lifecycle_state": "finalized" if finalized else "accepted", "valid_attestation_count": len(counted), "attesting_validators": attesting_validators, "validator_set_size": len(effective_validators), "quorum_required": effective_quorum, "finalized_at": evidence.get("finalized_at") if evidence else None, "finality_evidence": {"block_height": height, "block_hash": target_hash, "valid_attestation_count": len(counted), "attesting_validators": attesting_validators, "validator_set_size": len(effective_validators), "quorum_required": effective_quorum, "attestation_domain": evidence.get("domain") if evidence else PROTOCOL_V1_FINALITY_ATTESTATION_DOMAIN, "attestation_version": evidence.get("attestation_version") if evidence else PROTOCOL_V1_FINALITY_ATTESTATION_VERSION, "finalized": finalized, "finalized_at": evidence.get("finalized_at") if evidence else None}})
         return state

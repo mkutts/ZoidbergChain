@@ -5,7 +5,7 @@
       <div>
         <p class="eyebrow">Blockchain Explorer</p>
         <h1>Protocol v1 Explorer</h1>
-        <p class="subtitle">Inspect Public Testnet v1 blocks, genesis identity, and operational finality.</p>
+        <p class="subtitle">Inspect Public Testnet v1 blocks, genesis identity, and validator-quorum finality.</p>
       </div>
       <div class="header-actions">
         <button @click="refreshExplorer" class="btn secondary" :disabled="isLoading">

@@ -263,6 +263,17 @@ Block responses now expose:
 - `finality_depth`
 - `finality_model`
 - `finality_scope`
+- `lifecycle_state` (`accepted` for a canonical non-finalized block, `finalized` only after validator quorum)
+- `valid_attestation_count`
+- `attesting_validators`
+- `validator_set_size`
+- `quorum_required`
+- `finalized_at` (currently `null`; no consensus finalized timestamp is persisted)
+- `finality_evidence` (a signature-free evidence summary containing the block identity, counted validators, validator-set size, quorum, and attestation domain/version)
+
+`finalized` is authoritative validator-quorum finality, never confirmation depth. `confirmed` and `confirmations` remain the existing canonical-chain depth metadata and may be true while `finalized` is false. The public `/chain` and `/chain/blocks` resources serve the current canonical chain; a block absent from those resources is not reported as finalized by these APIs. The existing internal finality evidence remains persisted and reloadable, while the public summary does not expose signatures or other sensitive validator state.
+
+The public `/chain/summary` response also exposes `finalized_head`, containing the highest persisted quorum-finalized `{block_height, block_hash}` on the current canonical chain, or `null`. It advances only when a quorum certificate is persisted and never derives this value from confirmation depth.
 
 ## 10. Limits that remain outside Task 7
 

@@ -82,7 +82,6 @@ export function isProtocolGenesisBlock(record = {}) {
 
 export function buildFinalityDisplay(record = {}) {
   const confirmationDepth = Number(record?.confirmation_depth ?? 2) || 2;
-  const finalityDepth = Number(record?.finality_depth ?? 6) || 6;
   const confirmations = record?.confirmations ?? null;
   const canonical = Boolean(record?.canonical);
   const accepted = Boolean(record?.accepted ?? record?.block_accepted ?? record?.block_created);
@@ -90,17 +89,19 @@ export function buildFinalityDisplay(record = {}) {
   const finalized = Boolean(record?.finalized);
 
   if (finalized) {
+    const validAttestationCount = Number(record?.valid_attestation_count ?? record?.finality_evidence?.valid_attestation_count ?? 0);
+    const quorumRequired = Number(record?.quorum_required ?? record?.finality_evidence?.quorum_required ?? 0);
     return {
-      label: 'Operationally Finalized',
+      label: 'Validator-Quorum Finalized',
       tone: 'ready',
-      detail: `Canonical with ${formatConfirmationCount(confirmations)}. Public Testnet v1 treats ${finalityDepth}+ descendants as operational finality.`,
+      detail: `Canonical with ${formatConfirmationCount(confirmations)} and ${validAttestationCount}/${quorumRequired} valid validator attestations.`,
     };
   }
   if (confirmed) {
     return {
       label: 'Confirmed',
       tone: 'ready',
-      detail: `Canonical with ${formatConfirmationCount(confirmations)}. Confirmation begins at ${confirmationDepth} descendants and operational finality begins at ${finalityDepth}.`,
+      detail: `Canonical with ${formatConfirmationCount(confirmations)}. Confirmation begins at ${confirmationDepth} descendants; validator-quorum finality has not been reached.`,
     };
   }
   if (canonical) {
@@ -134,6 +135,9 @@ export function buildSubmissionLifecycleDisplay(submission = {}) {
     confirmations: lifecycle.confirmations,
     confirmed: lifecycle.confirmed,
     finalized: lifecycle.finalized,
+    valid_attestation_count: lifecycle.valid_attestation_count,
+    quorum_required: lifecycle.quorum_required,
+    finality_evidence: lifecycle.finality_evidence,
     confirmation_depth: lifecycle.confirmation_depth,
     finality_depth: lifecycle.finality_depth,
   });

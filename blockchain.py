@@ -1547,7 +1547,23 @@ class Blockchain:
             FinalityPolicy(PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH),
             finalized_blocks=self.finalized_blocks,
             validator_set=self.validator_set,
+            attestations=self.finality_attestations,
+            expected_network_id=self.protocol_v1_network_id(),
         )
+
+    def get_finalized_head(self) -> dict[str, object] | None:
+        """Return the highest persisted quorum-finalized block on the current chain."""
+        canonical_by_height = {int(block.index): block for block in self.chain}
+        candidates = [
+            record for record in self.finalized_blocks
+            if isinstance(record, dict)
+            and canonical_by_height.get(record.get("block_height")) is not None
+            and canonical_by_height[record["block_height"]].hash == record.get("block_hash")
+        ]
+        if not candidates:
+            return None
+        record = max(candidates, key=lambda item: int(item["block_height"]))
+        return {"block_height": int(record["block_height"]), "block_hash": record["block_hash"]}
 
     def get_finality_evidence(self, block_or_hash):
         """Return durable quorum evidence for a canonical finalized block, if any."""

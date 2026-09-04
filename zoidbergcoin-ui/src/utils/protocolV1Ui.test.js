@@ -31,7 +31,7 @@ test('network identity prefers the frozen Public Testnet v1 label', () => {
   assert.equal(identity.genesisHash, '585474a5');
 });
 
-test('submission lifecycle distinguishes voting, canonical, and operational finality', () => {
+test('submission lifecycle distinguishes voting, canonical, and validator-quorum finality', () => {
   assert.equal(
     buildSubmissionLifecycleDisplay({
       protocol_v1_lifecycle: { phase: 'voting', voting: true },
@@ -56,10 +56,12 @@ test('submission lifecycle distinguishes voting, canonical, and operational fina
       confirmations: 6,
       confirmation_depth: 2,
       finality_depth: 6,
+      valid_attestation_count: 2,
+      quorum_required: 2,
     },
   });
-  assert.equal(finalized.label, 'Operationally Finalized');
-  assert.match(finalized.detail, /6\+ descendants/i);
+  assert.equal(finalized.label, 'Validator-Quorum Finalized');
+  assert.match(finalized.detail, /2\/2 valid validator attestations/i);
 });
 
 test('genesis detection and rendering stay separate from normal submission blocks', () => {
@@ -81,7 +83,7 @@ test('genesis detection and rendering stay separate from normal submission block
   const display = buildBlockDisplay(genesis);
   assert.equal(display.title, 'Public Testnet v1 Genesis');
   assert.equal(display.categoryLabel, 'Protocol v1 genesis object');
-  assert.equal(display.statusLabel, 'Operationally Finalized');
+  assert.equal(display.statusLabel, 'Validator-Quorum Finalized');
 
   const availability = buildBlockContentAvailability(genesis);
   assert.equal(availability.chipLabel, 'Immutable Genesis Media');

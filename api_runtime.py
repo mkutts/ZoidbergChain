@@ -788,6 +788,13 @@ def _serialize_block(block, *, include_media_bytes=False):
     body["finality_depth"] = chain_state["finality_depth"]
     body["finality_model"] = chain_state["finality_model"]
     body["finality_scope"] = chain_state["finality_scope"]
+    body["lifecycle_state"] = chain_state["lifecycle_state"]
+    body["valid_attestation_count"] = chain_state["valid_attestation_count"]
+    body["attesting_validators"] = chain_state["attesting_validators"]
+    body["validator_set_size"] = chain_state["validator_set_size"]
+    body["quorum_required"] = chain_state["quorum_required"]
+    body["finalized_at"] = chain_state["finalized_at"]
+    body["finality_evidence"] = chain_state["finality_evidence"]
     if body["is_genesis"]:
         body["canonical_genesis_hash"] = blockchain.public_testnet_v1_genesis_hash()
     if not include_media_bytes and getattr(block, "media_bytes", None) is not None:
@@ -3529,6 +3536,7 @@ def _chain_summary_payload() -> dict:
         "canonical_genesis_hash": blockchain.public_testnet_v1_genesis_hash(),
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),
         "cumulative_work": None,
+        "finalized_head": blockchain.get_finalized_head(),
     })
     return payload
 

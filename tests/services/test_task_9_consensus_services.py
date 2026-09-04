@@ -20,13 +20,13 @@ def test_finality_service_derives_canonical_confirmed_and_finalized_states():
     canonical = service.block_chain_state("hash-6", chain, policy)
     absent = service.block_chain_state("other", chain, policy)
 
-    assert (finalized["confirmations"], finalized["phase"], finalized["finalized"]) == (6, "finalized", True)
+    assert (finalized["confirmations"], finalized["phase"], finalized["finalized"]) == (6, "confirmed", False)
     assert (confirmed["confirmations"], confirmed["phase"], confirmed["confirmed"]) == (2, "confirmed", True)
     assert (canonical["confirmations"], canonical["phase"], canonical["confirmed"]) == (0, "canonical", False)
     assert absent["canonical"] is False
     assert absent["confirmations"] is None
-    assert finalized["finality_model"] == "operational_depth"
-    assert finalized["finality_scope"] == "policy_not_bft"
+    assert finalized["finality_model"] == "validator_quorum"
+    assert finalized["finality_scope"] == "known_validator_set"
 
 
 def test_fork_choice_service_preserves_score_height_and_hash_tie_break_order():

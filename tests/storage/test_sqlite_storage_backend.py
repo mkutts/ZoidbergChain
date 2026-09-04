@@ -52,7 +52,9 @@ def test_sqlite_storage_backend_initializes_database(isolated_data_dir):
         "allowlist_entries",
         "override_requests",
         "feedback_records",
-        "audit_logs",
+            "audit_logs",
+            "finality_attestations",
+            "finalized_blocks",
     }
 
 
@@ -349,8 +351,10 @@ def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):
         "allowlist_entries": [],
         "override_requests": [],
         "feedback_records": [],
-        "audit_logs": [],
-    }
+            "audit_logs": [],
+            "finality_attestations": [],
+            "finalized_blocks": [],
+        }
 
 
 def test_sqlite_data_dir_isolation_for_two_nodes(isolated_data_dir):

@@ -1,6 +1,8 @@
 import os
 from decimal import Decimal, InvalidOperation
 
+from validators import is_valid_ethereum_address
+
 
 COIN_NAME = "ZoidbergCoin"
 TICKER = "ZOID"
@@ -289,6 +291,23 @@ def _split_csv(value):
         for item in str(value).split(",")
         if item and item.strip()
     ]
+
+
+def _parse_validator_addresses(value):
+    """Parse the controlled Public Testnet v1 validator set fail-closed."""
+    raw = str(value or "")
+    if not raw.strip():
+        return ()
+    entries = raw.split(",")
+    if any(not entry.strip() for entry in entries):
+        raise ValueError("PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES must not contain empty entries.")
+    normalized = []
+    for entry in entries:
+        candidate = entry.strip()
+        if not is_valid_ethereum_address(candidate):
+            raise ValueError("PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES must contain only Ethereum-style 0x addresses.")
+        normalized.append("0x" + candidate[2:].lower())
+    return tuple(sorted(set(normalized)))
 
 
 def _load_environment():
@@ -631,6 +650,10 @@ NODE_HOST = _env_value("NODE_HOST", "127.0.0.1")
 NODE_PORT = int(os.getenv("NODE_PORT", "8000"))
 PUBLIC_NODE_URL = _env_value("PUBLIC_NODE_URL", f"http://{NODE_HOST}:{NODE_PORT}").rstrip("/")
 NETWORK_NAME = _env_value("NETWORK_NAME", "zoidberg-testnet")
+# A controlled set. An empty local-development set deliberately cannot finalize blocks.
+PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES = _parse_validator_addresses(
+    os.getenv("PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES", "")
+)
 NODE_DATA_DIR = _clean_path(os.getenv("NODE_DATA_DIR", os.getenv("DATA_DIR", ".")))
 DATA_DIR = NODE_DATA_DIR
 _DATA_PATHS = build_data_paths(DATA_DIR)

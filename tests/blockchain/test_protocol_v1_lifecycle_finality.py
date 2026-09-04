@@ -86,7 +86,7 @@ def _append_legacy_block(blockchain, submission_image, miner, *, text_content):
     return blockchain.get_latest_block()
 
 
-def test_protocol_v1_lifecycle_happy_path_reaches_operational_finality(
+def test_protocol_v1_lifecycle_happy_path_depth_confirms_without_quorum_finality(
     blockchain,
     submission_image,
     wallets,
@@ -158,15 +158,15 @@ def test_protocol_v1_lifecycle_happy_path_reaches_operational_finality(
             text_content=f"Lifecycle finality filler {index}",
         )
 
-    finalized_lifecycle = blockchain.get_submission_protocol_v1_lifecycle(submission.submission_id)
-    assert finalized_lifecycle["confirmations"] == PROTOCOL_V1_FINALITY_DEPTH
-    assert finalized_lifecycle["confirmed"] is True
-    assert finalized_lifecycle["finalized"] is True
-    assert finalized_lifecycle["phase"] == "finalized"
-    assert finalized_lifecycle["confirmation_depth"] == PROTOCOL_V1_CONFIRMATION_DEPTH
-    assert finalized_lifecycle["finality_depth"] == PROTOCOL_V1_FINALITY_DEPTH
-    assert finalized_lifecycle["finality_model"] == "operational_depth"
-    assert finalized_lifecycle["finality_scope"] == "policy_not_bft"
+    depth_confirmed_lifecycle = blockchain.get_submission_protocol_v1_lifecycle(submission.submission_id)
+    assert depth_confirmed_lifecycle["confirmations"] == PROTOCOL_V1_FINALITY_DEPTH
+    assert depth_confirmed_lifecycle["confirmed"] is True
+    assert depth_confirmed_lifecycle["finalized"] is False
+    assert depth_confirmed_lifecycle["phase"] == "confirmed"
+    assert depth_confirmed_lifecycle["confirmation_depth"] == PROTOCOL_V1_CONFIRMATION_DEPTH
+    assert depth_confirmed_lifecycle["finality_depth"] == PROTOCOL_V1_FINALITY_DEPTH
+    assert depth_confirmed_lifecycle["finality_model"] == "validator_quorum"
+    assert depth_confirmed_lifecycle["finality_scope"] == "known_validator_set"
 
 
 def test_invalid_protocol_v1_candidate_block_does_not_mutate_chain_or_rewards(

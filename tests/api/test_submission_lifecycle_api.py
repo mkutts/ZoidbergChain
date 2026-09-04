@@ -1303,8 +1303,8 @@ def test_submission_detail_exposes_protocol_v1_lifecycle_fields(blockchain, subm
     assert lifecycle["block_accepted"] is True
     assert lifecycle["canonical"] is True
     assert lifecycle["phase"] == "canonical"
-    assert lifecycle["finality_model"] == "operational_depth"
-    assert lifecycle["finality_scope"] == "policy_not_bft"
+    assert lifecycle["finality_model"] == "validator_quorum"
+    assert lifecycle["finality_scope"] == "known_validator_set"
 
     block = mint_response.json()["block"]
     assert block["accepted"] is True

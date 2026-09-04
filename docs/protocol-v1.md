@@ -703,8 +703,8 @@ Finality rule:
 - only canonical blocks can be confirmed or finalized
 - confirmed means `confirmations >= 2`
 - finalized means `confirmations >= 6`
-- finality type is `operational_depth`
-- finality scope is `policy_not_bft`
+- finality type is `validator_quorum`
+- finality scope is `known_validator_set`
 
 This finality is not BFT, Byzantine, or cryptographic irreversibility.
 
@@ -830,7 +830,7 @@ Current non-resolved limitations are:
 
 - controlled validator set
 - shared peer secret management and no per-peer key rotation protocol
-- operational depth-based finality rather than BFT finality
+- controlled known-validator quorum finality; this is not permissionless staking or a complete BFT protocol
 - side branches are not durably persisted as a first-class alternate-branch store
 - MODEL A increases chain storage growth because full media bytes are embedded in blocks
 - legacy compatibility code is still present for non-canonical paths

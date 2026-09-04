@@ -4,8 +4,14 @@ from originality_certificate import OriginalityCertificate
 from peers import PeerStore
 from peer_sync import receive_peer_block, sync_chain_from_peers
 from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from protocol_v1_finality import (
+    build_protocol_v1_finality_attestation,
+    build_protocol_v1_finality_attestation_message,
+)
 from submission import Submission, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 
 class FakeResponse:
@@ -35,6 +41,18 @@ def _matching_genesis_node(node_a, wallets):
     node_b.votes = []
     node_b.originality_certificates = []
     return node_b
+
+
+def _finality_attestation(account, *, height, block_hash):
+    message = build_protocol_v1_finality_attestation_message(
+        validator_address=account.address, block_height=height, block_hash=block_hash,
+        network_id=PUBLIC_TESTNET_V1_NETWORK_ID,
+    )
+    signature = Account.sign_message(encode_defunct(text=message), account.key).signature.hex()
+    return build_protocol_v1_finality_attestation(
+        validator_address=account.address, block_height=height, block_hash=block_hash,
+        network_id=PUBLIC_TESTNET_V1_NETWORK_ID, signature=signature,
+    )
 
 
 def _copy_supporting_originality_data(source, target):
@@ -433,3 +451,25 @@ def test_two_node_peer_block_mismatch_returns_sync_needed_without_corrupting_cha
     assert result["recommended_action"] == "run_chain_sync"
     assert blockchain.get_latest_block().hash == original_latest_hash
     assert all(block.hash != forked_block.hash for block in blockchain.chain)
+
+
+def test_two_healthy_nodes_converge_on_quorum_finality_independent_of_attestation_order(blockchain, wallets):
+    node_a = blockchain
+    node_b = _matching_genesis_node(node_a, wallets)
+    validators = [Account.create() for _ in range(3)]
+    validator_set = tuple(sorted(account.address.lower() for account in validators))
+    node_a.validator_set = validator_set
+    node_b.validator_set = validator_set
+    block_hash = node_a.get_latest_block().hash
+
+    first = _finality_attestation(validators[0], height=0, block_hash=block_hash)
+    second = _finality_attestation(validators[1], height=0, block_hash=block_hash)
+    assert node_a.submit_validator_finality_attestation(first)["finalization"] is None
+    assert node_b.submit_validator_finality_attestation(second)["finalization"] is None
+    node_a.submit_validator_finality_attestation(second)
+    node_b.submit_validator_finality_attestation(first)
+
+    assert node_a.get_block_chain_state(block_hash)["finalized"] is True
+    assert node_b.get_block_chain_state(block_hash)["finalized"] is True
+    assert node_a.get_finality_evidence(block_hash) == node_b.get_finality_evidence(block_hash)
+    assert node_a.submit_validator_finality_attestation(first)["status"] == "duplicate"

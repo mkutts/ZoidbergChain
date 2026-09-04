@@ -28,6 +28,7 @@ from config import (
     ORIGINALITY_APPROVAL_THRESHOLD,
     PROTOCOL_V1_CONFIRMATION_DEPTH,
     PROTOCOL_V1_FINALITY_DEPTH,
+    PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES,
     REWARD_POOL_SUPPLY,
     REQUIRE_ACCESS_FOR_REWARDS,
     TOTAL_SUPPLY,
@@ -99,7 +100,7 @@ from protocol_v1_genesis import (
 from validators import is_valid_ethereum_address, is_valid_public_key, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState
+from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, normalize_validator_set
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -171,6 +172,7 @@ class Blockchain:
         Contributor_two=None,
         initial_supply=TOTAL_SUPPLY,
         storage_backend=None,
+        validator_set=None,
     ):
         self.chain = []  # The blockchain
         self.pending_transactions = []  # Transaction pool
@@ -193,6 +195,11 @@ class Blockchain:
         self.override_requests = []  # User-submitted beta override requests
         self.feedback_records = []  # In-app beta feedback records
         self.audit_logs = []  # Persistent admin audit trail
+        self.finality_attestations = []  # Valid canonical validator attestations
+        self.finalized_blocks = []  # Immutable validator-quorum finality evidence
+        self.validator_set = normalize_validator_set(
+            PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES if validator_set is None else validator_set
+        )
         self._access_admin_service = AccessAdminService()
         self._feedback_service = FeedbackService()
         self._content_coordination_service = ContentCoordinationService()
@@ -255,6 +262,8 @@ class Blockchain:
             "override_requests": self.override_requests,
             "feedback_records": self.feedback_records,
             "audit_logs": self.audit_logs,
+            "finality_attestations": self.finality_attestations,
+            "finalized_blocks": self.finalized_blocks,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
         }
 
@@ -472,6 +481,9 @@ class Blockchain:
         self.override_requests = list(loaded_data.get("override_requests", []) or [])
         self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
+        self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
+        self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+        self._validate_persisted_finality_state()
         self.recompute_reward_pool_balance(chain=self.chain)
 
     def _commit_fault(self, stage):
@@ -1207,6 +1219,9 @@ class Blockchain:
                 self.override_requests = list(loaded_data.get("override_requests", []) or [])
                 self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
                 self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
+                self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
+                self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+                self._validate_persisted_finality_state()
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
@@ -1255,6 +1270,8 @@ class Blockchain:
             self.override_requests = []
             self.feedback_records = []
             self.audit_logs = []
+            self.finality_attestations = []
+            self.finalized_blocks = []
         except json.JSONDecodeError as exc:
             raise GenesisValidationError(
                 "invalid_chain_state",
@@ -1510,9 +1527,11 @@ class Blockchain:
     def protocol_v1_network_id() -> str:
         return resolve_network_id(network_name=NETWORK_NAME)
 
-    @staticmethod
-    def protocol_v1_lifecycle_policy() -> dict[str, object]:
-        return FinalityService.policy(FinalityPolicy(PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH))
+    def protocol_v1_lifecycle_policy(self) -> dict[str, object]:
+        return FinalityService.policy(
+            FinalityPolicy(PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH),
+            self.validator_set,
+        )
 
     def get_protocol_v1_block_for_submission(self, submission_id, *, chain=None):
         return self._finality_service.find_protocol_block(chain or self.chain, field_name="submission_id", value=submission_id, is_protocol_block=self.is_protocol_v1_block_payload)
@@ -1526,6 +1545,75 @@ class Blockchain:
             block_or_hash,
             chain_dicts,
             FinalityPolicy(PROTOCOL_V1_CONFIRMATION_DEPTH, PROTOCOL_V1_FINALITY_DEPTH),
+            finalized_blocks=self.finalized_blocks,
+            validator_set=self.validator_set,
+        )
+
+    def get_finality_evidence(self, block_or_hash):
+        """Return durable quorum evidence for a canonical finalized block, if any."""
+        block_hash = str(block_or_hash or "").strip() if isinstance(block_or_hash, str) else str(self._block_field(block_or_hash, "hash") or "").strip()
+        for record in self.finalized_blocks:
+            if isinstance(record, dict) and record.get("block_hash") == block_hash:
+                return dict(record)
+        return None
+
+    def _validate_persisted_finality_state(self):
+        seen_heights = set()
+        for record in self.finalized_blocks:
+            self._finality_service.validate_finalization_evidence(
+                record, expected_network_id=self.protocol_v1_network_id()
+            )
+            height = record["block_height"]
+            if height in seen_heights:
+                raise FinalityAttestationError("Persisted finality evidence has duplicate finalized heights.")
+            seen_heights.add(height)
+            canonical = next((block for block in self.chain if int(block.index) == height), None)
+            if canonical is None or canonical.hash != record["block_hash"]:
+                raise FinalityAttestationError("Persisted finality evidence does not match the canonical chain.")
+
+    def submit_validator_finality_attestation(self, attestation) -> dict:
+        """Validate, durably record, and deterministically apply one validator vote."""
+        if not isinstance(attestation, dict):
+            raise FinalityAttestationError("Finality attestation must be an object.")
+        try:
+            height = self._finality_service._height(attestation.get("block_height"))
+        except FinalityAttestationError:
+            raise
+        canonical = next(
+            (block.to_dict() for block in self.chain if int(block.index) == height), None
+        )
+        if canonical is None:
+            raise FinalityAttestationError("Finality attestation references a nonexistent canonical block.")
+        if canonical.get("hash") != self.calculate_hash_from_dict(canonical):
+            raise FinalityAttestationError("Finality attestation references a canonical block with an invalid stored hash.")
+        if not self.is_chain_valid(self.chain_to_dicts(self.chain)):
+            raise FinalityAttestationError("Finality cannot be applied while canonical chain validation fails.")
+        result = self._finality_service.process_attestation(
+            attestation,
+            validator_set=self.validator_set,
+            expected_network_id=self.protocol_v1_network_id(),
+            canonical_block=canonical,
+            existing_attestations=self.finality_attestations,
+            finalized_blocks=self.finalized_blocks,
+        )
+        if result["status"] != "duplicate":
+            self.finality_attestations.append(result["attestation"])
+            self.finality_attestations.sort(key=lambda value: (value["block_height"], value["block_hash"], value["validator_address"], value["signature"]))
+        if result["status"] != "duplicate" and result.get("finalization") is not None:
+            self.finalized_blocks.append(result["finalization"])
+            self.finalized_blocks.sort(key=lambda value: (value["block_height"], value["block_hash"]))
+        if result["status"] != "duplicate":
+            self.save_blockchain()
+        return result
+
+    def _candidate_preserves_finalized_blocks(self, candidate_chain) -> bool:
+        candidate_by_height = {
+            int(self._block_field(block, "index")): str(self._block_field(block, "hash") or "")
+            for block in candidate_chain or []
+        }
+        return all(
+            candidate_by_height.get(record.get("block_height")) == record.get("block_hash")
+            for record in self.finalized_blocks if isinstance(record, dict)
         )
 
     def get_submission_certificate_state(self, submission) -> dict[str, object]:
@@ -2858,11 +2946,14 @@ class Blockchain:
         return ForkChoiceService.chain_latest_hash(chain_dicts)
 
     def compare_chains_by_originality(self, local_chain, candidate_chain):
-        return self._fork_choice_service.compare(
+        comparison = self._fork_choice_service.compare(
             local_chain,
             candidate_chain,
             ForkChoiceCollaborators(self.chain_to_dicts, self.is_chain_valid),
         )
+        if comparison["decision"] == "replace_with_candidate" and not self._candidate_preserves_finalized_blocks(candidate_chain):
+            return {**comparison, "decision": "invalid_candidate", "preferred": "local", "reason": "violates_finalized_chain"}
+        return comparison
 
     def compare_chain_summaries(
         self, *, local_score, candidate_score, local_height, candidate_height,

@@ -6,6 +6,20 @@ As of Saturday, August 29, 2026, Task 7 freezes the Protocol v1 submission lifec
 
 This document defines exact meanings for the lifecycle terms used by the code in `submission.py`, `blockchain.py`, `api.py`, and `peer_sync.py`.
 
+## Task 3.5 Public Testnet v1 quorum finality update
+
+Task 3.5 supersedes the older depth-only definition of `finalized` below. Confirmation depth remains confirmation metadata, but `finalized` now means that the exact canonical block has durable valid attestations from a known validator set meeting `ceil(2N / 3)`, implemented as `(2 * N + 2) // 3`. An empty set never finalizes a block.
+
+Validator identities are normalized Ethereum `0x` addresses and signatures use the established MetaMask `personal_sign` recovery path. They are deliberately distinct from HMAC-authenticated peer node identities. `PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES` is a comma-separated configured controlled validator set; malformed entries fail startup, duplicates are de-duplicated, and membership plus the quorum threshold are snapshotted in finality evidence.
+
+The signed canonical attestation payload is `attestation_version`, `validator_address`, `block_height`, and `block_hash`, wrapped in the canonical Protocol v1 domain `zoidbergchain/finality-attestation/v1` with the exact `network_id`. It has no local receive time. Each counted signature must recover to a configured validator and match that canonical message, network, height, and hash.
+
+One validator has one vote per height and block hash. Identical attestations are idempotent. Conflicting hashes from one validator at one height are recorded as equivocation evidence and are excluded from live vote counts; no economic penalty or slashing is implemented. Attestations for a nonexistent, invalid-hash, noncanonical, wrong-height, or wrong-network block are rejected.
+
+Attestations and finalized quorum certificates are persisted in deterministic order with the validator-set snapshot, threshold, and signatures, so restart and independently supplied identical evidence converge. A finality certificate never moves backward. Fork choice otherwise remains unchanged, but a candidate chain that would omit or change any finalized height/hash is rejected. Known-validator quorum finality does not replace Meme Proof of Originality: certified original content remains the only block-earning/proposal mechanism.
+
+Threat model: this is controlled-validator Testnet v1 finality, not permissionless staking or a full BFT protocol. It assumes the configured validator set is distributed consistently and that at least a quorum of its signing keys is honest.
+
 Genesis identity and reset policy are frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md). This document defines how genesis participates in the same canonical/confirmed/finalized depth rules once it is the selected chain root.
 
 ## 1. Persisted submission statuses
@@ -106,14 +120,7 @@ This is a deterministic depth rule, not a wall-clock rule.
 
 ### Finalized
 
-- The block is canonical.
-- `confirmations >= PROTOCOL_V1_FINALITY_DEPTH`
-
-Task 7 freezes the default finality rule at:
-
-- `PROTOCOL_V1_FINALITY_DEPTH = 6`
-
-This is operational policy finality for the controlled Public Testnet v1 validator model. It is not Byzantine or cryptographic irreversibility.
+Task 3.5 replaces this document's historical confirmation-depth finality rule. A canonical block is finalized only by persisted known-validator quorum evidence as defined in the Task 3.5 update above. `PROTOCOL_V1_FINALITY_DEPTH` is retained as legacy confirmation-policy metadata and is not an alternative meaning of `finalized`.
 
 For genesis at height `0`, the same formula applies:
 

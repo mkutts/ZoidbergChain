@@ -37,10 +37,12 @@ _STORAGE_SECTIONS = (
     "override_requests",
     "feedback_records",
     "audit_logs",
+    "finality_attestations",
+    "finalized_blocks",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions"}
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks"}
 )
 _OPTIONAL_SQLITE_SECTIONS = {"content_objects"}
 
@@ -81,6 +83,10 @@ def _default_section_value(section_name):
     if section_name == "feedback_records":
         return []
     if section_name == "audit_logs":
+        return []
+    if section_name == "finality_attestations":
+        return []
+    if section_name == "finalized_blocks":
         return []
     if section_name == "peers":
         return []
@@ -1250,6 +1256,8 @@ class SQLiteStorageBackend(StorageBackend):
             "override_requests": sections["override_requests"],
             "feedback_records": sections["feedback_records"],
             "audit_logs": sections["audit_logs"],
+            "finality_attestations": sections["finality_attestations"],
+            "finalized_blocks": sections["finalized_blocks"],
             "peers": sections["peers"],
         }
 

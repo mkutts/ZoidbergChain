@@ -371,6 +371,32 @@ This section describes the current mechanism only. It does not redefine the econ
 
 ## 10. Protocol v1 blocks
 
+### Deterministic certified mint ordering (Public Testnet v1)
+
+When more than one certified submission is ready to mint, nodes compare the
+following tuple in ascending lexicographic order and mint the first eligible
+entry:
+
+1. `content_hash`
+2. `vote_hash`
+3. `certificate_id`
+
+Each component is the lowercase, 64-character SHA-256 hexadecimal value from
+the originality certificate. The certificate must first pass the existing
+certificate/submission, network, vote, and immutable-content validation rules.
+`content_hash` binds the accepted immutable media; `vote_hash` binds the
+finalized vote set; and `certificate_id` is derived from the canonical
+certificate identity, including the submission identity, and is the
+collision-resistant final tie-breaker. Consequently, valid distinct
+submissions have a total order without consulting queue insertion position,
+database row IDs, local timestamps, or node-local state.
+
+Certification and content preparation may occur concurrently. Canonical mint
+selection is nevertheless linear: each block is chosen from the ready set by
+this tuple before the existing one-block mint path runs. This ordering rule is
+consensus-affecting; it does not change eligibility validation or introduce an
+atomic-commit/finality rule.
+
 Protocol v1 accepted-media blocks use:
 
 - `block_version = 1`

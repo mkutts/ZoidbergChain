@@ -24,6 +24,22 @@ class MintQueueService:
     """Stateless queue rules over authoritative lists supplied per call."""
 
     @staticmethod
+    def canonical_mint_order_key(certificate):
+        """Return the Public Testnet v1 order key for a certified submission.
+
+        Each component is a canonical SHA-256 hexadecimal identifier from the
+        validated certificate. The certificate ID includes the submission
+        identity and is the collision-resistant final tie-breaker.
+        """
+        if certificate is None:
+            raise ValueError("An originality certificate is required for canonical mint ordering.")
+        return (
+            str(certificate.content_hash).lower(),
+            str(certificate.vote_hash).lower(),
+            str(certificate.certificate_id).lower(),
+        )
+
+    @staticmethod
     def _submission(state, storage, submission_id):
         return storage.get_submission(submission_id, state.submissions)
 
@@ -90,8 +106,26 @@ class MintQueueService:
         if submission.status == QUEUED and record.get("mint_block_reason") == "certificate_missing": submission.status = APPROVED; record["submission_status"] = APPROVED
         return record
 
+    def record_order_key(self, state, storage, record):
+        """Sort ready records by the consensus order, with non-ready records last.
+
+        The fallback is presentation-only: non-ready records are never selected
+        for a block and therefore cannot affect canonical mint selection.
+        """
+        submission_id = str(record.get("submission_id") or "")
+        if (
+            record.get("submission_status") == QUEUED
+            and record.get("certificate_status") == "valid"
+            and not record.get("mint_blocked")
+        ):
+            certificate = self._certificate(state, storage, submission_id)
+            if certificate is not None:
+                return (0, *self.canonical_mint_order_key(certificate))
+        return (1, submission_id.lower())
+
     def list(self, state, storage, *, network_name, include_blocked=True, mintable_only=False, extract_text_func=extract_text):
         records = [self.evaluate(state, storage, submission_id, network_name, extract_text_func) for submission_id in state.mint_queue]
+        records.sort(key=lambda record: self.record_order_key(state, storage, record))
         return [record for record in records if (not mintable_only or record.get("mintable")) and (include_blocked or record.get("mintable"))]
 
     def block(self, state, storage, submission_id, reason, notes=None, blocked_by=None):

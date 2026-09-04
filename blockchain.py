@@ -2258,11 +2258,14 @@ class Blockchain:
             raise ValueError("Mint queue is empty.")
 
         blocked_records = []
-        for submission_id in self.mint_queue:
+        # get_mint_queue() applies MintQueueService.canonical_mint_order_key
+        # to every ready entry before this canonical selection step.
+        for queue_record in self.get_mint_queue(include_blocked=True):
+            submission_id = queue_record["submission_id"]
             submission = self.get_submission(submission_id)
             if submission is not None and submission.status == HARD_REJECTED:
                 raise ValueError("Hard rejected submissions cannot become blocks.")
-            record = self._evaluate_mint_queue_item(submission_id)
+            record = queue_record
             if record.get("mintable"):
                 certificate = self.require_valid_certificate_for_submission(submission)
                 return self._mint_submission_record(

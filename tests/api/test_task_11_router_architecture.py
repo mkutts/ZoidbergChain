@@ -115,11 +115,9 @@ def test_11b_content_and_native_are_explicit_and_runtime_no_longer_owns_them():
         source = (router_dir / f"{name}.py").read_text(encoding="utf-8")
         assert "EXPLICIT_ROUTER = True" in source
         assert source.count("@router.") >= count
-        tree = ast.parse(source)
         route_names = {
-            row[3] for node in tree.body if isinstance(node, ast.Assign)
-            and any(isinstance(target, ast.Name) and target.id == "ROUTES" for target in node.targets)
-            for row in ast.literal_eval(node.value)
+            route.name for route in _application_routes()
+            if route.endpoint.__module__ == f"api_routers.{name}"
         }
         assert not (route_names & runtime_functions)
 
@@ -164,11 +162,9 @@ def test_11c_peer_and_operations_are_explicit_and_runtime_has_no_route_handlers(
         source = (router_dir / f"{name}.py").read_text(encoding="utf-8")
         assert "EXPLICIT_ROUTER = True" in source
         assert source.count("@router.") >= count
-        tree = ast.parse(source)
         route_names = {
-            row[3] for node in tree.body if isinstance(node, ast.Assign)
-            and any(isinstance(target, ast.Name) and target.id == "ROUTES" for target in node.targets)
-            for row in ast.literal_eval(node.value)
+            route.name for route in _application_routes()
+            if route.endpoint.__module__ == f"api_routers.{name}"
         }
         assert not (route_names & runtime_functions)
     assert not any(

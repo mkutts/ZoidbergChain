@@ -616,29 +616,6 @@ async def unblock_submission_minting(
     }
 
 
-ROUTES = (
-    (78, 'post', '/content/upload', 'upload_content', {}),
-    (79, 'post', '/content/text', 'upload_text_content', {}),
-    (80, 'get', '/content/{content_hash}/metadata', 'get_content_metadata', {}),
-    (82, 'get', '/content/{content_hash}', 'download_content', {}),
-    (85, 'post', '/submit_content', 'submit_content', {}),
-    (86, 'get', '/submissions', 'get_submissions', {}),
-    (87, 'get', '/submissions/{submission_id}', 'get_submission', {}),
-    (88, 'get', '/submissions/{submission_id}/certificate', 'get_submission_certificate', {}),
-    (89, 'get', '/submissions/{submission_id}/voter-rewards', 'get_submission_voter_rewards', {}),
-    (90, 'get', '/certificates/{certificate_id}', 'get_certificate', {}),
-    (94, 'post', '/submissions/{submission_id}/vote', 'vote_on_submission', {}),
-    (95, 'get', '/submissions/{submission_id}/votes', 'get_submission_votes', {}),
-    (97, 'post', '/submissions/{submission_id}/evaluate', 'evaluate_submission', {}),
-    (121, 'get', '/active-users', 'active_users', {}),
-    (122, 'get', '/voting-threshold', 'voting_threshold', {}),
-    (123, 'get', '/mint-queue', 'mint_queue', {}),
-    (124, 'post', '/mint-queue/{submission_id}/mint', 'mint_queued_submission', {}),
-    (125, 'post', '/mint/{submission_id}', 'mint_queued_submission', {}),
-    (126, 'post', '/submissions/{submission_id}/block-minting', 'block_submission_minting', {}),
-    (127, 'post', '/submissions/{submission_id}/unblock-minting', 'unblock_submission_minting', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

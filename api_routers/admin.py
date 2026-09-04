@@ -732,38 +732,6 @@ async def _admin_update_access_account_status(
     }
 
 
-ROUTES = (
-    (19, 'post', '/admin/login', 'admin_login', {}),
-    (20, 'post', '/admin/logout', 'admin_logout', {}),
-    (21, 'get', '/admin/session', 'admin_session_status', {}),
-    (22, 'get', '/admin/access/requests', 'admin_list_access_requests', {}),
-    (23, 'post', '/admin/access/requests/{request_id}/approve', 'admin_approve_access_request', {}),
-    (24, 'post', '/admin/access/requests/{request_id}/reject', 'admin_reject_access_request', {}),
-    (25, 'post', '/admin/access/invites', 'admin_create_access_invite', {}),
-    (26, 'get', '/admin/access/accounts', 'admin_list_access_accounts', {}),
-    (27, 'get', '/admin/access/accounts/{access_account_id}', 'admin_get_access_account', {}),
-    (28, 'get', '/admin/allowlist', 'admin_list_allowlist', {}),
-    (29, 'post', '/admin/allowlist', 'admin_create_allowlist_entry', {}),
-    (30, 'get', '/admin/allowlist/{allowlist_entry_id}', 'admin_get_allowlist_entry', {}),
-    (31, 'patch', '/admin/allowlist/{allowlist_entry_id}', 'admin_update_allowlist_entry', {}),
-    (32, 'post', '/admin/allowlist/{allowlist_entry_id}/revoke', 'admin_revoke_allowlist_entry', {}),
-    (33, 'post', '/admin/allowlist/{allowlist_entry_id}/reactivate', 'admin_reactivate_allowlist_entry', {}),
-    (34, 'get', '/admin/override-requests', 'admin_list_override_requests', {}),
-    (35, 'post', '/admin/override-requests/{override_request_id}/approve', 'admin_approve_override_request', {}),
-    (36, 'post', '/admin/override-requests/{override_request_id}/reject', 'admin_reject_override_request', {}),
-    (37, 'get', '/admin/feedback', 'admin_list_feedback', {}),
-    (38, 'get', '/admin/feedback/{feedback_id}', 'admin_get_feedback', {}),
-    (39, 'patch', '/admin/feedback/{feedback_id}', 'admin_update_feedback', {}),
-    (40, 'post', '/admin/feedback/{feedback_id}/status', 'admin_update_feedback_status', {}),
-    (41, 'post', '/admin/feedback/{feedback_id}/note', 'admin_add_feedback_note', {}),
-    (42, 'get', '/admin/ops/status', 'admin_ops_status', {}),
-    (43, 'get', '/admin/audit-log', 'admin_audit_log', {}),
-    (44, 'post', '/admin/access/accounts/{access_account_id}/suspend', 'admin_suspend_access_account', {}),
-    (45, 'post', '/admin/access/accounts/{access_account_id}/reactivate', 'admin_reactivate_access_account', {}),
-    (46, 'post', '/admin/access/accounts/{access_account_id}/revoke', 'admin_revoke_access_account', {}),
-    (47, 'post', '/admin/access/wallet-bindings/{wallet_address}/revoke', 'admin_revoke_wallet_binding', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

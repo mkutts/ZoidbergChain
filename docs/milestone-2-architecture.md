@@ -6,19 +6,21 @@ serialization, genesis, signatures, consensus, and media integrity are frozen.
 
 ## Current Architecture
 
-The application is currently a flat Python module set. `api.py` owns FastAPI
-assembly, route handlers, schemas, access dependencies, and substantial
-orchestration. `blockchain.py` is the compatibility facade for chain state,
-consensus-facing validation, submission lifecycle, rewards, native ledger,
-mempool, and persistence coordination. `peer_sync.py` owns signed transport and
-cross-node exchange. `storage.py` implements JSON and SQLite backends. Protocol
-v1 modules provide deterministic protocol objects and validation helpers.
+`api.py` is the stable `api:app` compatibility entry point. `api_runtime.py`
+owns application wiring, middleware, lifespan state, dependencies, request and
+response schemas, shared serializers, and narrow support helpers; it owns no
+endpoint handlers or generic route forwarding. The seven modules in
+`api_routers/` own all concrete FastAPI endpoints. `blockchain.py` remains the
+state-owning compatibility facade for acceptance, persistence coordination, and
+the public domain operations used by the routers. `peer_sync.py` remains the
+peer-facing compatibility facade; `services/` holds the extracted framework-free
+domain, consensus, ledger, reward, and peer-service logic. `storage.py`
+implements JSON and SQLite adapters, while Protocol v1 modules provide
+deterministic protocol objects and validation helpers.
 
-`api.py`, `blockchain.py`, and `peer_sync.py` are intentionally still oversized.
-`api.py` creates the FastAPI application at import time but creates the
-`Blockchain` instance in the application lifespan. Top-level logging and
-lightweight session/store objects remain current behavior and are not moved by
-this task.
+`blockchain.py` and `peer_sync.py` intentionally retain their compatibility
+surfaces. `Blockchain` is created in the application lifespan; top-level logging
+and lightweight session/store objects retain their established behavior.
 
 ### Coverage And Responsibility Matrix
 
@@ -220,3 +222,26 @@ The dependency direction is now `api -> api_runtime + api_routers`,
 services`. Services do not import `api`, `api_runtime`, routers, FastAPI, or HTTP
 response classes. No architecture-baseline exception or new import cycle was
 added.
+
+## Task 12 Final Cleanup And Release Baseline
+
+The 129 frozen application routes are owned by explicit router modules in this
+exact classification: public-chain 5, access/authentication 16, admin 29,
+content 20, native 23, peer 20, and operations/development 16. Their captured
+global order remains `0..128`; the route-contract fixture continues to classify
+each route as public, admin, peer, or development and records its dependency,
+model, and declared-status metadata.
+
+Task 12 removed the unused `api_routers._routing` generic forwarding builder
+and the seven duplicate `ROUTES` manifests that served only its unreachable
+fallback. Router assembly now rejects a non-explicit router module rather than
+silently generating wrappers. The route-order maps remain because they are the
+live binding from each concrete endpoint to the frozen global order.
+
+The AST import baseline remains two cycles only: `content -> submission ->
+content` and `native_transfer -> protocol_v1_native_transfer ->
+native_transfer`. No forbidden API-domain edge, Protocol v1 FastAPI import, or
+additional architecture exception is permitted. `api_runtime.py` re-exports
+some helpers and configuration names intentionally: router modules and existing
+`api` compatibility monkeypatches consume them dynamically, so static
+single-module unused-import reports are not sufficient removal evidence.

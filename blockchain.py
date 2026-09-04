@@ -8,7 +8,6 @@ import secrets
 from PIL import Image
 import imagehash
 import pytesseract
-import time
 from block import Block, PROTOCOL_V1_BLOCK_VERSION
 from transaction import Transaction
 from wallet import Wallet

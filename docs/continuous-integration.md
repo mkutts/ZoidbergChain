@@ -36,11 +36,16 @@ $env:CONTENT_STORAGE_DIR = Join-Path $env:TEMP 'zoidbergchain-ci-content'
 .\.venv\Scripts\python.exe -m pytest
 .\.venv\Scripts\python.exe -m pip install pip-audit==2.9.0
 .\.venv\Scripts\python.exe -m pip_audit -r requirements-test.txt --strict
-cd zoidbergcoin-ui
+$frontendCopy = Join-Path $env:TEMP "zoidbergchain-frontend-ci-copy"
+$npmCache = Join-Path $env:TEMP "zoidbergchain-npm-cache"
+Copy-Item -Recurse -Force zoidbergcoin-ui $frontendCopy
+Push-Location $frontendCopy
+$env:npm_config_cache = $npmCache
 npm.cmd ci
 npm.cmd test
 npm.cmd run build
 npm.cmd audit --audit-level=high
+Pop-Location
 ```
 
 For the exact current-tree secret scan, use a Bash-capable shell with Docker available:
@@ -51,7 +56,11 @@ git archive --format=tar HEAD | tar -x -C "$scan_dir"
 docker run --rm --volume "$scan_dir:/repo:ro" zricethezav/gitleaks:v8.21.2 dir --source /repo --redact --no-banner
 ```
 
-The inherited Windows `esbuild.exe` and PyCharm npm-cache lock can block `npm.cmd ci`; that is an environment lock, not a frontend dependency regression. Do not change `package.json` or `package-lock.json` to work around it. GitHub Actions runs `npm ci`, tests, the production build, and the audit in a clean Linux checkout.
+The inherited Windows `esbuild.exe` and PyCharm npm-cache lock can block
+`npm.cmd ci` inside the repository. The isolated copy/cache commands above
+avoid that local lock without changing `package.json` or `package-lock.json`.
+GitHub Actions runs `npm ci`, tests, the production build, and the audit in a
+clean Linux checkout.
 
 ## Secret-Scanning Scope
 

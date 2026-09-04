@@ -97,14 +97,6 @@ async def download_block_media(request: Request, block_hash: str):
     return Response(content=media_bytes, media_type=mime_type)
 
 
-ROUTES = (
-    (6, 'get', '/sync', 'sync_blockchain', {}),
-    (66, 'get', '/chain', 'get_chain', {}),
-    (67, 'get', '/chain/summary', 'chain_summary', {}),
-    (69, 'get', '/chain/blocks', 'chain_blocks', {}),
-    (72, 'get', '/blocks/{block_hash}/media', 'download_block_media', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

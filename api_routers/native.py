@@ -464,32 +464,6 @@ async def get_reward_pool_balance(request: Request):
         return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
 
 
-ROUTES = (
-    (56, 'post', '/transfers/submit', 'submit_transfer_intent', {}),
-    (74, 'post', '/add_transaction', 'add_transaction', {}),
-    (77, 'get', '/transaction_pool', 'transaction_pool', {}),
-    (100, 'get', '/accounts/{wallet_address}', 'get_native_account_summary', {}),
-    (101, 'get', '/accounts/{wallet_address}/submissions', 'get_native_account_submissions', {}),
-    (102, 'get', '/accounts/{wallet_address}/votes', 'get_native_account_votes', {}),
-    (103, 'get', '/accounts/{wallet_address}/rewards', 'get_native_account_rewards', {}),
-    (104, 'get', '/accounts/{wallet_address}/transfers', 'get_native_account_transfers', {}),
-    (105, 'get', '/accounts/{wallet_address}/nonce', 'get_native_account_nonce', {}),
-    (106, 'get', '/accounts/{wallet_address}/transactions', 'get_native_account_transactions', {}),
-    (107, 'get', '/accounts/{wallet_address}/balance', 'get_native_account_balance', {}),
-    (108, 'get', '/get_balance', 'get_balance', {}),
-    (109, 'get', '/wallets/{wallet_address}/balance', 'get_native_wallet_balance', {}),
-    (110, 'get', '/wallets/{wallet_address}/rewards', 'get_native_wallet_rewards', {}),
-    (111, 'get', '/wallets/{wallet_address}/transfers', 'get_wallet_transfer_intents', {}),
-    (112, 'get', '/wallets/{wallet_address}/transactions', 'get_wallet_transactions', {}),
-    (113, 'get', '/transfers/{transfer_id}', 'get_transfer_intent', {}),
-    (114, 'get', '/transactions/{tx_id}', 'get_native_transaction', {}),
-    (115, 'post', '/transactions/{tx_id}/admit', 'admit_native_transaction_to_mempool', {}),
-    (117, 'get', '/mempool', 'get_mempool', {}),
-    (118, 'get', '/mempool/{tx_id}', 'get_mempool_transaction', {}),
-    (119, 'post', '/mempool/revalidate', 'revalidate_mempool', {}),
-    (120, 'get', '/get_reward_pool_balance', 'get_reward_pool_balance', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

@@ -564,25 +564,6 @@ async def logout_wallet_session(request: Request, authorization: str | None = He
     }
 
 
-ROUTES = (
-    (11, 'post', '/feedback', 'create_feedback', {}),
-    (12, 'get', '/access/status', 'get_access_status', {}),
-    (13, 'post', '/access/request', 'create_access_request', {}),
-    (14, 'post', '/access/login', 'login_with_access_code', {}),
-    (15, 'post', '/access/bind-wallet', 'bind_access_wallet', {}),
-    (16, 'get', '/access/me', 'get_access_me', {}),
-    (17, 'get', '/eligibility/status', 'get_eligibility_status', {}),
-    (18, 'post', '/eligibility/override-requests', 'create_override_request', {}),
-    (48, 'post', '/auth/wallet/challenge', 'create_wallet_challenge', {}),
-    (49, 'post', '/auth/wallet/verify', 'verify_wallet_challenge', {}),
-    (50, 'post', '/auth/wallet/submission-challenge', 'create_wallet_submission_challenge', {}),
-    (51, 'post', '/auth/wallet/vote-challenge', 'create_wallet_vote_challenge', {}),
-    (52, 'get', '/review/policy', 'get_review_policy', {}),
-    (53, 'post', '/auth/wallet/transfer-challenge', 'create_wallet_transfer_challenge', {}),
-    (54, 'get', '/auth/wallet/session', 'get_wallet_session', {}),
-    (55, 'post', '/auth/wallet/logout', 'logout_wallet_session', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

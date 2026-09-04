@@ -283,25 +283,6 @@ async def cleanup_bad_mint_queue_items(
     )
 
 
-ROUTES = (
-    (0, 'get', '/', 'home', {}),
-    (1, 'get', '/about', 'about', {}),
-    (2, 'get', '/download_whitepaper', 'download_whitepaper', {}),
-    (3, 'post', '/dev/reset', 'dev_reset_blockchain', {}),
-    (4, 'post', '/reset_blockchain', 'reset_blockchain', {}),
-    (5, 'get', '/dev/debug', 'dev_debug', {}),
-    (7, 'get', '/health', 'health', {}),
-    (8, 'get', '/status', 'status', {}),
-    (9, 'get', '/ops/status', 'public_ops_status', {}),
-    (10, 'get', '/node-info', 'node_info', {}),
-    (75, 'get', '/get_wallets', 'get_wallets', {}),
-    (76, 'get', '/dev/wallets', 'get_dev_wallets', {}),
-    (91, 'post', '/dev/submissions/{submission_id}/repair-certificate', 'repair_submission_certificate', {}),
-    (98, 'post', '/add_block', 'add_block', {}),
-    (99, 'post', '/generate_wallet', 'generate_wallet', {'summary': 'Generate a new wallet', 'description': 'Creates a new wallet.'}),
-    (128, 'post', '/dev/mint-queue/cleanup-bad-items', 'cleanup_bad_mint_queue_items', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

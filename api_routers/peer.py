@@ -607,29 +607,6 @@ async def broadcast_native_transaction(
     }
 
 
-ROUTES = (
-    (57, 'post', '/peers/register', 'register_peer', {}),
-    (58, 'get', '/peers', 'get_peers', {}),
-    (59, 'post', '/peers/transactions/receive', 'receive_transaction_from_peer', {}),
-    (60, 'get', '/peers/transactions/{tx_id}', 'get_peer_transaction', {}),
-    (61, 'get', '/peers/mempool/summary', 'get_peer_mempool_summary', {}),
-    (62, 'post', '/peers/submissions/receive', 'receive_submission_from_peer', {}),
-    (63, 'post', '/peers/votes/receive', 'receive_vote_from_peer', {}),
-    (64, 'post', '/peers/certificates/receive', 'receive_certificate_from_peer', {}),
-    (65, 'post', '/peers/blocks/receive', 'receive_block_from_peer', {}),
-    (68, 'get', '/peers/chain/summary', 'peer_chain_summary', {}),
-    (70, 'get', '/peers/chain/blocks', 'peer_chain_blocks', {}),
-    (71, 'post', '/chain/sync', 'sync_chain', {}),
-    (73, 'post', '/blocks/{block_hash}/broadcast', 'broadcast_block', {}),
-    (81, 'get', '/peers/content/{content_hash}/metadata', 'get_peer_content_metadata', {}),
-    (83, 'get', '/peers/content/{content_hash}', 'download_peer_content', {}),
-    (84, 'post', '/content/{content_hash}/sync', 'sync_content_from_peers_endpoint', {}),
-    (92, 'post', '/certificates/{certificate_id}/broadcast', 'broadcast_certificate', {}),
-    (93, 'post', '/submissions/{submission_id}/broadcast', 'broadcast_submission', {}),
-    (96, 'post', '/submissions/{submission_id}/votes/broadcast', 'broadcast_submission_votes', {}),
-    (116, 'post', '/transactions/{tx_id}/broadcast', 'broadcast_native_transaction', {}),
-)
-
 EXPLICIT_ROUTER = True
 
 _ROUTE_ORDER = {

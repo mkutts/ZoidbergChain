@@ -2,13 +2,22 @@
 
 This project uses `pytest` for automated tests.
 
+## Dependency installation groups
+
+`requirements-core.txt` is the node's core runtime group.
+`requirements-originality.txt` is the media/OCR group. `requirements.txt`
+combines both and is required for a runnable node because FastAPI imports the
+originality path at startup. `requirements-test.txt` adds HTTP/test tooling to
+that complete node install. `requirements-dev.txt` includes the complete test
+group for local repository validation.
+
 ## Install test dependencies
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-test.txt
 ```
 
-This includes the complete node dependencies and pytest tooling. The current test suite imports the FastAPI application, which imports the originality/OCR path; install `requirements.txt`, not `requirements-core.txt`, for backend testing.
+This includes the complete node dependencies and pytest tooling. The current test suite imports the FastAPI application, which imports the originality/OCR path; do not use `requirements-core.txt` alone for backend testing.
 
 For local development validation, install:
 
@@ -33,6 +42,19 @@ GitHub Actions partitions backend and integration tests, verifies frontend insta
 ```
 
 Coverage reporting is configured for local visibility only. There is no minimum coverage threshold yet.
+
+## Clean frontend verification
+
+Do not run a clean frontend install in the repository's potentially locked
+`node_modules`. Copy `zoidbergcoin-ui` to a new temporary directory and point
+`npm_config_cache` at a second temporary directory, then run `npm ci`, `npm test`,
+`npm run build`, and `npm audit --audit-level=high` from that copy. This
+is the local equivalent of the CI frontend gate and leaves frontend source,
+lockfile, and repository dependency state untouched.
+
+FastAPI/Starlette `TestClient` currently emits its known upstream deprecation
+warning during parts of the suite. It is recorded as a warning rather than
+suppressed; tests must still pass without changing the compatibility path.
 
 The test fixtures run blockchain operations from a temporary working directory and copy only the files needed for the test, so the production `blockchain.json` and `wallets.json` files in the project root are not modified.
 

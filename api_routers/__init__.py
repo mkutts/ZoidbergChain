@@ -9,7 +9,6 @@ from typing import Any
 from fastapi import FastAPI
 
 from . import access, admin, content, native, operations, peer, public_chain
-from ._routing import build_router
 
 
 ROUTER_MODULES = {
@@ -43,11 +42,10 @@ def install_routers(app: FastAPI, runtime: Any) -> None:
         ):
             module = importlib.reload(module)
             ROUTER_MODULES[name] = module
-        # All Task 11 domain modules register concrete FastAPI endpoints at
-        # module load. Keep the builder branch only for compatibility with a
-        # future optional router module.
+        # Every Task 11 domain module owns concrete FastAPI endpoints.  A
+        # generic forwarding builder would weaken the route-ownership boundary.
         if not getattr(module, "EXPLICIT_ROUTER", False):
-            module.router = build_router(runtime, module.ROUTES, owner=module.__name__)
+            raise RuntimeError(f"Router module must declare explicit endpoints: {module.__name__}")
         DOMAIN_ROUTERS[name] = module.router
 
     ordered_routes = sorted(

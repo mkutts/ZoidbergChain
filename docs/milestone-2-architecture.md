@@ -1,4 +1,4 @@
-# Milestone 2 Task 5: Architecture Characterization
+# Milestone 2 Architecture
 
 Date: 2026-09-02. This is a characterization baseline, not a refactor plan or
 claim that the target structure already exists. Protocol v1 behavior, canonical
@@ -191,3 +191,32 @@ content helpers`, with injected calls back through `Blockchain -> Task 9 consens
 services` for ranking and validation. Peer services import neither `Blockchain`,
 `api`, nor FastAPI, cache no chain collections, and persist no blockchain state
 independently. The two characterized legacy cycles remain unchanged.
+
+## Task 11 FastAPI Router And Thin-Adapter Extraction
+
+Task 11 reduces `api.py` to the stable `api:app` compatibility entry point.
+Task 11A makes the public-chain (5), access/authentication (16), and admin (29)
+`APIRouter` modules real HTTP adapters. Task 11B adds explicit content (20) and
+native (23) HTTP adapters; Task 11C completes peer (20) and operations (16).
+
+The five extracted routers own explicit endpoint signatures, FastAPI parsing,
+dependencies, HTTP error/status mapping, and response serialization. They call
+the `Blockchain` facade for domain transitions. Task 11A-2 places access/admin
+transition, audit, and persistence coordination in Task 6-backed facade
+operations. Task 11B similarly places content/submission/originality/mint and
+native ledger/mempool transition coordination in Task 7/8/9-backed facade
+operations. Task 11C routes peer receipt/sync/broadcast work through Task 10
+services and moves guarded development transitions into narrow `Blockchain`
+operations. No router uses the runtime compatibility builder.
+
+The application assembler merges the domain-owned `APIRoute` objects by their
+captured pre-refactor order. This preserves route shadowing and matching behavior
+as well as path, method, trailing-slash, dependency, model, status, and OpenAPI
+contracts. Direct `api_runtime` imports and `importlib.reload(api)` also install
+the same routers, preserving the existing test and deployment lifecycle.
+
+The dependency direction is now `api -> api_runtime + api_routers`,
+`api_routers -> api_runtime`, and `api_runtime -> Blockchain/peer_sync ->
+services`. Services do not import `api`, `api_runtime`, routers, FastAPI, or HTTP
+response classes. No architecture-baseline exception or new import cycle was
+added.

@@ -7,6 +7,7 @@ import time
 import requests
 
 from blockchain import NativeBlockValidationError
+from peers import normalize_peer_url
 from block import Block
 from content import (
     CONTENT_TYPE_IMAGE,
@@ -238,6 +239,14 @@ def sync_missing_content(
         network_name=network_name,
         timeout_seconds=timeout_seconds,
     )
+
+
+def register_peer_operation(peer_store, *, node_id, url, network_name, local_node_id, public_node_url):
+    """Task 10 peer-store transition used by the HTTP adapter after auth."""
+    peer_url = normalize_peer_url(str(url))
+    if str(node_id).strip() == local_node_id or peer_url == normalize_peer_url(public_node_url):
+        raise ValueError("Cannot register this node as a peer.")
+    return peer_store.register_peer(node_id=node_id, url=peer_url, network_name=network_name)
 
 
 def _reject_forbidden_fields(payload, allowed_fields, error_cls, object_name):

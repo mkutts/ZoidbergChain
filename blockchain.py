@@ -97,7 +97,7 @@ from protocol_v1_genesis import (
     canonical_public_testnet_v1_genesis_record,
     validate_public_testnet_v1_genesis_record,
 )
-from validators import is_valid_ethereum_address, is_valid_user_wallet_identity
+from validators import is_valid_ethereum_address, is_valid_public_key, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
 from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState
@@ -541,6 +541,508 @@ class Blockchain:
     def create_feedback(self, *, feedback_type, title, description, name=None, email=None, handle=None, wallet_address=None, access_account_id=None, current_page=None, current_flow=None, user_agent=None, remote_ip=None, browser_metadata=None, eligibility_snapshot=None, viewport_width=None, viewport_height=None, is_mobile=None, priority="normal"): return self._feedback_service.create_feedback(self._feedback_state(), feedback_type=feedback_type, title=title, description=description, name=name, email=email, handle=handle, wallet_address=wallet_address, access_account_id=access_account_id, current_page=current_page, current_flow=current_flow, user_agent=user_agent, remote_ip=remote_ip, browser_metadata=browser_metadata, eligibility_snapshot=eligibility_snapshot, viewport_width=viewport_width, viewport_height=viewport_height, is_mobile=is_mobile, priority=priority)
     def update_feedback(self, feedback_id, *, status=None, priority=None, reviewed_by="operator"): return self._feedback_service.update_feedback(self._feedback_state(), feedback_id, status=status, priority=priority, reviewed_by=reviewed_by)
     def add_feedback_admin_note(self, feedback_id, *, note, created_by="operator"): return self._feedback_service.add_feedback_admin_note(self._feedback_state(), feedback_id, note=note, created_by=created_by)
+
+    # HTTP-facing access/admin application operations.  These keep the Task 6
+    # services as the state-transition owner while this facade remains the only
+    # persistence coordinator.  The API supplies only already-authenticated
+    # actor/request metadata; operation names and audit decisions live here.
+    def _access_admin_audit_entry(self, action, context=None, **fields):
+        return self.append_audit_log_entry({"action": action, **dict(context or {}), **fields})
+
+    def _persist_access_admin_operation(self, result, *, audit_entries=()):
+        self.save_blockchain()
+        for entry in audit_entries:
+            self.append_audit_log_entry(entry)
+            self.save_blockchain()
+        return result
+
+    def _record_access_admin_audit(self, action, *, audit_context=None, **fields):
+        entry = self.append_audit_log_entry({"action": action, **dict(audit_context or {}), **fields})
+        self.save_blockchain()
+        return entry
+
+    def record_admin_login_failure_operation(self, *, audit_context=None):
+        return self._record_access_admin_audit("admin_login_failure", audit_context=audit_context, result="failure", reason="invalid_admin_credential")
+
+    def record_admin_login_success_operation(self, *, audit_context=None):
+        return self._record_access_admin_audit("admin_login_success", audit_context=audit_context)
+
+    def record_admin_logout_operation(self, *, audit_context=None):
+        return self._record_access_admin_audit("admin_logout", audit_context=audit_context)
+
+    def get_feedback_for_admin_operation(self, feedback_id, *, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        record = self.get_feedback(feedback_id)
+        if record is None:
+            raise LookupError(f"Feedback not found: {feedback_id}")
+        self._record_access_admin_audit("feedback_viewed", audit_context=audit_context, feedback_id=feedback_id)
+        return record
+
+    def record_admin_ops_view_operation(self, *, audit_context=None):
+        return self._record_access_admin_audit("admin_ops_viewed", audit_context=audit_context)
+
+    def submit_feedback_operation(self, **values):
+        self.refresh_access_control_state_from_storage()
+        return self._persist_access_admin_operation(self.create_feedback(**values))
+
+    def submit_access_request_operation(self, **values):
+        return self._persist_access_admin_operation(self.create_access_request(**values))
+
+    def complete_access_login_operation(self, access_code, *, issue_session):
+        self.refresh_access_control_state_from_storage()
+        account = self.resolve_access_account_by_invite_code(access_code, include_redeemed=True)
+        if account is None:
+            raise ValueError("Invalid invite/access code.")
+        if not account.get("invite_code_hash"):
+            raise RuntimeError("Invite/access code has already been redeemed.")
+        if str(account.get("status") or "").strip().lower() != "active":
+            raise PermissionError("Access account is not active.")
+        session = issue_session(account["access_account_id"])
+        self.mark_access_account_login(account["access_account_id"])
+        self._persist_access_admin_operation(None)
+        return account, session
+
+    def bind_access_wallet_operation(self, access_account_id, wallet_address, *, mark_wallet_bound):
+        binding = self.bind_wallet_to_access_account(access_account_id, wallet_address, source="invite_code")
+        mark_wallet_bound(wallet_address)
+        account = self.get_access_account(access_account_id)
+        self._persist_access_admin_operation(None)
+        return binding, account
+
+    def submit_override_request_operation(self, *, audit_context=None, **values):
+        record = self.create_override_request(**values)
+        audit = {"action": "override_request_submitted", **dict(audit_context or {}),
+                 "override_request_id": record.get("override_request_id"),
+                 "access_account_id": record.get("access_account_id"),
+                 "wallet_address": record.get("wallet_address"),
+                 "reason": record.get("detected_blocked_reason")}
+        return self._persist_access_admin_operation(record, audit_entries=(audit,))
+
+    def approve_access_request_operation(self, request_id, *, reviewed_by="operator", operator_notes=None, max_wallets=1, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        account, invite_code = self.approve_access_request(request_id, reviewed_by=reviewed_by, operator_notes=operator_notes, max_wallets=max_wallets)
+        request_record = self.get_access_request(request_id)
+        audit = {"action": "access_request_approved", **dict(audit_context or {}), "request_id": request_id,
+                 "access_account_id": account.get("access_account_id"), "operator_note": operator_notes}
+        self._persist_access_admin_operation(None, audit_entries=(audit,))
+        return account, invite_code, request_record
+
+    def reject_access_request_operation(self, request_id, *, reviewed_by="operator", operator_notes=None, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        record = self.reject_access_request(request_id, reviewed_by=reviewed_by, operator_notes=operator_notes)
+        audit = {"action": "access_request_rejected", **dict(audit_context or {}), "request_id": request_id, "operator_note": operator_notes}
+        return self._persist_access_admin_operation(record, audit_entries=(audit,))
+
+    def create_access_invite_operation(self, *, name, email, handle=None, notes=None, reviewed_by="operator", operator_notes=None, max_wallets=1, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        account, invite_code = self.create_access_invite(name=name, email=email, handle=handle, notes=notes, reviewed_by=reviewed_by, operator_notes=operator_notes, max_wallets=max_wallets)
+        audit = {"action": "direct_invite_created", **dict(audit_context or {}), "access_account_id": account.get("access_account_id"), "operator_note": operator_notes}
+        self._persist_access_admin_operation(None, audit_entries=(audit,))
+        return account, invite_code
+
+    def create_allowlist_entry_operation(self, *, audit_context=None, **values):
+        self.refresh_access_control_state_from_storage()
+        entry = self.create_allowlist_entry(**values)
+        audit = {"action": "allowlist_entry_created", **dict(audit_context or {}), "allowlist_entry_id": entry.get("allowlist_entry_id"),
+                 "access_account_id": entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+                 "wallet_address": entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+                 "reason": entry.get("scope"), "operator_note": entry.get("reason")}
+        return self._persist_access_admin_operation(entry, audit_entries=(audit,))
+
+    def update_allowlist_entry_operation(self, allowlist_entry_id, *, audit_context=None, **values):
+        self.refresh_access_control_state_from_storage()
+        entry = self.update_allowlist_entry(allowlist_entry_id, **values)
+        audit = {"action": "allowlist_entry_updated", **dict(audit_context or {}), "allowlist_entry_id": entry.get("allowlist_entry_id"),
+                 "access_account_id": entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+                 "wallet_address": entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+                 "reason": entry.get("scope"), "operator_note": entry.get("reason")}
+        return self._persist_access_admin_operation(entry, audit_entries=(audit,))
+
+    def revoke_allowlist_entry_operation(self, allowlist_entry_id, *, revoked_reason=None, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        entry = self.revoke_allowlist_entry(allowlist_entry_id, revoked_reason=revoked_reason)
+        audit = {"action": "allowlist_entry_revoked", **dict(audit_context or {}), "allowlist_entry_id": entry.get("allowlist_entry_id"),
+                 "access_account_id": entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+                 "wallet_address": entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+                 "reason": entry.get("scope"), "operator_note": revoked_reason}
+        return self._persist_access_admin_operation(entry, audit_entries=(audit,))
+
+    def reactivate_allowlist_entry_operation(self, allowlist_entry_id, *, reason=None, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        entry = self.reactivate_allowlist_entry(allowlist_entry_id, reason=reason)
+        audit = {"action": "allowlist_entry_reactivated", **dict(audit_context or {}), "allowlist_entry_id": entry.get("allowlist_entry_id"),
+                 "access_account_id": entry.get("subject_value") if entry.get("subject_type") == "access_account" else None,
+                 "wallet_address": entry.get("subject_value") if entry.get("subject_type") == "wallet" else None,
+                 "reason": entry.get("scope"), "operator_note": reason}
+        return self._persist_access_admin_operation(entry, audit_entries=(audit,))
+
+    def approve_override_request_operation(self, override_request_id, *, reviewed_by="operator", admin_note=None, resolved_scope=None, created_by=None, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        record = self.get_override_request(override_request_id)
+        if record is None:
+            raise LookupError(f"Override request not found: {override_request_id}")
+        scope = resolved_scope or record.get("requested_scope")
+        subject_type = "wallet" if record.get("wallet_address") else "access_account"
+        subject_value = record.get("wallet_address") or record.get("access_account_id")
+        if not subject_value:
+            normalized_email, normalized_handle = normalize_email(record.get("email")), normalize_handle(record.get("handle"))
+            if normalized_email:
+                subject_type, subject_value = "email", normalized_email
+            elif normalized_handle:
+                subject_type, subject_value = "handle", normalized_handle
+        if not subject_value:
+            raise ValueError("Override request cannot be approved without a wallet, access account, email, or handle.")
+        entry = self.create_allowlist_entry(scope=scope, subject_type=subject_type, subject_value=subject_value, reason=admin_note or record.get("reason"), created_by=created_by)
+        record = self.update_override_request_status(override_request_id, status="approved", reviewed_by=reviewed_by, admin_note=admin_note, resolved_scope=scope, approved_allowlist_entry_id=entry.get("allowlist_entry_id"))
+        common = {**dict(audit_context or {}), "allowlist_entry_id": entry.get("allowlist_entry_id"), "access_account_id": record.get("access_account_id"), "wallet_address": record.get("wallet_address")}
+        audits = ({"action": "allowlist_entry_created", **common, "reason": scope, "operator_note": admin_note or record.get("reason")},
+                  {"action": "override_request_approved", **common, "override_request_id": override_request_id, "reason": scope, "operator_note": admin_note})
+        self._persist_access_admin_operation(None, audit_entries=audits)
+        return record, entry
+
+    def reject_override_request_operation(self, override_request_id, *, reviewed_by="operator", admin_note=None, resolved_scope=None, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        record = self.update_override_request_status(override_request_id, status="rejected", reviewed_by=reviewed_by, admin_note=admin_note, resolved_scope=resolved_scope)
+        audit = {"action": "override_request_rejected", **dict(audit_context or {}), "override_request_id": override_request_id,
+                 "access_account_id": record.get("access_account_id"), "wallet_address": record.get("wallet_address"),
+                 "reason": resolved_scope or record.get("requested_scope"), "operator_note": admin_note}
+        return self._persist_access_admin_operation(record, audit_entries=(audit,))
+
+    def update_feedback_operation(self, feedback_id, *, status=None, priority=None, reviewed_by="operator", admin_note=None, audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        record = self.get_feedback(feedback_id)
+        if record is None:
+            raise LookupError(f"Feedback not found: {feedback_id}")
+        if status is None and priority is None and not admin_note:
+            raise ValueError("At least one feedback update field is required.")
+        previous_status, previous_priority = str(record.get("status") or "").strip().lower(), str(record.get("priority") or "").strip().lower()
+        if status is not None or priority is not None:
+            record = self.update_feedback(feedback_id, status=status, priority=priority, reviewed_by=reviewed_by)
+        note = self.add_feedback_admin_note(feedback_id, note=admin_note, created_by=reviewed_by) if admin_note else None
+        audits = []
+        if status is not None and str(record.get("status") or "").strip().lower() != previous_status:
+            audits.append({"action": "feedback_status_changed", **dict(audit_context or {}), "feedback_id": feedback_id, "reason": record.get("status")})
+        if priority is not None and str(record.get("priority") or "").strip().lower() != previous_priority:
+            audits.append({"action": "feedback_priority_changed", **dict(audit_context or {}), "feedback_id": feedback_id, "reason": record.get("priority")})
+        if note:
+            audits.append({"action": "feedback_note_added", **dict(audit_context or {}), "feedback_id": feedback_id, "operator_note": note.get("note")})
+        self._persist_access_admin_operation(None, audit_entries=audits)
+        return record, note
+
+    def update_feedback_status_operation(self, feedback_id, *, status, reviewed_by="operator", audit_context=None):
+        return self.update_feedback_operation(feedback_id, status=status, reviewed_by=reviewed_by, audit_context=audit_context)
+
+    def add_feedback_note_operation(self, feedback_id, *, note, created_by="operator", audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        record = self.get_feedback(feedback_id)
+        if record is None:
+            raise LookupError(f"Feedback not found: {feedback_id}")
+        note_record = self.add_feedback_admin_note(feedback_id, note=note, created_by=created_by)
+        audit = {"action": "feedback_note_added", **dict(audit_context or {}), "feedback_id": feedback_id, "operator_note": note_record.get("note")}
+        self._persist_access_admin_operation(None, audit_entries=(audit,))
+        return record, note_record
+
+    def update_access_account_status_operation(self, access_account_id, status, *, updated_by="operator", audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        account = self.update_access_account_status(access_account_id, status, updated_by=updated_by)
+        action = {"suspended": "access_account_suspended", "active": "access_account_reactivated", "revoked": "access_account_revoked"}.get(status, "access_account_updated")
+        audit = {"action": action, **dict(audit_context or {}), "access_account_id": access_account_id}
+        return self._persist_access_admin_operation(account, audit_entries=(audit,))
+
+    def revoke_wallet_binding_operation(self, wallet_address, *, revoked_by="operator", audit_context=None):
+        self.refresh_access_control_state_from_storage()
+        binding = self.revoke_wallet_binding(wallet_address, revoked_by=revoked_by)
+        audit = {"action": "wallet_binding_revoked", **dict(audit_context or {}), "wallet_address": wallet_address, "access_account_id": binding.get("access_account_id")}
+        return self._persist_access_admin_operation(binding, audit_entries=(audit,))
+
+    # Task 11B content/native application operations.  Each delegates its state
+    # transition through the established Task 7/8/9 facade methods and performs
+    # exactly one whole-document save after a successful mutation.
+    def upload_binary_content_operation(self, **values):
+        result = self.upload_binary_content(**values)
+        self.save_blockchain()
+        return result
+
+    def upload_text_content_operation(self, **values):
+        result = self.upload_text_content(**values)
+        self.save_blockchain()
+        return result
+
+    def admit_native_transaction_operation(self, tx_id):
+        result = self.admit_transaction_to_mempool(tx_id)
+        self.save_blockchain()
+        return result
+
+    def revalidate_mempool_operation(self):
+        return self.revalidate_mempool_transactions(save=True)
+
+    def block_submission_minting_operation(self, submission_id, *, reason, notes=None, blocked_by=None):
+        result = self.block_minting_for_submission(submission_id, reason=reason, notes=notes, blocked_by=blocked_by)
+        self.save_blockchain()
+        return result
+
+    def unblock_submission_minting_operation(self, submission_id):
+        result = self.unblock_minting_for_submission(submission_id)
+        self.save_blockchain()
+        return result
+
+    def mint_submission_operation(self, submission_id, *, miner=None):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+        if submission.status == HARD_REJECTED:
+            raise ValueError("Hard rejected submissions cannot be minted.")
+        minted = self.mint_submission(submission_id, miner=miner, validate_meme=False)
+        self.save_blockchain()
+        latest_block = self.get_latest_block()
+        certificate = self.get_originality_certificate(latest_block.certificate_id) if latest_block.certificate_id else None
+        return minted, self.get_submission(submission_id) or submission, latest_block, certificate
+
+    def get_mint_queue_operation(self, *, include_blocked=True, mintable_only=False):
+        changed = self.link_certificates_to_submissions()
+        for submission in self.storage.list_submissions(self.submissions, status=APPROVED):
+            if not self.storage.mint_queue_contains(submission.submission_id, self.mint_queue):
+                try:
+                    self.add_to_mint_queue(submission.submission_id)
+                    changed = True
+                except ValueError as exc:
+                    if "certificate" not in str(exc).lower():
+                        raise
+        if changed:
+            self.save_blockchain()
+        return self.get_mint_queue(include_blocked=include_blocked, mintable_only=mintable_only)
+
+    def evaluate_submission_operation(self, submission_id, *, automated_originality_passed=None):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+        if submission.status == HARD_REJECTED:
+            raise ValueError("Hard rejected submissions cannot be evaluated.")
+        if submission.status != PENDING:
+            raise ValueError("Only pending submissions can be evaluated.")
+        evaluation = self.evaluate_submission(submission_id, automated_originality_passed=automated_originality_passed)
+        queued_submission = None
+        certificate = self.get_originality_certificate_for_submission(submission_id)
+        if submission.status == APPROVED:
+            if not certificate:
+                raise ValueError("Approved submission is missing an originality certificate and cannot enter the mint queue.")
+            queued_submission = self.add_to_mint_queue(submission_id)
+            certificate = self.get_originality_certificate_for_submission(submission_id)
+        self.save_blockchain()
+        if submission.status in {APPROVED, QUEUED}:
+            certificate = self.get_originality_certificate_for_submission(submission_id)
+            if not certificate:
+                raise ValueError("Originality certificate creation failed: certificate could not be retrieved after approval.")
+            submission.certificate_id = certificate.certificate_id
+        return evaluation, queued_submission or submission, certificate
+
+    def submit_signed_content_operation(self, *, wallet_address, message, signature, content_hash, content_id, text_content, auth_manager):
+        verification = auth_manager.verify_submission_signature(wallet_address=wallet_address, message=message, signature=signature, content_hash=content_hash, content_id=content_id)
+        submission = self.submit_existing_content(content_hash=content_hash, content_id=content_id, submitter=wallet_address, text_content=text_content or "")
+        submission.creator_wallet_address = wallet_address
+        submission.signature_scheme = str(verification["signature_scheme"])
+        submission.submission_signature = str(verification["submission_signature"])
+        submission.submission_message = str(verification["submission_message"])
+        submission.signed_message_hash = str(verification["signed_message_hash"])
+        submission.submission_nonce = str(verification["nonce"])
+        submission.signed_at = str(verification["signed_at"])
+        submission.identity_source = str(verification["identity_source"])
+        self.save_blockchain()
+        return submission
+
+    def submit_content_operation(self, *, content_hash=None, content_id=None, image_path=None, text_content="", submitter=""):
+        if content_hash is not None or content_id is not None:
+            submission = self.submit_existing_content(content_hash=content_hash, content_id=content_id, submitter=submitter, text_content=text_content or "")
+        else:
+            submission = self.submit_content(image_path=image_path or "", text_content=text_content, submitter=submitter)
+        self.save_blockchain()
+        return submission
+
+    def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise ValueError(f"Submission not found: {submission_id}")
+        verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type)
+        vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
+        vote.update({
+            "voter_wallet_address": voter, "content_hash": submission.content_hash,
+            "vote_version": verification.get("vote_version"), "protocol_version": verification.get("protocol_version"),
+            "network_id": verification.get("network_id"), "signature_scheme": str(verification["signature_scheme"]),
+            "vote_signature": str(verification["vote_signature"]), "vote_message": str(verification["vote_message"]),
+            "signed_message_hash": str(verification["signed_message_hash"]), "vote_nonce": str(verification["nonce"]),
+            "vote_issued_at": str(verification["vote_issued_at"]), "vote_expires_at": str(verification["vote_expires_at"]),
+            "signed_at": str(verification["signed_at"]), "identity_source": str(verification["identity_source"]),
+        })
+        self.save_blockchain()
+        return vote
+
+    def cast_development_submission_vote_operation(self, *, submission_id, voter, vote_type):
+        vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
+        self.save_blockchain()
+        return vote
+
+    def legacy_add_transaction_operation(self, sender, recipient, amount, private_key):
+        if sender not in self.wallets:
+            raise ValueError("Invalid sender public key.")
+        if recipient not in self.wallets:
+            raise ValueError("Invalid recipient public key.")
+        sender_wallet = self.get_wallet(sender)
+        if not sender_wallet:
+            raise ValueError("Sender wallet not found.")
+        if not sender_wallet.validate_private_key(private_key, sender):
+            raise ValueError("Invalid private key for sender's wallet.")
+        if not isinstance(amount, (int, float)) or amount <= 0:
+            raise ValueError("Invalid amount. Must be greater than 0.")
+        transaction = Transaction(sender, recipient, amount)
+        transaction.sign_transaction(private_key)
+        self.add_transaction(transaction)
+        return transaction
+
+    def submit_signed_transfer_operation(self, *, payload, wallet_address, auth_manager, build_preview, network_name):
+        starting_balance = self.get_native_balance_snapshot(wallet_address)["native_balance"]
+        preview = build_preview(payload)
+        existing = self.get_native_transaction(preview.tx_id)
+        if existing:
+            intent = self.get_transfer_intent_by_tx_id(existing["tx_id"])
+            if intent is None:
+                raise RuntimeError("Transaction already exists but local transfer record is missing.")
+            return intent, None, True
+        verification = auth_manager.verify_transfer_signature(
+            wallet_address=wallet_address, from_address=payload.from_address, to_address=payload.to_address,
+            amount=payload.amount, fee=payload.fee, memo=payload.memo, message=payload.message, signature=payload.signature,
+        )
+        if str(verification["fee"]) != "0":
+            raise ValueError("Nonzero fees are not enabled yet.")
+        self.validate_transaction_balance_sufficiency(preview.to_dict())
+        intent = self.create_signed_transfer_intent(
+            from_address=str(verification["from_address"]), to_address=str(verification["to_address"]),
+            amount=str(verification["amount"]), fee=str(verification["fee"]), memo=str(verification["memo"] or ""),
+            network=network_name, transaction_version=verification.get("transaction_version"),
+            protocol_version=verification.get("protocol_version"), network_id=verification.get("network_id"),
+            signature_scheme=str(verification["signature_scheme"]), signature=str(verification["transfer_signature"]),
+            signed_message_hash=str(verification["signed_message_hash"]), signed_message=str(verification["transfer_message"]),
+            transfer_nonce=str(verification["nonce"]), transaction_timestamp=str(verification["timestamp"]),
+            signed_at=str(verification["signed_at"]), status="signed_pending",
+        )
+        self.save_blockchain()
+        admission = None
+        if payload.admit_to_mempool:
+            admission = self.admit_transaction_to_mempool(intent["tx_id"])
+            self.save_blockchain()
+            intent = self.get_transfer_intent_by_tx_id(intent["tx_id"]) or intent
+        if self.get_native_balance_snapshot(wallet_address)["native_balance"] != starting_balance:
+            raise RuntimeError("Transfer intent submission must not mutate balances.")
+        return intent, admission, False
+
+    def verify_content_download_operation(self, content_object, *, verifier, data_dir):
+        verification = verifier(content_object, data_dir=data_dir)
+        if verification["verified"]:
+            content_object.hash_scheme = verification["hash_scheme"]
+            content_object.verified_at = verification["verified_at"]
+            content_object.verification_error = None
+            content_object.storage_status = "verified"
+            if verification["file_size_bytes"] is not None:
+                content_object.file_size_bytes = verification["file_size_bytes"]
+        return verification
+
+    # Task 11C guarded development/application operations. HTTP adapters pass
+    # already-parsed values; state changes, temporary-file handling, and save
+    # coordination remain here with the established Task 7-9 facade paths.
+    def reset_to_genesis_operation(self):
+        self.storage.delete_blockchain_document()
+        return Blockchain(
+            project_owner_wallet=Wallet(),
+            Contributor_one=Wallet(),
+            Contributor_two=Wallet(),
+        )
+
+    def repair_submission_certificate_operation(self, submission_id, *, approved_at=None):
+        submission = self.get_submission(submission_id)
+        if not submission:
+            raise LookupError(f"Submission not found: {submission_id}")
+        existing_certificate = self.get_originality_certificate_for_submission(submission_id)
+        if existing_certificate:
+            submission.certificate_id = existing_certificate.certificate_id
+            self.save_blockchain()
+            return submission, existing_certificate, True
+        if submission.status == QUEUED:
+            submission.status = APPROVED
+            if submission_id in self.mint_queue:
+                self.mint_queue = [queued_id for queued_id in self.mint_queue if queued_id != submission_id]
+        if submission.status != APPROVED:
+            raise ValueError("Only approved submissions can be repaired with an originality certificate.")
+        vote_summary = self.get_submission_votes(submission_id)
+        voting_threshold = self.get_voting_threshold()
+        voting_window_expired = time.time() >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
+        if not vote_summary["votes"]:
+            raise ValueError("Cannot repair certificate: finalized vote data is missing.")
+        if not (len(vote_summary["votes"]) >= voting_threshold["minimum_votes"] or voting_window_expired):
+            raise ValueError("Cannot repair certificate: vote data has not reached finality.")
+        if vote_summary["approval_percentage"] < ORIGINALITY_APPROVAL_THRESHOLD:
+            raise ValueError("Cannot repair certificate: approval percentage is below the required threshold.")
+        certificate = self.create_originality_certificate(submission_id, approved_at=approved_at or time.time())
+        persisted_certificate = self.get_originality_certificate_for_submission(submission_id)
+        if not persisted_certificate:
+            raise ValueError("certificate could not be retrieved after repair")
+        submission.certificate_id = persisted_certificate.certificate_id
+        self.save_blockchain()
+        return submission, certificate, False
+
+    def legacy_add_block_upload_operation(self, *, file_bytes, original_filename, miner, private_key):
+        if not is_valid_public_key(miner, self.wallets):
+            raise ValueError("Invalid miner public key.")
+        wallet = self.wallets.get(miner)
+        if not wallet:
+            raise ValueError("Wallet not found.")
+        if not wallet.validate_private_key(private_key, miner):
+            raise ValueError("Private key does not match the wallet ID.")
+        image_path = os.path.join("temp", os.path.basename(original_filename))
+        os.makedirs("temp", exist_ok=True)
+        try:
+            with open(image_path, "wb") as buffer:
+                buffer.write(file_bytes)
+            if not os.path.isfile(image_path):
+                raise ValueError("Failed to save the uploaded image.")
+            # Resolve at operation time to preserve the established development
+            # seam used by the legacy HTTP endpoint and its isolated tests.
+            from utils import extract_text as extract_uploaded_text
+            text_content = extract_uploaded_text(image_path)
+            if not text_content:
+                raise ValueError("No text found in the image.")
+            block_added = self.add_block(
+                image_path=image_path,
+                text_content=text_content,
+                miner=miner,
+                validate_meme=True,
+            )
+            return block_added, self.get_latest_block() if block_added else None
+        finally:
+            if os.path.isfile(image_path):
+                os.remove(image_path)
+
+    def generate_development_wallet_operation(self):
+        wallet = Wallet()
+        self.wallets[wallet.public_key] = wallet
+        self.save_blockchain()
+        return wallet
+
+    def cleanup_bad_mint_queue_items_operation(self, *, block_unmintable=False):
+        report = self.cleanup_bad_mint_queue_items(block_unmintable=block_unmintable)
+        if block_unmintable:
+            self.save_blockchain()
+        return report
+
+    def admit_transaction_for_broadcast_operation(self, tx_id):
+        transaction = self.get_native_transaction(tx_id)
+        if not transaction:
+            raise LookupError(f"Transaction not found: {tx_id}")
+        status = str(transaction.get("status") or "").strip().lower()
+        if status not in {"signed_pending", "validated_pending", "mempool"}:
+            raise ValueError("Only signed pending or mempool-eligible transactions can be broadcast.")
+        if status != "mempool":
+            self.admit_transaction_to_mempool(tx_id)
+            self.save_blockchain()
+        return self.get_native_transaction(tx_id) or transaction
 
     def recompute_reward_pool_balance(self, *, chain=None):
         self.reward_pool = self._reward_service.recompute_reward_pool_balance(self._reward_state(), self._reward_collaborators(), chain=chain)

@@ -11,6 +11,29 @@ Set the backend with `STORAGE_BACKEND`.
 
 Any other value fails fast with a clear startup error.
 
+## Atomic certified-block commitment (Milestone 3.3)
+
+`Blockchain.commit_certified_submission()` is the sole authoritative path for
+committing a ready certified-content block. It receives an expected canonical
+tip (height and hash), then the storage backend acquires its persistence
+boundary, rereads that durable tip, and rejects a changed tip with a retryable
+`StaleCanonicalHeadError`.
+
+Within that boundary the coordinator reloads the durable facade state,
+revalidates the queued submission, certificate, and Model A content bytes,
+constructs and validates the block, selects native transfers from that
+transaction-bound state, settles transfers/rewards, marks the submission
+minted, removes it from the queue, and advances the canonical tip by appending
+the block. Any exception rolls back the whole document/SQLite transaction.
+
+- JSON uses an OS-held lock file around durable reread, expected-head compare,
+  and atomic document replacement.
+- SQLite uses `BEGIN IMMEDIATE` before rereading the tip and writes every state
+  section through that same connection.
+
+This does not introduce request replay/idempotency records or recovery of an
+unknown client result; those are explicitly deferred to Task 3.4.
+
 ## Data Directory Isolation
 
 All node state lives under `DATA_DIR`.

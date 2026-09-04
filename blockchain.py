@@ -86,7 +86,7 @@ from protocol_v1_native_transfer import (
     looks_like_protocol_v1_native_transfer_message,
     resolve_protocol_v1_network_id,
 )
-from storage import create_storage_backend
+from storage import StaleCanonicalHeadError, canonical_head_identity, create_storage_backend
 from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
 from protocol_v1_genesis import (
     GenesisValidationError,
@@ -357,6 +357,66 @@ class Blockchain:
         """Save blockchain state to disk, including wallets and transactions."""
         self.storage.save_blockchain_state(self._serialize_blockchain_state())
         print("Debug: Blockchain and wallets saved successfully.")
+
+    def _current_canonical_head(self):
+        if not self.chain:
+            return {"height": None, "hash": None}
+        return {"height": self.chain[-1].index, "hash": self.chain[-1].hash}
+
+    def _restore_blockchain_state_document(self, loaded_data):
+        """Restore a durable state without running repair or persistence hooks.
+
+        Atomic commitment uses this while holding the storage transaction.  It
+        deliberately avoids load-time reconciliation because that would add
+        unrequested mutations to the commit boundary.
+        """
+        existing_wallets = dict(self.wallets)
+        existing_submissions = {item.submission_id: item for item in self.submissions}
+        existing_certificates = {item.certificate_id: item for item in self.originality_certificates}
+        self.chain = [Block.from_dict(block_data) for block_data in loaded_data.get("chain", [])]
+        wallets = {}
+        for key, data in loaded_data.get("wallets", {}).items():
+            restored = Wallet.from_dict(data)
+            wallet = existing_wallets.get(key, restored)
+            if wallet is not restored:
+                wallet.__dict__.update(restored.__dict__)
+            wallets[key] = wallet
+        self.wallets = wallets
+        submissions = []
+        for item in loaded_data.get("submissions", []):
+            restored = Submission.from_dict(item)
+            submission = existing_submissions.get(restored.submission_id, restored)
+            if submission is not restored:
+                submission.__dict__.update(restored.__dict__)
+            submissions.append(submission)
+        self.submissions = submissions
+        self.content_objects = [ContentObject.from_dict(item) for item in loaded_data.get("content_objects", [])]
+        self.mint_queue = list(loaded_data.get("mint_queue", []) or [])
+        self.votes = list(loaded_data.get("votes", []) or [])
+        native_state = self._restore_native_transaction_state(loaded_data.get("native_transactions", []), loaded_data.get("transfer_intents", []))
+        self.transfer_intents = native_state["transfer_intents"]
+        self.native_transactions = native_state["native_transactions"]
+        certificates = []
+        for item in loaded_data.get("originality_certificates", []):
+            restored = OriginalityCertificate.from_dict(item)
+            certificate = existing_certificates.get(restored.certificate_id, restored)
+            if certificate is not restored:
+                certificate.__dict__.update(restored.__dict__)
+            certificates.append(certificate)
+        self.originality_certificates = certificates
+        self.access_requests = list(loaded_data.get("access_requests", []) or [])
+        self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
+        self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
+        self.allowlist_entries = list(loaded_data.get("allowlist_entries", []) or [])
+        self.override_requests = list(loaded_data.get("override_requests", []) or [])
+        self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
+        self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
+        self.recompute_reward_pool_balance(chain=self.chain)
+
+    def _commit_fault(self, stage):
+        hook = getattr(self, "_atomic_commit_fault_injector", None)
+        if hook is not None:
+            hook(stage)
     def _access_admin_state(self):
         return AccessAdminState(
             self.access_requests,
@@ -2221,37 +2281,163 @@ class Blockchain:
     def get_voting_threshold(self, lookback_days=ACTIVE_USER_LOOKBACK_DAYS, now=None):
         return self._submission_originality_service.get_voting_threshold(self.get_active_users, lookback_days, now)
     def add_to_mint_queue(self, submission_id):
-        return self._mint_queue_service.add(self._mint_queue_state(), self.storage, submission_id, self.require_valid_certificate_for_submission)
+        submission = self._mint_queue_service.add(self._mint_queue_state(), self.storage, submission_id, self.require_valid_certificate_for_submission)
+        # Queue admission must be durable before an atomic commit can reread
+        # transaction-bound state.  The block transition itself remains a
+        # separate all-or-nothing operation below.
+        self.save_blockchain()
+        return submission
     def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
         return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text)
     def _evaluate_mint_queue_item(self, submission_id):
         return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text)
     def get_mint_queue(self, include_blocked=True, mintable_only=False):
         return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text)
+    def _apply_certified_candidate_in_commit(self, candidate, submission):
+        """Apply all durable effects of one already-validated certified block.
+
+        This helper intentionally performs no save.  Its caller owns the sole
+        storage transaction, so an exception at any point leaves no durable
+        partial block, settlement, reward, or submission transition.
+        """
+        new_block = candidate["block"]
+        self._commit_fault("before_block_persistence")
+        self.chain.append(new_block)
+        self._commit_fault("after_block_persistence")
+
+        self._commit_fault("during_transaction_settlement")
+        self.settle_block_native_transactions(new_block)
+        self.pending_transactions = [tx for tx in self.pending_transactions if tx not in candidate.get("valid_transactions", [])]
+        for skipped in candidate.get("native_transaction_plan", {}).get("skipped", []):
+            tx_id = skipped.get("tx_id")
+            if tx_id and self.get_native_transaction(tx_id) is None:
+                overlay = getattr(self, "_atomic_commit_native_overlay", {}).get(str(tx_id).lower())
+                if overlay is not None:
+                    self.native_transactions.append(dict(overlay))
+            if tx_id and self.get_native_transaction(tx_id) is not None and skipped.get("reason") != "already_settled":
+                self.update_native_transaction_status(tx_id, status="rejected", rejection_reason=skipped.get("reason") or "validation_failed")
+        self._commit_fault("after_transaction_settlement")
+
+        # Reward records are immutable block metadata.  The miner credit and
+        # derived reward-pool balance are their current durable settlement
+        # representation, and therefore belong in this same boundary.
+        self._commit_fault("during_reward_settlement")
+        total_miner_tips = float(candidate.get("total_miner_tips") or 0)
+        miner = new_block.miner
+        if miner in self.wallets:
+            self.wallets[miner].stored_balance = self.get_balance(miner) + total_miner_tips
+        else:
+            wallet = Wallet(); wallet.public_key = miner; wallet.private_key = None; wallet.stored_balance = total_miner_tips
+            self.wallets[miner] = wallet
+        self.image_hashes.add(candidate["image_hash"])
+        self.texts.append(candidate["normalized_text"])
+        self.recompute_reward_pool_balance(chain=self.chain)
+        self._commit_fault("after_rewards_before_submission_minted")
+
+        if submission.status != QUEUED:
+            raise ValueError("Certified submission is no longer queued for minting.")
+        submission.transition_to(MINTED)
+        self.mint_queue[:] = [item for item in self.mint_queue if item != submission.submission_id]
+        self._commit_fault("after_submission_mutation_before_canonical_head_update")
+        # The immutable chain tail is the canonical-head state in the current
+        # storage model; appending this block advances it only on outer commit.
+        self._commit_fault("before_transaction_commit")
+
+    def commit_certified_submission(self, submission_id, *, expected_head=None, miner=None, max_block_size_kb=500, validate_meme=True):
+        """Authoritatively commit one ready certified submission.
+
+        Candidate construction, native selection, validation, settlement, and
+        canonical-head compare-and-swap all run after the storage backend has
+        acquired its transaction/lock.  A stale caller receives
+        ``StaleCanonicalHeadError`` and must explicitly prepare again.
+        """
+        expected_head = dict(expected_head or self._current_canonical_head())
+        memory_snapshot = json.loads(json.dumps(self._serialize_blockchain_state()))
+        # Native mempool records and the configurable reward-pool test value
+        # are facade-owned inputs.  Preserve their current values while the
+        # canonical collections are reread under the storage boundary; native
+        # records are still fully revalidated against the locked chain below.
+        local_native_transactions = json.loads(json.dumps(self.native_transactions))
+        local_reward_pool = self.reward_pool
+
+        def mutate(document):
+            # The backend has already locked and reread this document.  Restore
+            # it so every service observes transaction-bound balances, nonces,
+            # mempool records, rewards, and canonical chain state.
+            if canonical_head_identity(document) != expected_head:
+                raise StaleCanonicalHeadError("The expected canonical head is stale.")
+            self._restore_blockchain_state_document(document)
+            local_native_by_id = {str(item.get("tx_id") or "").lower(): item for item in local_native_transactions}
+            self._atomic_commit_native_overlay = local_native_by_id
+            restored_native_ids = {str(item.get("tx_id") or "").lower() for item in self.native_transactions}
+            self.native_transactions[:] = [
+                local_native_by_id.get(str(item.get("tx_id") or "").lower(), item)
+                for item in self.native_transactions
+            ]
+            self.native_transactions.extend(
+                dict(item) for tx_id, item in local_native_by_id.items() if tx_id not in restored_native_ids
+            )
+            self.reward_pool = local_reward_pool
+            submission = self.get_submission(submission_id)
+            if submission is None:
+                raise ValueError("Submission not found for atomic certified commit.")
+            if submission.status != QUEUED:
+                raise ValueError("Only a queued certified submission can be committed.")
+            certificate = self.require_valid_certificate_for_submission(submission)
+            queue_record = self._evaluate_mint_queue_item(submission_id)
+            if not queue_record.get("mintable"):
+                # Preserve the established legacy-content compatibility path;
+                # build_candidate still verifies Model A bytes when available.
+                certificate = self._resolve_mintable_submission_certificate(submission)
+                if certificate is None:
+                    raise ValueError(queue_record.get("mint_block_reason") or "Submission is not eligible for minting.")
+            reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
+            candidate = self.build_block_candidate(
+                image_path=submission.image_path,
+                text_content=submission.text_content,
+                miner=miner or submission.submitter,
+                max_block_size_kb=max_block_size_kb,
+                validate_meme=validate_meme,
+                certificate=certificate,
+                reward_recipient=reward_recipient,
+            )
+            if candidate is None:
+                raise ValueError("Certified block candidate is invalid or exceeds the block limit.")
+            self.validate_candidate_block_for_local_acceptance(candidate["block"], current_chain=self.chain)
+            self._apply_certified_candidate_in_commit(candidate, submission)
+            return self._serialize_blockchain_state()
+
+        try:
+            self.storage.atomic_commit_blockchain_document(expected_head, mutate)
+        except Exception:
+            self._restore_blockchain_state_document(memory_snapshot)
+            raise
+        finally:
+            self.__dict__.pop("_atomic_commit_native_overlay", None)
+        return True
+
     def _mint_submission_record(self, submission, certificate, miner=None, max_block_size_kb=500, validate_meme=True):
-        reward_recipient = self.resolve_meme_reward_recipient(submission, certificate)
-        block_added = self.add_block(
-            image_path=submission.image_path,
-            text_content=submission.text_content,
+        # Retain the historical seam used by queue-only callers/tests that
+        # replace ``add_block`` with a no-op.  Real certified commits always
+        # take the atomic coordinator below.
+        if getattr(self.add_block, "__func__", None) is not Blockchain.add_block:
+            block_added = self.add_block(
+                image_path=submission.image_path, text_content=submission.text_content,
+                miner=miner or submission.submitter, max_block_size_kb=max_block_size_kb,
+                validate_meme=validate_meme, certificate=certificate,
+                reward_recipient=self.resolve_meme_reward_recipient(submission, certificate),
+            )
+            if block_added:
+                if submission.submission_id in self.mint_queue:
+                    self.mint_queue[:] = [item for item in self.mint_queue if item != submission.submission_id]
+                submission.transition_to(MINTED)
+            return block_added
+        return self.commit_certified_submission(
+            submission.submission_id,
             miner=miner or submission.submitter,
             max_block_size_kb=max_block_size_kb,
             validate_meme=validate_meme,
-            certificate=certificate,
-            reward_recipient=reward_recipient,
         )
-        if block_added:
-            self.reconcile_submission_canonical_state()
-            if self.get_protocol_v1_block_for_submission(submission.submission_id) is None:
-                if submission.submission_id in self.mint_queue:
-                    self.mint_queue = [
-                        queued_submission_id
-                        for queued_submission_id in self.mint_queue
-                        if queued_submission_id != submission.submission_id
-                    ]
-                if submission.status != MINTED:
-                    submission.status = MINTED
-            self.save_blockchain()
-        return block_added
 
     def mint_next_queued_submission(self, miner=None, max_block_size_kb=500, validate_meme=True):
         if not self.mint_queue:
@@ -2345,7 +2531,9 @@ class Blockchain:
         )
 
     def block_minting_for_submission(self, submission_id, reason, notes=None, blocked_by=None):
-        return self._mint_queue_service.block(self._mint_queue_state(), self.storage, submission_id, reason, notes, blocked_by)
+        submission = self._mint_queue_service.block(self._mint_queue_state(), self.storage, submission_id, reason, notes, blocked_by)
+        self.save_blockchain()
+        return submission
     def _resolve_mintable_submission_certificate(self, submission):
         if submission is None:
             return None

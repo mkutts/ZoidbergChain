@@ -7,6 +7,7 @@ import sqlite3
 import shutil
 import tempfile
 import time
+from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -99,6 +100,30 @@ def _json_loads_or_default(value, default, *, strict: bool = False, label: str =
 
 class StorageCorruptionError(RuntimeError):
     pass
+
+
+class StaleCanonicalHeadError(RuntimeError):
+    """A prepared commit no longer extends the durable canonical head."""
+
+
+def canonical_head_identity(document: dict[str, Any] | None) -> dict[str, Any]:
+    """Return the durable tip identity used by the block-commit CAS guard."""
+    chain = (document or {}).get("chain") or []
+    if not chain:
+        return {"height": None, "hash": None}
+    head = chain[-1]
+    return {"height": head.get("index"), "hash": head.get("hash")}
+
+
+def _verify_expected_canonical_head(document: dict[str, Any], expected_head: dict[str, Any]) -> None:
+    actual = canonical_head_identity(document)
+    # The hash is authoritative; retaining height makes diagnostics and
+    # backwards-compatible callers unambiguous.
+    if expected_head.get("hash") != actual.get("hash") or expected_head.get("height") != actual.get("height"):
+        raise StaleCanonicalHeadError(
+            "The canonical head changed before this block could be committed "
+            f"(expected {expected_head}, found {actual})."
+        )
 
 
 @dataclass
@@ -302,6 +327,15 @@ class StorageBackend(ABC):
 
     @abstractmethod
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
+        raise NotImplementedError
+
+    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate):
+        """Atomically compare the durable tip and replace the complete state.
+
+        ``mutate`` receives a fresh, durable document and returns the complete
+        replacement document.  Backends override this so the read, comparison,
+        mutation, and write are one recoverable persistence boundary.
+        """
         raise NotImplementedError
 
     def delete_blockchain_document(self) -> None:
@@ -816,6 +850,60 @@ class JSONStorageBackend(StorageBackend):
         )
         self._blockchain_recovered_from_backup = False
 
+    @contextmanager
+    def _commit_lock(self):
+        """Use an OS-held advisory lock, not a process-local mutex.
+
+        The JSON backend writes by atomic replacement.  The separate lock file
+        stays open while the durable document is reread and replaced, which
+        prevents two node processes from both passing the expected-head check.
+        """
+        try:
+            import msvcrt
+        except ImportError:  # pragma: no cover - exercised on POSIX nodes
+            msvcrt = None
+            import fcntl
+
+        lock_path = self.blockchain_file + ".commit.lock"
+        os.makedirs(os.path.dirname(lock_path) or ".", exist_ok=True)
+        try:
+            descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            descriptor = None
+        if descriptor is not None:
+            try:
+                os.write(descriptor, b"0")
+            finally:
+                os.close(descriptor)
+        # A concurrent creator can expose the path a few instructions before
+        # its one-byte lock region is written.
+        for _ in range(100):
+            if os.path.getsize(lock_path) >= 1:
+                break
+            time.sleep(0.001)
+        with open(lock_path, "r+b") as handle:
+            handle.seek(0)
+            if msvcrt is not None:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            else:  # pragma: no cover - exercised on POSIX nodes
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                if msvcrt is not None:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                else:  # pragma: no cover - exercised on POSIX nodes
+                    fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate):
+        with self._commit_lock():
+            document = self._load_or_new_blockchain_document()
+            _verify_expected_canonical_head(document, expected_head)
+            replacement = mutate(deepcopy(document))
+            self.save_blockchain_document(replacement)
+            return replacement
+
     def load_peers(self):
         peers, recovered_from_backup = _load_json_document_with_backup(
             self.peers_file,
@@ -937,21 +1025,41 @@ class SQLiteStorageBackend(StorageBackend):
                 )
         return defaults
 
+    def _load_sections_from_connection(self, connection, *, strict: bool = True) -> dict[str, Any]:
+        defaults = {section: deepcopy(_default_section_value(section)) for section in _STORAGE_SECTIONS}
+        rows = connection.execute("SELECT section_name, json_data FROM storage_sections").fetchall()
+        seen_sections = set()
+        for section_name, json_data_value in rows:
+            if section_name in defaults:
+                seen_sections.add(section_name)
+                defaults[section_name] = _json_loads_or_default(
+                    json_data_value, _default_section_value(section_name), strict=strict,
+                    label=f"SQLite section {section_name}",
+                )
+        missing_sections = [section for section in _STORAGE_SECTIONS if section not in seen_sections and section not in _OPTIONAL_SQLITE_SECTIONS]
+        if missing_sections and strict:
+            raise StorageCorruptionError("SQLite storage is missing required sections: " + ", ".join(missing_sections))
+        return defaults
+
+    @staticmethod
+    def _save_sections_to_connection(connection, sections: dict[str, Any]) -> None:
+        for section_name in _STORAGE_SECTIONS:
+            payload = sections.get(section_name, _default_section_value(section_name))
+            connection.execute(
+                """
+                INSERT INTO storage_sections (section_name, json_data, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(section_name) DO UPDATE SET
+                    json_data = excluded.json_data,
+                    updated_at = excluded.updated_at
+                """,
+                (section_name, json.dumps(payload), _utc_now_iso()),
+            )
+
     def _save_sections(self, sections: dict[str, Any]) -> None:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            for section_name in _STORAGE_SECTIONS:
-                payload = sections.get(section_name, _default_section_value(section_name))
-                connection.execute(
-                    """
-                    INSERT INTO storage_sections (section_name, json_data, updated_at)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(section_name) DO UPDATE SET
-                        json_data = excluded.json_data,
-                        updated_at = excluded.updated_at
-                    """,
-                    (section_name, json.dumps(payload), _utc_now_iso()),
-                )
+            self._save_sections_to_connection(connection, sections)
 
     def load_blockchain_document(self) -> dict[str, Any] | None:
         if not os.path.exists(self.sqlite_db_path):
@@ -986,6 +1094,18 @@ class SQLiteStorageBackend(StorageBackend):
             for section_name in _STORAGE_SECTIONS
         }
         self._save_sections(merged_document)
+
+    def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate):
+        # BEGIN IMMEDIATE obtains SQLite's reserved write lock before reading
+        # the head, so separate processes cannot both win the compare-and-swap.
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            sections = self._load_sections_from_connection(connection)
+            document = {section: sections[section] for section in _STORAGE_SECTIONS}
+            _verify_expected_canonical_head(document, expected_head)
+            replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
+            self._save_sections_to_connection(connection, replacement)
+            return replacement
 
     def load_peers(self):
         if not os.path.exists(self.sqlite_db_path):

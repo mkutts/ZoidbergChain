@@ -66,7 +66,7 @@ Not implemented yet:
 - replacement policy
 - mempool consensus
 - transfer-only blocks
-- autonomous retry/backoff policy and reconnect/future-peer convergence (Task 4.6)
+- native transaction reorg recovery (Task 4.7)
 
 ## Durable Native Transaction Delivery
 
@@ -82,6 +82,37 @@ the complete body with peer authentication and replay controls. Receiver-side
 message identity is stored durably alongside the independently admitted native
 transaction. JSON storage retains immediate legacy broadcast compatibility but
 does not provide these relational durability guarantees.
+
+## Reliable Pending Delivery (Task 4.6)
+
+SQLite runtime starts a single local delivery loop. It claims durable work with
+the existing lease, performs HTTP outside the storage transaction, and stores
+the next retry time after every temporary failure. The deterministic retry
+delays are 2, 4, 8, … seconds, capped at 300 seconds; retries have no automatic
+attempt limit and use no jitter. The loop polls every second, requests time out
+after three seconds, and an interrupted 30-second lease is safely reclaimed on
+the next run.
+
+Temporary connection errors, timeouts, 408/425/429, 5xx, future nonce, and
+temporarily insufficient local state retry. Stale nonce and same-nonce conflict
+also retry: they reflect a receiver's mutable canonical/mempool view and may be
+reversed by fork choice or pending-record removal. A finalized competing
+transaction would be irreversible locally, but receive responses do not carry
+verifiable finality evidence, so Task 4.6 deliberately preserves delivery
+intent until synchronization resolves it. Authentication, wrong-network,
+unsupported protocol/version, invalid signature/identity, and immutable
+conflict are permanent. Exact canonical `already_settled` recognition is an
+idempotent success, so chain sync preceding gossip cannot cause endless delivery.
+
+Every 30 seconds a node reconciles at most 100 current mempool records with
+active same-network peers. A newly registered/re-registered peer receives that
+bounded pending set; settled history is deliberately left to chain sync. The
+mempool summary endpoint is paged and capped at 100 IDs, and bounded pull
+reconciliation fetches only missing IDs through the usual validated receive
+path. Peer URL changes reuse node-ID keyed unacknowledged work. Removed,
+disabled, wrong-network, acknowledged, and permanent-failure destinations are
+not automatically revived. Outbox counts and oldest outstanding age are visible
+only in existing admin operational diagnostics, never public transaction APIs.
 
 ## Security Notes
 

@@ -399,7 +399,11 @@ class NativeLedgerService:
             state, storage, candidate, status="signed_pending", now_iso=now_value
         )
         if str(stored.get("status") or "").strip().lower() in self.native_finalized_statuses():
-            raise ValueError("Transaction is already present in canonical settlement.")
+            # Canonical chain sync may reach this node before delayed gossip.
+            # The signed identity was checked by record_native_transaction above,
+            # so recording the peer message and returning an idempotent ACK is
+            # safe and prevents a sender retrying forever for settled history.
+            return {"transaction": dict(stored), "duplicate": True}
         if not duplicate:
             state.transfer_intents.append(
                 self.build_transfer_intent_record_from_transaction(

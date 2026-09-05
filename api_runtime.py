@@ -7,6 +7,7 @@ the historical globals monkeypatched by the test suite and deployment integratio
 import os
 import time
 import logging
+import asyncio
 import hmac
 import hashlib
 import json
@@ -92,6 +93,8 @@ from config import (
     NODE_DATA_DIR,
     NETWORK_NAME,
     NODE_ID,
+    NATIVE_TRANSACTION_OUTBOX_POLL_INTERVAL_SECONDS,
+    NATIVE_TRANSACTION_OUTBOX_REQUEST_TIMEOUT_SECONDS,
     ORIGINALITY_APPROVAL_THRESHOLD,
     PUBLIC_NODE_URL,
     SUBMISSIONS_DIR,
@@ -234,7 +237,9 @@ from peer_sync import (
     verify_peer_signature,
     sync_chain_from_peers,
     sync_missing_content,
+    native_transaction_delivery_worker,
 )
+from services.native_transaction_delivery_service import native_transaction_outbox_diagnostics
 
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
@@ -1526,6 +1531,7 @@ def _admin_ops_status_payload() -> dict:
             "new_feedback_count": feedback_summary["new_feedback_count"],
             "open_feedback_count": feedback_summary["open_feedback_count"],
             "high_priority_feedback_count": feedback_summary["high_priority_feedback_count"],
+            "native_transaction_outbox": native_transaction_outbox_diagnostics(blockchain.storage),
         },
         "latest_block": latest_block,
         "feedback_summary": feedback_summary,
@@ -1771,7 +1777,44 @@ async def lifespan(app):
             logger.exception("Failed to initialize blockchain at startup")
 
     wallet_auth_manager.clear()
-    yield
+    stop_event = asyncio.Event()
+    worker = native_transaction_delivery_worker(
+        blockchain, peer_store, origin_node_id=NODE_ID, network_name=NETWORK_NAME,
+        timeout_seconds=NATIVE_TRANSACTION_OUTBOX_REQUEST_TIMEOUT_SECONDS,
+    )
+
+    async def _native_transaction_delivery_loop():
+        while not stop_event.is_set():
+            try:
+                # The SQLite claim transaction is short; all HTTP I/O runs in a
+                # worker thread so the API event loop remains responsive.
+                await asyncio.to_thread(worker.process_once)
+            except Exception:
+                logger.exception("Native transaction outbox worker iteration failed")
+            try:
+                await asyncio.wait_for(
+                    stop_event.wait(), timeout=NATIVE_TRANSACTION_OUTBOX_POLL_INTERVAL_SECONDS
+                )
+            except asyncio.TimeoutError:
+                pass
+
+    app.state.native_transaction_delivery_worker = worker
+    delivery_task = asyncio.create_task(_native_transaction_delivery_loop())
+    try:
+        yield
+    finally:
+        stop_event.set()
+        try:
+            await asyncio.wait_for(
+                delivery_task,
+                timeout=NATIVE_TRANSACTION_OUTBOX_REQUEST_TIMEOUT_SECONDS + 1,
+            )
+        except asyncio.TimeoutError:
+            delivery_task.cancel()
+            try:
+                await delivery_task
+            except asyncio.CancelledError:
+                pass
 
 
 app = FastAPI(lifespan=lifespan)

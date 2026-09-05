@@ -148,14 +148,23 @@ async def get_peer_transaction(
 @api_limit("peer_receive")
 async def get_peer_mempool_summary(
     request: Request,
+    limit: int = Query(default=100, ge=1, le=100),
+    cursor: int = Query(default=0, ge=0),
     _: None = Depends(require_peer_secret),
 ):
     _sync_runtime_globals()
     _require_protocol_v1_active_peer(request)
+    # Mempool gossip is intentionally bounded.  Canonical settled history is
+    # synchronized by chain sync rather than being replayed through gossip.
     transactions = blockchain.list_mempool_transactions()
+    page = transactions[cursor:cursor + limit]
+    next_cursor = cursor + len(page)
     return {
-        "tx_ids": [transaction.get("tx_id") for transaction in transactions if transaction.get("tx_id")],
+        "tx_ids": [transaction.get("tx_id") for transaction in page if transaction.get("tx_id")],
         "count": len(transactions),
+        "cursor": cursor,
+        "next_cursor": next_cursor if next_cursor < len(transactions) else None,
+        "truncated": next_cursor < len(transactions),
         "network_name": NETWORK_NAME,
     }
 

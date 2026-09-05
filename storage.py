@@ -522,6 +522,14 @@ class StorageBackend(ABC):
     def fail_native_transaction_outbox(self, **_failure):
         return False
 
+    def refresh_native_transaction_outbox_destination(self, **_options):
+        """Refresh a node-ID destination URL and optionally wake retryable work.
+
+        JSON intentionally has no durable outbox implementation; this remains a
+        SQLite Public Testnet v1 operation.
+        """
+        return 0
+
     def get_received_native_transaction_message(self, message_id):
         return None
 
@@ -2000,6 +2008,43 @@ class SQLiteStorageBackend(StorageBackend):
                 ),
             )
             return cursor.rowcount == 1
+
+    def refresh_native_transaction_outbox_destination(
+        self, *, destination_peer_id, destination_peer_url, now=None, expedite=False
+    ):
+        """Keep node-ID based delivery stable across peer URL changes.
+
+        Only a positive lifecycle signal (new/re-registered peer) shortens a
+        retry wait.  Ordinary periodic reconciliation preserves the persisted
+        backoff schedule and attempt history.
+        """
+        peer_id = str(destination_peer_id or "").strip()
+        peer_url = str(destination_peer_url or "").strip().rstrip("/")
+        if not peer_id or not peer_url:
+            return 0
+        now_iso = str(now or _utc_now_iso())
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if expedite:
+                cursor = connection.execute(
+                    """UPDATE native_transaction_peer_outbox
+                       SET destination_peer_url = ?,
+                           next_attempt_at = CASE
+                               WHEN delivery_state = 'retry_wait' THEN ?
+                               ELSE next_attempt_at END
+                       WHERE destination_peer_id = ?
+                         AND delivery_state IN ('queued', 'retry_wait', 'in_flight')""",
+                    (peer_url, now_iso, peer_id),
+                )
+            else:
+                cursor = connection.execute(
+                    """UPDATE native_transaction_peer_outbox
+                       SET destination_peer_url = ?
+                       WHERE destination_peer_id = ?
+                         AND delivery_state IN ('queued', 'retry_wait', 'in_flight')""",
+                    (peer_url, peer_id),
+                )
+            return cursor.rowcount
 
     def get_received_native_transaction_message(self, message_id):
         with self._connect() as connection:

@@ -1105,3 +1105,54 @@ are not protocol state.
 Task 4.5 does not add an autonomous retry worker, advanced backoff, reconnect
 reconciliation, broad anti-entropy, reorg recovery, or the 10,000-transaction
 benchmark.
+
+## 22. Task 4.6 implementation — reliable pending transaction delivery
+
+SQLite nodes run one runtime outbox loop. Each sweep first performs a bounded
+pending-transaction reconciliation and then claims at most 25 eligible rows,
+using the existing short `BEGIN IMMEDIATE` claim transaction. HTTP happens only
+after the claim commits. On shutdown the loop stops accepting new work; a send
+already in progress is bounded by the configured request timeout and its lease
+recovers after restart if it cannot finish.
+
+Retry schedule is deterministic and local: after attempt `n`, the persisted
+`next_attempt_at` is `now + min(300, 2 * 2^(n-1))` seconds (2, 4, 8, …, 300).
+There is no jitter and no automatic attempt limit, so a long connectivity loss
+does not discard delivery intent. Defaults are a one-second worker poll,
+three-second request timeout, and 30-second lease. Connection errors, timeouts,
+408, 425, 429, 5xx, future nonce, and temporarily insufficient local state are
+retryable. Stale nonce and same-nonce conflict are also retryable
+state-dependent rejections: fork choice can replace a non-finalized current
+block and a pending reservation can be rejected, expired, or removed. Even a
+receiver that believes a competing nonce is finalized does not send verifiable
+finality evidence in this response, so the sender retains delivery intent for
+chain synchronization rather than treating a peer-local claim as terminal.
+Authentication, wrong network, unsupported versions, invalid signatures/identity,
+and immutable message conflicts are permanent. `already_settled` is a successful
+idempotent outcome when exact signed identity is already canonical.
+
+Reconciliation considers only the current local mempool (maximum 100 records
+per round), never historical settled transactions. A newly seen/re-registered
+active peer receives idempotently-enqueued delivery rows for this bounded set;
+its retry waits are made promptly eligible without erasing attempt history.
+Peer identity is node-ID based: a URL change updates unacknowledged rows for
+that identity rather than creating a second logical delivery. Disabled, removed,
+wrong-network, acknowledged, and permanent-failure destinations are not revived
+by automatic reconciliation. Canonical settled history remains chain-sync work.
+
+`GET /peers/mempool/summary` is bounded to 100 IDs per page and includes cursor
+metadata. Periodic bounded pull reconciliation reuses the authenticated summary
+and per-transaction fetch path; every fetch still enters the same durable,
+deterministic receiver validation. Repeated rounds and lost ACK redelivery are
+safe because the receiver persists message identity with admission. If chain
+sync arrives first, matching later gossip gets an idempotent ACK rather than
+creating a second record or settlement.
+
+Status convergence means that healthy, chain-synchronized nodes eventually
+report the same deterministic transaction lifecycle derived from durable records
+and canonical/finality state (`mempool` while pending, then settled/finalized or
+rejected as applicable). Outbox state is sender-local diagnostic state and is
+not a consensus status. Admin operational status reports each outbox state count
+and oldest outstanding age. JSON retains legacy development behavior and makes
+no restart-safe retry/dedup claim. Reorg recovery remains explicitly deferred to
+Task 4.7.

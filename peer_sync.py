@@ -18,6 +18,12 @@ from content import (
 )
 from config import (
     MAX_CONTENT_FILE_SIZE_BYTES,
+    NATIVE_TRANSACTION_OUTBOX_INITIAL_RETRY_SECONDS,
+    NATIVE_TRANSACTION_OUTBOX_LEASE_SECONDS,
+    NATIVE_TRANSACTION_OUTBOX_MAX_RETRY_SECONDS,
+    NATIVE_TRANSACTION_OUTBOX_REQUEST_TIMEOUT_SECONDS,
+    NATIVE_TRANSACTION_RECONCILIATION_BATCH_SIZE,
+    NATIVE_TRANSACTION_RECONCILIATION_INTERVAL_SECONDS,
     NODE_ID,
     ORIGINALITY_APPROVAL_THRESHOLD,
     peer_auth_required,
@@ -111,6 +117,10 @@ from services.native_transaction_outbox_service import (
     build_native_transaction_peer_message,
     validate_native_transaction_peer_message,
 )
+from services.native_transaction_delivery_service import (
+    NativeTransactionDeliveryWorker,
+    NativeTransactionRetryPolicy,
+)
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
@@ -152,6 +162,35 @@ def _peer_content_sync_service():
 
 def _peer_chain_sync_service():
     return PeerChainSyncService(_peer_http_transport(), build_peer_request_headers, logging)
+
+
+def native_transaction_delivery_worker(
+    blockchain, peer_store, *, origin_node_id, network_name, timeout_seconds=None,
+    reconciliation_interval_seconds=None,
+):
+    """Build the one runtime/manual durable outbox worker for this node."""
+    return NativeTransactionDeliveryWorker(
+        blockchain, peer_store,
+        origin_node_id=origin_node_id, network_name=network_name,
+        transport_factory=_peer_http_transport, request_headers=build_peer_request_headers,
+        retry_policy=NativeTransactionRetryPolicy(
+            initial_delay_seconds=NATIVE_TRANSACTION_OUTBOX_INITIAL_RETRY_SECONDS,
+            maximum_delay_seconds=NATIVE_TRANSACTION_OUTBOX_MAX_RETRY_SECONDS,
+        ),
+        timeout_seconds=timeout_seconds or NATIVE_TRANSACTION_OUTBOX_REQUEST_TIMEOUT_SECONDS,
+        lease_seconds=NATIVE_TRANSACTION_OUTBOX_LEASE_SECONDS,
+        reconciliation_batch_size=NATIVE_TRANSACTION_RECONCILIATION_BATCH_SIZE,
+        reconciliation_interval_seconds=(
+            reconciliation_interval_seconds
+            if reconciliation_interval_seconds is not None
+            else NATIVE_TRANSACTION_RECONCILIATION_INTERVAL_SECONDS
+        ),
+        pull_reconcile=lambda peer, _limit: sync_mempool_from_peer(
+            blockchain, peer_store, peer, origin_node_id=origin_node_id,
+            network_name=network_name,
+            timeout_seconds=timeout_seconds or NATIVE_TRANSACTION_OUTBOX_REQUEST_TIMEOUT_SECONDS,
+        ),
+    )
 
 
 def hash_body(body_bytes):
@@ -848,6 +887,32 @@ def broadcast_transaction_to_peers(
         created_at=transaction.get("admitted_at"),
     )
     blockchain.storage.enqueue_native_transaction_outbox(records)
+
+    # Keep the historical explicit broadcast endpoint responsive, but route it
+    # through the same lease/backoff implementation as the runtime worker.
+    # Subsequent retries are autonomous; this call is only an immediate sweep.
+    delivery = native_transaction_delivery_worker(
+        blockchain, peer_store, origin_node_id=origin_node_id,
+        network_name=network_name, timeout_seconds=timeout_seconds,
+        reconciliation_interval_seconds=60 * 60 * 24,
+    ).process_once()
+    immediate_results = delivery["results"]
+    return {
+        "attempted": len(immediate_results),
+        "succeeded": sum(1 for result in immediate_results if result["status"] == "acknowledged"),
+        "accepted": sum(1 for result in immediate_results if result["status"] == "acknowledged"),
+        "failed": sum(1 for result in immediate_results if result["status"] != "acknowledged"),
+        "results": [
+            {
+                "node_id": blockchain.storage.get_native_transaction_outbox(outbox_id=result["outbox_id"])["destination_peer_id"],
+                "status": "sent" if result["status"] == "acknowledged" else "failed",
+                "accepted": result["status"] == "acknowledged",
+                "error": result.get("error"),
+            }
+            for result in immediate_results
+        ],
+        "message_id": message["message_id"],
+    }
 
     results = []
     path = "/peers/transactions/receive"

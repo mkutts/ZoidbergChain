@@ -400,6 +400,8 @@ async def admit_native_transaction_to_mempool(request: Request, tx_id: str):
         admission = blockchain.admit_native_transaction_operation(tx_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return admission
 
 

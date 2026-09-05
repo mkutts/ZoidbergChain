@@ -911,3 +911,59 @@ def test_invalid_wallet_transfer_history_rejected(blockchain):
     response = client.get("/wallets/not-a-wallet/transfers")
 
     assert response.status_code == 400
+
+
+def test_task_4_3_storage_failure_never_acknowledges_or_publishes_a_ghost(isolated_data_dir):
+    backend = _sqlite_backend(isolated_data_dir, "task-4-3-storage-failure")
+    blockchain = _create_blockchain_with_backend(backend)
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    blockchain.save_blockchain()
+    headers = _verified_headers(client, account)
+    submitted = _submit_transfer_intent(client, account, headers)
+    tx_id = submitted.json()["tx_id"]
+
+    original = backend.atomic_update_blockchain_document
+    backend.atomic_update_blockchain_document = lambda mutate: (_ for _ in ()).throw(OSError("injected commit failure"))
+    try:
+        response = client.post(f"/transactions/{tx_id}/admit")
+    finally:
+        backend.atomic_update_blockchain_document = original
+
+    assert response.status_code == 500
+    assert backend.get_durable_native_transaction_record(tx_id)["status"] == "signed_pending"
+    assert blockchain.get_native_transaction(tx_id)["status"] == "signed_pending"
+    assert blockchain.list_mempool_transactions() == []
+
+
+def test_task_4_3_lost_response_retry_reads_same_durable_sqlite_record(isolated_data_dir):
+    backend = _sqlite_backend(isolated_data_dir, "task-4-3-lost-response")
+    blockchain = _create_blockchain_with_backend(backend)
+    client, _ = _client(blockchain)
+    account = _create_account()
+    _fund_native_wallet(blockchain, account.address, "25")
+    blockchain.save_blockchain()
+    headers = _verified_headers(client, account)
+    challenge = _request_transfer_challenge(client, account, headers).json()
+    payload = {
+        "from_address": account.address,
+        "to_address": challenge["transfer_preview"]["to_address"],
+        "amount": challenge["transfer_preview"]["amount"],
+        "fee": challenge["transfer_preview"]["fee"],
+        "memo": "preview",
+        "message": challenge["message"],
+        "signature": _sign_message(challenge["message"], account),
+        "admit_to_mempool": True,
+    }
+    first = client.post("/transfers/submit", json=payload, headers=headers)
+    reopened = _create_blockchain_with_backend(SQLiteStorageBackend(sqlite_db_path=backend.sqlite_db_path))
+    retry_client, _ = _client(reopened)
+    retry_headers = _verified_headers(retry_client, account)
+    second = retry_client.post("/transfers/submit", json=payload, headers=retry_headers)
+
+    assert first.status_code == second.status_code == 200
+    assert first.json()["tx_id"] == second.json()["tx_id"]
+    assert second.json()["status"] == "mempool"
+    assert len(backend.list_durable_native_transaction_records()) == 1
+    assert len(reopened.list_mempool_transactions()) == 1

@@ -288,6 +288,89 @@ class NativeLedgerService:
         state.transfer_intents.append(record); state.native_transactions.append(transaction.to_dict())
         return record
 
+    @staticmethod
+    def immutable_signed_transaction_fields():
+        return (
+            "tx_id", "transaction_type", "network", "from_address", "to_address",
+            "amount", "fee", "nonce", "memo", "timestamp", "signature",
+            "signature_scheme", "signed_message", "signed_message_hash",
+            "transaction_version", "protocol_version", "network_id",
+        )
+
+    def _same_immutable_signed_transaction(self, existing, candidate):
+        return all(existing.get(field) == candidate.get(field) for field in self.immutable_signed_transaction_fields())
+
+    def admit_signed_transfer(self, state, storage, *, from_address, to_address, amount, fee, memo, network, transaction_version=None, protocol_version=None, network_id=None, signature_scheme, signature, signed_message_hash, signed_message, transfer_nonce, transaction_timestamp=None, signed_at, admit_to_mempool, now_iso=None):
+        """Apply one local signed-transfer admission to a mutable durable view.
+
+        The caller owns the storage transaction.  This method intentionally
+        mutates only that isolated view, so no live mempool state is published
+        until the storage transaction has committed.
+        """
+        now_value = str(now_iso or self.utc_now_iso())
+        transaction = build_native_transaction(
+            network=str(network), transaction_version=transaction_version,
+            protocol_version=protocol_version, network_id=network_id,
+            from_address=from_address, to_address=to_address, amount=str(amount),
+            fee=str(fee), nonce=str(transfer_nonce), memo=str(memo or "").strip() or None,
+            timestamp=str(transaction_timestamp or signed_at), signature=str(signature),
+            signature_scheme=str(signature_scheme), signed_message=str(signed_message),
+            signed_message_hash=str(signed_message_hash), status="signed_pending",
+            created_at=now_value,
+        )
+        candidate = transaction.to_dict()
+        # Always revalidate the exact canonical signed payload, including on a
+        # retry.  A durable record never substitutes for protocol validation.
+        validated = self.validate_signed_native_transaction(state, storage, candidate)
+        existing = self.get_native_transaction(state, storage, validated["tx_id"])
+        duplicate = existing is not None
+        if existing is not None:
+            if not self._same_immutable_signed_transaction(existing, validated):
+                raise ValueError("Conflicting native transaction replay: tx_id is already bound to different signed transaction data.")
+            current = dict(existing)
+            intent = self.get_transfer_intent_by_tx_id(state, current["tx_id"])
+            if intent is None:
+                raise RuntimeError("Transaction already exists but local transfer record is missing.")
+        else:
+            # Both checks occur while the caller's durable transaction is held.
+            # Thus pending reservations observed here cannot be bypassed by a
+            # competing local admission.
+            self.validate_transaction_nonce(state, validated)
+            self.validate_transaction_balance_sufficiency(state, validated)
+            current = dict(validated)
+            current.update({
+                "status": "signed_pending", "created_at": now_value,
+                "updated_at": now_value, "admitted_at": None,
+                "included_block_hash": None, "included_block_height": None,
+                "settled_at": None, "rejection_reason": None,
+            })
+            intent = self.build_transfer_intent_record_from_transaction(
+                current, signed_at=signed_at, created_at=now_value, now_iso=now_value
+            )
+            state.native_transactions.append(current)
+            state.transfer_intents.append(intent)
+
+        admission = None
+        current_status = str(current.get("status") or "").strip().lower()
+        if admit_to_mempool and current_status in self.native_mempool_eligible_statuses():
+            if current_status != "mempool":
+                self.validate_transaction_nonce(state, current)
+                self.validate_transaction_balance_sufficiency(state, current, exclude_tx_id=current["tx_id"])
+                current = self.update_native_transaction_status(
+                    state, storage, current["tx_id"], status="mempool",
+                    admitted_at=str(current.get("admitted_at") or now_value), now_iso=now_value,
+                )
+                intent = self.get_transfer_intent_by_tx_id(state, current["tx_id"]) or intent
+            admission = {
+                "tx_id": current["tx_id"], "status": current["status"], "admitted": True,
+                "admitted_at": current.get("admitted_at"),
+                "message": "Transaction admitted to local mempool. It is not settled until included in a block.",
+            }
+        return {
+            "transfer_intent": dict(intent), "transaction": dict(current),
+            "duplicate": duplicate, "admission": admission,
+        }
+
     def native_transaction_sender_matches(self, transaction, wallet): return self.normalize_wallet_identity(transaction.get("from_address")) == wallet
     @staticmethod
     def coerce_native_nonce(nonce): return int(parse_transfer_nonce(nonce))

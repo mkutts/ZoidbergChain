@@ -87,7 +87,7 @@ from protocol_v1_native_transfer import (
     looks_like_protocol_v1_native_transfer_message,
     resolve_protocol_v1_network_id,
 )
-from storage import StaleCanonicalHeadError, canonical_head_identity, create_storage_backend
+from storage import StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
 from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
 from protocol_v1_genesis import (
     GenesisValidationError,
@@ -903,8 +903,87 @@ class Blockchain:
         return result
 
     def admit_native_transaction_operation(self, tx_id):
-        result = self.admit_transaction_to_mempool(tx_id)
-        self.save_blockchain()
+        # If this process already holds the record, fail closed on a corrupted
+        # local copy before consulting the durable view.  The locked operation
+        # below repeats validation against the durable record for race safety.
+        if self.get_native_transaction(tx_id) is not None:
+            self.validate_transaction_for_mempool(tx_id)
+        outcome = {}
+
+        def mutate(document):
+            state = NativeLedgerState(
+                document["chain"], document["transfer_intents"], document["native_transactions"]
+            )
+            outcome["result"] = self._native_mempool_service.admit(
+                state, self.storage, tx_id, now_iso=self._utc_now_iso
+            )
+            return document
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except (ValueError, RuntimeError):
+            raise
+        except Exception as exc:
+            raise RuntimeError("Native transaction admission could not be durably committed.") from exc
+        self._publish_durable_native_transaction_state(document)
+        return outcome["result"]
+
+    def _publish_durable_native_transaction_state(self, document):
+        """Publish only committed native state to this process's memory view."""
+        self.transfer_intents = list(document.get("transfer_intents", []) or [])
+        self.native_transactions = list(document.get("native_transactions", []) or [])
+
+    def _merge_safe_local_chain_append(self, document):
+        """Carry an unsaved local append into an admission transaction safely.
+
+        Test/development callers may stage a funding block before submitting a
+        transfer.  Only an append whose durable chain is an exact prefix is
+        eligible; a stale node can therefore never replace another node's head.
+        """
+        durable_chain = list(document.get("chain", []) or [])
+        local_chain = self.chain_to_dicts(self.chain)
+        if len(local_chain) <= len(durable_chain):
+            return
+        durable_identity = [(item.get("index"), item.get("hash")) for item in durable_chain]
+        local_identity = [(item.get("index"), item.get("hash")) for item in local_chain[:len(durable_chain)]]
+        if durable_identity == local_identity:
+            document["chain"] = local_chain
+
+    def _admit_signed_transfer_durably(self, *, admit_to_mempool, **values):
+        outcome = {}
+
+        def mutate(document):
+            self._merge_safe_local_chain_append(document)
+            state = NativeLedgerState(
+                document["chain"], document["transfer_intents"], document["native_transactions"]
+            )
+            outcome["result"] = self._native_ledger_service.admit_signed_transfer(
+                state, self.storage, admit_to_mempool=admit_to_mempool,
+                now_iso=self._utc_now_iso(), **values,
+            )
+            return document
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except StorageUniquenessError as exc:
+            # This is a defensive translation for a database invariant that is
+            # also checked under the same admission transaction.
+            raise ValueError("Nonce already used or reserved. Refresh and try again.") from exc
+        except (ValueError, RuntimeError):
+            raise
+        except Exception as exc:
+            raise RuntimeError("Native transaction admission could not be durably committed.") from exc
+        self._publish_durable_native_transaction_state(document)
+        result = outcome["result"]
+        transaction = self.get_native_transaction(result["transaction"]["tx_id"])
+        intent = self.get_transfer_intent_by_tx_id(transaction["tx_id"]) if transaction else None
+        if transaction is None or intent is None:
+            raise RuntimeError("Committed native transaction could not be published to the local mempool.")
+        result["transaction"] = dict(transaction)
+        result["transfer_intent"] = dict(intent)
+        if result["admission"] is not None:
+            result["admission"]["status"] = transaction["status"]
+            result["admission"]["admitted_at"] = transaction.get("admitted_at")
         return result
 
     def revalidate_mempool_operation(self):
@@ -1033,22 +1112,31 @@ class Blockchain:
         return transaction
 
     def submit_signed_transfer_operation(self, *, payload, wallet_address, auth_manager, build_preview, network_name):
-        starting_balance = self.get_native_balance_snapshot(wallet_address)["native_balance"]
         preview = build_preview(payload)
-        existing = self.get_native_transaction(preview.tx_id)
-        if existing:
-            intent = self.get_transfer_intent_by_tx_id(existing["tx_id"])
-            if intent is None:
+        durable_existing = self.storage.get_durable_native_transaction_record(preview.tx_id)
+        if durable_existing is not None:
+            if not self._native_ledger_service._same_immutable_signed_transaction(durable_existing, preview.to_dict()):
+                raise ValueError("Conflicting native transaction replay: tx_id is already bound to different signed transaction data.")
+            durable_intent = next(
+                (record for record in self.storage.load_transfer_intents()
+                 if str(record.get("tx_id") or "").strip().lower() == preview.tx_id),
+                None,
+            )
+            if durable_intent is None:
                 raise RuntimeError("Transaction already exists but local transfer record is missing.")
-            return intent, None, True
+            self._publish_durable_native_transaction_state({
+                "transfer_intents": self.storage.load_transfer_intents(),
+                "native_transactions": self.storage.list_durable_native_transaction_records(),
+            })
+            return durable_intent, None, True
         verification = auth_manager.verify_transfer_signature(
             wallet_address=wallet_address, from_address=payload.from_address, to_address=payload.to_address,
             amount=payload.amount, fee=payload.fee, memo=payload.memo, message=payload.message, signature=payload.signature,
         )
         if str(verification["fee"]) != "0":
             raise ValueError("Nonzero fees are not enabled yet.")
-        self.validate_transaction_balance_sufficiency(preview.to_dict())
-        intent = self.create_signed_transfer_intent(
+        result = self._admit_signed_transfer_durably(
+            admit_to_mempool=bool(payload.admit_to_mempool),
             from_address=str(verification["from_address"]), to_address=str(verification["to_address"]),
             amount=str(verification["amount"]), fee=str(verification["fee"]), memo=str(verification["memo"] or ""),
             network=network_name, transaction_version=verification.get("transaction_version"),
@@ -1056,17 +1144,11 @@ class Blockchain:
             signature_scheme=str(verification["signature_scheme"]), signature=str(verification["transfer_signature"]),
             signed_message_hash=str(verification["signed_message_hash"]), signed_message=str(verification["transfer_message"]),
             transfer_nonce=str(verification["nonce"]), transaction_timestamp=str(verification["timestamp"]),
-            signed_at=str(verification["signed_at"]), status="signed_pending",
+            signed_at=str(verification["signed_at"]),
         )
-        self.save_blockchain()
-        admission = None
-        if payload.admit_to_mempool:
-            admission = self.admit_transaction_to_mempool(intent["tx_id"])
-            self.save_blockchain()
-            intent = self.get_transfer_intent_by_tx_id(intent["tx_id"]) or intent
-        if self.get_native_balance_snapshot(wallet_address)["native_balance"] != starting_balance:
-            raise RuntimeError("Transfer intent submission must not mutate balances.")
-        return intent, admission, False
+        if result["transaction"]["tx_id"] != preview.tx_id:
+            raise ValueError("Submitted transaction identity does not match its canonical signed payload.")
+        return result["transfer_intent"], result["admission"], result["duplicate"]
 
     def verify_content_download_operation(self, content_object, *, verifier, data_dir):
         verification = verifier(content_object, data_dir=data_dir)

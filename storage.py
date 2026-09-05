@@ -480,6 +480,16 @@ class StorageBackend(ABC):
         """
         raise NotImplementedError
 
+    def atomic_update_blockchain_document(self, mutate):
+        """Durably replace a document from a freshly locked/transactional read.
+
+        Unlike the canonical-head compare-and-swap command, this is for local
+        commands whose correctness depends on an up-to-date complete document
+        (native transaction admission is the first user).  Backends must not
+        return until the replacement is durable.
+        """
+        raise NotImplementedError
+
     def delete_blockchain_document(self) -> None:
         for candidate in (self.blockchain_file, _backup_path_for(self.blockchain_file)):
             if os.path.exists(candidate):
@@ -1057,6 +1067,14 @@ class JSONStorageBackend(StorageBackend):
             self.save_blockchain_document(replacement)
             return replacement
 
+    def atomic_update_blockchain_document(self, mutate):
+        with self._commit_lock():
+            replacement = self._normalize_blockchain_document(
+                mutate(deepcopy(self._load_or_new_blockchain_document()))
+            )
+            self.save_blockchain_document(replacement)
+            return replacement
+
     def load_peers(self):
         peers, recovered_from_backup = _load_json_document_with_backup(
             self.peers_file,
@@ -1555,6 +1573,22 @@ class SQLiteStorageBackend(StorageBackend):
             if replay is not None and replay(deepcopy(document)):
                 return document
             _verify_expected_canonical_head(document, expected_head)
+            replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
+            self._synchronize_canonical_claims(connection, replacement)
+            replacement["native_transactions"] = self._synchronize_native_transaction_records(
+                connection, replacement.get("native_transactions", [])
+            )
+            self._save_sections_to_connection(connection, replacement)
+            return replacement
+
+    def atomic_update_blockchain_document(self, mutate):
+        # BEGIN IMMEDIATE serializes competing admissions before they inspect
+        # pending balance and nonce reservations.  Returning from this method
+        # happens only after the connection context has committed successfully.
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            sections = self._load_sections_from_connection(connection)
+            document = {section: sections[section] for section in _STORAGE_SECTIONS}
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
             self._synchronize_canonical_claims(connection, replacement)
             replacement["native_transactions"] = self._synchronize_native_transaction_records(

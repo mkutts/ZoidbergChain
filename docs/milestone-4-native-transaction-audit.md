@@ -864,3 +864,43 @@ JSON remains supported for development and tests. It retains whole-document
 atomic replacement and application validation but cannot provide the relational
 uniqueness or trigger guarantees above. SQLite is the Public Testnet v1 durable
 deployment target.
+
+## 19. Task 4.3 implementation — atomic native admission
+
+All public native admission now crosses one service operation.  A signed submit
+builds and verifies the canonical payload first; the operation then starts a
+fresh backend transaction/lock, rereads durable state, revalidates signature,
+network, strict nonce, and available balance, records the transfer intent and
+native record, and (when requested) changes it to `mempool`.  SQLite writes the
+record, lifecycle transition, active sender/nonce reservation, and compatible
+document projection under one `BEGIN IMMEDIATE` transaction.  It commits before
+the operation returns.  Only after that return does the process publish the
+committed native records to its in-memory mempool, and only then may the HTTP
+route acknowledge success.
+
+The explicit `/transactions/{tx_id}/admit` route uses the same locked durable
+operation for its `signed_pending` to `mempool` transition.  A storage exception
+is a failed admission, never a success response, and cannot publish a ghost
+mempool entry.
+
+### 19.1 Retry and concurrency semantics
+
+An exact signed retry with the same `tx_id` returns its existing durable logical
+record without another nonce or balance reservation, including after restart or
+a lost response.  A different immutable signed payload using that ID is rejected
+without changing the stored row.  A distinct transaction using an already-active
+sender/nonce is rejected deterministically.  `BEGIN IMMEDIATE` serializes the
+read of pending reservations and the write, so a later admission sees prior
+pending outgoing value before deciding balance sufficiency; sequential pending
+transactions therefore cannot jointly overdraw the available balance.
+
+SQLite enforces the final unique `tx_id`, active `(sender, nonce)`, and lifecycle
+constraints.  The service enforces cryptographic validity, strict nonce order,
+pending balance reservation, immutable retry comparison, and conflict mapping.
+Memory is only a post-commit projection.  JSON uses its existing advisory
+whole-document lock plus atomic replacement and the same service checks, but it
+does not offer SQLite's relational constraints or equivalent crash/concurrency
+guarantees across arbitrary external writers.
+
+Peer gossip/outbox, retry/backoff, reconnect convergence, and reorg recovery
+remain deliberately outside Task 4.3.

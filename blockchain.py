@@ -100,7 +100,7 @@ from protocol_v1_genesis import (
 from validators import is_valid_ethereum_address, is_valid_public_key, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, normalize_validator_set
+from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, LifecycleTimingRecorder, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, normalize_validator_set
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -173,6 +173,7 @@ class Blockchain:
         initial_supply=TOTAL_SUPPLY,
         storage_backend=None,
         validator_set=None,
+        lifecycle_timing=None,
     ):
         self.chain = []  # The blockchain
         self.pending_transactions = []  # Transaction pool
@@ -197,6 +198,7 @@ class Blockchain:
         self.audit_logs = []  # Persistent admin audit trail
         self.finality_attestations = []  # Valid canonical validator attestations
         self.finalized_blocks = []  # Immutable validator-quorum finality evidence
+        self.lifecycle_timing = lifecycle_timing or LifecycleTimingRecorder()
         self.validator_set = normalize_validator_set(
             PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES if validator_set is None else validator_set
         )
@@ -1598,40 +1600,72 @@ class Blockchain:
             if canonical is None or canonical.hash != record["block_hash"]:
                 raise FinalityAttestationError("Persisted finality evidence does not match the canonical chain.")
 
-    def submit_validator_finality_attestation(self, attestation) -> dict:
-        """Validate, durably record, and deterministically apply one validator vote."""
-        if not isinstance(attestation, dict):
-            raise FinalityAttestationError("Finality attestation must be an object.")
-        try:
-            height = self._finality_service._height(attestation.get("block_height"))
-        except FinalityAttestationError:
-            raise
-        canonical = next(
-            (block.to_dict() for block in self.chain if int(block.index) == height), None
-        )
-        if canonical is None:
-            raise FinalityAttestationError("Finality attestation references a nonexistent canonical block.")
-        if canonical.get("hash") != self.calculate_hash_from_dict(canonical):
-            raise FinalityAttestationError("Finality attestation references a canonical block with an invalid stored hash.")
+    def submit_validator_finality_attestations(self, attestations) -> list[dict]:
+        """Validate and durably apply one or more votes against one chain snapshot.
+
+        Batching is an operational optimization only: every attestation still
+        passes the existing canonical validator, signature, quorum, and
+        finalized-height checks.  A shared chain validation and one durable
+        checkpoint prevent a received quorum from doing duplicate full-chain
+        work and writes.
+        """
+        if not isinstance(attestations, (list, tuple)) or not attestations:
+            raise FinalityAttestationError("Finality attestations must be a non-empty list.")
         if not self.is_chain_valid(self.chain_to_dicts(self.chain)):
             raise FinalityAttestationError("Finality cannot be applied while canonical chain validation fails.")
-        result = self._finality_service.process_attestation(
-            attestation,
-            validator_set=self.validator_set,
-            expected_network_id=self.protocol_v1_network_id(),
-            canonical_block=canonical,
-            existing_attestations=self.finality_attestations,
-            finalized_blocks=self.finalized_blocks,
-        )
-        if result["status"] != "duplicate":
-            self.finality_attestations.append(result["attestation"])
-            self.finality_attestations.sort(key=lambda value: (value["block_height"], value["block_hash"], value["validator_address"], value["signature"]))
-        if result["status"] != "duplicate" and result.get("finalization") is not None:
-            self.finalized_blocks.append(result["finalization"])
-            self.finalized_blocks.sort(key=lambda value: (value["block_height"], value["block_hash"]))
-        if result["status"] != "duplicate":
+
+        updated_attestations = list(self.finality_attestations)
+        updated_finalized_blocks = list(self.finalized_blocks)
+        results = []
+        canonical_by_height = {int(block.index): block.to_dict() for block in self.chain}
+        for attestation in attestations:
+            if not isinstance(attestation, dict):
+                raise FinalityAttestationError("Finality attestation must be an object.")
+            height = self._finality_service._height(attestation.get("block_height"))
+            canonical = canonical_by_height.get(height)
+            if canonical is None:
+                raise FinalityAttestationError("Finality attestation references a nonexistent canonical block.")
+            if canonical.get("hash") != self.calculate_hash_from_dict(canonical):
+                raise FinalityAttestationError("Finality attestation references a canonical block with an invalid stored hash.")
+            result = self._finality_service.process_attestation(
+                attestation,
+                validator_set=self.validator_set,
+                expected_network_id=self.protocol_v1_network_id(),
+                canonical_block=canonical,
+                existing_attestations=updated_attestations,
+                finalized_blocks=updated_finalized_blocks,
+            )
+            if result["status"] != "duplicate":
+                updated_attestations.append(result["attestation"])
+            if result["status"] != "duplicate" and result.get("finalization") is not None:
+                updated_finalized_blocks.append(result["finalization"])
+            results.append((result, canonical))
+
+        if any(result["status"] != "duplicate" for result, _ in results):
+            self.finality_attestations = sorted(
+                updated_attestations,
+                key=lambda value: (value["block_height"], value["block_hash"], value["validator_address"], value["signature"]),
+            )
+            self.finalized_blocks = sorted(
+                updated_finalized_blocks,
+                key=lambda value: (value["block_height"], value["block_hash"]),
+            )
             self.save_blockchain()
-        return result
+        for result, canonical in results:
+            if result.get("finalization") is not None:
+                submission_id = canonical.get("submission_id")
+                if submission_id:
+                    self.lifecycle_timing.mark(
+                        submission_id,
+                        "finalized",
+                        block_height=canonical["index"],
+                        block_hash=canonical["hash"],
+                    )
+        return [result for result, _ in results]
+
+    def submit_validator_finality_attestation(self, attestation) -> dict:
+        """Validate, durably record, and deterministically apply one validator vote."""
+        return self.submit_validator_finality_attestations([attestation])[0]
 
     def _candidate_preserves_finalized_blocks(self, candidate_chain) -> bool:
         candidate_by_height = {
@@ -2366,7 +2400,9 @@ class Blockchain:
         allow_pending=False,
         save=True,
     ):
-        return self._submission_originality_service.create_certificate(self._submission_originality_state(), self.storage, submission_id, approved_at=approved_at, network_name=network_name, issuing_node_id=issuing_node_id, allow_pending=allow_pending, promote_content=self._promote_submission_content_for_protocol_v1, save=self.save_blockchain if save else None, voting_threshold=self.get_voting_threshold)
+        certificate = self._submission_originality_service.create_certificate(self._submission_originality_state(), self.storage, submission_id, approved_at=approved_at, network_name=network_name, issuing_node_id=issuing_node_id, allow_pending=allow_pending, promote_content=self._promote_submission_content_for_protocol_v1, save=self.save_blockchain if save else None, voting_threshold=self.get_voting_threshold)
+        self.lifecycle_timing.mark(submission_id, "certificate_created", certificate_id=certificate.certificate_id)
+        return certificate
     def evaluate_submission(self, submission_id, automated_originality_passed=None, now=None):
         submission = self.get_submission(submission_id)
         if not submission:
@@ -2413,6 +2449,7 @@ class Blockchain:
             return result
 
         if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
+            self.lifecycle_timing.mark(submission_id, "vote_passed")
             previous_status = submission.status
             previous_certificate_id = submission.certificate_id
             existing_certificate = self.get_originality_certificate_for_submission(submission_id)
@@ -2479,6 +2516,7 @@ class Blockchain:
         # transaction-bound state.  The block transition itself remains a
         # separate all-or-nothing operation below.
         self.save_blockchain()
+        self.lifecycle_timing.mark(submission_id, "ready_for_mint")
         return submission
     def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
         return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text)
@@ -2614,6 +2652,13 @@ class Blockchain:
             if candidate is None:
                 raise ValueError("Certified block candidate is invalid or exceeds the block limit.")
             self.validate_candidate_block_for_local_acceptance(candidate["block"], current_chain=self.chain)
+            self.lifecycle_timing.mark(
+                submission_id,
+                "proposal_prepared",
+                certificate_id=certificate.certificate_id,
+                block_height=candidate["block"].index,
+                block_hash=candidate["block"].hash,
+            )
             self._apply_certified_candidate_in_commit(candidate, submission)
             return self._serialize_blockchain_state()
 
@@ -2621,6 +2666,15 @@ class Blockchain:
         try:
             self.storage.atomic_commit_blockchain_document(expected_head, mutate, replay=replay)
             committed = True
+            block = self.get_protocol_v1_block_for_submission(submission_id)
+            if block is not None:
+                self.lifecycle_timing.mark(
+                    submission_id,
+                    "accepted",
+                    certificate_id=block.certificate_id,
+                    block_height=block.index,
+                    block_hash=block.hash,
+                )
             if not replayed:
                 # Test seam for the real uncertain-outcome window: persistence
                 # has succeeded, but the caller has not received its result.

@@ -2,7 +2,8 @@
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
-from threading import Barrier
+from multiprocessing import get_context
+from threading import Barrier, Thread
 from time import perf_counter
 
 import pytest
@@ -10,6 +11,7 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 
 from blockchain import Blockchain
+from services import LifecycleTimingRecorder
 from peer_sync import sync_chain_from_peers
 from peers import PeerStore
 from protocol_v1_finality import (
@@ -23,6 +25,8 @@ from storage import create_storage_backend
 WORKLOAD_SIZE = 100
 APPROVAL_WORKER_COUNT = WORKLOAD_SIZE
 COMMIT_WORKER_COUNT = 4
+FINALITY_BATCH_SIZE = 8
+FINALITY_WORKER_COUNT = 4
 
 
 class InjectedCommitFailure(RuntimeError):
@@ -40,12 +44,13 @@ def _backend(tmp_path, name, backend_name="sqlite"):
     )
 
 
-def _node(wallets, backend):
+def _node(wallets, backend, lifecycle_timing=None):
     return Blockchain(
         project_owner_wallet=wallets["owner"],
         Contributor_one=wallets["contributor_one"],
         Contributor_two=wallets["contributor_two"],
         storage_backend=backend,
+        lifecycle_timing=lifecycle_timing,
     )
 
 
@@ -114,9 +119,9 @@ def _ready_submissions_concurrently(node, wallets, workload_size=WORKLOAD_SIZE):
     return submissions, [submission_id for submission_id, _ in certified], perf_counter() - started
 
 
-def _commit_all_concurrently(wallets, backend):
+def _commit_all_concurrently(wallets, backend, lifecycle_timing=None, on_committed=None):
     """Workers repeatedly prepare the current canonical queue head and CAS it."""
-    nodes = [_node(wallets, backend) for _ in range(COMMIT_WORKER_COUNT)]
+    nodes = [_node(wallets, backend, lifecycle_timing) for _ in range(COMMIT_WORKER_COUNT)]
     gate = Barrier(COMMIT_WORKER_COUNT)
 
     def worker(node):
@@ -132,11 +137,86 @@ def _commit_all_concurrently(wallets, backend):
             if not outcome["committed"]:
                 return outcomes
             outcomes.append(outcome)
+            if on_committed is not None:
+                on_committed(outcome)
 
     started = perf_counter()
     with ThreadPoolExecutor(max_workers=COMMIT_WORKER_COUNT) as executor:
         results = [future.result() for future in as_completed([executor.submit(worker, node) for node in nodes])]
     return [item for worker_results in results for item in worker_results], perf_counter() - started
+
+
+def _start_prompt_finality_coordinator(wallets, backend, lifecycle_timing, tmp_path):
+    """Finalize each accepted submission on a validator replica without delaying commits.
+
+    The queue receives an accepted submission immediately from the committing
+    worker.  Independent validator replicas own disjoint deterministic shards
+    of the received blocks, which models safe distributed validator work while
+    canonical commit workers continue independently against the primary store.
+    """
+    validators = [Account.create() for _ in range(3)]
+    validator_set = tuple(sorted(account.address.lower() for account in validators))
+    validator_backends = []
+    submitted = []
+    for index in range(FINALITY_WORKER_COUNT):
+        validator_backend = _backend(tmp_path, f"task-3-8-finality-validator-{index}")
+        validator_backends.append(validator_backend)
+    process_context = get_context("spawn")
+    submitted = [process_context.Queue() for _ in range(FINALITY_WORKER_COUNT)]
+    completed = process_context.Queue()
+    backend_paths = (backend.blockchain_file, backend.peers_file, backend.sqlite_db_path)
+    workers = [
+        process_context.Process(
+            target=_prompt_finality_process,
+            args=(
+                wallets,
+                backend_paths,
+                (validator_backend.blockchain_file, validator_backend.peers_file, validator_backend.sqlite_db_path),
+                [account.key.hex() for account in validators],
+                submitted[index],
+                completed,
+            ),
+            name=f"task-3-8-finality-{index}",
+        )
+        for index, validator_backend in enumerate(validator_backends)
+    ]
+    for worker in workers:
+        worker.start()
+    errors = []
+    completed_count = 0
+
+    def record_finality():
+        nonlocal completed_count
+        while completed_count < FINALITY_WORKER_COUNT:
+            event = completed.get()
+            if event[0] == "finalized":
+                _, submission_id, height, block_hash = event
+                lifecycle_timing.mark(submission_id, "finalized", block_height=height, block_hash=block_hash)
+            elif event[0] == "error":
+                errors.append(event[1])
+            elif event[0] == "done":
+                completed_count += 1
+
+    listener = Thread(target=record_finality, name="task-3-8-finality-results", daemon=True)
+    listener.start()
+
+    def accepted(outcome):
+        submission_id = outcome["submission_id"]
+        submitted[sum(str(submission_id).encode("utf-8")) % FINALITY_WORKER_COUNT].put(submission_id)
+
+    def finish():
+        for queue in submitted:
+            queue.put(None)
+        for worker in workers:
+            worker.join()
+            if worker.exitcode:
+                errors.append(f"finality worker exited with code {worker.exitcode}")
+        listener.join()
+        if errors:
+            raise AssertionError(errors[0])
+        return validator_backends, validators, validator_set
+
+    return accepted, finish
 
 
 def _finality_attestation(account, block):
@@ -154,6 +234,65 @@ def _finality_attestation(account, block):
         network_id=PUBLIC_TESTNET_V1_NETWORK_ID,
         signature=signature,
     )
+
+
+def _prompt_finality_process(wallets, primary_paths, validator_paths, validator_keys, submitted, completed):
+    """Own one validator replica in a separate process for the lifecycle run."""
+    try:
+        primary = create_storage_backend(
+            "sqlite",
+            blockchain_file=primary_paths[0],
+            peers_file=primary_paths[1],
+            sqlite_db_path=primary_paths[2],
+        )
+        validator_backend = create_storage_backend(
+            "sqlite",
+            blockchain_file=validator_paths[0],
+            peers_file=validator_paths[1],
+            sqlite_db_path=validator_paths[2],
+        )
+        validator = _node(wallets, validator_backend)
+        accounts = [Account.from_key(key) for key in validator_keys]
+        validator.validator_set = tuple(sorted(account.address.lower() for account in accounts))
+
+        def finalize_batch(submission_ids):
+            canonical_state = primary.load_blockchain_state()
+            attestations = list(validator.finality_attestations)
+            finalized_blocks = list(validator.finalized_blocks)
+            validator._restore_blockchain_state_document(canonical_state)
+            validator.finality_attestations = attestations
+            validator.finalized_blocks = finalized_blocks
+            blocks = []
+            for submission_id in submission_ids:
+                block = validator.get_protocol_v1_block_for_submission(submission_id)
+                if block is None:
+                    raise AssertionError(f"accepted submission was not found on the canonical chain: {submission_id}")
+                blocks.append(block)
+            validator.submit_validator_finality_attestations(
+                [
+                    _finality_attestation(account, block)
+                    for block in blocks
+                    for account in accounts[:2]
+                ]
+            )
+            for block in blocks:
+                completed.put(("finalized", block.submission_id, block.index, block.hash))
+
+        pending = []
+        while True:
+            submission_id = submitted.get()
+            if submission_id is None:
+                if pending:
+                    finalize_batch(pending)
+                break
+            pending.append(submission_id)
+            if len(pending) >= FINALITY_BATCH_SIZE:
+                finalize_batch(pending)
+                pending = []
+    except Exception as exc:
+        completed.put(("error", repr(exc)))
+    finally:
+        completed.put(("done",))
 
 
 def _sync_peer(monkeypatch, source, target, peer_file):
@@ -225,13 +364,20 @@ def test_100_concurrent_certified_approvals_are_linear_recoverable_and_finalized
 ):
     """The Task 3.7 SQLite benchmark; assertions are deliberately non-optional."""
     workload_started = perf_counter()
+    lifecycle_timing = LifecycleTimingRecorder()
     backend = _backend(isolated_data_dir, "task-3-7-sqlite")
-    coordinator = _node(wallets, backend)
+    coordinator = _node(wallets, backend, lifecycle_timing)
     submissions, certified, approval_duration = _ready_submissions_concurrently(coordinator, wallets)
     assert len(certified) == WORKLOAD_SIZE
     coordinator._restore_blockchain_state_document(backend.load_blockchain_state())
     expected_order = [entry["submission_id"] for entry in coordinator.get_mint_queue(mintable_only=True)]
     assert len(expected_order) == WORKLOAD_SIZE
+    on_committed, finish_finality = _start_prompt_finality_coordinator(
+        wallets,
+        backend,
+        lifecycle_timing,
+        isolated_data_dir,
+    )
 
     # A pre-commit failure leaves the complete durable document unchanged and
     # the selected submission eligible for the concurrent retry phase.
@@ -255,8 +401,17 @@ def test_100_concurrent_certified_approvals_are_linear_recoverable_and_finalized
         validate_meme=False,
     ) is True
     assert backend.load_blockchain_state() == after_lost_response
+    on_committed({"submission_id": expected_order[0]})
 
-    outcomes, commit_duration = _commit_all_concurrently(wallets, backend)
+    finality_started = perf_counter()
+    outcomes, commit_duration = _commit_all_concurrently(
+        wallets,
+        backend,
+        lifecycle_timing,
+        on_committed=on_committed,
+    )
+    validator_backends, validators, validator_set = finish_finality()
+    finality_duration = perf_counter() - finality_started
     document = backend.load_blockchain_state()
     _assert_canonical_workload(document, expected_order)
 
@@ -273,11 +428,15 @@ def test_100_concurrent_certified_approvals_are_linear_recoverable_and_finalized
     assert backend.load_blockchain_state() == before_replays
     assert after_lost_response["chain"][1]["submission_id"] == expected_order[0]
 
-    # Synchronize the real canonical chain to an independent node, then send
-    # the same valid attestations in different orders.  No Blockchain state is
-    # shared between the two validator nodes.
-    source = _node(wallets, backend)
-    source._restore_blockchain_state_document(backend.load_blockchain_state())
+    final_block_hash = document["chain"][-1]["hash"]
+    source_backend = validator_backends[
+        sum(str(expected_order[-1]).encode("utf-8")) % FINALITY_WORKER_COUNT
+    ]
+    source = _node(wallets, source_backend, lifecycle_timing)
+    source.validator_set = validator_set
+    assert source.get_finality_evidence(final_block_hash) is not None
+    # Synchronize the promptly-finalizing validator chain to an independent
+    # node and prove finality convergence without delaying lifecycle marks.
     peer_backend = _backend(isolated_data_dir, "task-3-7-peer")
     peer = _node(wallets, peer_backend)
     sync_result = _sync_peer(monkeypatch, source, peer, isolated_data_dir / "task-3-7-peers.json")
@@ -285,19 +444,10 @@ def test_100_concurrent_certified_approvals_are_linear_recoverable_and_finalized
         raise AssertionError(repr(sync_result))
     assert [block.hash for block in peer.chain] == [block.hash for block in source.chain]
 
-    validators = [Account.create() for _ in range(3)]
-    validator_set = tuple(sorted(account.address.lower() for account in validators))
-    source.validator_set = validator_set
     peer.validator_set = validator_set
     final_block = source.get_latest_block()
-    attestations = [_finality_attestation(account, final_block) for account in validators]
-    quorum_attestations = attestations[:2]
-    finality_started = perf_counter()
-    for attestation in quorum_attestations:
-        source.submit_validator_finality_attestation(attestation)
-    for attestation in reversed(quorum_attestations):
+    for attestation in reversed([_finality_attestation(account, final_block) for account in validators[:2]]):
         peer.submit_validator_finality_attestation(attestation)
-    finality_duration = perf_counter() - finality_started
     assert source.get_finalized_head() == peer.get_finalized_head() == {"block_height": 100, "block_hash": final_block.hash}
     assert source.get_finality_evidence(final_block.hash) == peer.get_finality_evidence(final_block.hash)
 
@@ -320,6 +470,25 @@ def test_100_concurrent_certified_approvals_are_linear_recoverable_and_finalized
     record_property("finality_duration_seconds", f"{finality_duration:.6f}")
     record_property("finalized_height", final_block.index)
     record_property("finalized_hash", final_block.hash)
+    records = lifecycle_timing.completed_records()
+    assert len(records) == WORKLOAD_SIZE
+    def duration(records, start, end):
+        return sorted((record["stages"][end] - record["stages"][start]) / 1_000_000_000 for record in records)
+    def percentile(values, fraction):
+        return values[max(0, math.ceil(fraction * len(values)) - 1)]
+    import math
+    for name, start, end in (
+        ("vote_to_certificate", "vote_passed", "certificate_created"),
+        ("certificate_to_ready", "certificate_created", "ready_for_mint"),
+        ("ready_to_proposal", "ready_for_mint", "proposal_prepared"),
+        ("proposal_to_accepted", "proposal_prepared", "accepted"),
+        ("certificate_to_accepted", "certificate_created", "accepted"),
+        ("accepted_to_finalized", "accepted", "finalized"),
+        ("vote_to_finalized", "vote_passed", "finalized"),
+    ):
+        values = duration(records, start, end)
+        for label, value in (("count", len(values)), ("min", values[0]), ("p50", percentile(values, .50)), ("p95", percentile(values, .95)), ("p99", percentile(values, .99)), ("max", values[-1])):
+            record_property(f"lifecycle_{name}_{label}", value if label == "count" else f"{value:.9f}")
 
 
 def test_json_backend_concurrent_retry_preserves_linear_order_and_replay(isolated_data_dir, wallets):

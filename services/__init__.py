@@ -9,6 +9,7 @@ from .native_ledger_service import NativeLedgerService, NativeLedgerState
 from .native_mempool_service import NativeMempoolService, NativeMempoolState
 from .reward_service import RewardCollaborators, RewardService, RewardState
 from .finality_service import FinalityAttestationError, FinalityPolicy, FinalityService, normalize_validator_set, required_quorum
+from .lifecycle_timing import LifecycleTimingRecorder
 from .fork_choice_service import ForkChoiceCollaborators, ForkChoiceService
 from .block_validation_service import BlockValidationCollaborators, BlockValidationService, NativeBlockValidationError
 from .block_production_service import BlockProductionCollaborators, BlockProductionService, BlockProductionState

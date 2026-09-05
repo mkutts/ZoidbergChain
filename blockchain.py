@@ -1430,18 +1430,29 @@ class Blockchain:
             expects_binary_payload = True
 
         if resolved_image_path and os.path.isfile(resolved_image_path):
-            with open(resolved_image_path, "rb") as image_file:
-                content_object = self.upload_binary_content(
-                    file_bytes=image_file.read(),
+            payload_mime_type = guess_mime_type(os.path.basename(resolved_image_path), "image/jpeg")
+            if payload_mime_type == TEXT_MIME_TYPE:
+                with open(resolved_image_path, "r", encoding="utf-8") as text_file:
+                    text_content = text_file.read()
+                content_object = self.upload_text_content(
+                    text_content=text_content,
                     submitted_by=submission.submitter,
-                    mime_type=guess_mime_type(os.path.basename(resolved_image_path), "image/jpeg"),
-                    original_filename=os.path.basename(resolved_image_path),
-                    caption=validate_caption(submission.text_content),
-                    content_type_hint=self._content_type_hint_for_submission(
-                        resolved_image_path,
-                        submission.text_content,
-                    ),
+                    caption=validate_caption(text_content),
                 )
+                submission.text_content = content_object.text_content or text_content
+            else:
+                with open(resolved_image_path, "rb") as image_file:
+                    content_object = self.upload_binary_content(
+                        file_bytes=image_file.read(),
+                        submitted_by=submission.submitter,
+                        mime_type=payload_mime_type,
+                        original_filename=os.path.basename(resolved_image_path),
+                        caption=validate_caption(submission.text_content),
+                        content_type_hint=self._content_type_hint_for_submission(
+                            resolved_image_path,
+                            submission.text_content,
+                        ),
+                    )
             submission.image_path = resolved_image_path
         else:
             if expects_binary_payload:
@@ -2108,8 +2119,25 @@ class Blockchain:
             "originality_score": certificate.originality_score,
         }
         if content_object is not None:
-            metadata["content_type"] = content_object.content_type
+            # Text payloads must be declared as text even when older content
+            # records retained a mixed hint from a captioned submission.
+            metadata["content_type"] = (
+                CONTENT_TYPE_TEXT
+                if content_object.mime_type == TEXT_MIME_TYPE
+                else content_object.content_type
+            )
             metadata["mime_type"] = content_object.mime_type
+        elif submission is not None:
+            # A legacy content-object hash can differ from the canonical
+            # certificate payload hash.  The promoted local text file remains
+            # authoritative for media typing, so retain the required Protocol
+            # V1 text metadata instead of emitting an untyped text block.
+            promoted_mime_type = guess_mime_type(
+                os.path.basename(submission.image_path or ""), ""
+            )
+            if promoted_mime_type == TEXT_MIME_TYPE or str(submission.image_path or "").lower().endswith(".txt"):
+                metadata["content_type"] = CONTENT_TYPE_TEXT
+                metadata["mime_type"] = TEXT_MIME_TYPE
         return metadata
 
     def _normalize_native_wallet_identity(self, wallet_address):
@@ -2604,6 +2632,80 @@ class Blockchain:
         finally:
             self.__dict__.pop("_atomic_commit_native_overlay", None)
         return True
+
+    @staticmethod
+    def _is_sqlite_busy_error(error):
+        """Whether an operational failure is SQLite's retryable write contention."""
+        message = str(error).lower()
+        return "database is locked" in message or "database is busy" in message
+
+    def commit_next_certified_submission_with_retry(
+        self,
+        *,
+        miner=None,
+        max_block_size_kb=500,
+        validate_meme=True,
+        max_retries=200,
+    ):
+        """Commit the canonical ready submission, safely retrying write contention.
+
+        This is the concurrency coordinator for certified minting.  Every
+        attempt reloads durable state and selects the first Task 3.2 ordered
+        queue item before preparing the expected-head commit.  Consequently a
+        stale attempt can never retry a later-ranked submission ahead of the
+        current canonical choice.
+
+        The returned counters are deliberately per-call operational results,
+        rather than persistent telemetry.  They support callers that need to
+        report contention without changing consensus state.
+        """
+        stale_head_retries = 0
+        sqlite_busy_retries = 0
+        for attempt in range(max_retries + 1):
+            document = self.storage.load_blockchain_state()
+            self._restore_blockchain_state_document(document)
+            ready = self.get_mint_queue(include_blocked=True, mintable_only=True)
+            if not ready:
+                return {
+                    "committed": False,
+                    "submission_id": None,
+                    "retries": attempt,
+                    "stale_head_retries": stale_head_retries,
+                    "sqlite_busy_retries": sqlite_busy_retries,
+                }
+            submission_id = ready[0]["submission_id"]
+            expected_head = self._current_canonical_head()
+            try:
+                self.commit_certified_submission(
+                    submission_id,
+                    expected_head=expected_head,
+                    miner=miner,
+                    max_block_size_kb=max_block_size_kb,
+                    validate_meme=validate_meme,
+                )
+                return {
+                    "committed": True,
+                    "submission_id": submission_id,
+                    "retries": attempt,
+                    "stale_head_retries": stale_head_retries,
+                    "sqlite_busy_retries": sqlite_busy_retries,
+                }
+            except StaleCanonicalHeadError:
+                stale_head_retries += 1
+            except Exception as exc:
+                if not self._is_sqlite_busy_error(exc):
+                    raise
+                sqlite_busy_retries += 1
+
+            if attempt == max_retries:
+                break
+            # A deterministic, bounded backoff avoids a SQLite write-lock
+            # spin without affecting canonical ordering or block contents.
+            time.sleep(min(0.001 * (2 ** min(attempt, 5)), 0.032))
+        raise RuntimeError(
+            "Certified mint retry limit exceeded "
+            f"(stale_head_retries={stale_head_retries}, sqlite_busy_retries={sqlite_busy_retries})."
+        )
 
     def _mint_submission_record(self, submission, certificate, miner=None, max_block_size_kb=500, validate_meme=True):
         # Retain the historical seam used by queue-only callers/tests that

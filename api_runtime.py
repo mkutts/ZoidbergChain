@@ -202,6 +202,7 @@ from peer_sync import (
     ChainExtensionError,
     ConflictingVoteError,
     ConflictingTransactionError,
+    ConflictingPeerMessageError,
     ConflictingCertificateError,
     DuplicateBlockError,
     DuplicateSubmissionError,
@@ -462,8 +463,13 @@ class PeerCertificateReceive(BaseModel):
 class PeerTransactionReceive(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    message_type: Literal["native-transaction"] | None = None
+    peer_message_version: Annotated[int, Field(ge=1)] | None = None
+    protocol_version: Annotated[int, Field(ge=1)] | None = None
+    message_id: Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)] | None = None
     origin_node_id: NodeIdValue
     network_name: NetworkNameValue
+    network_id: Annotated[str, Field(min_length=3, max_length=128)] | None = None
     transaction: dict[str, Any]
 
 

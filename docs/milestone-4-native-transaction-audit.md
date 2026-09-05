@@ -970,3 +970,138 @@ ID recomputation, network/version rules, deterministic ordering, sequential
 balance progression, and canonical settlement replay remain deterministic
 application/protocol invariants because they cannot be represented solely by a
 database constraint.
+
+## 21. Task 4.5 implementation — durable acknowledged peer outbox
+
+Task 4.5 adds crash-safe native transaction propagation state without changing
+native transaction lifecycle or consensus ordering. Public Testnet v1 uses the
+SQLite implementation. JSON remains usable for local development and keeps the
+previous immediate broadcast behavior, but intentionally does not claim a
+durable relational outbox or durable peer-message deduplication guarantee.
+
+### 21.1 Authenticated message format and identity
+
+`POST /peers/transactions/receive` remains the only transaction receive route.
+Its body now supports this versioned logical delivery envelope:
+
+| Field | Meaning |
+| --- | --- |
+| `message_type` | `native-transaction` |
+| `peer_message_version` | `1` |
+| `protocol_version` | `1` |
+| `message_id` | stable logical delivery ID |
+| `origin_node_id` | sending node identity |
+| `network_name`, `network_id` | claimed network and canonical Protocol v1 network ID |
+| `transaction` | user-signed immutable native transaction fields only |
+
+The logical `message_id` is the lowercase SHA-256 of canonical Protocol v1 JSON
+for `{domain: "zoidbergchain:peer-native-transaction-delivery:v1",
+message_type: "native-transaction", network_id, sender_node_id, tx_id}`. It is
+independent of wall-clock time and destination, and therefore survives sender
+restart and retry. The deterministic `outbox_id` is separately derived from the
+logical message ID and destination peer ID under the
+`zoidbergchain:peer-native-transaction-outbox:v1` domain.
+
+This logical ID is distinct from the existing `X-ZOID-Message-Id`. The existing
+Protocol v1 request envelope and HMAC headers are regenerated for each attempt
+with a fresh timestamp and nonce, preserving bounded replay rejection. The HMAC
+authenticates the entire logical body and binds protocol/message version,
+network, route message type, and sender node. Shared-secret compatibility mode
+is unchanged. A peer transport signature never substitutes for the embedded
+MetaMask `personal_sign` validation.
+
+### 21.2 Outbox schema, uniqueness, and state machine
+
+`native_transaction_peer_outbox` stores `outbox_id`, `message_id`, message type,
+`tx_id`, destination peer ID and URL, canonical serialized logical message,
+delivery state, attempt count, creation/last-attempt/next-attempt/ACK timestamps,
+claim token and lease expiry, and bounded stable error code/detail. It stores no
+peer secret or user private key. The native transaction row remains the source
+of truth.
+
+SQLite enforces `PRIMARY KEY (outbox_id)` and
+`UNIQUE(message_id, destination_peer_id)`. Re-enqueue of identical work is an
+idempotent no-op; conflicting reuse fails. Claim and transaction-ID indexes
+support deterministic pending selection and operational lookup.
+
+Legal delivery transitions are:
+
+| From | To |
+| --- | --- |
+| `queued` | `in_flight`, `permanent_failure` |
+| `in_flight` | `acknowledged`, `retry_wait`, `permanent_failure` |
+| `retry_wait` | `in_flight`, `permanent_failure` |
+| `acknowledged`, `permanent_failure` | same state only |
+
+SQLite enforces these transitions with a trigger. `BEGIN IMMEDIATE` makes claim
+selection and the `in_flight` update exclusive. A claim receives an opaque token
+and expiry; only the matching token can complete or fail it. Claiming first moves
+expired `in_flight` rows to `retry_wait`, so process death cannot strand work.
+Task 4.6 will add scheduling policy and backoff; Task 4.5 retries have only the
+minimal `next_attempt_at` primitive.
+
+### 21.3 Atomic admission boundary and peer selection
+
+For SQLite, a local `signed_pending` to `mempool` admission and all required
+outbox inserts occur inside the same `BEGIN IMMEDIATE` transaction. A signed
+submission admitted directly to the mempool uses the same boundary. If outbox
+construction or insertion fails, the admission transition rolls back and no
+success is returned. No post-commit crash window exists between accepted local
+admission and propagation intent.
+
+Recipients are the peers marked `active` on the same network in the already
+locked peer section at admission time. An active but unreachable peer still gets
+a row, and network failure does not roll back local acceptance. Inactive peers
+and peers on another network do not get rows. With no active peers, admission
+succeeds with no delivery rows. A peer added after admission is not backfilled in
+Task 4.5; reconnect/future-peer convergence belongs to Task 4.6.
+
+### 21.4 Receiver deduplication and ACK contract
+
+The receiver first passes existing route authorization and Protocol v1 peer
+authentication, verifies body sender/network/version/message identity, and then
+calls `Blockchain.admit_received_native_transaction_operation(...)`. That
+authoritative Task 4.4 path independently recomputes the native `tx_id`, exact
+signed message/hash and signer, and rechecks nonce, balance, fee, and network.
+Peer lifecycle fields are neither accepted nor copied into the user-signed
+transaction.
+
+SQLite records `received_native_transaction_messages` in the same transaction
+as native admission. Each row binds the stable message ID to message type,
+sender, `tx_id`, and a hash of immutable signed transaction fields. Exact
+redelivery still runs native validation and returns idempotent success. Reusing a
+message ID with different immutable identity fails, while the transaction table
+independently rejects a conflicting payload for an existing `tx_id`. Dedup rows
+are retained for the lifetime of the transaction database in Task 4.5; no
+cleanup can reopen duplicate settlement. This is intentionally conservative and
+may require a bounded archival policy in a later storage-maintenance task.
+
+An ACK is valid only after that SQLite transaction commits, or after the receiver
+durably recognizes the exact existing transaction. The response binds
+`ack.status == "acknowledged"`, `ack.message_id`, and `ack.tx_id`; an exact
+duplicate also reports `ack.duplicate`. The sender changes only the matching
+claimed row to `acknowledged`. Duplicate ACK processing is idempotent. Unknown,
+wrong-destination, wrong-transaction, or wrong-claim ACKs cannot acknowledge
+unrelated work. Transport failures, HTTP 5xx, 408, 425, and 429 return work to
+`retry_wait`; authentication, validation, conflict, and other protocol 4xx
+rejections become `permanent_failure`. Error detail is bounded and tracebacks
+are not protocol state.
+
+### 21.5 Invariant matrix
+
+| Layer | Invariant | Enforcement |
+| --- | --- | --- |
+| Transaction database | one immutable signed payload per `tx_id` | primary key plus immutable-payload comparison |
+| Transaction database | one active transaction per sender/nonce | partial unique index |
+| Transaction database | legal native lifecycle changes only | lifecycle trigger |
+| Outbox database | one logical delivery per message/destination | `UNIQUE(message_id, destination_peer_id)` |
+| Outbox database | one active worker claim and legal delivery transitions | `BEGIN IMMEDIATE`, claim token/lease, state trigger |
+| Outbox database | ACK cannot select unrelated work | message, destination, transaction, state, and optional claim-token match |
+| Peer application | stable domain-separated logical identity | canonical SHA-256 derivation and receiver recomputation |
+| Peer application | peer identity/network/message authenticity | existing route binding and HMAC/shared-secret authorization |
+| Peer application | user transfer remains independently valid | Task 4.4 authoritative admission validation |
+| Peer application | ACK follows durable admission only | receiver admission/dedup transaction commits before response |
+
+Task 4.5 does not add an autonomous retry worker, advanced backoff, reconnect
+reconciliation, broad anti-entropy, reorg recovery, or the 10,000-transaction
+benchmark.

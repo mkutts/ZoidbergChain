@@ -7,10 +7,11 @@ import sqlite3
 import shutil
 import tempfile
 import time
+import secrets
 from contextlib import contextmanager
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -67,6 +68,13 @@ NATIVE_TRANSACTION_ACTIVE_STATES = (
     "included",
     "settled",
     "finalized",
+)
+NATIVE_TRANSACTION_OUTBOX_STATES = (
+    "queued",
+    "in_flight",
+    "retry_wait",
+    "acknowledged",
+    "permanent_failure",
 )
 _NATIVE_TRANSACTION_IMMUTABLE_FIELDS = (
     "tx_id", "transaction_type", "network", "transaction_version",
@@ -480,7 +488,9 @@ class StorageBackend(ABC):
         """
         raise NotImplementedError
 
-    def atomic_update_blockchain_document(self, mutate):
+    def atomic_update_blockchain_document(
+        self, mutate, *, outbox_records=None, received_peer_message=None
+    ):
         """Durably replace a document from a freshly locked/transactional read.
 
         Unlike the canonical-head compare-and-swap command, this is for local
@@ -489,6 +499,31 @@ class StorageBackend(ABC):
         return until the replacement is durable.
         """
         raise NotImplementedError
+
+    @property
+    def supports_durable_peer_outbox(self) -> bool:
+        return False
+
+    def list_native_transaction_outbox(self, **_filters):
+        return []
+
+    def get_native_transaction_outbox(self, **_identity):
+        return None
+
+    def enqueue_native_transaction_outbox(self, records):
+        raise RuntimeError("Durable native transaction peer outbox requires SQLite storage.")
+
+    def claim_native_transaction_outbox(self, **_options):
+        return None
+
+    def acknowledge_native_transaction_outbox(self, **_ack):
+        return False
+
+    def fail_native_transaction_outbox(self, **_failure):
+        return False
+
+    def get_received_native_transaction_message(self, message_id):
+        return None
 
     def delete_blockchain_document(self) -> None:
         for candidate in (self.blockchain_file, _backup_path_for(self.blockchain_file)):
@@ -1067,11 +1102,15 @@ class JSONStorageBackend(StorageBackend):
             self.save_blockchain_document(replacement)
             return replacement
 
-    def atomic_update_blockchain_document(self, mutate):
+    def atomic_update_blockchain_document(
+        self, mutate, *, outbox_records=None, received_peer_message=None
+    ):
         with self._commit_lock():
             replacement = self._normalize_blockchain_document(
                 mutate(deepcopy(self._load_or_new_blockchain_document()))
             )
+            # JSON remains a development compatibility backend. It cannot
+            # provide relational outbox or durable message-dedup guarantees.
             self.save_blockchain_document(replacement)
             return replacement
 
@@ -1200,6 +1239,77 @@ class SQLiteStorageBackend(StorageBackend):
                     PRIMARY KEY (tx_id, transition_sequence),
                     FOREIGN KEY (tx_id) REFERENCES native_transaction_records(tx_id)
                 )
+                """
+            )
+            connection.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS native_transaction_peer_outbox (
+                    outbox_id TEXT PRIMARY KEY,
+                    message_id TEXT NOT NULL,
+                    message_type TEXT NOT NULL,
+                    tx_id TEXT NOT NULL,
+                    destination_peer_id TEXT NOT NULL,
+                    destination_peer_url TEXT NOT NULL,
+                    serialized_message TEXT NOT NULL,
+                    delivery_state TEXT NOT NULL CHECK (delivery_state IN ({', '.join(repr(state) for state in NATIVE_TRANSACTION_OUTBOX_STATES)})),
+                    attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+                    created_at TEXT NOT NULL,
+                    last_attempt_at TEXT,
+                    next_attempt_at TEXT,
+                    acknowledged_at TEXT,
+                    claim_token TEXT,
+                    claim_expires_at TEXT,
+                    last_error_code TEXT,
+                    last_error_detail TEXT,
+                    UNIQUE(message_id, destination_peer_id),
+                    FOREIGN KEY (tx_id) REFERENCES native_transaction_records(tx_id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS native_transaction_peer_outbox_claimable
+                ON native_transaction_peer_outbox(delivery_state, next_attempt_at, claim_expires_at, created_at)
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS native_transaction_peer_outbox_tx_id
+                ON native_transaction_peer_outbox(tx_id)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS received_native_transaction_messages (
+                    message_id TEXT PRIMARY KEY,
+                    message_type TEXT NOT NULL,
+                    sender_node_id TEXT NOT NULL,
+                    tx_id TEXT NOT NULL,
+                    payload_hash TEXT NOT NULL,
+                    received_at TEXT NOT NULL,
+                    acknowledged_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS received_native_transaction_messages_tx_id
+                ON received_native_transaction_messages(tx_id)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS native_transaction_peer_outbox_state_guard
+                BEFORE UPDATE OF delivery_state ON native_transaction_peer_outbox
+                WHEN NOT (
+                    NEW.delivery_state = OLD.delivery_state OR
+                    (OLD.delivery_state = 'queued' AND NEW.delivery_state IN ('in_flight', 'permanent_failure')) OR
+                    (OLD.delivery_state = 'in_flight' AND NEW.delivery_state IN ('retry_wait', 'acknowledged', 'permanent_failure')) OR
+                    (OLD.delivery_state = 'retry_wait' AND NEW.delivery_state IN ('in_flight', 'permanent_failure'))
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'illegal native transaction outbox transition');
+                END
                 """
             )
             # SQLite performs this check even if a caller bypasses the Python
@@ -1581,12 +1691,18 @@ class SQLiteStorageBackend(StorageBackend):
             self._save_sections_to_connection(connection, replacement)
             return replacement
 
-    def atomic_update_blockchain_document(self, mutate):
+    def atomic_update_blockchain_document(
+        self, mutate, *, outbox_records=None, received_peer_message=None
+    ):
         # BEGIN IMMEDIATE serializes competing admissions before they inspect
         # pending balance and nonce reservations.  Returning from this method
         # happens only after the connection context has committed successfully.
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            if received_peer_message is not None:
+                self._check_received_native_transaction_message(
+                    connection, received_peer_message
+                )
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
@@ -1594,8 +1710,312 @@ class SQLiteStorageBackend(StorageBackend):
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", [])
             )
+            records = (
+                outbox_records(deepcopy(replacement))
+                if callable(outbox_records)
+                else outbox_records
+            )
+            if records:
+                self._insert_native_transaction_outbox_records(connection, records)
+            if received_peer_message is not None:
+                self._insert_received_native_transaction_message(
+                    connection, received_peer_message
+                )
             self._save_sections_to_connection(connection, replacement)
             return replacement
+
+    @property
+    def supports_durable_peer_outbox(self) -> bool:
+        return True
+
+    @staticmethod
+    def _bounded_error_detail(value) -> str | None:
+        if value in (None, ""):
+            return None
+        return str(value).strip()[:512]
+
+    @staticmethod
+    def _outbox_record_from_row(row) -> dict[str, Any]:
+        columns = (
+            "outbox_id", "message_id", "message_type", "tx_id",
+            "destination_peer_id", "destination_peer_url", "serialized_message",
+            "delivery_state", "attempt_count", "created_at", "last_attempt_at",
+            "next_attempt_at", "acknowledged_at", "claim_token",
+            "claim_expires_at", "last_error_code", "last_error_detail",
+        )
+        record = dict(zip(columns, row))
+        record["message"] = _json_loads_or_default(
+            record["serialized_message"], {}, strict=True, label="native transaction outbox message"
+        )
+        return record
+
+    @classmethod
+    def _insert_native_transaction_outbox_records(cls, connection, records) -> None:
+        for raw_record in records or []:
+            record = dict(raw_record or {})
+            required = (
+                "outbox_id", "message_id", "message_type", "tx_id",
+                "destination_peer_id", "destination_peer_url", "serialized_message",
+                "delivery_state", "created_at",
+            )
+            if any(record.get(field) in (None, "") for field in required):
+                raise StorageCorruptionError("Native transaction outbox record is incomplete.")
+            existing = connection.execute(
+                """SELECT outbox_id, message_type, tx_id, serialized_message
+                   FROM native_transaction_peer_outbox
+                   WHERE message_id = ? AND destination_peer_id = ?""",
+                (record["message_id"], record["destination_peer_id"]),
+            ).fetchone()
+            expected_identity = (
+                record["outbox_id"], record["message_type"], record["tx_id"],
+                record["serialized_message"],
+            )
+            if existing is not None:
+                if tuple(existing) != expected_identity:
+                    raise StorageUniquenessError(
+                        "Native transaction outbox identity conflicts with existing delivery work."
+                    )
+                continue
+            connection.execute(
+                """INSERT INTO native_transaction_peer_outbox
+                   (outbox_id, message_id, message_type, tx_id, destination_peer_id,
+                    destination_peer_url, serialized_message, delivery_state,
+                    attempt_count, created_at, last_attempt_at, next_attempt_at,
+                    acknowledged_at, claim_token, claim_expires_at,
+                    last_error_code, last_error_detail)
+                   VALUES (:outbox_id, :message_id, :message_type, :tx_id,
+                           :destination_peer_id, :destination_peer_url,
+                           :serialized_message, :delivery_state, :attempt_count,
+                           :created_at, :last_attempt_at, :next_attempt_at,
+                           :acknowledged_at, :claim_token, :claim_expires_at,
+                           :last_error_code, :last_error_detail)""",
+                {
+                    **record,
+                    "attempt_count": int(record.get("attempt_count", 0)),
+                    "last_attempt_at": record.get("last_attempt_at"),
+                    "next_attempt_at": record.get("next_attempt_at"),
+                    "acknowledged_at": record.get("acknowledged_at"),
+                    "claim_token": record.get("claim_token"),
+                    "claim_expires_at": record.get("claim_expires_at"),
+                    "last_error_code": record.get("last_error_code"),
+                    "last_error_detail": cls._bounded_error_detail(record.get("last_error_detail")),
+                },
+            )
+
+    @staticmethod
+    def _check_received_native_transaction_message(connection, record) -> None:
+        record = dict(record or {})
+        existing = connection.execute(
+            """SELECT message_type, sender_node_id, tx_id, payload_hash
+               FROM received_native_transaction_messages WHERE message_id = ?""",
+            (record.get("message_id"),),
+        ).fetchone()
+        if existing is None:
+            return
+        expected = (
+            record.get("message_type"), record.get("sender_node_id"),
+            record.get("tx_id"), record.get("payload_hash"),
+        )
+        if tuple(existing) != expected:
+            raise StorageUniquenessError(
+                "Peer native transaction message_id conflicts with a previously received message."
+            )
+
+    @classmethod
+    def _insert_received_native_transaction_message(cls, connection, record) -> None:
+        cls._check_received_native_transaction_message(connection, record)
+        now = record.get("received_at") or _utc_now_iso()
+        connection.execute(
+            """INSERT OR IGNORE INTO received_native_transaction_messages
+               (message_id, message_type, sender_node_id, tx_id, payload_hash,
+                received_at, acknowledged_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                record.get("message_id"), record.get("message_type"),
+                record.get("sender_node_id"), record.get("tx_id"),
+                record.get("payload_hash"), now,
+                record.get("acknowledged_at") or now,
+            ),
+        )
+
+    def enqueue_native_transaction_outbox(self, records):
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self._insert_native_transaction_outbox_records(connection, records)
+        return self.list_native_transaction_outbox()
+
+    def list_native_transaction_outbox(
+        self, *, delivery_state=None, destination_peer_id=None, tx_id=None
+    ):
+        clauses = []
+        parameters = []
+        if delivery_state is not None:
+            clauses.append("delivery_state = ?")
+            parameters.append(str(delivery_state))
+        if destination_peer_id is not None:
+            clauses.append("destination_peer_id = ?")
+            parameters.append(str(destination_peer_id))
+        if tx_id is not None:
+            clauses.append("tx_id = ?")
+            parameters.append(str(tx_id).strip().lower())
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT outbox_id, message_id, message_type, tx_id,
+                          destination_peer_id, destination_peer_url, serialized_message,
+                          delivery_state, attempt_count, created_at, last_attempt_at,
+                          next_attempt_at, acknowledged_at, claim_token,
+                          claim_expires_at, last_error_code, last_error_detail
+                   FROM native_transaction_peer_outbox""" + where +
+                " ORDER BY created_at, outbox_id",
+                tuple(parameters),
+            ).fetchall()
+        return [self._outbox_record_from_row(row) for row in rows]
+
+    def get_native_transaction_outbox(
+        self, *, outbox_id=None, message_id=None, destination_peer_id=None
+    ):
+        if outbox_id:
+            clause, parameters = "outbox_id = ?", (str(outbox_id),)
+        elif message_id and destination_peer_id:
+            clause = "message_id = ? AND destination_peer_id = ?"
+            parameters = (str(message_id), str(destination_peer_id))
+        else:
+            return None
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT outbox_id, message_id, message_type, tx_id,
+                          destination_peer_id, destination_peer_url, serialized_message,
+                          delivery_state, attempt_count, created_at, last_attempt_at,
+                          next_attempt_at, acknowledged_at, claim_token,
+                          claim_expires_at, last_error_code, last_error_detail
+                   FROM native_transaction_peer_outbox WHERE """ + clause,
+                parameters,
+            ).fetchone()
+        return self._outbox_record_from_row(row) if row else None
+
+    def claim_native_transaction_outbox(
+        self, *, destination_peer_id=None, tx_id=None, now=None, lease_seconds=30
+    ):
+        if int(lease_seconds) < 0:
+            raise ValueError("Outbox claim lease_seconds must be non-negative.")
+        now_value = (
+            datetime.now(timezone.utc)
+            if now is None
+            else datetime.fromisoformat(str(now).replace("Z", "+00:00"))
+        )
+        if now_value.tzinfo is None:
+            now_value = now_value.replace(tzinfo=timezone.utc)
+        now_iso = now_value.astimezone(timezone.utc).isoformat()
+        claim_expires_at = (
+            now_value.astimezone(timezone.utc) + timedelta(seconds=int(lease_seconds))
+        ).isoformat()
+        claim_token = secrets.token_hex(16)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                """UPDATE native_transaction_peer_outbox
+                   SET delivery_state = 'retry_wait', claim_token = NULL,
+                       claim_expires_at = NULL, last_error_code = 'claim_expired',
+                       last_error_detail = 'Previous delivery claim expired before acknowledgement.'
+                   WHERE delivery_state = 'in_flight' AND claim_expires_at <= ?""",
+                (now_iso,),
+            )
+            destination_clause = " AND destination_peer_id = ?" if destination_peer_id else ""
+            tx_clause = " AND tx_id = ?" if tx_id else ""
+            parameters = [now_iso]
+            if destination_peer_id:
+                parameters.append(str(destination_peer_id))
+            if tx_id:
+                parameters.append(str(tx_id).strip().lower())
+            row = connection.execute(
+                """SELECT outbox_id FROM native_transaction_peer_outbox
+                   WHERE delivery_state IN ('queued', 'retry_wait')
+                     AND (next_attempt_at IS NULL OR next_attempt_at <= ?)"""
+                + destination_clause
+                + tx_clause
+                + " ORDER BY created_at, outbox_id LIMIT 1",
+                tuple(parameters),
+            ).fetchone()
+            if row is None:
+                return None
+            connection.execute(
+                """UPDATE native_transaction_peer_outbox
+                   SET delivery_state = 'in_flight', attempt_count = attempt_count + 1,
+                       last_attempt_at = ?, claim_token = ?, claim_expires_at = ?,
+                       last_error_code = NULL, last_error_detail = NULL
+                   WHERE outbox_id = ? AND delivery_state IN ('queued', 'retry_wait')""",
+                (now_iso, claim_token, claim_expires_at, row[0]),
+            )
+        return self.get_native_transaction_outbox(outbox_id=row[0])
+
+    def acknowledge_native_transaction_outbox(
+        self, *, message_id, destination_peer_id, tx_id, acknowledged_at=None,
+        claim_token=None
+    ):
+        acknowledged_at = acknowledged_at or _utc_now_iso()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                """SELECT outbox_id, tx_id, delivery_state, claim_token
+                   FROM native_transaction_peer_outbox
+                   WHERE message_id = ? AND destination_peer_id = ?""",
+                (message_id, destination_peer_id),
+            ).fetchone()
+            if row is None or row[1] != str(tx_id).strip().lower():
+                return False
+            if row[2] == "acknowledged":
+                return True
+            if row[2] != "in_flight":
+                return False
+            if claim_token is not None and row[3] != claim_token:
+                return False
+            connection.execute(
+                """UPDATE native_transaction_peer_outbox
+                   SET delivery_state = 'acknowledged', acknowledged_at = ?,
+                       claim_token = NULL, claim_expires_at = NULL,
+                       next_attempt_at = NULL, last_error_code = NULL,
+                       last_error_detail = NULL WHERE outbox_id = ?""",
+                (acknowledged_at, row[0]),
+            )
+            return True
+
+    def fail_native_transaction_outbox(
+        self, *, outbox_id, claim_token, error_code, error_detail=None,
+        permanent=False, next_attempt_at=None
+    ):
+        target_state = "permanent_failure" if permanent else "retry_wait"
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            cursor = connection.execute(
+                """UPDATE native_transaction_peer_outbox
+                   SET delivery_state = ?, next_attempt_at = ?, claim_token = NULL,
+                       claim_expires_at = NULL, last_error_code = ?,
+                       last_error_detail = ?
+                   WHERE outbox_id = ? AND delivery_state = 'in_flight'
+                     AND claim_token = ?""",
+                (
+                    target_state, next_attempt_at, str(error_code or "delivery_failed")[:128],
+                    self._bounded_error_detail(error_detail), outbox_id, claim_token,
+                ),
+            )
+            return cursor.rowcount == 1
+
+    def get_received_native_transaction_message(self, message_id):
+        with self._connect() as connection:
+            row = connection.execute(
+                """SELECT message_id, message_type, sender_node_id, tx_id,
+                          payload_hash, received_at, acknowledged_at
+                   FROM received_native_transaction_messages WHERE message_id = ?""",
+                (str(message_id).strip().lower(),),
+            ).fetchone()
+        if row is None:
+            return None
+        columns = (
+            "message_id", "message_type", "sender_node_id", "tx_id",
+            "payload_hash", "received_at", "acknowledged_at",
+        )
+        return dict(zip(columns, row))
 
     def list_durable_native_transaction_records(self):
         with self._connect() as connection:

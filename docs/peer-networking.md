@@ -66,6 +66,22 @@ Not implemented yet:
 - replacement policy
 - mempool consensus
 - transfer-only blocks
+- autonomous retry/backoff policy and reconnect/future-peer convergence (Task 4.6)
+
+## Durable Native Transaction Delivery
+
+SQLite nodes persist one acknowledged outbox row for each active same-network
+peer present when a local native transaction enters the mempool. Local admission
+does not wait for network delivery. The outbox uses exclusive expiring claims,
+keeps retryable failures, and marks a row acknowledged only when the receiver
+returns a matching ACK after durable admission or durable idempotent recognition.
+
+The logical transaction-delivery `message_id` is stable across retries. The
+existing signed Protocol v1 request headers remain attempt-specific and protect
+the complete body with peer authentication and replay controls. Receiver-side
+message identity is stored durably alongside the independently admitted native
+transaction. JSON storage retains immediate legacy broadcast compatibility but
+does not provide these relational durability guarantees.
 
 ## Security Notes
 

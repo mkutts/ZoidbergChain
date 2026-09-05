@@ -77,6 +77,7 @@ async def receive_transaction_from_peer(
             network_name=receive_request.network_name,
             transaction_payload=receive_request.transaction,
             local_network_name=NETWORK_NAME,
+            peer_message=receive_request.model_dump(),
         )
     except UnauthorizedPeerError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
@@ -92,6 +93,13 @@ async def receive_transaction_from_peer(
             409,
             tx_id=(receive_request.transaction or {}).get("tx_id"),
             reason="conflicting_nonce",
+            message=str(exc),
+        )
+    except ConflictingPeerMessageError as exc:
+        return _peer_transaction_error_response(
+            409,
+            tx_id=(receive_request.transaction or {}).get("tx_id"),
+            reason="message_conflict",
             message=str(exc),
         )
     except MalformedTransactionError as exc:
@@ -585,7 +593,9 @@ async def broadcast_native_transaction(
 ):
     _sync_runtime_globals()
     try:
-        blockchain.admit_transaction_for_broadcast_operation(tx_id)
+        blockchain.admit_transaction_for_broadcast_operation(
+            tx_id, origin_node_id=NODE_ID, network_name=NETWORK_NAME
+        )
         report = broadcast_transaction_to_peers(
             blockchain=blockchain,
             tx_id=tx_id,

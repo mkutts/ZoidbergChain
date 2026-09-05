@@ -33,6 +33,7 @@ async def submit_transfer_intent(
             auth_manager=wallet_auth_manager,
             build_preview=_build_submitted_native_transaction_preview,
             network_name=NETWORK_NAME,
+            origin_node_id=NODE_ID,
         )
     except ValueError as exc:
         detail = str(exc)
@@ -397,7 +398,9 @@ async def get_native_transaction(request: Request, tx_id: str):
 async def admit_native_transaction_to_mempool(request: Request, tx_id: str):
     _sync_runtime_globals()
     try:
-        admission = blockchain.admit_native_transaction_operation(tx_id)
+        admission = blockchain.admit_native_transaction_operation(
+            tx_id, origin_node_id=NODE_ID, network_name=NETWORK_NAME
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:

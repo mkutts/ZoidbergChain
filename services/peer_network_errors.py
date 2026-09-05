@@ -37,6 +37,10 @@ class ConflictingTransactionError(PeerSyncError):
     pass
 
 
+class ConflictingPeerMessageError(PeerSyncError):
+    pass
+
+
 class UnauthorizedPeerError(PeerSyncError):
     pass
 

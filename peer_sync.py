@@ -85,6 +85,7 @@ from services.peer_network_errors import (
     ChainSyncError,
     ConflictingCertificateError,
     ConflictingTransactionError,
+    ConflictingPeerMessageError,
     ConflictingVoteError,
     ContentSyncError,
     DuplicateBlockError,
@@ -105,6 +106,11 @@ from services.peer_network_errors import (
     WrongNetworkError,
 )
 from services.peer_transport_service import PeerBroadcastService, PeerHttpTransport
+from services.native_transaction_outbox_service import (
+    build_native_transaction_outbox_records,
+    build_native_transaction_peer_message,
+    validate_native_transaction_peer_message,
+)
 
 
 LATER_THAN_PENDING_STATUSES = {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
@@ -346,6 +352,7 @@ def receive_peer_transaction(
     network_name,
     transaction_payload,
     local_network_name,
+    peer_message=None,
 ):
     if network_name != local_network_name:
         raise WrongNetworkError("Peer transaction belongs to a different network.")
@@ -359,16 +366,52 @@ def receive_peer_transaction(
     if not isinstance(transaction_payload, dict):
         raise MalformedTransactionError("Transaction payload must be an object.")
 
+    if not isinstance(peer_message, dict) or not peer_message.get("message_id"):
+        peer_message = build_native_transaction_peer_message(
+            transaction_payload,
+            sender_node_id=origin_node_id,
+            network_name=network_name,
+        )
     try:
-        admitted = blockchain.admit_received_native_transaction_operation(transaction_payload)
+        message_identity = validate_native_transaction_peer_message(
+            peer_message,
+            expected_sender_node_id=origin_node_id,
+            expected_network_name=local_network_name,
+        )
+    except ValueError as exc:
+        if "message_id" in str(exc):
+            raise ConflictingPeerMessageError(str(exc)) from exc
+        if "network" in str(exc).lower():
+            raise WrongNetworkError(str(exc)) from exc
+        raise MalformedTransactionError(str(exc)) from exc
+
+    try:
+        admitted = blockchain.admit_received_native_transaction_operation(
+            transaction_payload,
+            received_peer_message={
+                key: message_identity[key]
+                for key in (
+                    "message_id", "message_type", "sender_node_id", "tx_id", "payload_hash"
+                )
+            },
+        )
     except ValueError as exc:
         reason = _transaction_reason_from_error(exc)
+        if "message_id conflicts" in str(exc):
+            raise ConflictingPeerMessageError(str(exc)) from exc
         if reason == "conflicting_nonce":
             raise ConflictingTransactionError(str(exc)) from exc
         raise MalformedTransactionError(str(exc)) from exc
 
     return {
         "accepted": True,
+        "ack": {
+            "message_id": message_identity["message_id"],
+            "tx_id": admitted["transaction"]["tx_id"],
+            "status": "acknowledged",
+            "duplicate": bool(admitted["duplicate"]),
+        },
+        "message_id": message_identity["message_id"],
         "tx_id": admitted["transaction"]["tx_id"],
         "status": admitted["transaction"]["status"],
         "duplicate": bool(admitted["duplicate"]),
@@ -786,10 +829,166 @@ def broadcast_transaction_to_peers(
     transaction = blockchain.get_native_transaction(tx_id)
     if transaction is None:
         raise ValueError(f"Transaction not found: {tx_id}")
-    return _peer_broadcast_service().broadcast_transaction(
-        _serialize_peer_transaction_payload(transaction), tx_id, peer_store,
-        origin_node_id, network_name, timeout_seconds,
+    if not blockchain.storage.supports_durable_peer_outbox:
+        return _peer_broadcast_service().broadcast_transaction(
+            _serialize_peer_transaction_payload(transaction), tx_id, peer_store,
+            origin_node_id, network_name, timeout_seconds,
+        )
+
+    message = build_native_transaction_peer_message(
+        _serialize_peer_transaction_payload(transaction),
+        sender_node_id=origin_node_id,
+        network_name=network_name,
     )
+    records = build_native_transaction_outbox_records(
+        _serialize_peer_transaction_payload(transaction),
+        peer_store.list_active_peers(network_name=network_name),
+        sender_node_id=origin_node_id,
+        network_name=network_name,
+        created_at=transaction.get("admitted_at"),
+    )
+    blockchain.storage.enqueue_native_transaction_outbox(records)
+
+    results = []
+    path = "/peers/transactions/receive"
+    transport = _peer_http_transport()
+    deliveries_to_attempt = len([
+        record
+        for record in blockchain.storage.list_native_transaction_outbox(tx_id=tx_id)
+        if record["delivery_state"] in {"queued", "retry_wait"}
+    ])
+    for _delivery_index in range(deliveries_to_attempt):
+        claimed = blockchain.storage.claim_native_transaction_outbox(tx_id=tx_id)
+        if claimed is None:
+            break
+        payload = claimed["message"]
+        destination_peer_id = claimed["destination_peer_id"]
+        receive_url = f"{claimed['destination_peer_url'].rstrip('/')}{path}"
+        request_headers = build_peer_request_headers(
+            "POST", path, payload, payload["origin_node_id"], network_name=network_name
+        )
+        try:
+            response = transport.post(
+                receive_url,
+                json=payload,
+                headers=request_headers,
+                timeout=timeout_seconds,
+            )
+            status_code = getattr(response, "status_code", None)
+            try:
+                body = response.json() if hasattr(response, "json") else {}
+            except (TypeError, ValueError):
+                body = {}
+            if status_code is None or status_code >= 500:
+                blockchain.storage.fail_native_transaction_outbox(
+                    outbox_id=claimed["outbox_id"],
+                    claim_token=claimed["claim_token"],
+                    error_code="peer_server_error",
+                    error_detail=f"Peer returned status {status_code}.",
+                )
+                results.append({
+                    "node_id": destination_peer_id, "url": claimed["destination_peer_url"],
+                    "status": "failed", "accepted": False, "error": "peer_server_error",
+                })
+                continue
+            if status_code in {408, 425, 429}:
+                reason = str(body.get("reason") or "peer_temporarily_unavailable")
+                blockchain.storage.fail_native_transaction_outbox(
+                    outbox_id=claimed["outbox_id"],
+                    claim_token=claimed["claim_token"],
+                    error_code=reason,
+                    error_detail=body.get("message") or getattr(response, "text", ""),
+                )
+                results.append({
+                    "node_id": destination_peer_id, "url": claimed["destination_peer_url"],
+                    "status": "failed", "accepted": False, "error": reason,
+                })
+                continue
+            if status_code >= 400:
+                reason = str(body.get("reason") or ("authentication_rejected" if status_code in {401, 403} else "protocol_rejected"))
+                blockchain.storage.fail_native_transaction_outbox(
+                    outbox_id=claimed["outbox_id"],
+                    claim_token=claimed["claim_token"],
+                    error_code=reason,
+                    error_detail=body.get("message") or getattr(response, "text", ""),
+                    permanent=True,
+                )
+                results.append({
+                    "node_id": destination_peer_id, "url": claimed["destination_peer_url"],
+                    "status": "rejected", "accepted": False, "error": reason,
+                })
+                continue
+
+            ack = body.get("ack") if isinstance(body, dict) else None
+            ack_valid = (
+                isinstance(ack, dict)
+                and ack.get("status") == "acknowledged"
+                and ack.get("message_id") == claimed["message_id"]
+                and ack.get("tx_id") == claimed["tx_id"]
+            )
+            if ack_valid:
+                acknowledged = blockchain.storage.acknowledge_native_transaction_outbox(
+                    message_id=ack["message_id"],
+                    destination_peer_id=destination_peer_id,
+                    tx_id=ack["tx_id"],
+                    claim_token=claimed["claim_token"],
+                )
+                if not acknowledged:
+                    blockchain.storage.fail_native_transaction_outbox(
+                        outbox_id=claimed["outbox_id"],
+                        claim_token=claimed["claim_token"],
+                        error_code="ack_state_conflict",
+                        error_detail="Peer ACK did not match claimed delivery work.",
+                        permanent=True,
+                    )
+                    results.append({
+                        "node_id": destination_peer_id,
+                        "url": claimed["destination_peer_url"],
+                        "status": "rejected", "accepted": False,
+                        "error": "ack_state_conflict",
+                    })
+                    continue
+                results.append({
+                    "node_id": destination_peer_id, "url": claimed["destination_peer_url"],
+                    "status": "sent", "accepted": True,
+                    "duplicate": bool(ack.get("duplicate", False)),
+                    "peer_status": body.get("status"),
+                    "message_id": claimed["message_id"],
+                })
+                continue
+
+            blockchain.storage.fail_native_transaction_outbox(
+                outbox_id=claimed["outbox_id"],
+                claim_token=claimed["claim_token"],
+                error_code="invalid_ack",
+                error_detail="Peer response did not contain a matching durable-admission ACK.",
+                permanent=True,
+            )
+            results.append({
+                "node_id": destination_peer_id, "url": claimed["destination_peer_url"],
+                "status": "sent" if bool(body.get("accepted")) else "rejected",
+                "accepted": bool(body.get("accepted")), "error": "invalid_ack",
+            })
+        except transport.request_error as exc:
+            blockchain.storage.fail_native_transaction_outbox(
+                outbox_id=claimed["outbox_id"],
+                claim_token=claimed["claim_token"],
+                error_code="transport_failure",
+                error_detail=str(exc),
+            )
+            results.append({
+                "node_id": destination_peer_id, "url": claimed["destination_peer_url"],
+                "status": "failed", "accepted": False, "error": "transport_failure",
+            })
+
+    return {
+        "attempted": len(results),
+        "succeeded": sum(1 for result in results if result["status"] == "sent"),
+        "accepted": sum(1 for result in results if result.get("accepted")),
+        "failed": sum(1 for result in results if result["status"] != "sent"),
+        "results": results,
+        "message_id": message["message_id"],
+    }
 
 
 def sync_transaction_from_peer(

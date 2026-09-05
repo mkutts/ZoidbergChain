@@ -100,7 +100,7 @@ from protocol_v1_genesis import (
 from validators import is_valid_ethereum_address, is_valid_public_key, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, LifecycleTimingRecorder, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, normalize_validator_set
+from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, LifecycleTimingRecorder, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, build_native_transaction_outbox_records, normalize_validator_set
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -903,7 +903,40 @@ class Blockchain:
         self.save_blockchain()
         return result
 
-    def admit_native_transaction_operation(self, tx_id):
+    def _local_native_transaction_outbox_builder(
+        self, outcome, *, origin_node_id=None, network_name=None
+    ):
+        sender_node_id = str(origin_node_id or NODE_ID).strip()
+        selected_network = str(network_name or NETWORK_NAME).strip()
+
+        def build(document):
+            result = outcome.get("result") or {}
+            transaction = result.get("transaction")
+            if not isinstance(transaction, dict):
+                result_tx_id = str(result.get("tx_id") or "").strip().lower()
+                transaction = next(
+                    (
+                        item
+                        for item in document.get("native_transactions", []) or []
+                        if str(item.get("tx_id") or "").strip().lower() == result_tx_id
+                    ),
+                    None,
+                )
+            if not isinstance(transaction, dict) or transaction.get("status") != "mempool":
+                return []
+            return build_native_transaction_outbox_records(
+                transaction,
+                list(document.get("peers", []) or []),
+                sender_node_id=sender_node_id,
+                network_name=selected_network,
+                created_at=transaction.get("admitted_at") or self._utc_now_iso(),
+            )
+
+        return build
+
+    def admit_native_transaction_operation(
+        self, tx_id, *, origin_node_id=None, network_name=None
+    ):
         # If this process already holds the record, fail closed on a corrupted
         # local copy before consulting the durable view.  The locked operation
         # below repeats validation against the durable record for race safety.
@@ -921,7 +954,14 @@ class Blockchain:
             return document
 
         try:
-            document = self.storage.atomic_update_blockchain_document(mutate)
+            document = self.storage.atomic_update_blockchain_document(
+                mutate,
+                outbox_records=self._local_native_transaction_outbox_builder(
+                    outcome,
+                    origin_node_id=origin_node_id,
+                    network_name=network_name,
+                ),
+            )
         except (ValueError, RuntimeError):
             raise
         except Exception as exc:
@@ -950,7 +990,9 @@ class Blockchain:
         if durable_identity == local_identity:
             document["chain"] = local_chain
 
-    def _admit_signed_transfer_durably(self, *, admit_to_mempool, **values):
+    def _admit_signed_transfer_durably(
+        self, *, admit_to_mempool, origin_node_id=None, **values
+    ):
         outcome = {}
 
         def mutate(document):
@@ -965,8 +1007,23 @@ class Blockchain:
             return document
 
         try:
-            document = self.storage.atomic_update_blockchain_document(mutate)
+            document = self.storage.atomic_update_blockchain_document(
+                mutate,
+                outbox_records=(
+                    self._local_native_transaction_outbox_builder(
+                        outcome,
+                        origin_node_id=origin_node_id,
+                        network_name=values.get("network"),
+                    )
+                    if admit_to_mempool
+                    else None
+                ),
+            )
         except StorageUniquenessError as exc:
+            if "outbox" in str(exc).lower():
+                raise RuntimeError(
+                    "Native transaction propagation intent could not be durably committed."
+                ) from exc
             # This is a defensive translation for a database invariant that is
             # also checked under the same admission transaction.
             raise ValueError("Nonce already used or reserved. Refresh and try again.") from exc
@@ -987,7 +1044,9 @@ class Blockchain:
             result["admission"]["admitted_at"] = transaction.get("admitted_at")
         return result
 
-    def admit_received_native_transaction_operation(self, transaction_payload):
+    def admit_received_native_transaction_operation(
+        self, transaction_payload, *, received_peer_message=None
+    ):
         """Durably admit a peer-ready signed payload through local policy.
 
         This contains no peer authentication, routing, relay, or delivery
@@ -1006,7 +1065,11 @@ class Blockchain:
             return document
 
         try:
-            document = self.storage.atomic_update_blockchain_document(mutate)
+            document = self.storage.atomic_update_blockchain_document(
+                mutate, received_peer_message=received_peer_message
+            )
+        except StorageUniquenessError as exc:
+            raise ValueError(str(exc)) from exc
         except (ValueError, RuntimeError):
             raise
         except Exception as exc:
@@ -1139,7 +1202,10 @@ class Blockchain:
         self.add_transaction(transaction)
         return transaction
 
-    def submit_signed_transfer_operation(self, *, payload, wallet_address, auth_manager, build_preview, network_name):
+    def submit_signed_transfer_operation(
+        self, *, payload, wallet_address, auth_manager, build_preview,
+        network_name, origin_node_id=None
+    ):
         preview = build_preview(payload)
         durable_existing = self.storage.get_durable_native_transaction_record(preview.tx_id)
         if durable_existing is not None:
@@ -1165,6 +1231,7 @@ class Blockchain:
             raise ValueError("Nonzero fees are not enabled yet.")
         result = self._admit_signed_transfer_durably(
             admit_to_mempool=bool(payload.admit_to_mempool),
+            origin_node_id=origin_node_id,
             from_address=str(verification["from_address"]), to_address=str(verification["to_address"]),
             amount=str(verification["amount"]), fee=str(verification["fee"]), memo=str(verification["memo"] or ""),
             network=network_name, transaction_version=verification.get("transaction_version"),
@@ -1276,7 +1343,9 @@ class Blockchain:
             self.save_blockchain()
         return report
 
-    def admit_transaction_for_broadcast_operation(self, tx_id):
+    def admit_transaction_for_broadcast_operation(
+        self, tx_id, *, origin_node_id=None, network_name=None
+    ):
         transaction = self.get_native_transaction(tx_id)
         if not transaction:
             raise LookupError(f"Transaction not found: {tx_id}")
@@ -1284,8 +1353,11 @@ class Blockchain:
         if status not in {"signed_pending", "validated_pending", "mempool"}:
             raise ValueError("Only signed pending or mempool-eligible transactions can be broadcast.")
         if status != "mempool":
-            self.admit_transaction_to_mempool(tx_id)
-            self.save_blockchain()
+            self.admit_native_transaction_operation(
+                tx_id,
+                origin_node_id=origin_node_id,
+                network_name=network_name,
+            )
         return self.get_native_transaction(tx_id) or transaction
 
     def recompute_reward_pool_balance(self, *, chain=None):

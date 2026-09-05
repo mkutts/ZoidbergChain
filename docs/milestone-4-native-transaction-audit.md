@@ -785,3 +785,82 @@ JSON runtime use, migration complexity for repaired/legacy records, and the need
 to evolve peer acknowledgements without breaking the frozen Protocol v1 message
 contract. The controlled validator-set and linear one-content-block commit
 throughput risks from Milestone 3 also remain, but are outside Task 4.1 behavior.
+
+## 18. Task 4.2 implementation — durable native transaction records
+
+Task 4.2 adds a SQLite-native `native_transaction_records` repository. It is
+the durable representation of every persisted native transaction; the legacy
+`storage_sections.native_transactions` JSON remains a compatible projection for
+existing tooling and JSON-backend parity, while SQLite loads records from the
+relational table.
+
+Each row keeps the exact serialized record and a canonical immutable signed
+identity payload. Relational columns project `tx_id`, sender, recipient, amount,
+fee, nonce, network/version tuple, signature, signed message/hash, lifecycle
+state, rejection reason, and lifecycle timestamps. The append-only
+`native_transaction_lifecycle_transitions` table records initial and subsequent
+persisted state changes.
+
+### 18.1 SQLite schema and migration
+
+Schema initialization is transactional and idempotent. Existing SQLite files
+gain the new tables, indexes, trigger, and missing section rows without changing
+canonical chain contents. The old JSON native-transaction section is migrated
+into relational rows during initialization, then rewritten as a compatible
+projection. Reopening is idempotent. Conflicting legacy records with the same
+`tx_id` but different immutable signed payloads fail explicitly; they are never
+silently resolved by list order. Existing canonical claim tables remain derived
+from, and constrained by, the canonical chain.
+
+`native_transaction_records.tx_id` is a primary key. Immutable payloads are
+compared before updates, so only an identical signed transaction may change
+lifecycle metadata. The partial unique index
+`active_native_transaction_sender_nonce` permits one active row per `(sender,
+nonce)` in SQLite.
+
+### 18.2 Durable lifecycle
+
+Task 4.2 preserves compatible statuses and adds `finalized` for a future
+transaction-level projection. Canonical confirmation is currently represented by
+the existing `settled` state. Validator-quorum finality remains derived from the
+containing block and finality evidence. This task does not add an outbox,
+peer-delivery lifecycle, or finality projection API.
+
+| From | Allowed target states (the same state is always idempotent) |
+|---|---|
+| `signed_pending` | `validated_pending`, `mempool`, `settled`, `rejected`, `failed`, `expired` |
+| `validated_pending` | `mempool`, `settled`, `rejected`, `failed`, `expired` |
+| `mempool` | `validated_pending`, `settled`, `rejected`, `failed`, `expired` |
+| `included` | `settled`, `validated_pending`, `finalized` |
+| `settled` | `validated_pending`, `finalized` |
+| `rejected` | `settled` only when a canonical block proves inclusion |
+| `failed`, `expired`, `finalized` | no non-idempotent transition |
+
+The ledger service rejects invalid operational transitions. SQLite has a matching
+lifecycle trigger, preventing invalid raw-SQL transitions. The `rejected` to
+`settled` exception preserves canonical chain contents as the sole settlement
+source of truth.
+
+Active sender/nonce uniqueness covers `signed_pending`, `validated_pending`,
+`mempool`, `included`, `settled`, and `finalized`. `rejected`, `failed`, and
+`expired` release their local reservation, allowing legitimate reuse where the
+future canonical/reorg rules allow it. Reorg reconciliation itself is deferred.
+
+### 18.3 Enforcement matrix
+
+| Invariant | Database enforced | Application enforced | Backend |
+| --------- | ----------------- | -------------------- | ------- |
+| Unique transaction ID | `PRIMARY KEY (tx_id)` | duplicate replay lookup | SQLite; JSON is application-only |
+| Immutable transaction identity | immutable-payload comparison | protocol shape, `tx_id`, signed-message, and signature checks | SQLite + application; JSON application-only |
+| Active sender + nonce uniqueness | partial unique index over active states | nonce selection and admission checks | SQLite; JSON application-only |
+| Legal lifecycle transitions | SQLite lifecycle trigger | explicit ledger transition table | SQLite + application; JSON application-only |
+| Signature validity | no | exact signed-message hash and recovered signer verification | application on both backends |
+| Network validity | no | Protocol/network-ID verification | application on both backends |
+| Nonce sequencing | canonical claim uniqueness | strict chain and mempool nonce validation | SQLite + application; JSON application-only for claims |
+| Balance sufficiency | no | chain-derived balance and pending-reservation validation | application on both backends |
+| Canonical settlement uniqueness | canonical claim primary/unique keys | canonical chain validation | SQLite; JSON application-only |
+
+JSON remains supported for development and tests. It retains whole-document
+atomic replacement and application validation but cannot provide the relational
+uniqueness or trigger guarantees above. SQLite is the Public Testnet v1 durable
+deployment target.

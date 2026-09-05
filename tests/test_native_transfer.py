@@ -207,6 +207,7 @@ def test_transaction_statuses_are_defined_for_future_flow():
         "mempool",
         "included",
         "settled",
+        "finalized",
         "rejected",
         "failed",
         "expired",

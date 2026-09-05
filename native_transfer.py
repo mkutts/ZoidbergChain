@@ -33,6 +33,7 @@ NATIVE_TRANSACTION_STATUSES = (
     "mempool",
     "included",
     "settled",
+    "finalized",
     "rejected",
     "failed",
     "expired",

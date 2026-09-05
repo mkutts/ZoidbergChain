@@ -88,13 +88,13 @@ class NativeLedgerService:
     @staticmethod
     def native_mempool_eligible_statuses(): return {"signed_pending", "validated_pending", "mempool"}
     @staticmethod
-    def native_ineligible_mempool_statuses(): return {"included", "settled", "rejected", "expired", "failed"}
+    def native_ineligible_mempool_statuses(): return {"included", "settled", "finalized", "rejected", "expired", "failed"}
     @staticmethod
-    def native_finalized_statuses(): return {"included", "settled"}
+    def native_finalized_statuses(): return {"included", "settled", "finalized"}
     @staticmethod
     def native_block_candidate_statuses(): return {"validated_pending", "mempool"}
     @staticmethod
-    def native_nonce_used_statuses(): return {"included", "settled"}
+    def native_nonce_used_statuses(): return {"included", "settled", "finalized"}
     @staticmethod
     def native_nonce_reserved_statuses(): return {"signed_pending", "validated_pending", "mempool"}
     @classmethod
@@ -115,6 +115,31 @@ class NativeLedgerService:
         import re
         candidate = re.sub(r"[^a-z0-9]+", "_", str(reason or "").strip().lower()).strip("_")
         return candidate or "validation_failed"
+
+    @staticmethod
+    def native_transaction_lifecycle_transitions():
+        """Allowed durable lifecycle transitions (self-transitions are idempotent)."""
+        return {
+            "signed_pending": {"validated_pending", "mempool", "settled", "rejected", "failed", "expired"},
+            "validated_pending": {"mempool", "settled", "rejected", "failed", "expired"},
+            "mempool": {"validated_pending", "settled", "rejected", "failed", "expired"},
+            "included": {"settled", "validated_pending", "finalized"},
+            "settled": {"validated_pending", "finalized"},
+            # A canonical block is authoritative over an earlier local rejection.
+            "rejected": {"settled"},
+            "failed": set(),
+            "expired": set(),
+            "finalized": set(),
+        }
+
+    @classmethod
+    def validate_native_transaction_lifecycle_transition(cls, current_status, target_status):
+        current = str(current_status or "").strip().lower()
+        target = str(target_status or "").strip().lower()
+        if current == target:
+            return
+        if target not in cls.native_transaction_lifecycle_transitions().get(current, set()):
+            raise ValueError(f"Illegal native transaction lifecycle transition: {current} -> {target}.")
 
     @staticmethod
     def normalize_decimal_value(value: Decimal) -> str:
@@ -211,7 +236,7 @@ class NativeLedgerService:
     def update_native_transaction_status(self, state, storage, tx_id, *, status, rejection_reason=None, admitted_at=None, included_block_hash=None, included_block_height=None, settled_at=None, updated_at=None, now_iso=None):
         transaction = self.get_native_transaction(state, storage, tx_id)
         if transaction is None: raise ValueError(f"Transaction not found: {tx_id}")
-        now_value = str(updated_at or now_iso or self.utc_now_iso()); updated = dict(transaction); updated["status"] = str(status).strip().lower(); updated["updated_at"] = now_value
+        now_value = str(updated_at or now_iso or self.utc_now_iso()); updated = dict(transaction); updated["status"] = str(status).strip().lower(); self.validate_native_transaction_lifecycle_transition(transaction.get("status"), updated["status"]); updated["updated_at"] = now_value
         for field, value in (("admitted_at", admitted_at), ("included_block_hash", included_block_hash), ("included_block_height", included_block_height), ("settled_at", settled_at)):
             if value is not None: updated[field] = value
         if rejection_reason is not None: updated["rejection_reason"] = rejection_reason

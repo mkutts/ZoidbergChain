@@ -2287,6 +2287,7 @@ class Blockchain:
     _native_ineligible_mempool_statuses = staticmethod(NativeLedgerService.native_ineligible_mempool_statuses)
     _native_mempool_sort_key = staticmethod(NativeLedgerService.native_mempool_sort_key)
     _native_finalized_statuses = staticmethod(NativeLedgerService.native_finalized_statuses)
+    _native_transaction_lifecycle_transitions = staticmethod(NativeLedgerService.native_transaction_lifecycle_transitions)
     _native_block_candidate_statuses = staticmethod(NativeLedgerService.native_block_candidate_statuses)
     _native_block_sort_key = staticmethod(NativeLedgerService.native_block_sort_key)
     _serialize_native_transaction_for_block = staticmethod(NativeLedgerService.serialize_native_transaction_for_block)

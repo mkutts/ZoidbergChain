@@ -46,6 +46,40 @@ _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
 )
 _OPTIONAL_SQLITE_SECTIONS = {"content_objects"}
 
+# These are deliberately storage-level names rather than public API statuses.
+# A transaction's finality remains derived from its canonical block and the
+# persisted finality evidence; it is not a peer-delivery status.
+NATIVE_TRANSACTION_LIFECYCLE_STATES = (
+    "signed_pending",
+    "validated_pending",
+    "mempool",
+    "included",
+    "settled",
+    "finalized",
+    "rejected",
+    "failed",
+    "expired",
+)
+NATIVE_TRANSACTION_ACTIVE_STATES = (
+    "signed_pending",
+    "validated_pending",
+    "mempool",
+    "included",
+    "settled",
+    "finalized",
+)
+_NATIVE_TRANSACTION_IMMUTABLE_FIELDS = (
+    "tx_id", "transaction_type", "network", "transaction_version",
+    "protocol_version", "network_id", "from_address", "to_address",
+    "amount", "fee", "nonce", "timestamp", "memo", "signature",
+    "signature_scheme", "signed_message", "signed_message_hash",
+)
+
+
+def _native_transaction_immutable_payload(transaction: dict[str, Any]) -> str:
+    """Canonical signed identity used to reject conflicting tx_id replays."""
+    return _canonical_record({field: transaction.get(field) for field in _NATIVE_TRANSACTION_IMMUTABLE_FIELDS})
+
 
 def _utc_now_iso():
     return datetime.now(timezone.utc).isoformat()
@@ -682,6 +716,14 @@ class StorageBackend(ABC):
         native_transactions = self.load_native_transactions() if native_transactions is None else native_transactions
         return self._first_record_where(native_transactions, "tx_id", tx_id.strip())
 
+    # Focused durable-record interface.  JSON retains the existing document
+    # implementation; SQLite overrides the read path with relational rows.
+    def list_durable_native_transaction_records(self):
+        return self.load_native_transactions()
+
+    def get_durable_native_transaction_record(self, tx_id):
+        return self.get_native_transaction(tx_id)
+
     def load_mempool_transactions(self):
         return self.list_mempool_transactions()
 
@@ -1064,7 +1106,7 @@ class SQLiteStorageBackend(StorageBackend):
         )
         self._initialize_database()
         logging.warning(
-            "SQLite backend selected. Existing JSON data will not be migrated automatically until Task 5.3."
+            "SQLite backend selected. Native transaction records use relational durable storage."
         )
 
     def delete_blockchain_document(self) -> None:
@@ -1086,6 +1128,82 @@ class SQLiteStorageBackend(StorageBackend):
                     json_data TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
+                """
+            )
+            connection.execute(
+                f"""
+                CREATE TABLE IF NOT EXISTS native_transaction_records (
+                    tx_id TEXT PRIMARY KEY,
+                    immutable_payload TEXT NOT NULL,
+                    transaction_json TEXT NOT NULL,
+                    transaction_type TEXT,
+                    network TEXT,
+                    transaction_version INTEGER,
+                    protocol_version INTEGER,
+                    network_id TEXT,
+                    sender TEXT NOT NULL,
+                    recipient TEXT,
+                    amount TEXT,
+                    fee TEXT,
+                    nonce TEXT NOT NULL,
+                    transaction_timestamp TEXT,
+                    memo TEXT,
+                    signature TEXT,
+                    signature_scheme TEXT,
+                    signed_message TEXT,
+                    signed_message_hash TEXT,
+                    lifecycle_state TEXT NOT NULL CHECK (lifecycle_state IN ({', '.join(repr(state) for state in NATIVE_TRANSACTION_LIFECYCLE_STATES)})),
+                    rejection_reason TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    admitted_at TEXT,
+                    included_block_hash TEXT,
+                    included_block_height INTEGER,
+                    settled_at TEXT
+                )
+                """
+            )
+            connection.execute(
+                f"""
+                CREATE UNIQUE INDEX IF NOT EXISTS active_native_transaction_sender_nonce
+                ON native_transaction_records(sender, nonce)
+                WHERE lifecycle_state IN ({', '.join(repr(state) for state in NATIVE_TRANSACTION_ACTIVE_STATES)})
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS native_transaction_lifecycle_transitions (
+                    tx_id TEXT NOT NULL,
+                    transition_sequence INTEGER NOT NULL,
+                    from_state TEXT,
+                    to_state TEXT NOT NULL,
+                    transitioned_at TEXT NOT NULL,
+                    rejection_reason TEXT,
+                    PRIMARY KEY (tx_id, transition_sequence),
+                    FOREIGN KEY (tx_id) REFERENCES native_transaction_records(tx_id)
+                )
+                """
+            )
+            # SQLite performs this check even if a caller bypasses the Python
+            # lifecycle service.  Canonical inclusion is allowed to override a
+            # prior local rejection because canonical chain contents remain the
+            # settlement source of truth.
+            connection.execute(
+                """
+                CREATE TRIGGER IF NOT EXISTS native_transaction_lifecycle_guard
+                BEFORE UPDATE OF lifecycle_state ON native_transaction_records
+                WHEN NOT (
+                    NEW.lifecycle_state = OLD.lifecycle_state OR
+                    (OLD.lifecycle_state = 'signed_pending' AND NEW.lifecycle_state IN ('validated_pending', 'mempool', 'settled', 'rejected', 'failed', 'expired')) OR
+                    (OLD.lifecycle_state = 'validated_pending' AND NEW.lifecycle_state IN ('mempool', 'settled', 'rejected', 'failed', 'expired')) OR
+                    (OLD.lifecycle_state = 'mempool' AND NEW.lifecycle_state IN ('validated_pending', 'settled', 'rejected', 'failed', 'expired')) OR
+                    (OLD.lifecycle_state = 'included' AND NEW.lifecycle_state IN ('settled', 'validated_pending', 'finalized')) OR
+                    (OLD.lifecycle_state = 'settled' AND NEW.lifecycle_state IN ('validated_pending', 'finalized')) OR
+                    (OLD.lifecycle_state = 'rejected' AND NEW.lifecycle_state = 'settled')
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'illegal native transaction lifecycle transition');
+                END
                 """
             )
             connection.execute(
@@ -1132,7 +1250,12 @@ class SQLiteStorageBackend(StorageBackend):
                     """,
                     (section_name, json.dumps(_default_section_value(section_name)), _utc_now_iso()),
                 )
-            self._synchronize_canonical_claims(connection, self._load_sections_from_connection(connection, strict=False))
+            sections = self._load_sections_from_connection(connection, strict=False, include_native_records=False)
+            self._synchronize_canonical_claims(connection, sections)
+            sections["native_transactions"] = self._synchronize_native_transaction_records(
+                connection, sections["native_transactions"]
+            )
+            self._save_sections_to_connection(connection, sections)
 
     def _load_sections(self, *, strict: bool = True) -> dict[str, Any]:
         defaults = {section: deepcopy(_default_section_value(section)) for section in _STORAGE_SECTIONS}
@@ -1171,9 +1294,10 @@ class SQLiteStorageBackend(StorageBackend):
                 raise StorageCorruptionError(
                     f"SQLite storage is missing required sections: {missing}."
                 )
+            defaults["native_transactions"] = self._load_native_transaction_records(connection, strict=strict)
         return defaults
 
-    def _load_sections_from_connection(self, connection, *, strict: bool = True) -> dict[str, Any]:
+    def _load_sections_from_connection(self, connection, *, strict: bool = True, include_native_records: bool = True) -> dict[str, Any]:
         defaults = {section: deepcopy(_default_section_value(section)) for section in _STORAGE_SECTIONS}
         rows = connection.execute("SELECT section_name, json_data FROM storage_sections").fetchall()
         seen_sections = set()
@@ -1187,7 +1311,154 @@ class SQLiteStorageBackend(StorageBackend):
         missing_sections = [section for section in _STORAGE_SECTIONS if section not in seen_sections and section not in _OPTIONAL_SQLITE_SECTIONS]
         if missing_sections and strict:
             raise StorageCorruptionError("SQLite storage is missing required sections: " + ", ".join(missing_sections))
+        if include_native_records:
+            defaults["native_transactions"] = self._load_native_transaction_records(connection, strict=strict)
         return defaults
+
+    @staticmethod
+    def _native_record_from_row(row, *, strict: bool) -> dict[str, Any]:
+        try:
+            record = json.loads(row[0])
+        except (TypeError, json.JSONDecodeError) as exc:
+            if strict:
+                raise StorageCorruptionError("Malformed JSON stored in SQLite native transaction record.") from exc
+            return {}
+        if not isinstance(record, dict):
+            if strict:
+                raise StorageCorruptionError("SQLite native transaction record must be an object.")
+            return {}
+        return record
+
+    @staticmethod
+    def _load_native_transaction_records(connection, *, strict: bool) -> list[dict[str, Any]]:
+        try:
+            rows = connection.execute(
+                "SELECT transaction_json FROM native_transaction_records ORDER BY created_at, tx_id"
+            ).fetchall()
+        except sqlite3.Error as exc:
+            if strict:
+                raise StorageCorruptionError("Failed to read SQLite native transaction records.") from exc
+            return []
+        records = [SQLiteStorageBackend._native_record_from_row(row, strict=strict) for row in rows]
+        return [record for record in records if record]
+
+    @staticmethod
+    def _native_record_values(transaction: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(transaction, dict):
+            raise StorageCorruptionError("Native transaction record must be an object.")
+        tx_id = str(transaction.get("tx_id") or "").strip().lower()
+        sender = str(transaction.get("from_address") or "").strip().lower()
+        nonce = str(transaction.get("nonce") or "").strip()
+        status = str(transaction.get("status") or "signed_pending").strip().lower()
+        if not tx_id or not sender or not nonce:
+            raise StorageCorruptionError("Native transaction record is missing tx_id, sender, or nonce.")
+        if status not in NATIVE_TRANSACTION_LIFECYCLE_STATES:
+            raise StorageCorruptionError(f"Native transaction record has unknown lifecycle state: {status}.")
+        created_at = str(transaction.get("created_at") or transaction.get("timestamp") or _utc_now_iso())
+        updated_at = str(transaction.get("updated_at") or created_at)
+        return {
+            "tx_id": tx_id,
+            "immutable_payload": _native_transaction_immutable_payload(transaction),
+            "transaction_json": _canonical_record(transaction),
+            "transaction_type": transaction.get("transaction_type"),
+            "network": transaction.get("network"),
+            "transaction_version": transaction.get("transaction_version"),
+            "protocol_version": transaction.get("protocol_version"),
+            "network_id": transaction.get("network_id"),
+            "sender": sender,
+            "recipient": transaction.get("to_address"),
+            "amount": transaction.get("amount"),
+            "fee": transaction.get("fee"),
+            "nonce": nonce,
+            "transaction_timestamp": transaction.get("timestamp"),
+            "memo": transaction.get("memo"),
+            "signature": transaction.get("signature"),
+            "signature_scheme": transaction.get("signature_scheme"),
+            "signed_message": transaction.get("signed_message"),
+            "signed_message_hash": transaction.get("signed_message_hash"),
+            "lifecycle_state": status,
+            "rejection_reason": transaction.get("rejection_reason"),
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "admitted_at": transaction.get("admitted_at"),
+            "included_block_hash": transaction.get("included_block_hash"),
+            "included_block_height": transaction.get("included_block_height"),
+            "settled_at": transaction.get("settled_at"),
+        }
+
+    @classmethod
+    def _upsert_native_transaction_record(cls, connection, transaction: dict[str, Any]) -> None:
+        values = cls._native_record_values(transaction)
+        existing = connection.execute(
+            "SELECT immutable_payload, lifecycle_state FROM native_transaction_records WHERE tx_id = ?",
+            (values["tx_id"],),
+        ).fetchone()
+        if existing is not None and existing[0] != values["immutable_payload"]:
+            raise StorageUniquenessError(
+                f"Native transaction {values['tx_id']} conflicts with its durable signed identity."
+            )
+        if existing is None:
+            columns = ", ".join(values)
+            placeholders = ", ".join(f":{column}" for column in values)
+            connection.execute(
+                f"INSERT INTO native_transaction_records ({columns}) VALUES ({placeholders})", values
+            )
+            connection.execute(
+                """INSERT INTO native_transaction_lifecycle_transitions
+                   (tx_id, transition_sequence, from_state, to_state, transitioned_at, rejection_reason)
+                   VALUES (?, 1, NULL, ?, ?, ?)""",
+                (values["tx_id"], values["lifecycle_state"], values["created_at"], values["rejection_reason"]),
+            )
+            return
+        assignments = ", ".join(f"{column} = :{column}" for column in values if column != "tx_id")
+        connection.execute(
+            f"UPDATE native_transaction_records SET {assignments} WHERE tx_id = :tx_id", values
+        )
+        if existing[1] != values["lifecycle_state"]:
+            sequence = connection.execute(
+                "SELECT COALESCE(MAX(transition_sequence), 0) + 1 FROM native_transaction_lifecycle_transitions WHERE tx_id = ?",
+                (values["tx_id"],),
+            ).fetchone()[0]
+            connection.execute(
+                """INSERT INTO native_transaction_lifecycle_transitions
+                   (tx_id, transition_sequence, from_state, to_state, transitioned_at, rejection_reason)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (values["tx_id"], sequence, existing[1], values["lifecycle_state"], values["updated_at"], values["rejection_reason"]),
+            )
+
+    @classmethod
+    def _synchronize_native_transaction_records(cls, connection, transactions) -> list[dict[str, Any]]:
+        source_transactions = list(transactions or [])
+        source_ids = []
+        for transaction in source_transactions:
+            if not isinstance(transaction, dict):
+                raise StorageCorruptionError("Native transaction record must be an object.")
+            tx_id = str(transaction.get("tx_id") or "").strip().lower()
+            if not tx_id:
+                raise StorageCorruptionError("Native transaction record is missing tx_id, sender, or nonce.")
+            source_ids.append(tx_id)
+        # Remove records absent from this complete document before inserting a
+        # replacement. This preserves the established load-time repair behavior
+        # for deliberately corrupted legacy snapshots while remaining atomic.
+        if source_ids:
+            placeholders = ", ".join("?" for _ in source_ids)
+            connection.execute(f"DELETE FROM native_transaction_records WHERE tx_id NOT IN ({placeholders})", tuple(source_ids))
+        else:
+            connection.execute("DELETE FROM native_transaction_records")
+
+        seen: set[str] = set()
+        normalized: list[dict[str, Any]] = []
+        for transaction in source_transactions:
+            values = cls._native_record_values(transaction)
+            if values["tx_id"] in seen:
+                existing = next(item for item in normalized if str(item.get("tx_id") or "").strip().lower() == values["tx_id"])
+                if _native_transaction_immutable_payload(existing) != values["immutable_payload"]:
+                    raise StorageUniquenessError(f"Native transaction {values['tx_id']} appears with conflicting signed payloads.")
+                continue
+            seen.add(values["tx_id"])
+            cls._upsert_native_transaction_record(connection, transaction)
+            normalized.append(dict(transaction))
+        return cls._load_native_transaction_records(connection, strict=True)
 
     @staticmethod
     def _save_sections_to_connection(connection, sections: dict[str, Any]) -> None:
@@ -1233,6 +1504,9 @@ class SQLiteStorageBackend(StorageBackend):
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             self._synchronize_canonical_claims(connection, sections)
+            sections["native_transactions"] = self._synchronize_native_transaction_records(
+                connection, sections.get("native_transactions", [])
+            )
             self._save_sections_to_connection(connection, sections)
 
     def load_blockchain_document(self) -> dict[str, Any] | None:
@@ -1283,8 +1557,40 @@ class SQLiteStorageBackend(StorageBackend):
             _verify_expected_canonical_head(document, expected_head)
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
             self._synchronize_canonical_claims(connection, replacement)
+            replacement["native_transactions"] = self._synchronize_native_transaction_records(
+                connection, replacement.get("native_transactions", [])
+            )
             self._save_sections_to_connection(connection, replacement)
             return replacement
+
+    def list_durable_native_transaction_records(self):
+        with self._connect() as connection:
+            return self._load_native_transaction_records(connection, strict=True)
+
+    def get_durable_native_transaction_record(self, tx_id):
+        normalized = str(tx_id or "").strip().lower()
+        if not normalized:
+            return None
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT transaction_json FROM native_transaction_records WHERE tx_id = ?", (normalized,)
+            ).fetchone()
+            return self._native_record_from_row(row, strict=True) if row else None
+
+    def list_native_transaction_lifecycle_transitions(self, tx_id):
+        normalized = str(tx_id or "").strip().lower()
+        if not normalized:
+            return []
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT transition_sequence, from_state, to_state, transitioned_at, rejection_reason
+                   FROM native_transaction_lifecycle_transitions WHERE tx_id = ? ORDER BY transition_sequence""",
+                (normalized,),
+            ).fetchall()
+        return [
+            {"transition_sequence": row[0], "from_state": row[1], "to_state": row[2], "transitioned_at": row[3], "rejection_reason": row[4]}
+            for row in rows
+        ]
 
     def load_peers(self):
         if not os.path.exists(self.sqlite_db_path):

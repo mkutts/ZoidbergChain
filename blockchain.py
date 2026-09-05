@@ -548,6 +548,7 @@ class Blockchain:
             chain_to_dicts=self.chain_to_dicts,
             calculate_balances_from_chain=self.calculate_balances_from_chain,
             validate_signed_native_transaction=self.validate_signed_native_transaction,
+            native_transaction_validator=self._native_ledger_service.validation_service,
             is_protocol_v1_block_payload=self.is_protocol_v1_block_payload,
             normalize_wallet_identity=self._normalize_native_wallet_identity,
             coerce_native_nonce=self._coerce_native_nonce,
@@ -985,6 +986,33 @@ class Blockchain:
             result["admission"]["status"] = transaction["status"]
             result["admission"]["admitted_at"] = transaction.get("admitted_at")
         return result
+
+    def admit_received_native_transaction_operation(self, transaction_payload):
+        """Durably admit a peer-ready signed payload through local policy.
+
+        This contains no peer authentication, routing, relay, or delivery
+        behavior.  It is the common service boundary for any future transport.
+        """
+        outcome = {}
+
+        def mutate(document):
+            self._merge_safe_local_chain_append(document)
+            state = NativeLedgerState(
+                document["chain"], document["transfer_intents"], document["native_transactions"]
+            )
+            outcome["result"] = self._native_ledger_service.admit_received_native_transaction(
+                state, self.storage, transaction_payload, now_iso=self._utc_now_iso()
+            )
+            return document
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except (ValueError, RuntimeError):
+            raise
+        except Exception as exc:
+            raise RuntimeError("Native transaction admission could not be durably committed.") from exc
+        self._publish_durable_native_transaction_state(document)
+        return outcome["result"]
 
     def revalidate_mempool_operation(self):
         return self.revalidate_mempool_transactions(save=True)

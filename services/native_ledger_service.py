@@ -27,6 +27,7 @@ from protocol_v1_native_transfer import (
     looks_like_protocol_v1_native_transfer_message,
     resolve_protocol_v1_network_id,
 )
+from services.native_transaction_validation_service import NativeTransactionValidationService
 from validators import is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 
@@ -40,6 +41,11 @@ class NativeLedgerState:
 
 class NativeLedgerService:
     """Stateless operations over facade-owned native ledger collections."""
+
+    network_name = NETWORK_NAME
+
+    def __init__(self, validation_service=None):
+        self.validation_service = validation_service or NativeTransactionValidationService()
 
     @staticmethod
     def utc_now_iso() -> str:
@@ -219,7 +225,8 @@ class NativeLedgerService:
     def record_native_transaction(self, state, storage, transaction_payload, *, status="signed_pending", created_at=None, updated_at=None, now_iso=None):
         now_value = str(created_at or now_iso or self.utc_now_iso())
         candidate = dict(transaction_payload or {}); candidate.setdefault("created_at", now_value); candidate.setdefault("updated_at", str(updated_at or now_value))
-        validated = validate_transaction_shape(candidate, network_name=NETWORK_NAME)
+        identity = self.validation_service.validate_identity(candidate, network_name=self.network_name)
+        validated = validate_transaction_shape({**candidate, **identity}, network_name=NETWORK_NAME)
         existing = self.get_native_transaction(state, storage, validated.tx_id)
         if existing is not None:
             validated_payload = validated.to_dict()
@@ -255,26 +262,30 @@ class NativeLedgerService:
             if transaction is None: raise ValueError(f"Transaction not found: {transaction_or_tx_id}")
         elif isinstance(transaction_or_tx_id, dict): transaction = dict(transaction_or_tx_id)
         else: raise ValueError("transaction must be a tx_id string or transaction object.")
+        validated_payload = self.validation_service.validate_identity(transaction, network_name=self.network_name)
+        # Shape validation carries local lifecycle metadata; identity validation
+        # deliberately ignores those non-consensus fields.
         payload = dict(transaction)
         if payload.get("timestamp") not in (None, ""):
             payload.setdefault("created_at", payload["timestamp"]); payload.setdefault("updated_at", payload["timestamp"])
-        validated = validate_transaction_shape(payload, network_name=NETWORK_NAME)
+        validated = validate_transaction_shape({**payload, **validated_payload}, network_name=NETWORK_NAME)
         if allowed_statuses is not None and validated.status not in allowed_statuses: raise ValueError(f"Transaction status {validated.status} is not eligible for this operation.")
-        if validated.signed_message_hash != hash_wallet_message(validated.signed_message): raise ValueError("signed_message_hash does not match signed_message.")
-        if validated.transaction_version == PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-            if validated.protocol_version != PROTOCOL_VERSION: raise ValueError("protocol_version is required for Protocol v1 native transfers.")
-            if validated.network_id is None: raise ValueError("network_id is required for Protocol v1 native transfers.")
-            if validated.network_id != resolve_protocol_v1_network_id(network_name=NETWORK_NAME): raise ValueError("Transaction belongs to a different network.")
-            expected = build_protocol_v1_native_transfer_message(from_address=validated.from_address, to_address=validated.to_address, amount=validated.amount, fee=validated.fee, nonce=validated.nonce, timestamp=validated.timestamp, memo=validated.memo, network_id=validated.network_id)
-            if validated.signed_message != expected: raise ValueError("signed_message does not match the Protocol v1 native transfer payload.")
-        else:
-            if looks_like_protocol_v1_native_transfer_message(validated.signed_message): raise ValueError("transaction_version is required for Protocol v1 native transfer messages.")
-            signed = parse_transfer_signing_message(validated.signed_message, network_name=NETWORK_NAME)
-            expected = {key: getattr(validated, key) for key in ("from_address", "to_address", "amount", "fee", "nonce", "timestamp", "memo")}
-            actual = {key: getattr(signed, key) for key in expected}
-            if actual != expected: raise ValueError("signed_message does not match the canonical transaction payload.")
-        verify_transfer_signature(validated.signed_message, validated.signature, validated.from_address)
         return validated.to_dict()
+
+    def validate_transaction_for_admission(self, state, storage, transaction_or_tx_id, *, allowed_statuses=None, exclude_tx_id=None):
+        if isinstance(transaction_or_tx_id, str):
+            transaction = self.get_native_transaction(state, storage, transaction_or_tx_id)
+            if transaction is None:
+                raise ValueError(f"Transaction not found: {transaction_or_tx_id}")
+        elif isinstance(transaction_or_tx_id, dict):
+            transaction = dict(transaction_or_tx_id)
+        else:
+            raise ValueError("transaction must be a tx_id string or transaction object.")
+        if allowed_statuses is not None and str(transaction.get("status") or "").strip().lower() not in allowed_statuses:
+            raise ValueError(f"Transaction status {transaction.get('status')} is not eligible for this operation.")
+        return self.validation_service.validate_admission_state(
+            self, state, transaction, exclude_tx_id=exclude_tx_id
+        )
 
     def create_signed_transfer_intent(self, state, storage, *, from_address, to_address, amount, fee, memo, network, transaction_version=None, protocol_version=None, network_id=None, signature_scheme, signature, signed_message_hash, signed_message, transfer_nonce, transaction_timestamp=None, signed_at, status="signed_pending", created_at=None):
         transaction = build_native_transaction(network=str(network), transaction_version=transaction_version, protocol_version=protocol_version, network_id=network_id, from_address=from_address, to_address=to_address, amount=str(amount), fee=str(fee), nonce=str(transfer_nonce), memo=str(memo or "").strip() or None, timestamp=str(transaction_timestamp or signed_at), signature=str(signature), signature_scheme=str(signature_scheme), signed_message=str(signed_message), signed_message_hash=str(signed_message_hash), status=str(status), created_at=str(created_at) if created_at is not None else None)
@@ -321,12 +332,14 @@ class NativeLedgerService:
         candidate = transaction.to_dict()
         # Always revalidate the exact canonical signed payload, including on a
         # retry.  A durable record never substitutes for protocol validation.
-        validated = self.validate_signed_native_transaction(state, storage, candidate)
+        validated = self.validation_service.validate_identity(candidate, network_name=self.network_name)
         existing = self.get_native_transaction(state, storage, validated["tx_id"])
         duplicate = existing is not None
         if existing is not None:
             if not self._same_immutable_signed_transaction(existing, validated):
                 raise ValueError("Conflicting native transaction replay: tx_id is already bound to different signed transaction data.")
+            if str(existing.get("status") or "").strip().lower() in self.native_finalized_statuses():
+                raise ValueError("Transaction is already present in canonical settlement.")
             current = dict(existing)
             intent = self.get_transfer_intent_by_tx_id(state, current["tx_id"])
             if intent is None:
@@ -335,8 +348,7 @@ class NativeLedgerService:
             # Both checks occur while the caller's durable transaction is held.
             # Thus pending reservations observed here cannot be bypassed by a
             # competing local admission.
-            self.validate_transaction_nonce(state, validated)
-            self.validate_transaction_balance_sufficiency(state, validated)
+            validated = self.validation_service.validate_admission_state(self, state, validated)
             current = dict(validated)
             current.update({
                 "status": "signed_pending", "created_at": now_value,
@@ -354,8 +366,9 @@ class NativeLedgerService:
         current_status = str(current.get("status") or "").strip().lower()
         if admit_to_mempool and current_status in self.native_mempool_eligible_statuses():
             if current_status != "mempool":
-                self.validate_transaction_nonce(state, current)
-                self.validate_transaction_balance_sufficiency(state, current, exclude_tx_id=current["tx_id"])
+                self.validation_service.validate_admission_state(
+                    self, state, current, exclude_tx_id=current["tx_id"]
+                )
                 current = self.update_native_transaction_status(
                     state, storage, current["tx_id"], status="mempool",
                     admitted_at=str(current.get("admitted_at") or now_value), now_iso=now_value,
@@ -370,6 +383,37 @@ class NativeLedgerService:
             "transfer_intent": dict(intent), "transaction": dict(current),
             "duplicate": duplicate, "admission": admission,
         }
+
+    def admit_received_native_transaction(self, state, storage, transaction_payload, *, now_iso=None):
+        """Peer-ready durable admission with no trust in peer-local metadata.
+
+        The caller supplies an isolated, locked durable state.  This method is
+        intentionally transport-neutral: a future gossip worker can use it
+        without gaining a weaker validation path than public submission.
+        """
+        payload = dict(transaction_payload or {})
+        signed_fields = set(self.immutable_signed_transaction_fields())
+        candidate = {name: payload.get(name) for name in signed_fields if name in payload}
+        now_value = str(now_iso or self.utc_now_iso())
+        stored, duplicate = self.record_native_transaction(
+            state, storage, candidate, status="signed_pending", now_iso=now_value
+        )
+        if str(stored.get("status") or "").strip().lower() in self.native_finalized_statuses():
+            raise ValueError("Transaction is already present in canonical settlement.")
+        if not duplicate:
+            state.transfer_intents.append(
+                self.build_transfer_intent_record_from_transaction(
+                    stored, signed_at=stored.get("timestamp"), created_at=stored.get("created_at"), now_iso=now_value
+                )
+            )
+        self.validation_service.validate_admission_state(
+            self, state, stored, exclude_tx_id=stored["tx_id"]
+        )
+        admitted_at = str(stored.get("admitted_at") or now_value)
+        updated = self.update_native_transaction_status(
+            state, storage, stored["tx_id"], status="mempool", admitted_at=admitted_at, now_iso=now_value
+        )
+        return {"transaction": updated, "duplicate": duplicate}
 
     def native_transaction_sender_matches(self, transaction, wallet): return self.normalize_wallet_identity(transaction.get("from_address")) == wallet
     @staticmethod

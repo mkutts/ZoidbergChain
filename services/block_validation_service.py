@@ -40,6 +40,7 @@ class BlockValidationCollaborators:
     chain_to_dicts: Callable
     calculate_balances_from_chain: Callable
     validate_signed_native_transaction: Callable
+    native_transaction_validator: object
     is_protocol_v1_block_payload: Callable
     normalize_wallet_identity: Callable
     coerce_native_nonce: Callable
@@ -124,44 +125,26 @@ class BlockValidationService:
             if not isinstance(transaction, dict):
                 self._raise("malformed_transaction", "Block native transaction payload must be an object.", transaction_index=index)
             try:
-                checked = c.validate_signed_native_transaction(transaction)
+                checked = c.native_transaction_validator.validate_block_step(
+                    transaction, network_name=c.config["network_name"], balances=balances,
+                    next_nonces=next_nonces, canonical_tx_ids=seen_prior_tx_ids,
+                    seen_block_tx_ids=seen_block_tx_ids,
+                    seen_nonces=seen_block_nonces, normalize_wallet=c.normalize_wallet_identity,
+                    coerce_nonce=c.coerce_native_nonce, normalize_decimal=c.normalize_decimal_value,
+                )
             except ValueError as exc:
-                message, code = str(exc), "malformed_transaction"
-                if "tx_id does not match" in message: code = "transaction_id_mismatch"
-                elif "network does not match" in message: code = "wrong_network"
-                elif "transaction_type must be exactly" in message: code = "unsupported_transaction_type"
-                elif "signature_scheme must be" in message or "signature is required" in message or "Malformed signature" in message or "signature" in message: code = "invalid_transaction_signature"
-                elif "fee" in message: code = "invalid_fee"
-                self._raise(code, message, transaction_index=index, tx_id=str(transaction.get("tx_id") or "").strip().lower() or None)
+                code = c.native_transaction_validator.code_for_error(exc)
+                message = str(exc)
+                if code == "unsupported_version" and c.is_protocol_v1_block_payload(block_dict):
+                    code = "unsupported_transaction_version"
+                    message = "Protocol v1 blocks cannot include legacy native transactions."
+                self._raise(
+                    code, message,
+                    transaction_index=index,
+                    tx_id=str(transaction.get("tx_id") or "").strip().lower() or None,
+                )
             tx_id = str(checked.get("tx_id") or "").strip().lower()
-            if c.is_protocol_v1_block_payload(block_dict) and checked.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-                self._raise("unsupported_transaction_version", "Protocol v1 blocks cannot include legacy native transactions.", tx_id=tx_id, transaction_index=index)
-            if tx_id in seen_block_tx_ids:
-                self._raise("duplicate_transaction_id", "Block contains the same native transaction more than once.", tx_id=tx_id, transaction_index=index)
-            if tx_id in seen_prior_tx_ids:
-                self._raise("transaction_already_settled", "Block contains a native transaction that was already settled in an earlier block.", tx_id=tx_id, transaction_index=index)
-            sender = c.normalize_wallet_identity(checked.get("from_address"))
-            recipient = c.normalize_wallet_identity(checked.get("to_address"))
-            nonce = c.coerce_native_nonce(checked.get("nonce"))
-            nonce_key = (sender, nonce)
-            if nonce_key in seen_block_nonces:
-                self._raise("duplicate_nonce", "Block contains multiple native transactions with the same sender nonce.", tx_id=tx_id, from_address=sender, nonce=nonce, transaction_index=index)
-            expected_nonce = next_nonces.get(sender, c.get_next_chain_nonce(sender, prior_chain))
-            if nonce < expected_nonce:
-                self._raise("nonce_too_low", "Block native transaction nonce is lower than the next expected chain nonce.", tx_id=tx_id, from_address=sender, expected_nonce=expected_nonce, received_nonce=nonce, transaction_index=index)
-            if nonce > expected_nonce:
-                self._raise("nonce_gap", "Block native transaction nonce creates a gap against the prior chain state.", tx_id=tx_id, from_address=sender, expected_nonce=expected_nonce, received_nonce=nonce, transaction_index=index)
-            amount, fee = Decimal(str(checked.get("amount") or "0")), Decimal(str(checked.get("fee") or "0"))
-            if fee != Decimal("0"):
-                self._raise("invalid_fee", "Block native transaction fee must be zero under the current fee policy.", tx_id=tx_id, fee=str(checked.get("fee") or "0"), transaction_index=index)
-            required = amount + fee
-            sender_balance = balances.get(sender, Decimal("0"))
-            if sender_balance < required:
-                self._raise("insufficient_balance", "Block native transaction would overdraw the sender when applied in block order.", tx_id=tx_id, from_address=sender, available_balance=c.normalize_decimal_value(sender_balance), required_total=c.normalize_decimal_value(required), transaction_index=index)
-            balances[sender] = sender_balance - required
-            balances[recipient] = balances.get(recipient, Decimal("0")) + amount
-            next_nonces[sender] = expected_nonce + 1
-            seen_prior_tx_ids.add(tx_id); seen_block_tx_ids.add(tx_id); seen_block_nonces.add(nonce_key); validated.append(checked)
+            validated.append(checked)
         expected_order = sorted(validated, key=c.native_block_sort_key)
         if [tx.get("tx_id") for tx in validated] != [tx.get("tx_id") for tx in expected_order]:
             self._raise("transaction_order_invalid", "Block native transaction ordering does not match the canonical block ordering policy.")

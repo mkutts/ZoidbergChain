@@ -261,8 +261,19 @@ def _reject_forbidden_fields(payload, allowed_fields, error_cls, object_name):
         raise error_cls(f"{object_name} contains forbidden or unexpected fields.")
 
 
-def _transaction_reason_from_error(message):
-    normalized = str(message or "").strip().lower()
+def _transaction_reason_from_error(error):
+    stable_code = getattr(error, "code", None)
+    if stable_code:
+        return {
+            "unsupported_version": "unsupported_transaction_version",
+            "sender_signature_mismatch": "invalid_signature",
+            "active_nonce_conflict": "conflicting_nonce",
+            "stale_nonce": "invalid_nonce",
+            "future_nonce": "invalid_nonce",
+            "insufficient_balance": "insufficient_available_balance",
+            "invalid_fee": "invalid_fee_policy",
+        }.get(stable_code, stable_code)
+    normalized = str(error or "").strip().lower()
     if "tx_id does not match" in normalized:
         return "invalid_tx_id"
     if "mempool admission" in normalized and ("transaction version is required" in normalized or "transaction_version" in normalized):
@@ -348,27 +359,19 @@ def receive_peer_transaction(
     if not isinstance(transaction_payload, dict):
         raise MalformedTransactionError("Transaction payload must be an object.")
 
-    stored_transaction = None
-    duplicate = False
     try:
-        stored_transaction, duplicate = blockchain.record_native_transaction(
-            transaction_payload,
-            status="signed_pending",
-        )
-        admitted = blockchain.admit_transaction_to_mempool(stored_transaction["tx_id"])
+        admitted = blockchain.admit_received_native_transaction_operation(transaction_payload)
     except ValueError as exc:
-        if stored_transaction is not None and not duplicate:
-            blockchain.discard_native_transaction(stored_transaction["tx_id"])
-        reason = _transaction_reason_from_error(str(exc))
+        reason = _transaction_reason_from_error(exc)
         if reason == "conflicting_nonce":
             raise ConflictingTransactionError(str(exc)) from exc
         raise MalformedTransactionError(str(exc)) from exc
 
     return {
         "accepted": True,
-        "tx_id": admitted["tx_id"],
-        "status": admitted["status"],
-        "duplicate": bool(duplicate),
+        "tx_id": admitted["transaction"]["tx_id"],
+        "status": admitted["transaction"]["status"],
+        "duplicate": bool(admitted["duplicate"]),
     }
 
 

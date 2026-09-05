@@ -30,36 +30,35 @@ class NativeMempoolService:
         return transaction if transaction is not None and str(transaction.get("status") or "").strip().lower() == "mempool" else None
 
     def validate_transaction(self, state, storage, transaction_or_tx_id):
-        validated = self.ledger.validate_signed_native_transaction(state, storage, transaction_or_tx_id, allowed_statuses=self.ledger.native_mempool_eligible_statuses())
-        if validated.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-            raise ValueError("Protocol v1 native transaction version is required for mempool admission.")
-        self.ledger.validate_transaction_nonce(state, validated)
-        self.ledger.validate_transaction_balance_sufficiency(state, validated, exclude_tx_id=validated["tx_id"])
-        return validated
+        return self.ledger.validate_transaction_for_admission(
+            state, storage, transaction_or_tx_id,
+            allowed_statuses=self.ledger.native_mempool_eligible_statuses(),
+            exclude_tx_id=(transaction_or_tx_id.get("tx_id") if isinstance(transaction_or_tx_id, dict) else transaction_or_tx_id),
+        )
 
     def select_for_block(self, state, storage, chain_to_dicts, *, max_transactions_per_block=MAX_TRANSACTIONS_PER_BLOCK, error_type=ValueError):
         candidates = [dict(tx) for tx in state.native_transactions if str(tx.get("status") or "").strip().lower() in self.ledger.native_block_candidate_statuses()]
         candidates.sort(key=self.ledger.native_block_sort_key)
         selected, skipped = [], []
         chain_state = self.ledger.calculate_balances_from_chain(state, chain_to_dicts, error_type=error_type)
-        seen = set(chain_state["seen_tx_ids"]); nonces = dict(chain_state["next_nonces"]); balances = dict(chain_state["balances"])
+        seen = set(chain_state["seen_tx_ids"]); selected_ids = set(); nonces = dict(chain_state["next_nonces"]); balances = dict(chain_state["balances"]); seen_nonces = set()
         for transaction in candidates:
             tx_id = str(transaction.get("tx_id") or "").strip().lower()
             if not tx_id or tx_id in seen:
                 skipped.append({"tx_id": tx_id, "reason": "already_settled"}); continue
-            try: validated = self.ledger.validate_signed_native_transaction(state, storage, transaction, allowed_statuses=self.ledger.native_block_candidate_statuses())
+            try:
+                if str(transaction.get("status") or "").strip().lower() not in self.ledger.native_block_candidate_statuses():
+                    raise ValueError(f"Transaction status {transaction.get('status')} is not eligible for this operation.")
+                validated = self.ledger.validation_service.validate_block_step(
+                    transaction, network_name=self.ledger.network_name, balances=balances,
+                    next_nonces=nonces, canonical_tx_ids=seen, seen_block_tx_ids=selected_ids, seen_nonces=seen_nonces,
+                    normalize_wallet=self.ledger.normalize_wallet_identity,
+                    coerce_nonce=self.ledger.coerce_native_nonce,
+                    normalize_decimal=self.ledger.normalize_decimal_value,
+                )
             except ValueError as exc:
-                skipped.append({"tx_id": tx_id, "reason": self.ledger.normalize_rejection_reason(str(exc)), "message": str(exc)}); continue
-            if validated.get("transaction_version") != PROTOCOL_V1_NATIVE_TRANSFER_VERSION:
-                skipped.append({"tx_id": tx_id, "reason": "unsupported_transaction_version", "message": "Protocol v1 blocks cannot include legacy native transactions."}); continue
-            sender = self.ledger.normalize_wallet_identity(validated.get("from_address")); recipient = self.ledger.normalize_wallet_identity(validated.get("to_address")); expected = nonces.get(sender, self.ledger.get_next_chain_nonce(state, sender)); nonce = self.ledger.coerce_native_nonce(validated.get("nonce"))
-            if nonce != expected:
-                skipped.append({"tx_id": tx_id, "reason": "invalid_nonce", "message": f"Expected nonce {expected}, got {nonce}."}); continue
-            amount = Decimal(str(validated.get("amount") or "0")); fee = Decimal(str(validated.get("fee") or "0")); total = amount + fee; sender_balance = balances.get(sender, Decimal("0"))
-            if sender_balance < total:
-                skipped.append({"tx_id": tx_id, "reason": "insufficient_available_balance", "message": "Transaction would overdraw the sender when applied in block order."}); continue
-            balances[sender] = sender_balance - total; balances[recipient] = balances.get(recipient, Decimal("0")) + amount; nonces[sender] = expected + 1
-            selected.append(self.ledger.serialize_native_transaction_for_block(validated)); seen.add(tx_id)
+                skipped.append({"tx_id": tx_id, "reason": self.ledger.validation_service.code_for_error(exc), "message": str(exc)}); continue
+            selected.append(self.ledger.serialize_native_transaction_for_block(validated))
             if len(selected) >= max_transactions_per_block: break
         return {"transactions": selected, "transaction_ids": [tx["tx_id"] for tx in selected], "transaction_count": len(selected), "transactions_hash": self.ledger.compute_block_native_transactions_hash(selected), "skipped": skipped}
 
@@ -78,7 +77,7 @@ class NativeMempoolService:
                 self.validate_transaction(state, storage, transaction)
                 report["kept"] += 1; report["items"].append({"tx_id": tx_id, "valid": True, "status": "mempool"})
             except ValueError as exc:
-                reason = str(exc); normalized = self.ledger.normalize_rejection_reason(reason)
+                reason = str(exc); normalized = self.ledger.validation_service.code_for_error(exc)
                 self.ledger.update_native_transaction_status(state, storage, tx_id, status="rejected", rejection_reason=normalized, now_iso=now_iso())
                 report["removed"] += 1; report["items"].append({"tx_id": tx_id, "valid": False, "status": "rejected", "reason": normalized, "message": reason})
         return report

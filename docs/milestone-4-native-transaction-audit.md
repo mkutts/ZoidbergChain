@@ -904,3 +904,69 @@ guarantees across arbitrary external writers.
 
 Peer gossip/outbox, retry/backoff, reconnect convergence, and reorg recovery
 remain deliberately outside Task 4.3.
+
+## 20. Task 4.4 implementation — deterministic native transaction validation
+
+`NativeTransactionValidationService` is the authoritative Protocol v1 native
+transaction validator.  It is shared by durable received-transaction admission,
+mempool admission/revalidation, candidate selection, and received-block
+validation.  The service intentionally exposes composable layers rather than a
+single context-blind method:
+
+| Layer | Deterministic checks |
+| --- | --- |
+| Identity | canonical payload and `tx_id`; Protocol v1 transaction/protocol/network versions; local network ID; canonical domain-separated signing message; SHA-256 signed-message hash; `personal_sign` recovery and declared-sender equality |
+| Admission | identity plus canonical-settlement replay, strict next nonce, active nonce conflict, zero-fee policy, and `final chain balance - pending outgoing reservations` |
+| Block step | identity plus prior-chain/block duplicate prevention, sender nonce progression, zero fee, and sequential balance application |
+| Canonical replay | the existing chain replay validates every signed native transaction before reconstructing canonical balance/nonces; received-block validation applies the shared block-step validator before settlement |
+
+For Public Testnet v1, `transaction_version == 1`, `protocol_version == 1`,
+`network == NETWORK_NAME`, and the canonical resolved `network_id` are all
+required.  Invalid identifiers are rejected; they are never normalized into the
+local network.  A transaction ID is independently recomputed from canonical
+signed fields and network domain, so a peer-supplied ID is not trusted.
+
+### 20.1 Nonce, replay, balance, and ordering rules
+
+Nonces begin at one and are strictly sequential per sender.  The next valid
+pending nonce is the first nonce absent from canonical-used and active-reserved
+records.  Lower nonces are stale, higher nonces are future/out-of-order, and a
+different active transaction using the same sender/nonce is a conflict.  An
+identical active `tx_id` is idempotent; an immutable mismatch for that ID is a
+conflict; a canonical settled ID cannot return to pending admission.
+
+Spendable value is calculated with `Decimal`, never floating point:
+`canonical settled balance - sum(active pending outgoing amount + fee)`.  The
+current deterministic fee policy requires `fee == 0`.  Candidate and block
+validation apply each transaction in order, decrementing sender value and
+incrementing recipient value before evaluating the next transaction.
+
+The ordering rule did not change: candidate native transactions are sorted by
+normalized `from_address` ascending, numeric `nonce` ascending, then lowercase
+`tx_id` ascending.  Mempool display ordering remains local operational order
+(`admitted_at`, sender, nonce, `tx_id`) and is not the block ordering rule.
+
+### 20.2 Stable rejection taxonomy and peer-ready interface
+
+The validation service returns stable codes: `malformed_transaction`,
+`invalid_tx_id`, `invalid_signed_message_hash`, `invalid_signature`,
+`sender_signature_mismatch`, `wrong_network`, `unsupported_version`,
+`stale_nonce`, `future_nonce`, `active_nonce_conflict`, `already_settled`,
+`insufficient_balance`, and `invalid_fee`.  Block adapters additionally report
+their structural context with `duplicate_transaction_id` and
+`transaction_order_invalid`.  API messages remain readable; code does not use
+SQLite or Python exception text as its semantic contract.
+
+`Blockchain.admit_received_native_transaction_operation(transaction_payload)`
+is the transport-neutral peer-ready interface for Task 4.5.  It strips
+peer-local lifecycle metadata, validates the same signed payload and state rules
+under the durable admission transaction, and publishes only after commit.  This
+task does not add a route, outbox, relay, retries, reconnect behavior, or reorg
+recovery.
+
+Database constraints still enforce durable `tx_id`, active `(sender, nonce)`,
+and lifecycle uniqueness on SQLite.  Signature validity, canonical message and
+ID recomputation, network/version rules, deterministic ordering, sequential
+balance progression, and canonical settlement replay remain deterministic
+application/protocol invariants because they cannot be represented solely by a
+database constraint.

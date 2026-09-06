@@ -352,7 +352,9 @@ class NativeLedgerService:
             # Both checks occur while the caller's durable transaction is held.
             # Thus pending reservations observed here cannot be bypassed by a
             # competing local admission.
-            validated = self.validation_service.validate_admission_state(self, state, validated)
+            validated = self.validation_service.validate_admission_state(
+                self, state, validated, identity_already_validated=True
+            )
             current = dict(validated)
             current.update({
                 "status": "signed_pending", "created_at": now_value,
@@ -371,7 +373,8 @@ class NativeLedgerService:
         if admit_to_mempool and current_status in self.native_mempool_eligible_statuses():
             if current_status != "mempool":
                 self.validation_service.validate_admission_state(
-                    self, state, current, exclude_tx_id=current["tx_id"]
+                    self, state, current, exclude_tx_id=current["tx_id"],
+                    identity_already_validated=True,
                 )
                 current = self.update_native_transaction_status(
                     state, storage, current["tx_id"], status="mempool",
@@ -415,7 +418,8 @@ class NativeLedgerService:
                 )
             )
         self.validation_service.validate_admission_state(
-            self, state, stored, exclude_tx_id=stored["tx_id"]
+            self, state, stored, exclude_tx_id=stored["tx_id"],
+            identity_already_validated=True,
         )
         admitted_at = str(stored.get("admitted_at") or now_value)
         updated = self.update_native_transaction_status(
@@ -423,7 +427,25 @@ class NativeLedgerService:
         )
         return {"transaction": updated, "duplicate": duplicate}
 
-    def native_transaction_sender_matches(self, transaction, wallet): return self.normalize_wallet_identity(transaction.get("from_address")) == wallet
+    @classmethod
+    def wallet_identity_matches(cls, value, wallet):
+        """Match a canonical durable address without re-normalizing it."""
+        candidate = str(value or "").strip()
+        if candidate == wallet:
+            return True
+        # A lower-case Ethereum-shaped address cannot normalize to a different
+        # canonical address.  Records from SQLite are validated before they
+        # reach this comparison, and malformed lower-case legacy values remain
+        # nonmatches exactly as they would after normalization.
+        if len(candidate) == 42 and candidate.startswith("0x") and candidate == candidate.lower():
+            return False
+        return cls.normalize_wallet_identity(candidate) == wallet
+
+    def native_transaction_sender_matches(self, transaction, wallet):
+        # Durable native records are written with canonical lower-case sender
+        # addresses.  Compare that already-validated form first; retain the
+        # normalization fallback for legacy or externally supplied records.
+        return self.wallet_identity_matches(transaction.get("from_address"), wallet)
     @staticmethod
     def coerce_native_nonce(nonce): return int(parse_transfer_nonce(nonce))
 
@@ -499,7 +521,15 @@ class NativeLedgerService:
         wallet = self.normalize_wallet_identity(wallet_address)
         if wallet is None: return []
         excluded = {str(tx_id or "").strip().lower() for tx_id in (exclude_tx_ids or set()) if str(tx_id or "").strip()}
-        return [tx for tx in state.native_transactions if str(tx.get("status") or "").strip().lower() in self.native_funds_reserved_statuses() and str(tx.get("tx_id") or "").strip().lower() not in excluded and (self.normalize_wallet_identity(tx.get("from_address")) == wallet or self.normalize_wallet_identity(tx.get("to_address")) == wallet)]
+        return [
+            tx for tx in state.native_transactions
+            if str(tx.get("status") or "").strip().lower() in self.native_funds_reserved_statuses()
+            and str(tx.get("tx_id") or "").strip().lower() not in excluded
+            and (
+                self.native_transaction_sender_matches(tx, wallet)
+                or self.wallet_identity_matches(tx.get("to_address"), wallet)
+            )
+        ]
 
     def get_settled_native_transaction_records_for_wallet(self, state, wallet_address, *, chain=None):
         wallet = self.normalize_wallet_identity(wallet_address)

@@ -123,9 +123,20 @@ class NativeTransactionValidationService:
         except ValueError as exc:
             raise NativeTransactionValidationError(self.code_for_error(exc), str(exc)) from exc
 
-    def validate_admission_state(self, ledger, state, transaction: dict[str, Any], *, exclude_tx_id: str | None = None) -> dict[str, Any]:
+    def validate_admission_state(
+        self, ledger, state, transaction: dict[str, Any], *, exclude_tx_id: str | None = None,
+        identity_already_validated: bool = False,
+    ) -> dict[str, Any]:
         """Apply the strict pending nonce and spendable-balance policy."""
-        validated = self.validate_identity(transaction, network_name=ledger.network_name)
+        # A local admission validates the immutable signed payload before it
+        # enters this state check and does not mutate any signed field between
+        # its first and final nonce/balance checks.  Reusing that just-checked
+        # canonical payload avoids two expensive, redundant secp256k1 signer
+        # recoveries while every external/public caller still validates here.
+        validated = (
+            dict(transaction) if identity_already_validated
+            else self.validate_identity(transaction, network_name=ledger.network_name)
+        )
         tx_id = validated["tx_id"]
         if tx_id in set(ledger.get_chain_native_transaction_ids(state)):
             raise NativeTransactionValidationError(

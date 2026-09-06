@@ -1026,6 +1026,7 @@ class Blockchain:
                     if admit_to_mempool
                     else None
                 ),
+                copy_document=False,
             )
         except StorageUniquenessError as exc:
             if "outbox" in str(exc).lower():

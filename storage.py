@@ -45,7 +45,11 @@ _STORAGE_SECTIONS = (
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
     section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks"}
 )
-_OPTIONAL_SQLITE_SECTIONS = {"content_objects"}
+# Native records are authoritative in ``native_transaction_records`` for the
+# SQLite backend.  Keeping a second, whole-mempool JSON copy in
+# ``storage_sections`` was legacy compatibility residue: it was never read
+# (the relational records replace it on load), yet every admission rewrote it.
+_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions"}
 
 # These are deliberately storage-level names rather than public API statuses.
 # A transaction's finality remains derived from its canonical block and the
@@ -489,7 +493,8 @@ class StorageBackend(ABC):
         raise NotImplementedError
 
     def atomic_update_blockchain_document(
-        self, mutate, *, outbox_records=None, received_peer_message=None
+        self, mutate, *, outbox_records=None, received_peer_message=None,
+        copy_document: bool = True,
     ):
         """Durably replace a document from a freshly locked/transactional read.
 
@@ -1111,7 +1116,8 @@ class JSONStorageBackend(StorageBackend):
             return replacement
 
     def atomic_update_blockchain_document(
-        self, mutate, *, outbox_records=None, received_peer_message=None
+        self, mutate, *, outbox_records=None, received_peer_message=None,
+        copy_document: bool = True,
     ):
         with self._commit_lock():
             replacement = self._normalize_blockchain_document(
@@ -1180,7 +1186,14 @@ class SQLiteStorageBackend(StorageBackend):
                 os.remove(candidate)
 
     def _connect(self):
-        return sqlite3.connect(self.sqlite_db_path)
+        connection = sqlite3.connect(self.sqlite_db_path)
+        # Concurrent request handlers must wait through a legitimate durable
+        # admission rather than turn SQLite's short default busy timeout into a
+        # user-visible false failure.  This changes neither lock ownership nor
+        # the commit-before-ack rule; it only gives the serialized writer a
+        # bounded, operationally useful wait window.
+        connection.execute("PRAGMA busy_timeout = 30000")
+        return connection
 
     def _initialize_database(self) -> None:
         os.makedirs(os.path.dirname(self.sqlite_db_path) or ".", exist_ok=True)
@@ -1391,9 +1404,21 @@ class SQLiteStorageBackend(StorageBackend):
                 )
             sections = self._load_sections_from_connection(connection, strict=False, include_native_records=False)
             self._synchronize_canonical_claims(connection, sections)
-            sections["native_transactions"] = self._synchronize_native_transaction_records(
-                connection, sections["native_transactions"]
-            )
+            # One-time migration only: older SQLite databases stored a second
+            # native-transaction JSON section.  Once relational rows exist,
+            # that section is intentionally ignored so opening a node can
+            # never replace durable records with its stale legacy snapshot.
+            native_count = connection.execute(
+                "SELECT COUNT(*) FROM native_transaction_records"
+            ).fetchone()[0]
+            if native_count == 0 and sections["native_transactions"]:
+                sections["native_transactions"] = self._synchronize_native_transaction_records(
+                    connection, sections["native_transactions"]
+                )
+            else:
+                sections["native_transactions"] = self._load_native_transaction_records(
+                    connection, strict=True
+                )
             self._save_sections_to_connection(connection, sections)
 
     def _load_sections(self, *, strict: bool = True) -> dict[str, Any]:
@@ -1566,57 +1591,108 @@ class SQLiteStorageBackend(StorageBackend):
             )
 
     @classmethod
-    def _synchronize_native_transaction_records(cls, connection, transactions) -> list[dict[str, Any]]:
+    def _synchronize_native_transaction_records(
+        cls, connection, transactions, *, previous_transactions=None
+    ) -> list[dict[str, Any]]:
         source_transactions = list(transactions or [])
-        source_ids = []
-        for transaction in source_transactions:
-            if not isinstance(transaction, dict):
-                raise StorageCorruptionError("Native transaction record must be an object.")
-            tx_id = str(transaction.get("tx_id") or "").strip().lower()
-            if not tx_id:
-                raise StorageCorruptionError("Native transaction record is missing tx_id, sender, or nonce.")
-            source_ids.append(tx_id)
-        # Remove records absent from this complete document before inserting a
-        # replacement. This preserves the established load-time repair behavior
-        # for deliberately corrupted legacy snapshots while remaining atomic.
-        if source_ids:
-            placeholders = ", ".join("?" for _ in source_ids)
-            connection.execute(f"DELETE FROM native_transaction_records WHERE tx_id NOT IN ({placeholders})", tuple(source_ids))
+        # Admission starts from relational rows that this same SQLite
+        # transaction just loaded.  Their unchanged payloads were already
+        # normalized and guarded by SQL constraints, so re-canonicalizing
+        # every one on each new admission makes the path needlessly O(n) in
+        # JSON work.  Still check every record's presence and duplicates, and
+        # fully validate every new/changed record before it is written.
+        if previous_transactions is not None:
+            previous_by_id = {
+                str(item.get("tx_id") or "").strip().lower(): item
+                for item in previous_transactions
+                if isinstance(item, dict) and str(item.get("tx_id") or "").strip()
+            }
+            normalized_by_id: dict[str, dict[str, Any]] = {}
+            normalized = []
+            for transaction in source_transactions:
+                if not isinstance(transaction, dict):
+                    raise StorageCorruptionError("Native transaction record must be an object.")
+                tx_id = str(transaction.get("tx_id") or "").strip().lower()
+                if not tx_id:
+                    raise StorageCorruptionError("Native transaction record is missing tx_id, sender, or nonce.")
+                existing = normalized_by_id.get(tx_id)
+                if existing is not None:
+                    if _native_transaction_immutable_payload(existing) != _native_transaction_immutable_payload(transaction):
+                        raise StorageUniquenessError(f"Native transaction {tx_id} appears with conflicting signed payloads.")
+                    continue
+                copied = dict(transaction)
+                normalized_by_id[tx_id] = copied
+                normalized.append(copied)
+            seen = set(normalized_by_id)
+            stale_ids = set(previous_by_id) - seen
+            if stale_ids:
+                placeholders = ", ".join("?" for _ in stale_ids)
+                connection.execute(
+                    f"DELETE FROM native_transaction_records WHERE tx_id IN ({placeholders})",
+                    tuple(sorted(stale_ids)),
+                )
+            changed = [
+                transaction for transaction in normalized
+                if previous_by_id.get(str(transaction.get("tx_id") or "").strip().lower()) != transaction
+            ]
         else:
-            connection.execute("DELETE FROM native_transaction_records")
-
-        seen: set[str] = set()
-        normalized: list[dict[str, Any]] = []
-        for transaction in source_transactions:
-            values = cls._native_record_values(transaction)
-            if values["tx_id"] in seen:
-                existing = next(item for item in normalized if str(item.get("tx_id") or "").strip().lower() == values["tx_id"])
-                if _native_transaction_immutable_payload(existing) != values["immutable_payload"]:
-                    raise StorageUniquenessError(f"Native transaction {values['tx_id']} appears with conflicting signed payloads.")
-                continue
-            seen.add(values["tx_id"])
-            normalized.append(dict(transaction))
+            source_ids = []
+            seen: set[str] = set()
+            normalized = []
+            for transaction in source_transactions:
+                values = cls._native_record_values(transaction)
+                source_ids.append(values["tx_id"])
+                if values["tx_id"] in seen:
+                    existing = next(item for item in normalized if str(item.get("tx_id") or "").strip().lower() == values["tx_id"])
+                    if _native_transaction_immutable_payload(existing) != values["immutable_payload"]:
+                        raise StorageUniquenessError(f"Native transaction {values['tx_id']} appears with conflicting signed payloads.")
+                    continue
+                seen.add(values["tx_id"])
+                normalized.append(dict(transaction))
+        # The ordinary whole-document save path retains its conservative
+        # synchronization behavior.  Admission already loaded the previous
+        # relational state under this same SQLite transaction, though, so it
+        # can prove precisely which rows changed.  Avoiding a write and a
+        # lifecycle lookup for every unchanged pending record keeps the same
+        # durable-before-ack boundary while eliminating quadratic write work.
+        if previous_transactions is None:
+            # Remove records absent from this complete document before
+            # inserting a replacement. This preserves deliberate legacy
+            # repair behavior while remaining atomic.
+            if source_ids:
+                placeholders = ", ".join("?" for _ in source_ids)
+                connection.execute(
+                    f"DELETE FROM native_transaction_records WHERE tx_id NOT IN ({placeholders})", tuple(source_ids)
+                )
+            else:
+                connection.execute("DELETE FROM native_transaction_records")
+            changed = normalized
         # A reorg can atomically swap ownership of one active sender/nonce.
         # Release every row whose final state is inactive before activating
         # winner or requeued rows, while still passing each real transition
         # through the lifecycle trigger and append-only transition recorder.
         inactive = [
-            transaction for transaction in normalized
+            transaction for transaction in changed
             if str(transaction.get("status") or "").strip().lower()
             not in NATIVE_TRANSACTION_ACTIVE_STATES
         ]
         active = [
-            transaction for transaction in normalized
+            transaction for transaction in changed
             if str(transaction.get("status") or "").strip().lower()
             in NATIVE_TRANSACTION_ACTIVE_STATES
         ]
         for transaction in inactive + active:
             cls._upsert_native_transaction_record(connection, transaction)
-        return cls._load_native_transaction_records(connection, strict=True)
+        return normalized if previous_transactions is not None else cls._load_native_transaction_records(connection, strict=True)
 
     @staticmethod
     def _save_sections_to_connection(connection, sections: dict[str, Any]) -> None:
         for section_name in _STORAGE_SECTIONS:
+            if section_name == "native_transactions":
+                # SQLite loads this section exclusively from its normalized
+                # relational table; storing a redundant JSON snapshot makes
+                # every pending admission serialize the entire mempool twice.
+                continue
             payload = sections.get(section_name, _default_section_value(section_name))
             connection.execute(
                 """
@@ -1712,13 +1788,15 @@ class SQLiteStorageBackend(StorageBackend):
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
             self._synchronize_canonical_claims(connection, replacement)
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
-                connection, replacement.get("native_transactions", [])
+                connection, replacement.get("native_transactions", []),
+                previous_transactions=sections.get("native_transactions", []),
             )
             self._save_sections_to_connection(connection, replacement)
             return replacement
 
     def atomic_update_blockchain_document(
-        self, mutate, *, outbox_records=None, received_peer_message=None
+        self, mutate, *, outbox_records=None, received_peer_message=None,
+        copy_document: bool = True,
     ):
         # BEGIN IMMEDIATE serializes competing admissions before they inspect
         # pending balance and nonce reservations.  Returning from this method
@@ -1731,13 +1809,27 @@ class SQLiteStorageBackend(StorageBackend):
                 )
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
-            replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
+            previous_transactions = sections.get("native_transactions", [])
+            if copy_document:
+                replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
+            else:
+                # Native admission receives a just-deserialized document under
+                # this transaction and only appends/replaces its own records.
+                # Preserve the prior native list for relational synchronization
+                # while avoiding repeated deep copies of the growing mempool.
+                # The caller still gets no live in-memory state and all writes
+                # remain inside this BEGIN IMMEDIATE / commit-before-ack path.
+                document["chain"] = list(document["chain"])
+                document["transfer_intents"] = list(document["transfer_intents"])
+                document["native_transactions"] = list(document["native_transactions"])
+                replacement = mutate(document)
             self._synchronize_canonical_claims(connection, replacement)
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
-                connection, replacement.get("native_transactions", [])
+                connection, replacement.get("native_transactions", []),
+                previous_transactions=previous_transactions,
             )
             records = (
-                outbox_records(deepcopy(replacement))
+                outbox_records(deepcopy(replacement) if copy_document else replacement)
                 if callable(outbox_records)
                 else outbox_records
             )

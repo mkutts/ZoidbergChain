@@ -132,7 +132,9 @@ class NativeTransactionValidationService:
                 "already_settled", "Transaction is already present in canonical settlement."
             )
         try:
-            ledger.validate_transaction_nonce(state, validated)
+            ledger.validate_transaction_nonce(
+                state, validated, exclude_tx_id=exclude_tx_id
+            )
         except ValueError as exc:
             message = str(exc)
             if "lower" in message.lower():

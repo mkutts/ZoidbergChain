@@ -454,14 +454,36 @@ class NativeLedgerService:
         wallet = self.normalize_wallet_identity(wallet_address)
         return wallet is not None and self.coerce_native_nonce(nonce) == self.get_next_nonce(state, wallet)
 
-    def validate_transaction_nonce(self, state, transaction):
+    def validate_transaction_nonce(self, state, transaction, *, exclude_tx_id=None):
         wallet = self.normalize_wallet_identity(transaction.get("from_address"))
         if wallet is None: raise ValueError("Transaction from_address is invalid.")
-        nonce = self.coerce_native_nonce(transaction.get("nonce")); tx_id = str(transaction.get("tx_id") or "").strip().lower(); existing = self.find_sender_nonce_transaction(state, wallet, nonce)
-        if existing:
-            if str(existing.get("tx_id") or "").strip().lower() == tx_id: return existing
+        nonce = self.coerce_native_nonce(transaction.get("nonce")); tx_id = str(transaction.get("tx_id") or "").strip().lower()
+        # An already-persisted transaction is validated before mempool
+        # promotion as well as during its initial atomic submission.  It must
+        # not reserve its own nonce while determining whether that nonce is
+        # the next sequential value: a first-seen nonce 2 would otherwise
+        # promote itself despite the missing nonce 1.
+        excluded = str(exclude_tx_id or "").strip().lower()
+        unavailable_records = [
+            item for item in state.native_transactions
+            if self.native_transaction_sender_matches(item, wallet)
+            and str(item.get("status") or "").strip().lower() in self.native_nonce_unavailable_statuses()
+            and str(item.get("tx_id") or "").strip().lower() != excluded
+        ]
+        existing = next(
+            (item for item in unavailable_records if self.coerce_native_nonce(item.get("nonce")) == nonce),
+            None,
+        )
+        if existing is not None:
+            if str(existing.get("tx_id") or "").strip().lower() == tx_id:
+                return existing
             raise ValueError("Nonce already used or reserved. Refresh and try again.")
-        expected = self.get_next_nonce(state, wallet)
+        unavailable = {self.coerce_native_nonce(item.get("nonce")) for item in unavailable_records}
+        if nonce in unavailable:
+            raise ValueError("Nonce already used or reserved. Refresh and try again.")
+        expected = NATIVE_TRANSACTION_INITIAL_NONCE
+        while expected in unavailable:
+            expected += 1
         if nonce < expected: raise ValueError("Transaction nonce is lower than the next expected nonce. Refresh and try again.")
         if nonce > expected: raise ValueError("Transaction nonce is ahead of the next expected nonce. Strict sequential nonces are required.")
         return None

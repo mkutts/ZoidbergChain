@@ -831,10 +831,11 @@ peer-delivery lifecycle, or finality projection API.
 | `signed_pending` | `validated_pending`, `mempool`, `settled`, `rejected`, `failed`, `expired` |
 | `validated_pending` | `mempool`, `settled`, `rejected`, `failed`, `expired` |
 | `mempool` | `validated_pending`, `settled`, `rejected`, `failed`, `expired` |
-| `included` | `settled`, `validated_pending`, `finalized` |
-| `settled` | `validated_pending`, `finalized` |
+| `included` | `settled`, `validated_pending`, `mempool`, `rejected`, `finalized` |
+| `settled` | `validated_pending`, `mempool`, `rejected`, `finalized` |
 | `rejected` | `settled` only when a canonical block proves inclusion |
-| `failed`, `expired`, `finalized` | no non-idempotent transition |
+| `failed`, `expired` | `settled` only when a canonical block proves inclusion |
+| `finalized` | no non-idempotent transition |
 
 The ledger service rejects invalid operational transitions. SQLite has a matching
 lifecycle trigger, preventing invalid raw-SQL transitions. The `rejected` to
@@ -1156,3 +1157,216 @@ not a consensus status. Admin operational status reports each outbox state count
 and oldest outstanding age. JSON retains legacy development behavior and makes
 no restart-safe retry/dedup claim. Reorg recovery remains explicitly deferred to
 Task 4.7.
+
+## 23. Task 4.7 implementation — deterministic canonical reorg recovery
+
+Task 4.7 replaces the old in-memory-first peer adoption sequence with a single
+durable reconstruction command. Fork-choice scores and tie breakers are
+unchanged. A candidate still passes full chain validation and must win the
+frozen originality/height/lower-tip-hash comparison before reconstruction is
+attempted.
+
+### 23.1 Pre-Task-4.7 behavior and stale-state risks
+
+Before this task, peer sync removed matching legacy pending transactions,
+assigned `blockchain.chain` to the candidate in memory, recomputed the reward
+pool, reconciled submission status, downgraded every detached `settled` native
+record to `validated_pending`, settled candidate transactions, and finally
+called the generic whole-state save. Direct `Blockchain.replace_chain()` did the
+same in-memory mutations but did not persist them.
+
+Balances were already read by replaying the selected chain, and SQLite already
+rebuilt canonical transaction and reward claims on any whole-state save. Those
+properties prevented many arithmetic remnants, but the replacement sequence was
+not safe: a failed save left the live process on an uncommitted winner; orphaned
+transactions were not returned to the actual `mempool`; balance-invalid orphans
+were retained as active reservations; winner/pending sender-nonce swaps could
+violate the partial unique index; lifecycle history could not represent the
+final direct reorg outcome; noncanonical, non-finalized attestations remained;
+and there was no explicit branch delta, propagation reconciliation, failure
+boundary, or restart recovery test.
+
+### 23.2 Hash-linked branch delta
+
+`CanonicalReorgService.branch_delta()` walks backward from the winning tip using
+each block's `previous_hash` until it reaches a hash present in the old canonical
+lineage. It independently walks the old tip back to that same hash. The result
+contains the exact common ancestor height/hash, detached old blocks in ascending
+height order, and attached winner blocks in ascending height order. Missing
+links, cycles, duplicate/missing hashes, or a common hash at conflicting heights
+fail reconstruction. Height equality alone is never treated as ancestry.
+
+The same routine covers a one-block replacement, a multi-block replacement,
+same-height competitors, a longer winner, and an identical chain. Normal
+adoption is not invoked for an identical live chain; a durable already-winner
+case is nevertheless handled idempotently so a process can retry after a
+post-commit publication failure.
+
+### 23.3 Canonical replacement and derived-state rebuild
+
+The real adoption sequence is:
+
+1. Validate and compare the candidate against the live selected chain.
+2. Enter the backend's complete-document atomic update boundary.
+3. Reread the durable chain and compare the candidate again under the write
+   lock/transaction, preventing a stale live process from replacing a newer
+   durable winner.
+4. Verify every durable quorum-finalized height/hash is present unchanged.
+5. Calculate the hash-linked branch delta and extract detached native
+   transactions.
+6. Replay the complete winning chain to validate exact balances, canonical
+   transaction IDs, strict per-sender nonce sequences, and balance sufficiency.
+7. Rebuild canonical native lifecycle records, pending state, transfer intents,
+   submission mint status, the mint queue, and non-finalized attestation state.
+8. Let storage rebuild certified-commit, canonical native transaction, and
+   canonical reward claims from the replacement chain.
+9. Insert duplicate-safe outbox intent for newly requeued orphan transactions.
+10. Commit durable state.
+11. Publish the committed document into the live chain, ledger/mempool,
+    submission, reward-pool, and finality views.
+
+Balances and canonical nonce counters do not have independent mutable tables.
+They are reconstructed by deterministic chain replay; public balance reads and
+canonical nonce reads continue to derive from that chain. The application
+report records the exact replayed balance map and next canonical nonce map for
+verification. Pending reservations then affect the existing public
+`next_nonce`/available-balance view without becoming canonical settlement.
+
+Canonical transaction claims are deleted and reinserted from the winner inside
+the SQLite transaction. Orphan-only claims disappear, winner claims appear,
+`tx_id` and `(sender, nonce)` uniqueness remain unchanged, and a transaction
+present on both branches is catalogued once and points at its winner block.
+
+Creator and voter reward records remain block-derived. Canonical reward claims
+are rebuilt from winner blocks, wallet balances are replayed from winner reward
+transactions, and the in-memory reward pool is recomputed only after commit.
+Detached creator/voter effects therefore disappear and attached effects apply
+once. Repeating adoption cannot increment or decrement reward state.
+
+Other inspected canonical projections are certified submission/certificate
+claims, submission mint status, mint-queue membership, legacy confirmed-pool
+removal, finality attestations/evidence, canonical head identity, block native
+transaction indexes, and the reward-pool summary. Off-chain submissions, votes,
+certificates, content records, access/feedback/audit records, wallets, and peers
+remain durable application metadata rather than canonical chain projections.
+
+### 23.4 Lifecycle and orphan requeue rules
+
+Every winner transaction is restored to `settled` with its exact canonical
+block hash, height, and block-derived settlement time. A locally rejected,
+failed, or expired transaction may move to `settled` only when the winning chain
+proves canonical inclusion. A previously finalized transaction must retain the
+same canonical block identity; finalized history cannot be relocated.
+
+Every detached-only native transaction and every already-active pending record
+is then evaluated against the fully restored winner. Evaluation uses the Task
+4.4 identity, canonical replay, nonce, fee, and available-balance validators.
+Successful detached transactions transition directly from `included`/`settled`
+to `mempool`. Invalid ones transition directly to `rejected`, preserving durable
+history and releasing the active nonce reservation. The Python lifecycle table
+and SQLite trigger both explicitly permit these reorg-only outcomes; SQLite is
+never bypassed.
+
+Revalidation order is deterministic:
+
+1. normalized sender address;
+2. numeric nonce;
+3. already-active pending work before an orphan only for the same sender/nonce;
+4. existing native mempool key (admission/update/create time, sender, nonce,
+   transaction ID).
+
+This uses sender/nonce ordering from native block selection, so nonce `N+1`
+cannot be admitted before `N`. Each successful item is added to the isolated
+working reservation set before the next item is checked. Pending outgoing funds
+therefore reduce availability for later candidates. If an earlier nonce is
+invalid or missing, later nonces deterministically fail as future nonces.
+
+Reorg rejection reasons are the Task 4.4 stable code prefixed with `reorg_`,
+including `reorg_active_nonce_conflict`, `reorg_stale_nonce`,
+`reorg_future_nonce`, and `reorg_insufficient_balance`. A winner transaction at
+the same sender/nonce is installed first and necessarily rejects the detached
+competitor. An already-active noncanonical pending transaction wins a same-nonce
+tie over an orphan; the orphan remains durable as rejected history. No record is
+silently deleted.
+
+### 23.5 Finality boundary
+
+Validator-quorum finality remains unchanged. Both the live fork-choice comparison
+and the locked durable comparison require every persisted finalized height/hash
+to occur unchanged in the candidate. Full chain validation makes the highest
+finalized block an ancestor of the selected head. Accepted or confirmed but not
+quorum-finalized blocks may be replaced according to existing fork choice.
+
+Finalization evidence is retained exactly. Valid attestations for blocks that
+remain canonical are retained; attestations targeting detached non-finalized
+blocks are removed during reconstruction. No validator set, quorum, attestation,
+or finalization rule changed in Task 4.7.
+
+### 23.6 Atomicity, crash recovery, and memory publication
+
+For SQLite, chain replacement, native lifecycle rows and transition history,
+active sender-nonce ownership, canonical transaction/reward/commit claims,
+submission and mint-queue projections, finality metadata, compatible document
+sections, and requeued outbox rows commit in one `BEGIN IMMEDIATE` transaction.
+Losing rows that must become inactive are updated before winner/requeued active
+rows, allowing an atomic sender-nonce ownership swap without weakening the
+partial unique index. The JSON development backend uses its existing OS lock and
+atomic complete-document file replacement; it still does not claim relational
+constraints or a durable peer outbox.
+
+Failures during replay/rebuild or immediately before commit roll back to the
+complete old state. The process does not mutate live canonical state while that
+transaction runs. Once storage returns, the winner is durable. The live facade
+then restores the complete committed document and recomputes the reward pool.
+If the injected `after_reorg_commit_before_publish` boundary fails, the running
+process can still show the old coherent snapshot, but restart loads the complete
+durable winner; a retry detects `already_canonical` and publishes it without
+reapplying effects. No successful acknowledgement is returned before durable
+commit and live publication.
+
+Task 4.7 failure injection points are `before_reorg_rebuild`,
+`during_reorg_rebuild`, `before_reorg_commit`, and
+`after_reorg_commit_before_publish`.
+
+### 23.7 Peer outbox behavior
+
+Newly requeued orphan transactions create outbox rows inside the same SQLite
+transaction as the reorg. Message and `(message_id, destination_peer_id)`
+identities are unchanged, so an existing logical row is reused and repeated
+recovery cannot duplicate it. Existing pending transactions continue to use the
+Task 4.6 bounded reconciliation backfill.
+
+Outstanding delivery history for a transaction that becomes canonical or is
+currently invalidated is retained. It is non-consensus diagnostic/reconciliation
+state: exact canonical identity receives the existing idempotent
+`already_settled` ACK, while state-dependent nonce/balance outcomes retain the
+Task 4.6 retry semantics because a later allowed reorg may change eligibility.
+Historical delivery rows are not silently deleted and never influence fork
+choice or canonical reconstruction.
+
+### 23.8 Sources of truth and invariants
+
+| State | Authority | Task 4.7 treatment |
+|---|---|---|
+| Blockchain and canonical head | Persisted validated canonical chain | Replaced first within the one durable transaction |
+| Native balances | Deterministic replay of canonical block transactions | Winner replay; no losing debit/credit retained |
+| Canonical sender nonces | Winning-chain native transaction sequence | Winner replay; pending reservations remain explicitly noncanonical |
+| Canonical native claims | Chain-derived SQLite unique projection | Delete/reinsert exactly from winner |
+| Native lifecycle/history | Durable native row plus append-only transitions, constrained by canonical chain | Winner settlement and orphan pending/rejection reconciled atomically |
+| Native mempool | Durable lifecycle rows in active pending states | Revalidated against restored winner and pending reservations |
+| Creator/voter rewards | Reward transactions/metadata in canonical blocks | Balances, claims, records, and pool derived from winner |
+| Finality metadata | Persisted quorum evidence; attestations are supporting records | Finalized evidence preserved; detached nonfinal attestations removed |
+| Peer outbox | Local non-consensus delivery table | Requeue intent inserted idempotently; history retained |
+
+Database invariants remain: native `tx_id` primary-key identity, immutable signed
+payload binding, one active `(sender, nonce)`, lifecycle-trigger legality and
+append-only transition history, one canonical `tx_id`, one canonical
+`(sender, nonce)`, unique certified submission/certificate/block claims, unique
+canonical reward IDs, and one logical outbox row per message/destination.
+
+Application/protocol invariants are: full candidate validation before adoption;
+unchanged frozen fork choice; hash-linked ancestry; complete winner replay;
+strict sequential nonces; pending-balance reservations; canonical authority over
+local lifecycle policy; deterministic orphan ordering/reasons; finalized-history
+preservation; durable-before-publication state; and idempotent recovery,
+settlement, reward projection, mempool membership, and propagation intent.

@@ -129,12 +129,16 @@ class NativeLedgerService:
             "signed_pending": {"validated_pending", "mempool", "settled", "rejected", "failed", "expired"},
             "validated_pending": {"mempool", "settled", "rejected", "failed", "expired"},
             "mempool": {"validated_pending", "settled", "rejected", "failed", "expired"},
-            "included": {"settled", "validated_pending", "finalized"},
-            "settled": {"validated_pending", "finalized"},
+            "included": {"settled", "validated_pending", "mempool", "rejected", "finalized"},
+            "settled": {"validated_pending", "mempool", "rejected", "finalized"},
             # A canonical block is authoritative over an earlier local rejection.
             "rejected": {"settled"},
-            "failed": set(),
-            "expired": set(),
+            # Canonical inclusion overrides terminal local policy just as it
+            # overrides a prior rejection. These transitions are never used
+            # for ordinary admission; only winning-chain reconstruction may
+            # make a valid signed transaction canonical again.
+            "failed": {"settled"},
+            "expired": {"settled"},
             "finalized": set(),
         }
 

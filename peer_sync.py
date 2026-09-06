@@ -1193,17 +1193,10 @@ def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeou
 
 
 def _adopt_candidate_chain(blockchain, candidate_chain):
-    previous_chain_length = len(blockchain.chain)
-    for block in candidate_chain:
-        _remove_confirmed_pending_transactions(blockchain, block.transactions)
-    blockchain.chain = candidate_chain
-    blockchain.recompute_reward_pool_balance(chain=blockchain.chain)
-    blockchain.reconcile_submission_canonical_state()
-    blockchain.reconcile_native_transactions_with_chain(chain=candidate_chain)
-    blockchain.save_blockchain()
+    adoption = blockchain.adopt_canonical_chain(candidate_chain)
     return {
-        "appended": max(0, len(candidate_chain) - previous_chain_length),
-        "latest_block_hash": blockchain.get_latest_block().hash,
+        "appended": adoption["appended"],
+        "latest_block_hash": adoption["latest_block_hash"],
     }
 
 

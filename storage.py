@@ -1324,6 +1324,7 @@ class SQLiteStorageBackend(StorageBackend):
             # lifecycle service.  Canonical inclusion is allowed to override a
             # prior local rejection because canonical chain contents remain the
             # settlement source of truth.
+            connection.execute("DROP TRIGGER IF EXISTS native_transaction_lifecycle_guard")
             connection.execute(
                 """
                 CREATE TRIGGER IF NOT EXISTS native_transaction_lifecycle_guard
@@ -1333,9 +1334,11 @@ class SQLiteStorageBackend(StorageBackend):
                     (OLD.lifecycle_state = 'signed_pending' AND NEW.lifecycle_state IN ('validated_pending', 'mempool', 'settled', 'rejected', 'failed', 'expired')) OR
                     (OLD.lifecycle_state = 'validated_pending' AND NEW.lifecycle_state IN ('mempool', 'settled', 'rejected', 'failed', 'expired')) OR
                     (OLD.lifecycle_state = 'mempool' AND NEW.lifecycle_state IN ('validated_pending', 'settled', 'rejected', 'failed', 'expired')) OR
-                    (OLD.lifecycle_state = 'included' AND NEW.lifecycle_state IN ('settled', 'validated_pending', 'finalized')) OR
-                    (OLD.lifecycle_state = 'settled' AND NEW.lifecycle_state IN ('validated_pending', 'finalized')) OR
-                    (OLD.lifecycle_state = 'rejected' AND NEW.lifecycle_state = 'settled')
+                    (OLD.lifecycle_state = 'included' AND NEW.lifecycle_state IN ('settled', 'validated_pending', 'mempool', 'rejected', 'finalized')) OR
+                    (OLD.lifecycle_state = 'settled' AND NEW.lifecycle_state IN ('validated_pending', 'mempool', 'rejected', 'finalized')) OR
+                    (OLD.lifecycle_state = 'rejected' AND NEW.lifecycle_state = 'settled') OR
+                    (OLD.lifecycle_state = 'failed' AND NEW.lifecycle_state = 'settled') OR
+                    (OLD.lifecycle_state = 'expired' AND NEW.lifecycle_state = 'settled')
                 )
                 BEGIN
                     SELECT RAISE(ABORT, 'illegal native transaction lifecycle transition');
@@ -1592,8 +1595,23 @@ class SQLiteStorageBackend(StorageBackend):
                     raise StorageUniquenessError(f"Native transaction {values['tx_id']} appears with conflicting signed payloads.")
                 continue
             seen.add(values["tx_id"])
-            cls._upsert_native_transaction_record(connection, transaction)
             normalized.append(dict(transaction))
+        # A reorg can atomically swap ownership of one active sender/nonce.
+        # Release every row whose final state is inactive before activating
+        # winner or requeued rows, while still passing each real transition
+        # through the lifecycle trigger and append-only transition recorder.
+        inactive = [
+            transaction for transaction in normalized
+            if str(transaction.get("status") or "").strip().lower()
+            not in NATIVE_TRANSACTION_ACTIVE_STATES
+        ]
+        active = [
+            transaction for transaction in normalized
+            if str(transaction.get("status") or "").strip().lower()
+            in NATIVE_TRANSACTION_ACTIVE_STATES
+        ]
+        for transaction in inactive + active:
+            cls._upsert_native_transaction_record(connection, transaction)
         return cls._load_native_transaction_records(connection, strict=True)
 
     @staticmethod

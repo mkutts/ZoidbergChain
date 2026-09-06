@@ -13,6 +13,7 @@ from transaction import Transaction
 from wallet import Wallet
 from utils import extract_text
 import json
+from copy import deepcopy
 from decimal import Decimal
 from datetime import datetime, timezone
 from config import (
@@ -100,7 +101,7 @@ from protocol_v1_genesis import (
 from validators import is_valid_ethereum_address, is_valid_public_key, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
-from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, LifecycleTimingRecorder, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, build_native_transaction_outbox_records, normalize_validator_set
+from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, CanonicalReorgError, CanonicalReorgService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, LifecycleTimingRecorder, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, SubmissionOriginalityService, SubmissionOriginalityState, build_native_transaction_outbox_records, normalize_validator_set
 
 ALLOWLIST_SCOPES = {"access", "review", "submission", "voting", "rewards", "all_beta"}
 ALLOWLIST_SUBJECT_TYPES = {"wallet", "access_account", "email", "handle"}
@@ -211,10 +212,12 @@ class Blockchain:
         self._native_mempool_service = NativeMempoolService(self._native_ledger_service)
         self._reward_service = RewardService()
         self._fork_choice_service = ForkChoiceService()
+        self._canonical_reorg_service = CanonicalReorgService()
         self._finality_service = FinalityService()
         self._block_validation_service = BlockValidationService()
         self._block_production_service = BlockProductionService()
         self._last_reward_excluded_voters = []
+        self._last_canonical_reorg_report = None
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
@@ -490,6 +493,11 @@ class Blockchain:
 
     def _commit_fault(self, stage):
         hook = getattr(self, "_atomic_commit_fault_injector", None)
+        if hook is not None:
+            hook(stage)
+
+    def _reorg_fault(self, stage):
+        hook = getattr(self, "_canonical_reorg_fault_injector", None)
         if hook is not None:
             hook(stage)
     def _access_admin_state(self):
@@ -3408,18 +3416,197 @@ class Blockchain:
     def get_chain_as_dict(self):
         """Return the blockchain as a list of dictionaries."""
         return [block.to_dict() for block in self.chain]
-    
+
+    def get_chain_branch_delta(self, old_chain, winning_chain):
+        """Return the hash-linked common ancestor and canonical branch delta."""
+        return self._canonical_reorg_service.branch_delta(old_chain, winning_chain).to_dict()
+
+    @staticmethod
+    def _candidate_preserves_finality_records(candidate_chain, finalized_blocks):
+        candidate_by_height = {
+            int(Blockchain._block_field(block, "index")): str(
+                Blockchain._block_field(block, "hash") or ""
+            ).strip().lower()
+            for block in candidate_chain or []
+        }
+        return all(
+            candidate_by_height.get(int(record.get("block_height")))
+            == str(record.get("block_hash") or "").strip().lower()
+            for record in finalized_blocks or []
+            if isinstance(record, dict)
+        )
+
+    def _canonical_reorg_outbox_builder(self, outcome):
+        def build(document):
+            report = outcome.get("report") or {}
+            requeued = set(report.get("requeued_transaction_ids") or [])
+            if not requeued:
+                return []
+            records = []
+            for transaction in document.get("native_transactions", []) or []:
+                if transaction.get("tx_id") not in requeued or transaction.get("status") != "mempool":
+                    continue
+                records.extend(build_native_transaction_outbox_records(
+                    transaction,
+                    list(document.get("peers", []) or []),
+                    sender_node_id=NODE_ID,
+                    network_name=NETWORK_NAME,
+                    created_at=(
+                        transaction.get("admitted_at")
+                        or transaction.get("updated_at")
+                        or transaction.get("created_at")
+                    ),
+                ))
+            return records
+
+        return build
+
+    @staticmethod
+    def _merge_local_noncanonical_reorg_state(document, local_document):
+        """Preserve facade-owned metadata that existing commands may not checkpoint eagerly."""
+        key_fields = {
+            "submissions": ("submission_id",),
+            "content_objects": ("content_id", "content_hash"),
+            "votes": ("submission_id", "voter"),
+            "originality_certificates": ("certificate_id",),
+            "access_requests": ("request_id",),
+            "access_accounts": ("access_account_id",),
+            "wallet_bindings": ("wallet_address",),
+            "allowlist_entries": ("allowlist_entry_id",),
+            "override_requests": ("override_request_id",),
+            "feedback_records": ("feedback_id",),
+            "audit_logs": ("audit_id", "created_at", "action"),
+        }
+        for section, fields in key_fields.items():
+            durable_items = list(document.get(section, []) or [])
+            local_items = list(local_document.get(section, []) or [])
+            positions = {}
+            merged = []
+            for item in durable_items + local_items:
+                if not isinstance(item, dict):
+                    continue
+                identity = tuple(str(item.get(field) or "") for field in fields)
+                if not any(identity):
+                    identity = (json.dumps(item, sort_keys=True, default=str),)
+                if identity in positions:
+                    merged[positions[identity]] = deepcopy(item)
+                else:
+                    positions[identity] = len(merged)
+                    merged.append(deepcopy(item))
+            document[section] = merged
+        document["mint_queue"] = list(dict.fromkeys(
+            list(document.get("mint_queue", []) or [])
+            + list(local_document.get("mint_queue", []) or [])
+        ))
+        document["wallets"] = {
+            **dict(document.get("wallets", {}) or {}),
+            **dict(local_document.get("wallets", {}) or {}),
+        }
+        return document
+
+    def adopt_canonical_chain(self, new_chain):
+        """Atomically persist a winning chain and every canonical projection.
+
+        SQLite performs the document, relational transaction/lifecycle rows,
+        canonical claims, reward claims, and requeued-outbox inserts in one
+        ``BEGIN IMMEDIATE`` transaction. JSON uses its existing locked atomic
+        document replacement. Live state is published only after that boundary
+        returns successfully.
+        """
+        candidate = [
+            block if isinstance(block, Block) else Block.from_dict(block)
+            for block in new_chain or []
+        ]
+        comparison = self.compare_chains_by_originality(self.chain, candidate)
+        if comparison["decision"] != "replace_with_candidate":
+            report = {
+                "adopted": False,
+                "reason": comparison["reason"],
+                "latest_block_hash": self.get_latest_block().hash if self.chain else None,
+                "appended": 0,
+            }
+            self._last_canonical_reorg_report = report
+            return report
+
+        candidate_document = self.chain_to_dicts(candidate)
+        local_document = self._serialize_blockchain_state()
+        outcome = {}
+        self._reorg_fault("before_reorg_rebuild")
+
+        def mutate(document):
+            self._merge_local_noncanonical_reorg_state(document, local_document)
+            durable_chain = list(document.get("chain", []) or [])
+            durable_hashes = [str(block.get("hash") or "").strip().lower() for block in durable_chain]
+            candidate_hashes = [str(block.get("hash") or "").strip().lower() for block in candidate_document]
+            if durable_hashes == candidate_hashes:
+                outcome["report"] = {
+                    "adopted": False,
+                    "reason": "already_canonical",
+                    "latest_block_hash": candidate_hashes[-1] if candidate_hashes else None,
+                    "appended": 0,
+                }
+                return document
+
+            durable_comparison = self._fork_choice_service.compare(
+                durable_chain,
+                candidate_document,
+                ForkChoiceCollaborators(self.chain_to_dicts, self.is_chain_valid),
+            )
+            if durable_comparison["decision"] != "replace_with_candidate":
+                raise CanonicalReorgError(
+                    "Durable canonical head changed before the winning branch could be adopted."
+                )
+            if not self._candidate_preserves_finality_records(
+                candidate_document, document.get("finalized_blocks", [])
+            ):
+                raise CanonicalReorgError(
+                    "Winning branch would replace persisted quorum-finalized history."
+                )
+
+            replacement, report = self._canonical_reorg_service.rebuild_document(
+                document,
+                candidate_document,
+                self._native_ledger_service,
+                fault=self._reorg_fault,
+            )
+            report.update({
+                "reason": durable_comparison["reason"],
+                "latest_block_hash": candidate_hashes[-1],
+                "appended": len(report["attached_block_hashes"]),
+            })
+            outcome["report"] = report
+            self._reorg_fault("before_reorg_commit")
+            return replacement
+
+        document = self.storage.atomic_update_blockchain_document(
+            mutate,
+            outbox_records=self._canonical_reorg_outbox_builder(outcome),
+        )
+        self._reorg_fault("after_reorg_commit_before_publish")
+        self._restore_blockchain_state_document(document)
+
+        # Legacy transactions are not part of Task 4.7 requeue semantics, but
+        # retaining an already-confirmed legacy pool entry would be stale.
+        confirmed_legacy = [
+            transaction.to_dict() if hasattr(transaction, "to_dict") else dict(transaction)
+            for block in candidate
+            for transaction in block.transactions
+        ]
+        self.pending_transactions = [
+            pending for pending in self.pending_transactions
+            if pending.to_dict() not in confirmed_legacy
+        ]
+        report = outcome["report"]
+        self._last_canonical_reorg_report = report
+        return report
+
     def replace_chain(self, new_chain):
         """Replace the current chain only when the originality fork-choice rule prefers it."""
-        comparison = self.compare_chains_by_originality(self.chain, new_chain)
-        if comparison["decision"] == "replace_with_candidate":
-            self.chain = new_chain
-            self.recompute_reward_pool_balance(chain=self.chain)
-            self.reconcile_submission_canonical_state()
-            self.reconcile_native_transactions_with_chain(chain=self.chain)
-            print(f"Debug: Replaced local chain: {comparison['reason']}.")
+        report = self.adopt_canonical_chain(new_chain)
+        if report["adopted"]:
+            print(f"Debug: Replaced local chain: {report['reason']}.")
             return True
-        print(f"Debug: Received chain not selected: {comparison['reason']}.")
+        print(f"Debug: Received chain not selected: {report['reason']}.")
         return False
     
     def calculate_hash_from_dict(self, block_dict):

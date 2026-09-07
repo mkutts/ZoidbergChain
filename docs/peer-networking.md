@@ -57,16 +57,19 @@ Current behavior:
 - failed peer mempool admission does not roll back unrelated local settled state
 - malformed peer transaction payloads are dropped instead of being trusted into storage
 
-Mempools are local candidate pools and are not consensus-critical yet.
+Mempools are non-final local candidate pools. SQLite peers durably retry and
+reconcile current pending work, so healthy peers eventually converge on relevant
+transaction state after reconnection; this is not an immediate-identical or
+consensus-wide mempool guarantee.
 
 ## Current Limits
 
-Not implemented yet:
+Not implemented:
 
 - replacement policy
 - mempool consensus
 - transfer-only blocks
-- native transaction reorg recovery (Task 4.7)
+- transfer replacement/cancellation policy
 
 ## Durable Native Transaction Delivery
 

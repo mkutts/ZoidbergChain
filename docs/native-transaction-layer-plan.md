@@ -226,7 +226,8 @@ Nonce read surface:
 Public demo constraints:
 
 - transfer-only blocks remain unsupported
-- mempools remain local and are not consensus-wide
+- mempools are non-final local candidate pools rather than consensus-wide state;
+  Milestone 4 SQLite peers durably reconcile pending transactions eventually
 - the Stage 1 public demo is not mainnet
 
 ## Submit-Time Behavior
@@ -360,7 +361,8 @@ Task 8.5 and 8.6 architecture:
 - peer auth or signed peer messages authorize node-to-node transport
 - peer-received transactions do not require local wallet sessions
 - local nodes validate peer transactions independently before mempool admission
-- mempools remain local and are not consensus-critical yet
+- mempools remain non-final and are not consensus-critical; Milestone 4 adds
+  durable eventual peer reconciliation, not immediate identical mempools
 
 Peer endpoints:
 
@@ -383,7 +385,9 @@ Trust rules:
 
 Auto-broadcast decision:
 
-- automatic gossip on local mempool admission remains disabled for now
+- SQLite local admission durably creates delivery intent for active same-network
+  peers; retry/reconciliation performs asynchronous gossip without delaying local
+  acknowledgement
 - accepted meme-mined blocks may include up to `MAX_TRANSACTIONS_PER_BLOCK` native transfers
 - transaction ordering inside blocks is canonical and uses `from_address`, then `nonce`, then `tx_id`
 - peer and sync validation re-runs native transfer checks against chain-before-block state
@@ -428,7 +432,8 @@ Native accounts are MetaMask/Ethereum-style `0x` ZoidbergChain accounts.
 ## Known Limits
 
 - replacement policy is still not implemented
-- mempools are still local rather than consensus-wide
+- mempools are still not consensus-wide; SQLite peers converge eventually through
+  durable retry and bounded anti-entropy
 - transfer-only blocks remain intentionally unsupported
 - wrapped ZOID and ERC-20 behavior are intentionally unsupported
 - no external production security audit has been completed yet

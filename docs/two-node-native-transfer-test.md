@@ -94,7 +94,9 @@ TWO-NODE NATIVE TRANSFER TEST PASSED
 
 ## Important behavior notes
 
-- Mempools are local. Node A and Node B can temporarily disagree before block inclusion.
+- Mempools are non-final local candidate pools. Node A and Node B can temporarily
+  disagree before block inclusion, then healthy SQLite peers reconcile relevant
+  pending work through durable retry and bounded anti-entropy.
 - Native transfers settle only when a valid meme-mined block includes them.
 - Transfer-only blocks are disallowed by design.
 - Replacement policy is still not implemented.

@@ -20,7 +20,8 @@ Completed now:
 Known intentional limitations:
 
 - no replacement policy
-- mempools are local, not consensus-wide
+- mempools are non-final local candidate pools with durable eventual SQLite-peer
+  reconciliation, not consensus-wide state
 - transfer-only blocks are intentionally unsupported
 - no wrapped ZOID / ERC-20 behavior
 - not production/mainnet ready
@@ -75,7 +76,8 @@ Task 8 now includes:
 Known remaining limitations by design:
 
 - no replacement policy yet
-- mempools are local, not consensus-wide
+- mempools are non-final local candidate pools with durable eventual SQLite-peer
+  reconciliation, not consensus-wide state
 - transfer-only blocks remain intentionally unsupported
 - no wrapped ZOID / ERC-20 behavior
 - old `/wallets/...` compatibility read endpoints still exist

@@ -32,7 +32,8 @@ Current status:
 Known intentional limitations:
 
 - no replacement policy
-- mempools are local, not consensus-wide
+- mempools are non-final local candidate pools with durable eventual SQLite-peer
+  reconciliation, not consensus-wide state
 - transfer-only blocks are intentionally unsupported
 - no wrapped ZOID / ERC-20 behavior
 - old `/wallets/...` compatibility read endpoints still exist
@@ -234,7 +235,8 @@ Scope:
 - decide fee priority if fees are enabled
 - decide mempool expiration policy
 - decide transaction cancellation behavior, if any
-- decide whether mempool remains local or gets stronger sync rules
+- evaluate scalability and decentralization of the existing durable eventual
+  reconciliation; do not confuse it with consensus-wide mempool state
 - preserve the rule that settlement happens only in accepted blocks
 - preserve the rule that transfer-only blocks remain unsupported unless intentionally changed later
 

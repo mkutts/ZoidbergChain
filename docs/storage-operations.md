@@ -310,7 +310,11 @@ Migration refuses malformed source snapshots and refuses to overwrite existing S
 For local operators and test environments:
 
 1. Use `DATA_DIR` per node.
-2. Keep `STORAGE_BACKEND=json` unless you are actively validating SQLite.
+2. Use `STORAGE_BACKEND=sqlite` for Public Testnet v1. SQLite is required for
+   durable native-transaction records, receiver deduplication, lifecycle guards,
+   and the peer outbox/retry guarantee. JSON remains suitable only for local
+   development and compatibility work; it does not provide those relational
+   delivery guarantees.
 3. Back up before imports, overwrites, or backend migration.
 4. Run integrity checks after any storage operation that changes persisted state.
 5. Verify a restart before deleting older backups.
@@ -320,6 +324,8 @@ For local operators and test environments:
 - Exports exclude private keys by default.
 - Dev exports that include private keys should be treated as highly sensitive.
 - Always back up before import with `--overwrite`.
-- SQLite is available for opt-in validation, but JSON remains the default backend until a later task changes rollout guidance.
+- JSON remains the local-development default for compatibility, but Public
+  Testnet v1 requires SQLite for Milestone 4 native transaction and peer-delivery
+  durability.
 - The migration path currently copies whole persisted sections as-is; schema normalization is intentionally deferred.
 - Backup, export, and import work at the storage snapshot level and do not change consensus or peer-authentication behavior.

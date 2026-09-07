@@ -16,7 +16,8 @@ Current known limitations:
 - anti-Sybil behavior is only reduced by reviewer eligibility friction, not solved
 - voter rewards are testnet-only, node-configurable, and still conservative by default
 - no replacement policy
-- mempools are local, not consensus-wide
+- mempools are non-final local candidate pools, durably reconciled eventually
+  between healthy SQLite peers; they are not consensus-wide or immediately identical
 - no transfer-only blocks
 - no wrapped ZOID / ERC-20 behavior
 - not mainnet

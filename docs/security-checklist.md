@@ -28,7 +28,8 @@ Next major phase:
 - native ZOID transfers are signed ZoidbergChain messages, not Ethereum or ERC-20 transfers
 - wallet session state is required for local user submit flows only
 - peer-delivered transactions must validate by canonical payload and recovered signer without local browser session trust
-- mempool state is local and non-final
+- mempool state is non-final and locally admitted; SQLite peers durably reconcile
+  pending transactions eventually, without making the mempool consensus-wide
 - settlement happens only inside accepted meme-mined blocks
 - backup, export, import, and reload flows must preserve canonical native transaction state without exposing secrets
 
@@ -72,7 +73,8 @@ Next major phase:
 ## Known Intentional Limits
 
 - no replacement policy yet
-- mempools are still local, not consensus-wide
+- mempools are not consensus-wide or instantly identical; SQLite peer delivery
+  provides durable eventual reconciliation of relevant pending transactions
 - no transfer-only blocks
 - no wrapped ZOID or ERC-20 behavior
 - old `/wallets/...` compatibility read endpoints still exist

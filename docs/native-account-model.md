@@ -126,7 +126,9 @@ Task 8.7 validation rules:
 - synced chains with native transfers are validated block by block in order
 - canonical block ordering for native transfers is `from_address`, then `nonce`, then `tx_id`
 - peer-provided local transaction status is not authoritative for settlement
-- mempools remain local and are not consensus-wide
+- mempools remain non-final local candidate pools rather than consensus-wide
+  state; SQLite peers provide durable eventual reconciliation, not immediate
+  identical membership
 
 ## Balance Fields
 

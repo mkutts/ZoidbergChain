@@ -45,6 +45,16 @@ from config import (
 from review_policy import current_day_window, evaluate_review_eligibility, load_review_policy_config
 from protocol_v1_originality import calculate_signed_vote_identity
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
+from originality import (
+    EXACT_MINTED_CONTENT_DUPLICATE,
+    FLAGGED_FOR_REVIEW,
+    HARD_REJECT,
+    ORIGINALITY_RULE_VERSION,
+    PASS as ORIGINALITY_PASS,
+    OriginalityPipeline,
+    canonical_minted_media_features,
+    validate_originality_evidence,
+)
 from content import (
     CONTENT_TYPE_IMAGE,
     CONTENT_TYPE_MIXED,
@@ -191,6 +201,7 @@ class Blockchain:
         self.transfer_intents = []  # Signed pending native transfer intents
         self.native_transactions = []  # Canonical native transaction records
         self.originality_certificates = []  # Community approval certificates
+        self.originality_evidence = []  # Immutable current pre-vote evidence projection
         self.access_requests = []  # Controlled-testnet access requests
         self.access_accounts = []  # Approved access accounts
         self.wallet_bindings = []  # Wallet-to-access-account bindings
@@ -208,6 +219,9 @@ class Blockchain:
         self._feedback_service = FeedbackService()
         self._content_coordination_service = ContentCoordinationService()
         self._submission_originality_service = SubmissionOriginalityService()
+        self._originality_pipeline = OriginalityPipeline()
+        self._originality_index_cache_head = None
+        self._originality_index_cache_records = None
         self._mint_queue_service = MintQueueService()
         self._native_ledger_service = NativeLedgerService()
         self._native_mempool_service = NativeMempoolService(self._native_ledger_service)
@@ -261,6 +275,7 @@ class Blockchain:
                 certificate.to_dict()
                 for certificate in self.originality_certificates
             ],
+            "originality_evidence": deepcopy(self.originality_evidence),
             "access_requests": self.access_requests,
             "access_accounts": self.access_accounts,
             "wallet_bindings": self.wallet_bindings,
@@ -480,6 +495,10 @@ class Blockchain:
                 certificate.__dict__.update(restored.__dict__)
             certificates.append(certificate)
         self.originality_certificates = certificates
+        self.originality_evidence = [
+            validate_originality_evidence(item)
+            for item in loaded_data.get("originality_evidence", []) or []
+        ]
         self.access_requests = list(loaded_data.get("access_requests", []) or [])
         self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
         self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
@@ -1161,6 +1180,7 @@ class Blockchain:
         submission.submission_nonce = str(verification["nonce"])
         submission.signed_at = str(verification["signed_at"])
         submission.identity_source = str(verification["identity_source"])
+        self.evaluate_prevote_originality(submission.submission_id)
         self.save_blockchain()
         return submission
 
@@ -1169,6 +1189,7 @@ class Blockchain:
             submission = self.submit_existing_content(content_hash=content_hash, content_id=content_id, submitter=submitter, text_content=text_content or "")
         else:
             submission = self.submit_content(image_path=image_path or "", text_content=text_content, submitter=submitter)
+        self.evaluate_prevote_originality(submission.submission_id)
         self.save_blockchain()
         return submission
 
@@ -1435,6 +1456,10 @@ class Blockchain:
                     OriginalityCertificate.from_dict(certificate_data)
                     for certificate_data in loaded_data.get("originality_certificates", [])
                 ]
+                self.originality_evidence = [
+                    validate_originality_evidence(item)
+                    for item in loaded_data.get("originality_evidence", []) or []
+                ]
                 self.access_requests = list(loaded_data.get("access_requests", []) or [])
                 self.access_accounts = list(loaded_data.get("access_accounts", []) or [])
                 self.wallet_bindings = list(loaded_data.get("wallet_bindings", []) or [])
@@ -1486,6 +1511,7 @@ class Blockchain:
             self.transfer_intents = []
             self.native_transactions = []
             self.originality_certificates = []
+            self.originality_evidence = []
             self.access_requests = []
             self.access_accounts = []
             self.wallet_bindings = []
@@ -1737,7 +1763,9 @@ class Blockchain:
         return self._content_coordination_service.refresh_storage_statuses(self._content_coordination_state(), self.storage)
     def submit_content(self, image_path="", text_content="", submitter=""):
         """Create a pending content submission without minting a block."""
-        return self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+        submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+        self.evaluate_prevote_originality(submission.submission_id)
+        return submission
     def get_submission(self, submission_id):
         return self.storage.get_submission(submission_id, self.submissions)
 
@@ -2331,7 +2359,106 @@ class Blockchain:
                 else None
             ),
         )
+        self.evaluate_prevote_originality(submission.submission_id)
         return submission
+
+    def get_originality_evidence(self, submission_id):
+        return self.storage.get_originality_evidence(
+            submission_id, self.originality_evidence
+        )
+
+    def get_originality_evidence_history(self, submission_id):
+        if self.get_submission(submission_id) is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        return self.storage.list_originality_evidence_history(submission_id)
+
+    def _minted_originality_index(self):
+        head = self._current_canonical_head()
+        head_identity = (head["height"], head["hash"])
+        if self._originality_index_cache_head == head_identity:
+            return deepcopy(self._originality_index_cache_records)
+        cached = self.storage.load_minted_media_originality_index(
+            rule_version=ORIGINALITY_RULE_VERSION,
+            head_height=head["height"],
+            head_hash=head["hash"],
+        )
+        if cached is not None:
+            self._originality_index_cache_head = head_identity
+            self._originality_index_cache_records = deepcopy(cached)
+            return cached
+        records = canonical_minted_media_features(
+            self.chain, ocr=self._originality_pipeline.ocr
+        )
+        self.storage.replace_minted_media_originality_index(
+            rule_version=ORIGINALITY_RULE_VERSION,
+            head_height=head["height"],
+            head_hash=head["hash"],
+            records=records,
+        )
+        self._originality_index_cache_head = head_identity
+        self._originality_index_cache_records = deepcopy(records)
+        return records
+
+    def _originality_reference_is_canonical(self, evidence):
+        height = evidence.get("originality_reference_height")
+        if isinstance(height, bool) or not isinstance(height, int):
+            return False
+        if height < 0 or height >= len(self.chain):
+            return False
+        return self.chain[height].hash == evidence.get("originality_reference_block_hash")
+
+    def evaluate_prevote_originality(self, submission_id, *, force=False):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        existing = self.get_originality_evidence(submission_id)
+        if existing is not None and self._originality_reference_is_canonical(existing) and not force:
+            return deepcopy(existing)
+
+        if existing is not None:
+            self.originality_evidence = [
+                record for record in self.originality_evidence
+                if record.get("submission_id") != submission_id
+            ]
+
+        content_object = self.get_content_object_by_hash(submission.content_hash)
+        evidence = self._originality_pipeline.evaluate(
+            submission,
+            content_object,
+            self.chain,
+            data_dir=self.storage.data_dir,
+            minted_index=self._minted_originality_index(),
+        )
+        self.originality_evidence.append(evidence)
+
+        if evidence["final_prevote_decision"] == HARD_REJECT:
+            reason = ",".join(evidence["reason_codes"])
+            if submission.status != HARD_REJECTED:
+                self.hard_reject_submission(submission_id, reason)
+            else:
+                submission.hard_reject_reason = reason
+        elif (
+            submission.status == HARD_REJECTED
+            and (
+                existing is not None
+                or EXACT_MINTED_CONTENT_DUPLICATE in str(submission.hard_reject_reason or "")
+            )
+        ):
+            # A pre-certification stale-fork exact match can disappear.  Its
+            # immutable old evidence remains in SQLite history while the
+            # submission deterministically returns to the pre-vote state.
+            submission.status = PENDING
+            submission.hard_reject_reason = None
+            submission.decision_reason = None
+            submission.decision_finalized_at = None
+        return deepcopy(evidence)
+
+    def ensure_current_originality_evidence(self, submission_id):
+        evidence = self.get_originality_evidence(submission_id)
+        if evidence is None or not self._originality_reference_is_canonical(evidence):
+            evidence = self.evaluate_prevote_originality(submission_id, force=evidence is not None)
+            self.save_blockchain()
+        return evidence
 
     def update_submission_status(self, submission_id, new_status):
         return self._submission_originality_service.update_submission_status(self._submission_originality_state(), self.storage, submission_id, new_status)
@@ -2340,6 +2467,9 @@ class Blockchain:
     def record_vote(self, voter, submission_id=None, created_at=None):
         return self._submission_originality_service.record_vote(self._submission_originality_state(), voter, submission_id, created_at)
     def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None):
+        evidence = self.ensure_current_originality_evidence(submission_id)
+        if evidence["final_prevote_decision"] == HARD_REJECT:
+            raise ValueError("Hard rejected submissions cannot receive votes.")
         return self._submission_originality_service.cast_submission_vote(self._submission_originality_state(), self.storage, submission_id, voter, vote_type, created_at)
     def get_submission_votes(self, submission_id):
         return self._submission_originality_service.get_submission_votes(self._submission_originality_state(), self.storage, submission_id)
@@ -2622,6 +2752,9 @@ class Blockchain:
         allow_pending=False,
         save=True,
     ):
+        evidence = self.ensure_current_originality_evidence(submission_id)
+        if evidence["final_prevote_decision"] == HARD_REJECT:
+            raise ValueError("Hard rejected submissions cannot receive originality certificates.")
         certificate = self._submission_originality_service.create_certificate(self._submission_originality_state(), self.storage, submission_id, approved_at=approved_at, network_name=network_name, issuing_node_id=issuing_node_id, allow_pending=allow_pending, promote_content=self._promote_submission_content_for_protocol_v1, save=self.save_blockchain if save else None, voting_threshold=self.get_voting_threshold)
         self.lifecycle_timing.mark(submission_id, "certificate_created", certificate_id=certificate.certificate_id)
         return certificate
@@ -2629,6 +2762,8 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
+
+        evidence = self.ensure_current_originality_evidence(submission_id)
 
         vote_summary = self.get_submission_votes(submission_id)
         now = now if now is not None else time.time()
@@ -2650,13 +2785,17 @@ class Blockchain:
             result["reason"] = "already_finalized"
             return result
 
-        if automated_originality_passed is None:
-            automated_originality_passed = self.is_meme_original(
-                submission.image_path,
-                submission.text_content,
-            )
+        # A caller may still conservatively fail the legacy compatibility
+        # check, but a caller-supplied True can never override canonical
+        # pre-vote evidence (especially an exact minted duplicate).
+        automated_originality_passed = (
+            automated_originality_passed is not False
+            and evidence["final_prevote_decision"] != HARD_REJECT
+        )
 
         result["automated_originality_passed"] = automated_originality_passed
+        result["originality_evidence_digest"] = evidence["canonical_evidence_digest"]
+        result["pre_vote_originality_decision"] = evidence["final_prevote_decision"]
 
         if not automated_originality_passed:
             submission.transition_to(REJECTED)
@@ -3616,6 +3755,18 @@ class Blockchain:
         self._reorg_fault("after_reorg_commit_before_publish")
         self._restore_blockchain_state_document(document)
 
+        recomputed_originality = []
+        for submission_id in outcome.get("report", {}).get(
+            "invalidated_originality_submission_ids", []
+        ):
+            submission = self.get_submission(submission_id)
+            if submission is None or submission.status == MINTED:
+                continue
+            evidence = self.evaluate_prevote_originality(submission_id)
+            recomputed_originality.append(evidence["canonical_evidence_digest"])
+        if recomputed_originality:
+            self.save_blockchain()
+
         # Legacy transactions are not part of Task 4.7 requeue semantics, but
         # retaining an already-confirmed legacy pool entry would be stale.
         confirmed_legacy = [
@@ -3628,6 +3779,7 @@ class Blockchain:
             if pending.to_dict() not in confirmed_legacy
         ]
         report = outcome["report"]
+        report["recomputed_originality_evidence_digests"] = recomputed_originality
         self._last_canonical_reorg_report = report
         return report
 

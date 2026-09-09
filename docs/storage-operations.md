@@ -329,3 +329,10 @@ For local operators and test environments:
   durability.
 - The migration path currently copies whole persisted sections as-is; schema normalization is intentionally deferred.
 - Backup, export, and import work at the storage snapshot level and do not change consensus or peer-authentication behavior.
+# Milestone 5 originality evidence
+
+SQLite is the required durable backend for Milestone 5 Task 5.3 originality
+evidence history and its reconstructable minted-media feature index. JSON keeps
+only a development compatibility projection and does not provide relational
+immutability or index guarantees. A missing/corrupt SQLite feature index is
+rebuilt from canonical block media.

@@ -284,6 +284,22 @@ async def get_submission(request: Request, submission_id: str):
     return {"submission": _serialize_submission(submission)}
 
 
+@router.get('/submissions/{submission_id}/originality-evidence')
+@api_limit("public_read")
+async def get_submission_originality_evidence(request: Request, submission_id: str):
+    _sync_runtime_globals()
+    submission = blockchain.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
+    evidence = blockchain.get_originality_evidence(submission_id)
+    if evidence is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Originality evidence not found for submission: {submission_id}",
+        )
+    return {"originality_evidence": evidence}
+
+
 @router.get('/submissions/{submission_id}/certificate')
 @api_limit("public_read")
 async def get_submission_certificate(request: Request, submission_id: str):
@@ -625,7 +641,8 @@ _ROUTE_ORDER = {
     ('GET', '/content/{content_hash}', 'download_content'): 82,
     ('POST', '/submit_content', 'submit_content'): 85,
     ('GET', '/submissions', 'get_submissions'): 86,
-    ('GET', '/submissions/{submission_id}', 'get_submission'): 87,
+        ('GET', '/submissions/{submission_id}', 'get_submission'): 87,
+        ('GET', '/submissions/{submission_id}/originality-evidence', 'get_submission_originality_evidence'): 129,
     ('GET', '/submissions/{submission_id}/certificate', 'get_submission_certificate'): 88,
     ('GET', '/submissions/{submission_id}/voter-rewards', 'get_submission_voter_rewards'): 89,
     ('GET', '/certificates/{certificate_id}', 'get_certificate'): 90,

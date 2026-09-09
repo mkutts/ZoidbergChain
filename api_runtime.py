@@ -732,6 +732,7 @@ def _validate_uploaded_image_payload(image: UploadFile, file_bytes: bytes) -> tu
 
 def _serialize_submission(submission):
     content_object = blockchain.get_content_object_by_hash(submission.content_hash) if submission.content_hash else None
+    originality_evidence = blockchain.get_originality_evidence(submission.submission_id)
     lifecycle = blockchain.get_submission_protocol_v1_lifecycle(submission.submission_id)
     body = {
         "submission_id": submission.submission_id,
@@ -758,6 +759,17 @@ def _serialize_submission(submission):
         "confirmed": lifecycle["confirmed"],
         "finalized": lifecycle["finalized"],
         "protocol_v1_lifecycle": lifecycle,
+        "pre_vote_originality": (
+            {
+                "decision": originality_evidence["final_prevote_decision"],
+                "evidence_digest": originality_evidence["canonical_evidence_digest"],
+                "originality_rule_version": originality_evidence["originality_rule_version"],
+                "reference_height": originality_evidence["originality_reference_height"],
+                "reference_block_hash": originality_evidence["originality_reference_block_hash"],
+                "reason_codes": originality_evidence["reason_codes"],
+            }
+            if originality_evidence is not None else None
+        ),
         "voter_reward_summary": blockchain.get_submission_voter_reward_summary(submission.submission_id),
     }
     if content_object is not None:

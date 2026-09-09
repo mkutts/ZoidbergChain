@@ -251,6 +251,26 @@ class CanonicalReorgService:
             "removed_noncanonical_attestations": len(old_attestations) - len(kept_attestations),
         }
 
+    @staticmethod
+    def _invalidate_stale_originality_evidence(document: dict, winning_chain: list[dict]) -> list[str]:
+        canonical = {
+            (int(block.get("index")), str(block.get("hash") or "").strip().lower())
+            for block in winning_chain
+        }
+        retained = []
+        invalidated = []
+        for evidence in document.get("originality_evidence", []) or []:
+            reference = (
+                evidence.get("originality_reference_height"),
+                str(evidence.get("originality_reference_block_hash") or "").strip().lower(),
+            )
+            if reference in canonical:
+                retained.append(evidence)
+            else:
+                invalidated.append(str(evidence.get("submission_id") or ""))
+        document["originality_evidence"] = retained
+        return sorted(item for item in invalidated if item)
+
     @classmethod
     def rebuild_document(cls, document: dict, winning_chain, ledger, *, fault=None) -> tuple[dict, dict]:
         old_chain = [cls._block_dict(block) for block in document.get("chain", []) or []]
@@ -427,6 +447,7 @@ class CanonicalReorgService:
         replacement["native_transactions"] = state.native_transactions
         replacement["transfer_intents"] = rebuilt_intents
         cls._reconcile_submissions(replacement, new_chain)
+        invalidated_originality = cls._invalidate_stale_originality_evidence(replacement, new_chain)
         finality_report = cls._reconcile_finality(replacement, new_chain)
 
         creator_rewards = sum(
@@ -453,6 +474,7 @@ class CanonicalReorgService:
             "canonical_native_claim_count": len(canonical_entries),
             "canonical_creator_reward_count": creator_rewards,
             "canonical_voter_reward_count": voter_rewards,
+            "invalidated_originality_submission_ids": invalidated_originality,
             **finality_report,
         }
         return replacement, report

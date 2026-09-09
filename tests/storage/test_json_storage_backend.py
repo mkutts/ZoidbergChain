@@ -73,6 +73,7 @@ def test_json_storage_backend_loads_existing_chain_data(isolated_data_dir):
             "audit_logs": [],
             "finality_attestations": [],
             "finalized_blocks": [],
+            "originality_evidence": [],
         }
     assert backend.load_chain() == chain
 

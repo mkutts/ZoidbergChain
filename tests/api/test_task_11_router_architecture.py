@@ -13,11 +13,11 @@ from fastapi.routing import APIRoute
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-APPLICATION_ROUTE_COUNT = 129
+APPLICATION_ROUTE_COUNT = 130
 EXPECTED_ROUTER_COUNTS = {
     "api_routers.access": 16,
     "api_routers.admin": 29,
-    "api_routers.content": 20,
+    "api_routers.content": 21,
     "api_routers.native": 23,
     "api_routers.operations": 16,
     "api_routers.peer": 20,
@@ -38,7 +38,7 @@ def _dependency_names(route: APIRoute) -> set[str]:
     }
 
 
-def test_all_129_routes_have_one_domain_router_and_preserve_global_order():
+def test_all_130_routes_have_one_domain_router_and_preserve_global_order():
     routes = _application_routes()
     assert len(routes) == APPLICATION_ROUTE_COUNT
     assert [route.endpoint.__route_order__ for route in routes] == list(range(APPLICATION_ROUTE_COUNT))

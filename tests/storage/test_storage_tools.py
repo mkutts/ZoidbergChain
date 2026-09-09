@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import pytest
+from PIL import Image, ImageEnhance
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
@@ -503,8 +504,13 @@ def test_imported_state_supports_follow_on_app_workflow(backend_factory, isolate
         seeded["contributor_two"].public_key,
         *(wallet.public_key for wallet in seeded["extra_wallets"]),
     ]
+    follow_on_image = isolated_data_dir / "post-import-variant.jpg"
+    with Image.open(submission_image) as source_image:
+        ImageEnhance.Brightness(source_image.convert("RGB")).enhance(0.8).save(
+            follow_on_image, format="JPEG", quality=88
+        )
     new_submission = reloaded.submit_content(
-        image_path=str(submission_image),
+        image_path=str(follow_on_image),
         text_content="post import workflow meme",
         submitter=owner_key,
     )

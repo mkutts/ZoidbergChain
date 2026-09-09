@@ -45,6 +45,7 @@ def test_sqlite_storage_backend_initializes_database(isolated_data_dir):
         "transfer_intents",
         "native_transactions",
         "originality_certificates",
+        "originality_evidence",
         "peers",
         "access_requests",
         "access_accounts",
@@ -88,6 +89,7 @@ def test_sqlite_storage_backend_loads_existing_chain_data(isolated_data_dir):
         "mint_queue": [],
         "votes": [],
         "originality_certificates": [],
+        "originality_evidence": [],
         "peers": [],
     }
 
@@ -344,6 +346,7 @@ def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):
         "transfer_intents": [],
         "native_transactions": [],
         "originality_certificates": [],
+        "originality_evidence": [],
         "peers": [],
         "access_requests": [],
         "access_accounts": [],

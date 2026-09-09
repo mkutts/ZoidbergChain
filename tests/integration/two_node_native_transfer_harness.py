@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+import hashlib
 import os
 import shutil
 import sys
@@ -16,6 +17,7 @@ from urllib.parse import urlparse
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from fastapi.testclient import TestClient
+from PIL import Image, ImageDraw
 
 from block import Block
 from peers import PeerStore
@@ -325,8 +327,14 @@ def _prepare_mintable_submission(
     voter_prefix: str,
     submitter: str | None = None,
 ):
+    variant_path = Path(blockchain.storage.data_dir) / f"harness-{hashlib.sha256(text.encode('utf-8')).hexdigest()}.png"
+    with Image.open(image_path) as source:
+        variant = source.convert("RGB")
+        color = tuple(hashlib.sha256(text.encode("utf-8")).digest()[:3])
+        ImageDraw.Draw(variant).rectangle((0, 0, 7, 7), fill=color)
+        variant.save(variant_path, format="PNG")
     submission = blockchain.submit_content(
-        image_path=str(image_path),
+        image_path=str(variant_path),
         text_content=text,
         submitter=submitter or wallets["owner"].public_key,
     )

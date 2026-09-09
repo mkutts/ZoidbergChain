@@ -29,6 +29,7 @@ from milestone5_policy import (
 )
 from native_transfer import normalize_wallet_address
 from protocol_v1_originality import calculate_signed_vote_identity
+from originality import validate_originality_evidence
 
 
 SUPPORTED_STORAGE_BACKENDS = {"json", "sqlite"}
@@ -42,6 +43,7 @@ _STORAGE_SECTIONS = (
     "transfer_intents",
     "native_transactions",
     "originality_certificates",
+    "originality_evidence",
     "access_requests",
     "access_accounts",
     "wallet_bindings",
@@ -54,13 +56,13 @@ _STORAGE_SECTIONS = (
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks"}
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence"}
 )
 # Native records are authoritative in ``native_transaction_records`` for the
 # SQLite backend.  Keeping a second, whole-mempool JSON copy in
 # ``storage_sections`` was legacy compatibility residue: it was never read
 # (the relational records replace it on load), yet every admission rewrote it.
-_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions"}
+_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence"}
 
 # These are deliberately storage-level names rather than public API statuses.
 # A transaction's finality remains derived from its canonical block and the
@@ -126,6 +128,8 @@ def _default_section_value(section_name):
     if section_name == "native_transactions":
         return []
     if section_name == "originality_certificates":
+        return []
+    if section_name == "originality_evidence":
         return []
     if section_name == "access_requests":
         return []
@@ -357,6 +361,25 @@ def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[s
                 raise StorageUniquenessError(f"Reward {reward_id} is already settled in the canonical chain.")
             seen_rewards[reward_id] = payload
             claims["rewards"].append({"reward_id": reward_id, "reward_kind": "voter", "block_hash": block_hash, "block_height": height, "payload": payload})
+
+    canonical_references = {
+        (int(block["index"]), _normalized_claim_value(block.get("hash")))
+        for block in list(document.get("chain", []) or [])
+        if isinstance(block, dict) and block.get("index") is not None and block.get("hash")
+    }
+    evidence_submissions: set[str] = set()
+    for raw_evidence in list(document.get("originality_evidence", []) or []):
+        evidence = validate_originality_evidence(raw_evidence)
+        submission_id = str(evidence["submission_id"]).strip()
+        if submission_id in evidence_submissions:
+            raise StorageUniquenessError("Current originality evidence must be unique per submission.")
+        evidence_submissions.add(submission_id)
+        reference = (
+            int(evidence["originality_reference_height"]),
+            evidence["originality_reference_block_hash"],
+        )
+        if reference not in canonical_references:
+            raise StorageUniquenessError("Current originality evidence references a non-canonical block.")
     return claims
 
 
@@ -992,6 +1015,29 @@ class StorageBackend(ABC):
         certificates = self.load_certificates() if certificates is None else certificates
         return self._first_record_where(certificates, "submission_id", submission_id.strip())
 
+    def load_originality_evidence(self):
+        document = self.load_blockchain_document()
+        if not document:
+            return []
+        return list(document.get("originality_evidence", []) or [])
+
+    def get_originality_evidence(self, submission_id, evidence=None):
+        if not isinstance(submission_id, str) or not submission_id.strip():
+            return None
+        records = self.load_originality_evidence() if evidence is None else evidence
+        return self._first_record_where(records, "submission_id", submission_id.strip())
+
+    def list_originality_evidence_history(self, submission_id):
+        """JSON compatibility retains only the current document projection."""
+        record = self.get_originality_evidence(submission_id)
+        return [record] if record is not None else []
+
+    def load_minted_media_originality_index(self, *, rule_version, head_height, head_hash):
+        return None
+
+    def replace_minted_media_originality_index(self, *, rule_version, head_height, head_hash, records):
+        return None
+
     def load_blockchain_state(self):
         document = self.load_blockchain_document()
         if document is None:
@@ -1476,6 +1522,158 @@ class SQLiteStorageBackend(StorageBackend):
             result["bootstrap_established"] = bool(result["bootstrap_established"])
         return results
 
+    @staticmethod
+    def _synchronize_originality_evidence_records(connection, evidence_records, document) -> None:
+        records = list(evidence_records or [])
+        by_submission: dict[str, dict[str, Any]] = {}
+        for raw in records:
+            evidence = validate_originality_evidence(raw)
+            submission_id = str(evidence["submission_id"]).strip()
+            if not submission_id or submission_id in by_submission:
+                raise StorageUniquenessError("Current originality evidence must be unique per submission.")
+            by_submission[submission_id] = evidence
+
+        canonical = {
+            (int(block.get("index")), str(block.get("hash") or "").strip().lower())
+            for block in document.get("chain", []) or []
+            if isinstance(block, dict) and block.get("index") is not None and block.get("hash")
+        }
+        current_rows = connection.execute(
+            "SELECT submission_id, evidence_digest, reference_height, reference_block_hash FROM originality_evidence_records WHERE is_current = 1"
+        ).fetchall()
+        current_by_submission = {row[0]: row for row in current_rows}
+
+        for submission_id, row in current_by_submission.items():
+            if submission_id not in by_submission:
+                connection.execute(
+                    "UPDATE originality_evidence_records SET is_current = 0, invalidated_by_reorg = 1 WHERE evidence_digest = ?",
+                    (row[1],),
+                )
+
+        for submission_id, evidence in sorted(by_submission.items()):
+            reference = (
+                int(evidence["originality_reference_height"]),
+                evidence["originality_reference_block_hash"],
+            )
+            if reference not in canonical:
+                raise StorageCorruptionError("Current originality evidence references a non-canonical block.")
+            digest = evidence["canonical_evidence_digest"]
+            existing = current_by_submission.get(submission_id)
+            if existing is not None and existing[1] == digest:
+                continue
+            if existing is not None:
+                old_reference = (int(existing[2]), str(existing[3]))
+                if old_reference in canonical:
+                    raise StorageUniquenessError(
+                        "Immutable originality evidence cannot change while its reference remains canonical."
+                    )
+                connection.execute(
+                    "UPDATE originality_evidence_records SET is_current = 0, invalidated_by_reorg = 1 WHERE evidence_digest = ?",
+                    (existing[1],),
+                )
+            observed_at = _utc_now_iso()
+            connection.execute(
+                """INSERT OR IGNORE INTO originality_evidence_records
+                   (evidence_digest, submission_id, evidence_version, originality_rule_version,
+                    content_hash, reference_height, reference_block_hash, final_prevote_decision,
+                    reason_codes_json, evidence_json, is_current, invalidated_by_reorg, observed_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?)""",
+                (
+                    digest, submission_id, evidence["evidence_version"], evidence["originality_rule_version"],
+                    evidence["content_hash"], evidence["originality_reference_height"],
+                    evidence["originality_reference_block_hash"], evidence["final_prevote_decision"],
+                    _canonical_record(evidence["reason_codes"]), _canonical_record(evidence), observed_at,
+                ),
+            )
+            connection.execute(
+                "UPDATE originality_evidence_records SET is_current = CASE WHEN evidence_digest = ? THEN 1 ELSE 0 END WHERE submission_id = ?",
+                (digest, submission_id),
+            )
+            for layer, field in (
+                ("exact", "exact_candidate_matches"),
+                ("perceptual", "perceptual_candidate_matches"),
+                ("ocr", "ocr_candidate_matches"),
+                ("near_duplicate", "near_duplicate_candidate_matches"),
+            ):
+                for position, match in enumerate(evidence.get(field, [])):
+                    connection.execute(
+                        """INSERT OR IGNORE INTO originality_evidence_matches
+                           (evidence_digest, layer, match_position, block_height, block_hash, content_hash, match_json)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            digest, layer, position, match["block_height"], match["block_hash"],
+                            match["content_hash"], _canonical_record(match),
+                        ),
+                    )
+
+    def list_originality_evidence_history(self, submission_id):
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT evidence_json, is_current, invalidated_by_reorg, observed_at
+                   FROM originality_evidence_records WHERE submission_id = ?
+                   ORDER BY rowid""",
+                (str(submission_id).strip(),),
+            ).fetchall()
+        results = []
+        for evidence_json, is_current, invalidated, observed_at in rows:
+            record = json.loads(evidence_json)
+            record["is_current"] = bool(is_current)
+            record["invalidated_by_reorg"] = bool(invalidated)
+            record["observed_at"] = observed_at
+            results.append(record)
+        return results
+
+    def load_minted_media_originality_index(self, *, rule_version, head_height, head_hash):
+        with self._connect() as connection:
+            metadata = connection.execute(
+                "SELECT head_height, head_hash, index_digest FROM originality_index_metadata WHERE originality_rule_version = ?",
+                (int(rule_version),),
+            ).fetchone()
+            if metadata is None or metadata[0] != int(head_height) or metadata[1] != str(head_hash).lower():
+                return None
+            rows = connection.execute(
+                """SELECT record_json FROM minted_media_originality_index
+                   WHERE originality_rule_version = ? ORDER BY block_height, block_hash""",
+                (int(rule_version),),
+            ).fetchall()
+        records = [json.loads(row[0]) for row in rows]
+        digest = hashlib.sha256(_canonical_record(records).encode("utf-8")).hexdigest()
+        if digest != metadata[2]:
+            return None
+        return records
+
+    def replace_minted_media_originality_index(self, *, rule_version, head_height, head_hash, records):
+        normalized = sorted(
+            [dict(record) for record in records],
+            key=lambda item: (item["block_height"], item["block_hash"]),
+        )
+        digest = hashlib.sha256(_canonical_record(normalized).encode("utf-8")).hexdigest()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "DELETE FROM minted_media_originality_index WHERE originality_rule_version = ?",
+                (int(rule_version),),
+            )
+            connection.executemany(
+                """INSERT INTO minted_media_originality_index
+                   (originality_rule_version, block_hash, block_height, content_hash, record_json)
+                   VALUES (?, ?, ?, ?, ?)""",
+                [
+                    (int(rule_version), item["block_hash"], item["block_height"], item["content_hash"], _canonical_record(item))
+                    for item in normalized
+                ],
+            )
+            connection.execute(
+                """INSERT INTO originality_index_metadata
+                   (originality_rule_version, head_height, head_hash, index_digest, rebuilt_at)
+                   VALUES (?, ?, ?, ?, ?)
+                   ON CONFLICT(originality_rule_version) DO UPDATE SET
+                     head_height=excluded.head_height, head_hash=excluded.head_hash,
+                     index_digest=excluded.index_digest, rebuilt_at=excluded.rebuilt_at""",
+                (int(rule_version), int(head_height), str(head_hash).lower(), digest, _utc_now_iso()),
+            )
+        return normalized
+
     def _initialize_database(self) -> None:
         os.makedirs(os.path.dirname(self.sqlite_db_path) or ".", exist_ok=True)
         with self._connect() as connection:
@@ -1563,6 +1761,75 @@ class SQLiteStorageBackend(StorageBackend):
                 CREATE UNIQUE INDEX IF NOT EXISTS one_accepted_vote_per_submission_wallet
                 ON durable_vote_records(submission_id, voter_address)
                 WHERE lifecycle_state = 'accepted'
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS originality_evidence_records (
+                    evidence_digest TEXT PRIMARY KEY,
+                    submission_id TEXT NOT NULL,
+                    evidence_version INTEGER NOT NULL CHECK (evidence_version > 0),
+                    originality_rule_version INTEGER NOT NULL CHECK (originality_rule_version > 0),
+                    content_hash TEXT NOT NULL,
+                    reference_height INTEGER NOT NULL CHECK (reference_height >= 0),
+                    reference_block_hash TEXT NOT NULL,
+                    final_prevote_decision TEXT NOT NULL CHECK (final_prevote_decision IN ('PASS', 'FLAGGED_FOR_REVIEW', 'HARD_REJECT')),
+                    reason_codes_json TEXT NOT NULL,
+                    evidence_json TEXT NOT NULL,
+                    is_current INTEGER NOT NULL DEFAULT 1 CHECK (is_current IN (0, 1)),
+                    invalidated_by_reorg INTEGER NOT NULL DEFAULT 0 CHECK (invalidated_by_reorg IN (0, 1)),
+                    observed_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS one_current_originality_evidence_per_submission
+                ON originality_evidence_records(submission_id) WHERE is_current = 1
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS originality_evidence_matches (
+                    evidence_digest TEXT NOT NULL,
+                    layer TEXT NOT NULL CHECK (layer IN ('exact', 'perceptual', 'ocr', 'near_duplicate')),
+                    match_position INTEGER NOT NULL CHECK (match_position >= 0),
+                    block_height INTEGER NOT NULL CHECK (block_height >= 0),
+                    block_hash TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    match_json TEXT NOT NULL,
+                    PRIMARY KEY (evidence_digest, layer, match_position),
+                    FOREIGN KEY (evidence_digest) REFERENCES originality_evidence_records(evidence_digest)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS originality_index_metadata (
+                    originality_rule_version INTEGER PRIMARY KEY,
+                    head_height INTEGER NOT NULL,
+                    head_hash TEXT NOT NULL,
+                    index_digest TEXT NOT NULL,
+                    rebuilt_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS minted_media_originality_index (
+                    originality_rule_version INTEGER NOT NULL,
+                    block_hash TEXT NOT NULL,
+                    block_height INTEGER NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    record_json TEXT NOT NULL,
+                    PRIMARY KEY (originality_rule_version, block_hash)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS minted_media_originality_content_hash
+                ON minted_media_originality_index(originality_rule_version, content_hash)
                 """
             )
             connection.execute(
@@ -1762,6 +2029,9 @@ class SQLiteStorageBackend(StorageBackend):
             sections = self._load_sections_from_connection(connection, strict=False, include_native_records=False)
             self._synchronize_durable_vote_records(connection, sections.get("votes", []))
             self._synchronize_canonical_claims(connection, sections)
+            self._synchronize_originality_evidence_records(
+                connection, sections.get("originality_evidence", []), sections
+            )
             # One-time migration only: older SQLite databases stored a second
             # native-transaction JSON section.  Once relational rows exist,
             # that section is intentionally ignored so opening a node can
@@ -2093,6 +2363,9 @@ class SQLiteStorageBackend(StorageBackend):
             connection.execute("BEGIN IMMEDIATE")
             self._synchronize_canonical_claims(connection, sections)
             self._synchronize_durable_vote_records(connection, sections.get("votes", []))
+            self._synchronize_originality_evidence_records(
+                connection, sections.get("originality_evidence", []), sections
+            )
             sections["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, sections.get("native_transactions", [])
             )
@@ -2112,6 +2385,7 @@ class SQLiteStorageBackend(StorageBackend):
             "transfer_intents": sections["transfer_intents"],
             "native_transactions": sections["native_transactions"],
             "originality_certificates": sections["originality_certificates"],
+            "originality_evidence": sections["originality_evidence"],
             "access_requests": sections["access_requests"],
             "access_accounts": sections["access_accounts"],
             "wallet_bindings": sections["wallet_bindings"],
@@ -2147,6 +2421,9 @@ class SQLiteStorageBackend(StorageBackend):
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
             self._synchronize_canonical_claims(connection, replacement)
             self._synchronize_durable_vote_records(connection, replacement.get("votes", []))
+            self._synchronize_originality_evidence_records(
+                connection, replacement.get("originality_evidence", []), replacement
+            )
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", []),
                 previous_transactions=sections.get("native_transactions", []),
@@ -2185,6 +2462,9 @@ class SQLiteStorageBackend(StorageBackend):
                 replacement = mutate(document)
             self._synchronize_canonical_claims(connection, replacement)
             self._synchronize_durable_vote_records(connection, replacement.get("votes", []))
+            self._synchronize_originality_evidence_records(
+                connection, replacement.get("originality_evidence", []), replacement
+            )
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", []),
                 previous_transactions=previous_transactions,

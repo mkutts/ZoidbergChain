@@ -1,11 +1,22 @@
+import hashlib
+
+from PIL import Image, ImageDraw
+
 from block import Block
 from submission import VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from transaction import Transaction
 
 
 def _certified_submission(blockchain, submission_image, submitter, text, voter_prefix):
+    variant_path = submission_image.parent / f"{hashlib.sha256(text.encode('utf-8')).hexdigest()}.png"
+    with Image.open(submission_image) as source:
+        variant = source.convert("RGB")
+        draw = ImageDraw.Draw(variant)
+        color = tuple(hashlib.sha256(text.encode("utf-8")).digest()[:3])
+        draw.rectangle((0, 0, 7, 7), fill=color)
+        variant.save(variant_path, format="PNG")
     submission = blockchain.submit_content(
-        image_path=str(submission_image),
+        image_path=str(variant_path),
         text_content=text,
         submitter=submitter,
     )

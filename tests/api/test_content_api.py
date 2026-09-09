@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -532,3 +533,33 @@ def test_uploaded_content_metadata_persists_across_backends(backend_factory, iso
     assert content_object is not None
     assert content_object.storage_status == "verified"
     assert content_object.local_path is not None
+
+
+def test_submission_originality_evidence_is_public_read_only(blockchain, wallets):
+    client = _client(blockchain)
+    upload = client.post(
+        "/content/text",
+        json={
+            "submitted_by": wallets["owner"].public_key,
+            "text_content": "fresh public evidence route text",
+        },
+    )
+    assert upload.status_code == 200
+    created = client.post(
+        "/submit_content",
+        data={
+            "submitter": wallets["owner"].public_key,
+            "content_hash": upload.json()["content_hash"],
+            "content_id": upload.json()["content_id"],
+            "text_content": "fresh public evidence route text",
+        },
+    )
+    assert created.status_code == 200
+    submission = created.json()["submission"]
+    response = client.get(
+        f"/submissions/{submission['submission_id']}/originality-evidence"
+    )
+    assert response.status_code == 200
+    evidence = response.json()["originality_evidence"]
+    assert evidence["canonical_evidence_digest"] == submission["pre_vote_originality"]["evidence_digest"]
+    assert "local_path" not in json.dumps(evidence)

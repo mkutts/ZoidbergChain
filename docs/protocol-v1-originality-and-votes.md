@@ -368,3 +368,11 @@ fields remain `legacy_unverifiable` and receive no fabricated canonical ID.
 The detailed schema, compatibility boundary, and reserved later-task fields are
 documented in
 [Milestone 5 Task 5.2](milestone-5-task-5.2-deterministic-policy-and-durable-reviewer-votes.md).
+# Milestone 5 pre-vote originality evidence
+
+Milestone 5 Task 5.3 adds Originality Rule v1 and immutable evidence before
+voting. Exact SHA-256 duplicates of prior certified canonical media are the
+only automated hard reject. Perceptual, OCR/text, and near-duplicate matches
+are review flags only. Evidence commits to a canonical reference height/hash;
+the current certificate schema is intentionally unchanged. See
+`docs/milestone-5-task-5.3-originality-evidence-and-duplicate-pipeline.md`.

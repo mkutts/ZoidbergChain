@@ -767,6 +767,7 @@ def receive_peer_submission(
         submission_id=submission.submission_id,
     )
     blockchain.link_content_objects_to_submissions()
+    blockchain.evaluate_prevote_originality(submission.submission_id)
     blockchain.save_blockchain()
 
     return {

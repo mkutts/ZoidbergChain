@@ -348,3 +348,23 @@ Task 8 freezes genesis and reset policy in [docs/protocol-v1-genesis-reset.md](/
 Operational note:
 
 - a node that already has a submission locally now expects matching local vote data before accepting a peer certificate for that submission
+
+## 23. Milestone 5 Task 5.2 compatibility foundation
+
+Task 5.2 adds versioned reviewer/reputation policy definitions and normalized
+SQLite reviewer-state and signed-vote evidence tables without changing Protocol
+v1 certificate issuance or originality decisions.  The current environment-
+configured reviewer gate remains an operator compatibility policy and is not
+silently treated as the canonical Milestone 5 policy.  Consequently, votes
+accepted through that legacy gate have explicit unknown reviewer-policy,
+reputation-rule, and reviewer-status snapshot values.
+
+Canonical signed-vote identity reuses the Protocol v1 signing envelope and adds
+the normalized signature in a canonical identity wrapper.  SQLite permits only
+one accepted vote per submission and wallet, while retaining a conflicting
+signed vote as rejected evidence.  Legacy votes without reconstructable signed
+fields remain `legacy_unverifiable` and receive no fabricated canonical ID.
+
+The detailed schema, compatibility boundary, and reserved later-task fields are
+documented in
+[Milestone 5 Task 5.2](milestone-5-task-5.2-deterministic-policy-and-durable-reviewer-votes.md).

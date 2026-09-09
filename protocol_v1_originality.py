@@ -11,6 +11,7 @@ from protocol_v1 import (
     PROTOCOL_VERSION,
     canonical_domain_bytes,
     canonical_domain_hash,
+    canonical_hash,
     canonical_json_data,
     normalize_network_id,
     resolve_network_id,
@@ -21,6 +22,52 @@ from validators import is_valid_content_hash
 
 PROTOCOL_V1_VOTE_VERSION = PROTOCOL_VERSION
 PROTOCOL_V1_CERTIFICATE_VERSION = PROTOCOL_VERSION
+
+
+def calculate_signed_vote_identity(
+    *,
+    wallet_address: str,
+    submission_id: str,
+    content_hash: str,
+    vote_type: str,
+    nonce: str,
+    issued_at: str,
+    expires_at: str,
+    network_id: str,
+    signature: str,
+    signature_scheme: str = "personal_sign",
+) -> str:
+    """Hash the canonical Protocol v1 vote payload and its exact signature.
+
+    The signed payload is built by the existing Protocol v1 serializer.  The
+    outer envelope only distinguishes signatures over the same payload and is
+    canonicalized by the shared protocol JSON implementation.
+    """
+    if not isinstance(signature, str) or not signature.strip():
+        raise ValueError("signature is required.")
+    if not isinstance(signature_scheme, str) or not signature_scheme.strip():
+        raise ValueError("signature_scheme is required.")
+    normalized_signature = signature.strip().lower()
+    if normalized_signature.startswith("0x"):
+        normalized_signature = normalized_signature[2:]
+    if len(normalized_signature) != 130 or any(ch not in "0123456789abcdef" for ch in normalized_signature):
+        raise ValueError("signature must be a 65-byte hexadecimal personal_sign signature.")
+    signing_payload = build_protocol_v1_vote_signing_payload(
+        wallet_address=wallet_address,
+        submission_id=submission_id,
+        content_hash=content_hash,
+        vote_type=vote_type,
+        nonce=nonce,
+        issued_at=issued_at,
+        expires_at=expires_at,
+        network_id=network_id,
+    )
+    return canonical_hash({
+        "identity_kind": "protocol-v1-signed-vote",
+        "signature": f"0x{normalized_signature}",
+        "signature_scheme": signature_scheme.strip().lower(),
+        "signing_payload": signing_payload,
+    })
 
 
 def normalize_decimal_string(value: Any, *, field_name: str) -> str:

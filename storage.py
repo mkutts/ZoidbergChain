@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import sqlite3
@@ -18,6 +19,16 @@ from typing import Any
 
 import config
 from content import ContentObject, content_object_from_submission_data, verify_content_object_payload
+from milestone5_policy import (
+    REVIEWER_POLICY_VERSION,
+    REPUTATION_RULE_VERSION,
+    bootstrap_established_reviewers,
+    reputation_rules,
+    reviewer_policy,
+    validate_reviewer_status,
+)
+from native_transfer import normalize_wallet_address
+from protocol_v1_originality import calculate_signed_vote_identity
 
 
 SUPPORTED_STORAGE_BACKENDS = {"json", "sqlite"}
@@ -168,6 +179,97 @@ def _normalized_claim_value(value: Any) -> str:
 
 def _canonical_record(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def _canonical_reference(height: Any, block_hash: Any) -> tuple[int | None, str | None]:
+    if height is None and block_hash in (None, ""):
+        return None, None
+    if isinstance(height, bool) or not isinstance(height, int) or height < 0:
+        raise ValueError("status_effective_height must be a non-negative integer.")
+    normalized_hash = str(block_hash or "").strip().lower()
+    if len(normalized_hash) != 64 or any(ch not in "0123456789abcdef" for ch in normalized_hash):
+        raise ValueError("status_reference_block_hash must be a 64-character lowercase hexadecimal string.")
+    return height, normalized_hash
+
+
+def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = None) -> dict[str, Any]:
+    submission_id = str(vote.get("submission_id") or "").strip()
+    voter = normalize_wallet_address(vote.get("voter_wallet_address") or vote.get("voter"))
+    if voter is None:
+        voter = str(vote.get("voter_wallet_address") or vote.get("voter") or "").strip()
+    vote_choice = vote.get("vote_type")
+    content_hash = str(vote.get("content_hash") or "").strip().lower() or None
+    signature = str(vote.get("vote_signature") or vote.get("signature") or "").strip() or None
+    signature_scheme = str(vote.get("signature_scheme") or "").strip().lower() or None
+    nonce = str(vote.get("vote_nonce") or vote.get("nonce") or "").strip() or None
+    issued_at = str(vote.get("vote_issued_at") or vote.get("issued_at") or "").strip() or None
+    expires_at = str(vote.get("vote_expires_at") or vote.get("expires_at") or "").strip() or None
+    network_id = str(vote.get("network_id") or "").strip().lower() or None
+    identity = str(vote.get("vote_identity") or "").strip().lower() or None
+    signed_complete = all((content_hash, signature, signature_scheme, nonce, issued_at, expires_at, network_id))
+    if identity is not None and not signed_complete:
+        raise StorageCorruptionError("Canonical vote_identity requires the complete signed Protocol v1 vote payload.")
+    if signed_complete:
+        calculated = calculate_signed_vote_identity(
+            wallet_address=voter,
+            submission_id=submission_id,
+            content_hash=content_hash,
+            vote_type=vote_choice,
+            nonce=nonce,
+            issued_at=issued_at,
+            expires_at=expires_at,
+            network_id=network_id,
+            signature=signature,
+            signature_scheme=signature_scheme,
+        )
+        if identity is not None and identity != calculated:
+            raise StorageCorruptionError("Stored vote_identity does not match the canonical signed vote.")
+        identity = calculated
+        identity_status = "canonical"
+        evidence_id = identity
+    else:
+        identity = None
+        identity_status = "legacy_unverifiable"
+        legacy_payload = {"legacy_index": legacy_index, "record": vote}
+        evidence_id = "legacy:" + hashlib.sha256(_canonical_record(legacy_payload).encode("utf-8")).hexdigest()
+    reviewer_policy_version = vote.get("reviewer_policy_version")
+    reputation_rule_version = vote.get("reputation_rule_version")
+    reviewer_status = vote.get("reviewer_status")
+    status_height = vote.get("reviewer_status_effective_height")
+    status_hash = vote.get("reviewer_status_reference_block_hash")
+    if any(value is not None for value in (reviewer_policy_version, reputation_rule_version, reviewer_status)):
+        if reviewer_policy_version is None or reputation_rule_version is None or reviewer_status is None:
+            raise ValueError("Reviewer policy version, reputation rule version, and reviewer status must be recorded together.")
+        reviewer_policy(reviewer_policy_version)
+        reputation_rules(reputation_rule_version)
+        reviewer_status = validate_reviewer_status(reviewer_status)
+        status_height, status_hash = _canonical_reference(status_height, status_hash)
+    return {
+        "evidence_id": evidence_id,
+        "vote_identity": identity,
+        "identity_status": identity_status,
+        "submission_id": submission_id,
+        "content_hash": content_hash,
+        "voter_address": voter,
+        "vote_choice": vote_choice,
+        "signed_payload_version": vote.get("vote_version"),
+        "protocol_version": vote.get("protocol_version"),
+        "network_id": network_id,
+        "nonce": nonce,
+        "issued_at": issued_at,
+        "expires_at": expires_at,
+        "signature": signature,
+        "signature_scheme": signature_scheme,
+        "signed_message": vote.get("vote_message"),
+        "signed_message_hash": vote.get("signed_message_hash"),
+        "reviewer_policy_version": reviewer_policy_version,
+        "reputation_rule_version": reputation_rule_version,
+        "reviewer_status": reviewer_status,
+        "reviewer_status_effective_height": status_height,
+        "reviewer_status_reference_block_hash": status_hash,
+        "observed_at": str(vote.get("created_at") or _utc_now_iso()),
+        "source_record_json": _canonical_record(vote),
+    }
 
 
 def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -1177,7 +1279,7 @@ class SQLiteStorageBackend(StorageBackend):
         )
         self._initialize_database()
         logging.warning(
-            "SQLite backend selected. Native transaction records use relational durable storage."
+            "SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage."
         )
 
     def delete_blockchain_document(self) -> None:
@@ -1195,6 +1297,185 @@ class SQLiteStorageBackend(StorageBackend):
         connection.execute("PRAGMA busy_timeout = 30000")
         return connection
 
+    @staticmethod
+    def _insert_durable_vote_record(connection, record: dict[str, Any], *, lifecycle_state: str) -> dict[str, Any]:
+        values = dict(record)
+        values["lifecycle_state"] = lifecycle_state
+        values["rejection_reason"] = values.get("rejection_reason")
+        columns = tuple(values)
+        sql = (
+            f"INSERT INTO durable_vote_records ({', '.join(columns)}) "
+            f"VALUES ({', '.join(':' + column for column in columns)})"
+        )
+        try:
+            connection.execute(sql, values)
+        except sqlite3.IntegrityError:
+            existing = connection.execute(
+                "SELECT evidence_id, lifecycle_state FROM durable_vote_records WHERE evidence_id = ? OR vote_identity = ?",
+                (values["evidence_id"], values.get("vote_identity")),
+            ).fetchone()
+            if existing is not None:
+                return {"evidence_id": existing[0], "lifecycle_state": existing[1], "replay": True}
+            if lifecycle_state != "accepted":
+                raise
+            values["lifecycle_state"] = "rejected"
+            values["rejection_reason"] = values.get("rejection_reason") or "conflicting_counted_vote"
+            connection.execute(sql, values)
+        return {
+            "evidence_id": values["evidence_id"],
+            "vote_identity": values.get("vote_identity"),
+            "lifecycle_state": values["lifecycle_state"],
+            "rejection_reason": values.get("rejection_reason"),
+            "replay": False,
+        }
+
+    @classmethod
+    def _synchronize_durable_vote_records(cls, connection, votes) -> None:
+        for index, vote in enumerate(list(votes or [])):
+            if not isinstance(vote, dict):
+                raise StorageCorruptionError("Vote record must be an object.")
+            record = _normalized_vote_record(vote, legacy_index=index)
+            cls._insert_durable_vote_record(connection, record, lifecycle_state="accepted")
+
+    def record_durable_vote(self, vote: dict[str, Any], *, lifecycle_state: str = "accepted", rejection_reason: str | None = None) -> dict[str, Any]:
+        if lifecycle_state not in {"accepted", "rejected"}:
+            raise ValueError("Vote lifecycle_state must be accepted or rejected.")
+        record = _normalized_vote_record(vote)
+        record["rejection_reason"] = rejection_reason
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            return self._insert_durable_vote_record(connection, record, lifecycle_state=lifecycle_state)
+
+    def list_durable_votes(self, *, submission_id: str | None = None) -> list[dict[str, Any]]:
+        columns = (
+            "evidence_id", "vote_identity", "identity_status", "submission_id", "content_hash",
+            "voter_address", "vote_choice", "lifecycle_state", "rejection_reason",
+            "signed_payload_version", "protocol_version", "network_id", "nonce", "issued_at",
+            "expires_at", "signature", "signature_scheme", "signed_message", "signed_message_hash",
+            "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
+            "reviewer_status_effective_height", "reviewer_status_reference_block_hash", "observed_at",
+        )
+        where = " WHERE submission_id = ?" if submission_id is not None else ""
+        parameters = (str(submission_id).strip(),) if submission_id is not None else ()
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT {', '.join(columns)} FROM durable_vote_records{where} ORDER BY observed_at, evidence_id",
+                parameters,
+            ).fetchall()
+        return [dict(zip(columns, row)) for row in rows]
+
+    @staticmethod
+    def _normalize_reviewer_address(value: str) -> str:
+        normalized = normalize_wallet_address(value)
+        if normalized is None:
+            raise ValueError("reviewer_address must be a valid Ethereum-style 0x address.")
+        return normalized
+
+    @staticmethod
+    def _validate_reviewer_versions(reviewer_policy_version: int, reputation_rule_version: int) -> None:
+        reviewer_policy(reviewer_policy_version)
+        reputation_rules(reputation_rule_version)
+
+    def initialize_reviewer_state(
+        self, reviewer_address: str, *, current_status: str = "NEW",
+        reviewer_policy_version: int = REVIEWER_POLICY_VERSION,
+        reputation_rule_version: int = REPUTATION_RULE_VERSION,
+        status_effective_height: int | None = None,
+        status_reference_block_hash: str | None = None,
+        bootstrap_established: bool = False,
+        reason: str | None = "initial_state",
+    ) -> dict[str, Any]:
+        address = self._normalize_reviewer_address(reviewer_address)
+        status = validate_reviewer_status(current_status)
+        self._validate_reviewer_versions(reviewer_policy_version, reputation_rule_version)
+        height, block_hash = _canonical_reference(status_effective_height, status_reference_block_hash)
+        if bootstrap_established and (status != "ESTABLISHED_REVIEWER" or address not in bootstrap_established_reviewers(reviewer_policy_version)):
+            raise ValueError("Bootstrap-established state must match the versioned reviewer policy grant set.")
+        observed_at = _utc_now_iso()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute("SELECT reviewer_address FROM reviewer_states WHERE reviewer_address = ?", (address,)).fetchone()
+            if existing is None:
+                connection.execute(
+                    """INSERT INTO reviewer_states
+                       (reviewer_address, current_status, reviewer_policy_version, reputation_rule_version,
+                        status_effective_height, status_reference_block_hash, bootstrap_established, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (address, status, reviewer_policy_version, reputation_rule_version, height, block_hash, int(bootstrap_established), observed_at, observed_at),
+                )
+                connection.execute(
+                    """INSERT INTO reviewer_state_transitions
+                       (reviewer_address, transition_sequence, from_status, to_status, reviewer_policy_version,
+                        reputation_rule_version, status_effective_height, status_reference_block_hash,
+                        bootstrap_established, reason, observed_at)
+                       VALUES (?, 0, NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (address, status, reviewer_policy_version, reputation_rule_version, height, block_hash, int(bootstrap_established), reason, observed_at),
+                )
+        return self.get_reviewer_state(address)
+
+    def transition_reviewer_state(
+        self, reviewer_address: str, *, to_status: str,
+        reviewer_policy_version: int = REVIEWER_POLICY_VERSION,
+        reputation_rule_version: int = REPUTATION_RULE_VERSION,
+        status_effective_height: int,
+        status_reference_block_hash: str,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        address = self._normalize_reviewer_address(reviewer_address)
+        status = validate_reviewer_status(to_status)
+        self._validate_reviewer_versions(reviewer_policy_version, reputation_rule_version)
+        height, block_hash = _canonical_reference(status_effective_height, status_reference_block_hash)
+        observed_at = _utc_now_iso()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT current_status, bootstrap_established FROM reviewer_states WHERE reviewer_address = ?", (address,)
+            ).fetchone()
+            if existing is None:
+                raise ValueError(f"Reviewer state not found: {address}")
+            sequence = connection.execute(
+                "SELECT COALESCE(MAX(transition_sequence), -1) + 1 FROM reviewer_state_transitions WHERE reviewer_address = ?", (address,)
+            ).fetchone()[0]
+            bootstrap = bool(existing[1]) and status == "ESTABLISHED_REVIEWER"
+            connection.execute(
+                """UPDATE reviewer_states SET current_status = ?, reviewer_policy_version = ?, reputation_rule_version = ?,
+                   status_effective_height = ?, status_reference_block_hash = ?, bootstrap_established = ?, updated_at = ?
+                   WHERE reviewer_address = ?""",
+                (status, reviewer_policy_version, reputation_rule_version, height, block_hash, int(bootstrap), observed_at, address),
+            )
+            connection.execute(
+                """INSERT INTO reviewer_state_transitions
+                   (reviewer_address, transition_sequence, from_status, to_status, reviewer_policy_version,
+                    reputation_rule_version, status_effective_height, status_reference_block_hash,
+                    bootstrap_established, reason, observed_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (address, sequence, existing[0], status, reviewer_policy_version, reputation_rule_version, height, block_hash, int(bootstrap), reason, observed_at),
+            )
+        return self.get_reviewer_state(address)
+
+    def get_reviewer_state(self, reviewer_address: str) -> dict[str, Any] | None:
+        address = self._normalize_reviewer_address(reviewer_address)
+        columns = ("reviewer_address", "current_status", "reviewer_policy_version", "reputation_rule_version", "status_effective_height", "status_reference_block_hash", "bootstrap_established", "created_at", "updated_at")
+        with self._connect() as connection:
+            row = connection.execute(f"SELECT {', '.join(columns)} FROM reviewer_states WHERE reviewer_address = ?", (address,)).fetchone()
+        if row is None:
+            return None
+        result = dict(zip(columns, row))
+        result["bootstrap_established"] = bool(result["bootstrap_established"])
+        return result
+
+    def list_reviewer_state_history(self, reviewer_address: str) -> list[dict[str, Any]]:
+        address = self._normalize_reviewer_address(reviewer_address)
+        columns = ("reviewer_address", "transition_sequence", "from_status", "to_status", "reviewer_policy_version", "reputation_rule_version", "status_effective_height", "status_reference_block_hash", "bootstrap_established", "reason", "observed_at")
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT {', '.join(columns)} FROM reviewer_state_transitions WHERE reviewer_address = ? ORDER BY transition_sequence", (address,)
+            ).fetchall()
+        results = [dict(zip(columns, row)) for row in rows]
+        for result in results:
+            result["bootstrap_established"] = bool(result["bootstrap_established"])
+        return results
+
     def _initialize_database(self) -> None:
         os.makedirs(os.path.dirname(self.sqlite_db_path) or ".", exist_ok=True)
         with self._connect() as connection:
@@ -1206,6 +1487,82 @@ class SQLiteStorageBackend(StorageBackend):
                     json_data TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reviewer_states (
+                    reviewer_address TEXT PRIMARY KEY,
+                    current_status TEXT NOT NULL CHECK (current_status IN ('NEW', 'PROBATIONARY_REVIEWER', 'ESTABLISHED_REVIEWER', 'COOLDOWN', 'SUSPENDED')),
+                    reviewer_policy_version INTEGER NOT NULL CHECK (reviewer_policy_version > 0),
+                    reputation_rule_version INTEGER NOT NULL CHECK (reputation_rule_version > 0),
+                    status_effective_height INTEGER CHECK (status_effective_height IS NULL OR status_effective_height >= 0),
+                    status_reference_block_hash TEXT,
+                    bootstrap_established INTEGER NOT NULL DEFAULT 0 CHECK (bootstrap_established IN (0, 1)),
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    CHECK ((status_effective_height IS NULL) = (status_reference_block_hash IS NULL)),
+                    CHECK (bootstrap_established = 0 OR current_status = 'ESTABLISHED_REVIEWER')
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reviewer_state_transitions (
+                    reviewer_address TEXT NOT NULL,
+                    transition_sequence INTEGER NOT NULL CHECK (transition_sequence >= 0),
+                    from_status TEXT CHECK (from_status IS NULL OR from_status IN ('NEW', 'PROBATIONARY_REVIEWER', 'ESTABLISHED_REVIEWER', 'COOLDOWN', 'SUSPENDED')),
+                    to_status TEXT NOT NULL CHECK (to_status IN ('NEW', 'PROBATIONARY_REVIEWER', 'ESTABLISHED_REVIEWER', 'COOLDOWN', 'SUSPENDED')),
+                    reviewer_policy_version INTEGER NOT NULL CHECK (reviewer_policy_version > 0),
+                    reputation_rule_version INTEGER NOT NULL CHECK (reputation_rule_version > 0),
+                    status_effective_height INTEGER CHECK (status_effective_height IS NULL OR status_effective_height >= 0),
+                    status_reference_block_hash TEXT,
+                    bootstrap_established INTEGER NOT NULL DEFAULT 0 CHECK (bootstrap_established IN (0, 1)),
+                    reason TEXT,
+                    observed_at TEXT NOT NULL,
+                    PRIMARY KEY (reviewer_address, transition_sequence),
+                    FOREIGN KEY (reviewer_address) REFERENCES reviewer_states(reviewer_address),
+                    CHECK ((status_effective_height IS NULL) = (status_reference_block_hash IS NULL))
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS durable_vote_records (
+                    evidence_id TEXT PRIMARY KEY,
+                    vote_identity TEXT UNIQUE,
+                    identity_status TEXT NOT NULL CHECK (identity_status IN ('canonical', 'legacy_unverifiable')),
+                    submission_id TEXT NOT NULL,
+                    content_hash TEXT,
+                    voter_address TEXT NOT NULL,
+                    vote_choice TEXT,
+                    lifecycle_state TEXT NOT NULL CHECK (lifecycle_state IN ('accepted', 'rejected')),
+                    rejection_reason TEXT,
+                    signed_payload_version INTEGER,
+                    protocol_version INTEGER,
+                    network_id TEXT,
+                    nonce TEXT,
+                    issued_at TEXT,
+                    expires_at TEXT,
+                    signature TEXT,
+                    signature_scheme TEXT,
+                    signed_message TEXT,
+                    signed_message_hash TEXT,
+                    reviewer_policy_version INTEGER,
+                    reputation_rule_version INTEGER,
+                    reviewer_status TEXT CHECK (reviewer_status IS NULL OR reviewer_status IN ('NEW', 'PROBATIONARY_REVIEWER', 'ESTABLISHED_REVIEWER', 'COOLDOWN', 'SUSPENDED')),
+                    reviewer_status_effective_height INTEGER,
+                    reviewer_status_reference_block_hash TEXT,
+                    observed_at TEXT NOT NULL,
+                    source_record_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS one_accepted_vote_per_submission_wallet
+                ON durable_vote_records(submission_id, voter_address)
+                WHERE lifecycle_state = 'accepted'
                 """
             )
             connection.execute(
@@ -1403,6 +1760,7 @@ class SQLiteStorageBackend(StorageBackend):
                     (section_name, json.dumps(_default_section_value(section_name)), _utc_now_iso()),
                 )
             sections = self._load_sections_from_connection(connection, strict=False, include_native_records=False)
+            self._synchronize_durable_vote_records(connection, sections.get("votes", []))
             self._synchronize_canonical_claims(connection, sections)
             # One-time migration only: older SQLite databases stored a second
             # native-transaction JSON section.  Once relational rows exist,
@@ -1734,6 +2092,7 @@ class SQLiteStorageBackend(StorageBackend):
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             self._synchronize_canonical_claims(connection, sections)
+            self._synchronize_durable_vote_records(connection, sections.get("votes", []))
             sections["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, sections.get("native_transactions", [])
             )
@@ -1787,6 +2146,7 @@ class SQLiteStorageBackend(StorageBackend):
             _verify_expected_canonical_head(document, expected_head)
             replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))
             self._synchronize_canonical_claims(connection, replacement)
+            self._synchronize_durable_vote_records(connection, replacement.get("votes", []))
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", []),
                 previous_transactions=sections.get("native_transactions", []),
@@ -1824,6 +2184,7 @@ class SQLiteStorageBackend(StorageBackend):
                 document["native_transactions"] = list(document["native_transactions"])
                 replacement = mutate(document)
             self._synchronize_canonical_claims(connection, replacement)
+            self._synchronize_durable_vote_records(connection, replacement.get("votes", []))
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", []),
                 previous_transactions=previous_transactions,

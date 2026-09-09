@@ -43,6 +43,7 @@ from config import (
     VOTING_WINDOW_HOURS,
 )
 from review_policy import current_day_window, evaluate_review_eligibility, load_review_policy_config
+from protocol_v1_originality import calculate_signed_vote_identity
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from content import (
     CONTENT_TYPE_IMAGE,
@@ -1176,8 +1177,8 @@ class Blockchain:
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
         verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type)
-        vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
-        vote.update({
+        durable_vote = {
+            "voter": voter, "submission_id": submission_id, "vote_type": vote_type,
             "voter_wallet_address": voter, "content_hash": submission.content_hash,
             "vote_version": verification.get("vote_version"), "protocol_version": verification.get("protocol_version"),
             "network_id": verification.get("network_id"), "signature_scheme": str(verification["signature_scheme"]),
@@ -1185,7 +1186,36 @@ class Blockchain:
             "signed_message_hash": str(verification["signed_message_hash"]), "vote_nonce": str(verification["nonce"]),
             "vote_issued_at": str(verification["vote_issued_at"]), "vote_expires_at": str(verification["vote_expires_at"]),
             "signed_at": str(verification["signed_at"]), "identity_source": str(verification["identity_source"]),
-        })
+            # Task 5.2 does not activate the deterministic reviewer policy.  A
+            # compatibility vote must therefore not pretend it was evaluated
+            # under reviewer/reputation v1; these remain explicit unknowns.
+            "reviewer_policy_version": None, "reputation_rule_version": None,
+            "reviewer_status": None,
+        }
+        durable_vote["vote_identity"] = calculate_signed_vote_identity(
+            wallet_address=voter,
+            submission_id=submission_id,
+            content_hash=submission.content_hash,
+            vote_type=vote_type,
+            nonce=durable_vote["vote_nonce"],
+            issued_at=durable_vote["vote_issued_at"],
+            expires_at=durable_vote["vote_expires_at"],
+            network_id=durable_vote["network_id"],
+            signature=durable_vote["vote_signature"],
+            signature_scheme=durable_vote["signature_scheme"],
+        )
+        existing = self.storage.get_vote(submission_id, voter, self.votes)
+        if existing is not None:
+            if hasattr(self.storage, "record_durable_vote"):
+                self.storage.record_durable_vote(durable_vote, lifecycle_state="accepted")
+            raise ValueError("Wallet has already voted on this submission.")
+        vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
+        vote.update(durable_vote)
+        if hasattr(self.storage, "record_durable_vote"):
+            durable_result = self.storage.record_durable_vote(vote, lifecycle_state="accepted")
+            if durable_result["lifecycle_state"] != "accepted":
+                self.votes.remove(vote)
+                raise ValueError("Wallet has already voted on this submission.")
         self.save_blockchain()
         return vote
 

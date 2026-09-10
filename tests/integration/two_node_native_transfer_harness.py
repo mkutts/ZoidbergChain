@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw
 
 from block import Block
 from peers import PeerStore
+from peer_sync import build_originality_evidence_transfer
 from submission import APPROVED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL
 from test_support import fund_native_wallet_with_block
 from transaction import Transaction
@@ -773,6 +774,22 @@ def run_two_node_native_transfer_verification(*, verbose: bool = False) -> dict[
                         miner=wallets["contributor_one"].public_key,
                         text="Task 8.9 invalid native transaction block",
                         native_transactions=[invalid_snapshot],
+                    )
+                    invalid_evidence_transfer = build_originality_evidence_transfer(
+                        node_a.blockchain, invalid_certificate
+                    )
+                    invalid_evidence_response = node_b.client.post(
+                        "/peers/originality-evidence/receive",
+                        json={
+                            "origin_node_id": node_a.node_id,
+                            "network_name": NODE_NETWORK_NAME,
+                            **invalid_evidence_transfer,
+                        },
+                    )
+                    _response_json(
+                        invalid_evidence_response,
+                        expected_status=200,
+                        context="invalid-block prerequisite originality evidence",
                     )
                     invalid_block_response = node_b.client.post(
                         "/peers/blocks/receive",

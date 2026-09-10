@@ -1246,6 +1246,34 @@
   },
   {
     "method": "POST",
+    "path": "/peers/originality-evidence/receive",
+    "name": "receive_originality_evidence_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerOriginalityEvidenceReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/peers/originality-evidence/{evidence_digest}",
+    "name": "get_peer_originality_evidence",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
     "path": "/peers/register",
     "name": "register_peer",
     "classification": "peer",

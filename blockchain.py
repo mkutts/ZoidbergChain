@@ -46,6 +46,7 @@ from review_policy import current_day_window, evaluate_review_eligibility, load_
 from protocol_v1_originality import calculate_signed_vote_identity
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
 from originality import (
+    CERTIFICATE_EVIDENCE_PROFILE,
     EXACT_MINTED_CONTENT_DUPLICATE,
     FLAGGED_FOR_REVIEW,
     HARD_REJECT,
@@ -72,6 +73,7 @@ from content import (
     ContentObject,
     canonicalize_text_content,
     content_object_from_submission_data,
+    detect_mime_type_from_bytes,
     ensure_content_storage_dir,
     guess_mime_type,
     load_content_bytes,
@@ -219,7 +221,7 @@ class Blockchain:
         self._feedback_service = FeedbackService()
         self._content_coordination_service = ContentCoordinationService()
         self._submission_originality_service = SubmissionOriginalityService()
-        self._originality_pipeline = OriginalityPipeline()
+        self._originality_pipeline = OriginalityPipeline(certificate_consensus=True)
         self._originality_index_cache_head = None
         self._originality_index_cache_records = None
         self._mint_queue_service = MintQueueService()
@@ -408,7 +410,7 @@ class Blockchain:
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         if certificate is None:
             raise ValueError("Certified commit requires an originality certificate.")
-        validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        self.validate_originality_certificate(certificate, submission)
         return {
             "commit_identity": self.certified_commit_identity(certificate),
             "submission_id": str(submission.submission_id),
@@ -592,6 +594,7 @@ class Blockchain:
             expected_voter_reward_records_by_id=self._expected_voter_reward_records_by_id,
             block_reward_transactions=self._block_reward_transactions,
             get_originality_certificate=self.get_originality_certificate,
+            validate_originality_certificate=self.validate_originality_certificate,
             get_submission=self.get_submission,
             resolve_meme_reward_recipient=self.resolve_meme_reward_recipient,
             get_content_object_by_hash=self.get_content_object_by_hash,
@@ -1936,7 +1939,7 @@ class Blockchain:
                 "validation_error": None,
             }
         try:
-            validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+            self.validate_originality_certificate(certificate, submission)
         except ValueError as exc:
             return {
                 "certificate_status": "invalid",
@@ -2367,6 +2370,13 @@ class Blockchain:
             submission_id, self.originality_evidence
         )
 
+    def get_originality_evidence_by_digest(self, evidence_digest):
+        digest = str(evidence_digest or "").strip().lower()
+        for evidence in self.originality_evidence:
+            if evidence.get("canonical_evidence_digest") == digest:
+                return deepcopy(evidence)
+        return None
+
     def get_originality_evidence_history(self, submission_id):
         if self.get_submission(submission_id) is None:
             raise ValueError(f"Submission not found: {submission_id}")
@@ -2387,7 +2397,9 @@ class Blockchain:
             self._originality_index_cache_records = deepcopy(cached)
             return cached
         records = canonical_minted_media_features(
-            self.chain, ocr=self._originality_pipeline.ocr
+            self.chain,
+            ocr=self._originality_pipeline.ocr,
+            certificate_consensus=self._originality_pipeline.certificate_consensus,
         )
         self.storage.replace_minted_media_originality_index(
             rule_version=ORIGINALITY_RULE_VERSION,
@@ -2459,6 +2471,87 @@ class Blockchain:
             evidence = self.evaluate_prevote_originality(submission_id, force=evidence is not None)
             self.save_blockchain()
         return evidence
+
+    def ensure_certificate_originality_evidence(self, submission_id):
+        evidence = self.ensure_current_originality_evidence(submission_id)
+        submission = self.get_submission(submission_id)
+        media = self._certificate_media_context(submission)
+        if media["media_bytes"] is None:
+            raise ValueError(
+                "Canonical media bytes are required before certificate issuance."
+            )
+        if (
+            evidence.get("certificate_verification_profile")
+            != CERTIFICATE_EVIDENCE_PROFILE
+            or evidence.get("content_hash") != submission.content_hash
+            or (
+                str(media["mime_type"]).startswith("image/")
+                and evidence.get("perceptual_hash_result", {}).get("status") != "SUCCESS"
+            )
+        ):
+            # Legacy submissions may first have been screened while their
+            # media was still typed as an opaque remote reference.  Once the
+            # exact bytes are promoted, recompute before issuing anything.
+            evidence = self.evaluate_prevote_originality(submission_id, force=True)
+            self.save_blockchain()
+        if evidence.get("certificate_verification_profile") != CERTIFICATE_EVIDENCE_PROFILE:
+            raise ValueError(
+                "Originality evidence could not be migrated to the deterministic certificate profile."
+            )
+        if evidence.get("content_hash") != submission.content_hash:
+            raise ValueError("Originality evidence content_hash does not match submission.")
+        if not self._originality_reference_is_canonical(evidence):
+            raise ValueError("Originality evidence reference is not canonical.")
+        return evidence
+
+    def _certificate_media_context(self, submission):
+        content_object = self.get_content_object_by_hash(submission.content_hash)
+        mime_type = str(getattr(content_object, "mime_type", None) or "application/octet-stream").lower()
+        media_bytes = None
+        if content_object is not None:
+            try:
+                media_bytes = load_content_bytes(
+                    content_object.content_hash,
+                    mime_type,
+                    data_dir=self.storage.data_dir,
+                )
+            except (FileNotFoundError, UnicodeDecodeError, ValueError):
+                if mime_type == TEXT_MIME_TYPE and content_object.text_content:
+                    media_bytes = content_object.text_content.encode("utf-8")
+        if media_bytes is None:
+            for block in reversed(self.chain):
+                if block.content_hash == submission.content_hash and block.media_bytes is not None:
+                    media_bytes = bytes(block.media_bytes)
+                    mime_type = str(block.mime_type or mime_type).lower()
+                    break
+        if media_bytes is not None:
+            detected = detect_mime_type_from_bytes(media_bytes)
+            if detected is not None:
+                mime_type = detected
+        return {"media_bytes": media_bytes, "mime_type": mime_type}
+
+    def validate_originality_certificate(
+        self, certificate, submission, *, allowed_submission_statuses=None, chain=None
+    ):
+        validation_chain = self.chain if chain is None else chain
+        kwargs = {}
+        if certificate is not None and certificate.is_milestone5_certificate():
+            evidence = self.get_originality_evidence_by_digest(
+                certificate.originality_evidence_digest
+            )
+            media = self._certificate_media_context(submission)
+            kwargs = {
+                "originality_evidence": evidence,
+                "chain": validation_chain,
+                **media,
+            }
+        return validate_certificate_for_submission(
+            certificate,
+            submission,
+            network_name=NETWORK_NAME,
+            allowed_submission_statuses=allowed_submission_statuses,
+            **kwargs,
+        )
 
     def update_submission_status(self, submission_id, new_status):
         return self._submission_originality_service.update_submission_status(self._submission_originality_state(), self.storage, submission_id, new_status)
@@ -2723,7 +2816,7 @@ class Blockchain:
         return self.get_native_balance_snapshot(wallet_address)["pending_incoming"]
     def require_valid_certificate_for_submission(self, submission):
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
-        validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+        self.validate_originality_certificate(certificate, submission)
         return certificate
 
     def _build_originality_certificate(
@@ -2752,10 +2845,36 @@ class Blockchain:
         allow_pending=False,
         save=True,
     ):
-        evidence = self.ensure_current_originality_evidence(submission_id)
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        # Model A requires canonical bytes.  Promote legacy local content
+        # before producing the evidence that the new certificate will bind.
+        self._promote_submission_content_for_protocol_v1(submission)
+        evidence = self.ensure_certificate_originality_evidence(submission_id)
         if evidence["final_prevote_decision"] == HARD_REJECT:
             raise ValueError("Hard rejected submissions cannot receive originality certificates.")
-        certificate = self._submission_originality_service.create_certificate(self._submission_originality_state(), self.storage, submission_id, approved_at=approved_at, network_name=network_name, issuing_node_id=issuing_node_id, allow_pending=allow_pending, promote_content=self._promote_submission_content_for_protocol_v1, save=self.save_blockchain if save else None, voting_threshold=self.get_voting_threshold)
+        tip = self.get_latest_block()
+        media = self._certificate_media_context(submission)
+        certificate = self._submission_originality_service.create_certificate(
+            self._submission_originality_state(), self.storage, submission_id,
+            approved_at=approved_at, network_name=network_name,
+            issuing_node_id=issuing_node_id, allow_pending=allow_pending,
+            promote_content=self._promote_submission_content_for_protocol_v1,
+            save=self.save_blockchain if save else None,
+            voting_threshold=self.get_voting_threshold,
+            originality_evidence=evidence,
+            certificate_reference={
+                "height": tip.index,
+                "hash": tip.hash,
+                "timestamp": str(tip.timestamp),
+            },
+            validation_context={
+                "originality_evidence": evidence,
+                "chain": self.chain,
+                **media,
+            },
+        )
         self.lifecycle_timing.mark(submission_id, "certificate_created", certificate_id=certificate.certificate_id)
         return certificate
     def evaluate_submission(self, submission_id, automated_originality_passed=None, now=None):
@@ -2827,7 +2946,7 @@ class Blockchain:
                     raise ValueError("certificate could not be retrieved after creation")
                 self.save_blockchain()
                 submission.transition_to(APPROVED)
-                validate_certificate_for_submission(certificate, submission, network_name=NETWORK_NAME)
+                self.validate_originality_certificate(certificate, submission)
                 if self.get_originality_certificate_for_submission(submission_id) is None:
                     raise ValueError("certificate could not be retrieved after approval")
                 self.save_blockchain()
@@ -2880,11 +2999,11 @@ class Blockchain:
         self.lifecycle_timing.mark(submission_id, "ready_for_mint")
         return submission
     def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
-        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text)
+        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
     def _evaluate_mint_queue_item(self, submission_id):
-        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text)
+        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text, self.validate_originality_certificate)
     def get_mint_queue(self, include_blocked=True, mintable_only=False):
-        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text)
+        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
     def _apply_certified_candidate_in_commit(self, candidate, submission):
         """Apply all durable effects of one already-validated certified block.
 
@@ -3639,6 +3758,7 @@ class Blockchain:
             "content_objects": ("content_id", "content_hash"),
             "votes": ("submission_id", "voter"),
             "originality_certificates": ("certificate_id",),
+            "originality_evidence": ("submission_id",),
             "access_requests": ("request_id",),
             "access_accounts": ("access_account_id",),
             "wallet_bindings": ("wallet_address",),

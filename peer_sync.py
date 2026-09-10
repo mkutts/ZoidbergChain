@@ -1,4 +1,5 @@
 import json
+import hashlib
 import logging
 import math
 import secrets
@@ -15,6 +16,8 @@ from content import (
     CONTENT_TYPE_TEXT,
     STORAGE_STATUS_VERIFIED,
     TEXT_MIME_TYPE,
+    HASH_SCHEME_SHA256_BYTES,
+    store_content_bytes,
 )
 from config import (
     MAX_CONTENT_FILE_SIZE_BYTES,
@@ -40,9 +43,16 @@ from originality_certificate import (
     calculate_originality_score,
     validate_certificate_for_submission,
 )
-from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION
+from originality import (
+    HARD_REJECT,
+    ORIGINALITY_RULE_VERSION,
+    revalidate_certificate_originality_evidence,
+    validate_originality_evidence,
+)
+from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION, decode_canonical_bytes, encode_canonical_bytes
 from protocol_v1_genesis import GenesisValidationError
 from protocol_v1_originality import (
+    MILESTONE5_CERTIFICATE_VERSION,
     PROTOCOL_V1_CERTIFICATE_VERSION,
     PROTOCOL_V1_VOTE_VERSION,
     build_protocol_v1_vote_message,
@@ -90,6 +100,7 @@ from services.peer_network_errors import (
     ChainExtensionError,
     ChainSyncError,
     ConflictingCertificateError,
+    ConflictingOriginalityEvidenceError,
     ConflictingTransactionError,
     ConflictingPeerMessageError,
     ConflictingVoteError,
@@ -101,6 +112,7 @@ from services.peer_network_errors import (
     InvalidPeerTimestampError,
     MalformedBlockError,
     MalformedCertificateError,
+    MalformedOriginalityEvidenceError,
     MalformedSubmissionError,
     MalformedTransactionError,
     MalformedVoteError,
@@ -484,6 +496,7 @@ def sync_chain_from_peers(
         peers,
         lambda peer: _sync_chain_from_peer(
             blockchain=blockchain,
+            peer_store=peer_store,
             peer=peer,
             origin_node_id=origin_node_id,
             network_name=network_name,
@@ -605,6 +618,9 @@ def receive_peer_certificate(
     network_name,
     certificate_payload,
     local_network_name,
+    originality_evidence_payload=None,
+    media_payload=None,
+    media_mime_type=None,
 ):
     if network_name != local_network_name:
         raise WrongNetworkError("Peer certificate belongs to a different network.")
@@ -615,22 +631,278 @@ def receive_peer_certificate(
     if peer.get("network_name") != local_network_name:
         raise WrongNetworkError("Registered peer belongs to a different network.")
 
+    if originality_evidence_payload is not None:
+        receive_peer_originality_evidence(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=origin_node_id,
+            network_name=network_name,
+            evidence_payload=originality_evidence_payload,
+            media_payload=media_payload,
+            media_mime_type=media_mime_type,
+            local_network_name=local_network_name,
+            save=False,
+        )
+
     certificate, action = _store_peer_certificate(
         blockchain=blockchain,
         certificate_payload=certificate_payload,
         local_network_name=local_network_name,
         save=True,
     )
+    existing_content = blockchain.get_content_object_by_hash(certificate.content_hash)
     blockchain.register_remote_content_reference(
         content_hash=certificate.content_hash,
         content_id=certificate.content_id,
         submitted_by=certificate.creator_wallet,
+        mime_type=(
+            existing_content.mime_type
+            if existing_content is not None
+            else "application/octet-stream"
+        ),
         submission_id=certificate.submission_id,
     )
     return {
         "accepted": True,
         "action": action,
         "certificate": certificate.to_dict(),
+    }
+
+
+def receive_peer_originality_evidence(
+    blockchain,
+    peer_store,
+    origin_node_id,
+    network_name,
+    evidence_payload,
+    media_payload,
+    media_mime_type,
+    local_network_name,
+    submission_payload=None,
+    votes_payload=None,
+    *,
+    save=True,
+    validation_chain=None,
+):
+    if network_name != local_network_name:
+        raise WrongNetworkError("Peer originality evidence belongs to a different network.")
+    peer = peer_store.get_active_peer(origin_node_id)
+    if not peer:
+        raise UnauthorizedPeerError("Peer is not registered or active.")
+    if peer.get("network_name") != local_network_name:
+        raise WrongNetworkError("Registered peer belongs to a different network.")
+    try:
+        evidence = validate_originality_evidence(evidence_payload)
+    except ValueError as exc:
+        raise MalformedOriginalityEvidenceError(str(exc)) from exc
+    if evidence.get("originality_rule_version") != ORIGINALITY_RULE_VERSION:
+        raise MalformedOriginalityEvidenceError("Unsupported originality rule version.")
+    submission = blockchain.get_submission(evidence.get("submission_id"))
+    created_submission = False
+    if submission is None:
+        if submission_payload is None:
+            raise UnknownSubmissionError(f"Submission not found: {evidence.get('submission_id')}")
+        try:
+            normalized_submission = _normalize_submission_payload(submission_payload)
+        except MalformedSubmissionError as exc:
+            raise MalformedOriginalityEvidenceError(str(exc)) from exc
+        if normalized_submission["submission_id"] != evidence.get("submission_id"):
+            raise MalformedOriginalityEvidenceError(
+                "Transferred submission_id does not match originality evidence."
+            )
+        if normalized_submission["content_hash"] != evidence.get("content_hash"):
+            raise MalformedOriginalityEvidenceError(
+                "Transferred submission content_hash does not match originality evidence."
+            )
+        submission = Submission.from_dict({**normalized_submission, "image_path": ""})
+        created_submission = True
+    try:
+        media = decode_canonical_bytes(media_payload)
+    except ValueError as exc:
+        raise MalformedOriginalityEvidenceError("Canonical evidence media payload is invalid.") from exc
+    mime_type = str(media_mime_type or "application/octet-stream").strip().lower()
+    media_hash = hashlib.sha256(media).hexdigest()
+    if media_hash != evidence.get("content_hash"):
+        raise MalformedOriginalityEvidenceError(
+            "Originality evidence media does not match content_hash."
+        )
+    if submission.content_hash != evidence.get("content_hash"):
+        legacy_hashes = set()
+        for legacy_media in (media, b""):
+            legacy_digest = hashlib.sha256()
+            legacy_digest.update(legacy_media)
+            legacy_digest.update(b"\0")
+            legacy_digest.update((submission.text_content or "").strip().encode("utf-8"))
+            legacy_digest.update(b"\0")
+            legacy_digest.update((submission.submitter or "").strip().encode("utf-8"))
+            legacy_hashes.add(legacy_digest.hexdigest())
+        if submission.content_hash not in legacy_hashes:
+            raise MalformedOriginalityEvidenceError(
+                "Originality evidence content_hash does not match submission."
+            )
+    try:
+        revalidate_certificate_originality_evidence(
+            evidence,
+            submission_id=submission.submission_id,
+            content_hash=evidence["content_hash"],
+            chain=(validation_chain if validation_chain is not None else blockchain.chain),
+            media_bytes=media,
+            mime_type=mime_type,
+        )
+    except (RuntimeError, ValueError) as exc:
+        raise MalformedOriginalityEvidenceError(str(exc)) from exc
+    validated_votes = []
+    for raw_vote in votes_payload or []:
+        if isinstance(raw_vote, dict):
+            existing_raw_vote = _find_existing_vote(
+                blockchain,
+                raw_vote.get("submission_id"),
+                raw_vote.get("voter"),
+            )
+            if existing_raw_vote is not None and existing_raw_vote == raw_vote:
+                continue
+        try:
+            vote = _normalize_vote_payload(raw_vote, local_network_name)
+        except MalformedVoteError as exc:
+            is_legacy_vote = (
+                isinstance(raw_vote, dict)
+                and raw_vote.get("vote_version") is None
+                and raw_vote.get("protocol_version") is None
+                and raw_vote.get("vote_signature") is None
+                and isinstance(raw_vote.get("submission_id"), str)
+                and isinstance(raw_vote.get("voter"), str)
+                and bool(raw_vote.get("voter", "").strip())
+                and raw_vote.get("vote_type") in VOTE_TYPES
+            )
+            try:
+                legacy_created_at = float(raw_vote.get("created_at")) if is_legacy_vote else -1
+            except (TypeError, ValueError):
+                legacy_created_at = -1
+            if not is_legacy_vote or not math.isfinite(legacy_created_at) or legacy_created_at < 0:
+                raise MalformedOriginalityEvidenceError(str(exc)) from exc
+            # Historical local votes permitted opaque reviewer identifiers.
+            # Preserve that version's exact record so the subsequently received
+            # certificate can independently recompute and bind its vote_set_hash.
+            vote = dict(raw_vote)
+            vote["submission_id"] = raw_vote["submission_id"].strip()
+            vote["voter"] = raw_vote["voter"].strip()
+            vote["created_at"] = legacy_created_at
+        if vote["submission_id"] != submission.submission_id:
+            raise MalformedOriginalityEvidenceError(
+                "Transferred vote submission_id does not match originality evidence."
+            )
+        if vote.get("content_hash") and vote["content_hash"] != evidence["content_hash"]:
+            raise MalformedOriginalityEvidenceError(
+                "Transferred vote content_hash does not match originality evidence."
+            )
+        existing_vote = _find_existing_vote(
+            blockchain, submission.submission_id, vote["voter"]
+        )
+        if existing_vote is not None and existing_vote != vote:
+            raise ConflictingOriginalityEvidenceError(
+                "Transferred vote conflicts with the local certificate vote set."
+            )
+        if existing_vote is None:
+            validated_votes.append(vote)
+    existing = blockchain.get_originality_evidence_by_digest(
+        evidence["canonical_evidence_digest"]
+    )
+    if existing is not None:
+        if existing != evidence:
+            raise ConflictingOriginalityEvidenceError(
+                "Conflicting immutable originality evidence exists for this digest."
+            )
+        action = "duplicate"
+    else:
+        current_revision = next(
+            (
+                item
+                for item in blockchain.originality_evidence
+                if item.get("submission_id") == evidence.get("submission_id")
+            ),
+            None,
+        )
+        bound_digest = (
+            current_revision.get("canonical_evidence_digest")
+            if current_revision is not None
+            else None
+        )
+        if bound_digest and any(
+            certificate.is_milestone5_certificate()
+            and certificate.evidence_binding_status == "active"
+            and certificate.originality_evidence_digest == bound_digest
+            for certificate in blockchain.originality_certificates
+        ):
+            raise ConflictingOriginalityEvidenceError(
+                "Current originality evidence is already bound to an active certificate."
+            )
+        blockchain.originality_evidence = [
+            item
+            for item in blockchain.originality_evidence
+            if item.get("submission_id") != evidence.get("submission_id")
+        ]
+        blockchain.originality_evidence.append(evidence)
+        action = "created"
+
+    stored = store_content_bytes(
+        evidence["content_hash"],
+        media,
+        mime_type=mime_type,
+        data_dir=blockchain.storage.data_dir,
+        hash_scheme=HASH_SCHEME_SHA256_BYTES,
+    )
+    content_object = blockchain.register_uploaded_content(
+        content_hash=evidence["content_hash"],
+        submitted_by=submission.submitter,
+        mime_type=mime_type,
+        file_size_bytes=len(media),
+        storage_status=STORAGE_STATUS_VERIFIED,
+        local_path=stored["local_path"],
+        file_name=stored["file_name"],
+        caption=(submission.text_content if mime_type != TEXT_MIME_TYPE else None),
+        text_content=(media.decode("utf-8") if mime_type == TEXT_MIME_TYPE else None),
+        content_type_hint=(
+            CONTENT_TYPE_TEXT
+            if mime_type == TEXT_MIME_TYPE
+            else (CONTENT_TYPE_MIXED if (submission.text_content or "").strip() else CONTENT_TYPE_IMAGE)
+        ),
+        byte_hash=media_hash,
+        hash_scheme=HASH_SCHEME_SHA256_BYTES,
+    )
+    submission.content_hash = content_object.content_hash
+    submission.content_id = content_object.content_id
+    if mime_type != TEXT_MIME_TYPE:
+        submission.image_path = stored["local_path"]
+    if created_submission:
+        blockchain.submissions.append(submission)
+    for vote in validated_votes:
+        blockchain.votes.append(vote)
+    if save:
+        blockchain.save_blockchain()
+    return {
+        "accepted": True,
+        "action": action,
+        "evidence_digest": evidence["canonical_evidence_digest"],
+        "submission_id": submission.submission_id,
+    }
+
+
+def build_originality_evidence_transfer(blockchain, certificate):
+    if certificate is None or not certificate.is_milestone5_certificate():
+        return None
+    evidence = blockchain.get_originality_evidence(certificate.submission_id)
+    submission = blockchain.get_submission(certificate.submission_id)
+    if evidence is None or submission is None:
+        raise ValueError("Certificate originality evidence is unavailable for peer transfer.")
+    media = blockchain._certificate_media_context(submission)
+    if media["media_bytes"] is None:
+        raise ValueError("Certificate media bytes are unavailable for peer transfer.")
+    return {
+        "evidence": evidence,
+        "media_bytes": encode_canonical_bytes(media["media_bytes"]),
+        "mime_type": media["mime_type"],
+        "submission": submission.to_dict(),
+        "votes": blockchain.get_submission_votes(submission.submission_id)["votes"],
     }
 
 
@@ -715,6 +987,9 @@ def receive_peer_submission(
     network_name,
     submission_payload,
     local_network_name,
+    originality_evidence_payload=None,
+    media_payload=None,
+    media_mime_type=None,
 ):
     if network_name != local_network_name:
         raise WrongNetworkError("Peer submission belongs to a different network.")
@@ -766,8 +1041,44 @@ def receive_peer_submission(
         storage_status="remote",
         submission_id=submission.submission_id,
     )
+    if originality_evidence_payload is not None:
+        try:
+            media = decode_canonical_bytes(media_payload)
+            if hashlib.sha256(media).hexdigest() != submission.content_hash:
+                raise ValueError("Submission media does not match content_hash.")
+            mime_type = str(media_mime_type or "application/octet-stream").lower()
+            stored = store_content_bytes(
+                submission.content_hash,
+                media,
+                mime_type=mime_type,
+                data_dir=blockchain.storage.data_dir,
+                hash_scheme=HASH_SCHEME_SHA256_BYTES,
+            )
+            blockchain.register_uploaded_content(
+                content_hash=submission.content_hash,
+                submitted_by=submission.submitter,
+                mime_type=mime_type,
+                file_size_bytes=len(media),
+                storage_status=STORAGE_STATUS_VERIFIED,
+                local_path=stored["local_path"],
+                file_name=stored["file_name"],
+                text_content=(media.decode("utf-8") if mime_type == TEXT_MIME_TYPE else None),
+                byte_hash=hashlib.sha256(media).hexdigest(),
+                hash_scheme=HASH_SCHEME_SHA256_BYTES,
+            )
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise MalformedSubmissionError(str(exc)) from exc
     blockchain.link_content_objects_to_submissions()
-    blockchain.evaluate_prevote_originality(submission.submission_id)
+    local_evidence = blockchain.evaluate_prevote_originality(submission.submission_id)
+    if originality_evidence_payload is not None:
+        try:
+            transferred = validate_originality_evidence(originality_evidence_payload)
+        except ValueError as exc:
+            raise MalformedSubmissionError(str(exc)) from exc
+        if transferred.get("canonical_evidence_digest") != local_evidence.get("canonical_evidence_digest"):
+            raise MalformedSubmissionError(
+                "Submission originality evidence does not match deterministic local evaluation."
+            )
     blockchain.save_blockchain()
 
     return {
@@ -783,9 +1094,20 @@ def broadcast_submission_to_peers(
     origin_node_id,
     network_name,
     timeout_seconds=3,
+    blockchain=None,
 ):
+    transfer = None
+    if blockchain is not None:
+        evidence = blockchain.get_originality_evidence(submission.submission_id)
+        media = blockchain._certificate_media_context(submission)
+        if evidence is not None and media["media_bytes"] is not None:
+            transfer = {
+                "evidence": evidence,
+                "media_bytes": encode_canonical_bytes(media["media_bytes"]),
+                "mime_type": media["mime_type"],
+            }
     return _peer_broadcast_service().broadcast_submission(
-        submission, peer_store, origin_node_id, network_name, timeout_seconds
+        submission, peer_store, origin_node_id, network_name, timeout_seconds, transfer
     )
 
 
@@ -837,9 +1159,11 @@ def broadcast_certificate_to_peers(
     origin_node_id,
     network_name,
     timeout_seconds=3,
+    blockchain=None,
 ):
+    transfer = build_originality_evidence_transfer(blockchain, certificate) if blockchain is not None else None
     return _peer_broadcast_service().broadcast_certificate(
-        certificate, peer_store, origin_node_id, network_name, timeout_seconds
+        certificate, peer_store, origin_node_id, network_name, timeout_seconds, transfer
     )
 
 
@@ -851,10 +1175,12 @@ def broadcast_block_to_peers(
     related_submission_id=None,
     certificate=None,
     timeout_seconds=3,
+    blockchain=None,
 ):
+    transfer = build_originality_evidence_transfer(blockchain, certificate) if blockchain is not None else None
     return _peer_broadcast_service().broadcast_block(
         block, peer_store, origin_node_id, network_name,
-        related_submission_id, certificate, timeout_seconds,
+        related_submission_id, certificate, timeout_seconds, transfer,
     )
 
 
@@ -1162,7 +1488,7 @@ def sync_mempool_from_peer(
     }
 
 
-def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeout_seconds):
+def _sync_chain_from_peer(blockchain, peer_store, peer, origin_node_id, network_name, timeout_seconds):
     state = ChainSyncState(
         local_height=blockchain.get_latest_block().index,
         local_latest_hash=blockchain.get_latest_block().hash,
@@ -1172,8 +1498,11 @@ def _sync_chain_from_peer(blockchain, peer, origin_node_id, network_name, timeou
     )
     collaborators = ChainSyncCollaborators(
         compare_summaries=blockchain.compare_chain_summaries,
-        store_certificates=lambda payloads: _store_chain_sync_certificates(
-            blockchain, payloads, network_name
+        store_certificates=lambda payloads, blocks: _store_chain_sync_certificates(
+            blockchain, payloads, network_name, validation_chain=blocks
+        ),
+        store_evidence=lambda payloads, blocks: _store_chain_sync_evidence(
+            blockchain, peer_store, peer, payloads, network_name, validation_chain=blocks
         ),
         validate_candidate=lambda blocks, **expected: _validate_candidate_chain(
             blockchain, blocks, **expected
@@ -1220,16 +1549,44 @@ def _fetch_peer_blocks(peer, from_height, *, origin_node_id, network_name, timeo
     )
 
 
-def _store_chain_sync_certificates(blockchain, certificates_payload, local_network_name):
+def _store_chain_sync_certificates(
+    blockchain, certificates_payload, local_network_name, *, validation_chain=None
+):
     for certificate_payload in certificates_payload:
         try:
             _store_peer_certificate(
                 blockchain=blockchain,
                 certificate_payload=certificate_payload,
                 local_network_name=local_network_name,
+                validation_chain=validation_chain,
             )
         except (MalformedCertificateError, ConflictingCertificateError) as exc:
             raise ChainSyncError(str(exc))
+
+
+def _store_chain_sync_evidence(
+    blockchain, peer_store, peer, evidence_payloads, local_network_name, *, validation_chain=None
+):
+    for payload in evidence_payloads:
+        if not isinstance(payload, dict):
+            raise ChainSyncError("Peer chain originality evidence payload is malformed.")
+        try:
+            receive_peer_originality_evidence(
+                blockchain=blockchain,
+                peer_store=peer_store,
+                origin_node_id=peer.get("node_id"),
+                network_name=local_network_name,
+                evidence_payload=payload.get("evidence"),
+                media_payload=payload.get("media_bytes"),
+                media_mime_type=payload.get("mime_type"),
+                submission_payload=payload.get("submission"),
+                votes_payload=payload.get("votes"),
+                local_network_name=local_network_name,
+                save=False,
+                validation_chain=validation_chain,
+            )
+        except Exception as exc:
+            raise ChainSyncError(str(exc)) from exc
 
 
 def _validate_certificate_vote_set_against_local_submission(blockchain, certificate, submission):
@@ -1264,6 +1621,7 @@ def _store_peer_certificate(
     certificate_payload,
     local_network_name,
     save=False,
+    validation_chain=None,
 ):
     if isinstance(certificate_payload, dict):
         raw_certificate_id = certificate_payload.get("certificate_id")
@@ -1301,6 +1659,10 @@ def _store_peer_certificate(
         )
 
     submission = blockchain.get_submission(certificate.submission_id)
+    if certificate.is_milestone5_certificate() and submission is None:
+        raise MalformedCertificateError(
+            "Certificate version 2 requires its validated submission, evidence, media, and vote set."
+        )
     if submission:
         if submission.content_hash != certificate.content_hash:
             try:
@@ -1323,20 +1685,26 @@ def _store_peer_certificate(
             )
         _validate_certificate_vote_set_against_local_submission(blockchain, certificate, submission)
         try:
-            validate_certificate_for_submission(
+            blockchain.validate_originality_certificate(
                 certificate,
                 submission,
-                network_name=local_network_name,
                 allowed_submission_statuses={PENDING, APPROVED, QUEUED, MINTED},
+                chain=validation_chain,
             )
         except ValueError as exc:
             raise MalformedCertificateError(str(exc))
 
     blockchain.originality_certificates.append(certificate)
+    existing_content = blockchain.get_content_object_by_hash(certificate.content_hash)
     blockchain.register_remote_content_reference(
         content_hash=certificate.content_hash,
         content_id=certificate.content_id,
         submitted_by=certificate.creator_wallet,
+        mime_type=(
+            existing_content.mime_type
+            if existing_content is not None
+            else "application/octet-stream"
+        ),
         storage_status="remote",
     )
     if submission:
@@ -1346,10 +1714,8 @@ def _store_peer_certificate(
         if submission.status == PENDING:
             submission.transition_to(APPROVED)
         try:
-            validate_certificate_for_submission(
-                certificate,
-                submission,
-                network_name=local_network_name,
+            blockchain.validate_originality_certificate(
+                certificate, submission, chain=validation_chain
             )
         except ValueError as exc:
             submission.status = previous_status
@@ -1393,6 +1759,27 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             "vote_hash",
             "originality_score",
             "approval_threshold",
+            "creator_address",
+            "originality_rule_version",
+            "originality_decision",
+            "originality_reference_height",
+            "originality_reference_block_hash",
+            "originality_evidence_digest",
+            "reviewer_policy_version",
+            "reputation_rule_version",
+            "reviewer_snapshot_reference_height",
+            "reviewer_snapshot_reference_block_hash",
+            "reviewer_snapshot_digest",
+            "minimum_valid_votes",
+            "minimum_established_votes",
+            "approval_threshold_bps",
+            "total_valid_votes",
+            "established_vote_count",
+            "vote_set_hash",
+            "certificate_reference_height",
+            "certificate_reference_block_hash",
+            "issued_timestamp",
+            "evidence_binding_status",
         ],
         MalformedCertificateError,
         "Certificate payload",
@@ -1425,7 +1812,10 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
         if (
             isinstance(certificate_version, bool)
             or not isinstance(certificate_version, int)
-            or certificate_version != PROTOCOL_V1_CERTIFICATE_VERSION
+            or certificate_version not in {
+                PROTOCOL_V1_CERTIFICATE_VERSION,
+                MILESTONE5_CERTIFICATE_VERSION,
+            }
         ):
             raise MalformedCertificateError("Certificate certificate_version is unsupported.")
         normalized["certificate_version"] = certificate_version
@@ -1541,7 +1931,10 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             "Certificate certificate_version is required when Protocol v1 certificate fields are present."
         )
 
-    if normalized.get("certificate_version") == PROTOCOL_V1_CERTIFICATE_VERSION:
+    if normalized.get("certificate_version") in {
+        PROTOCOL_V1_CERTIFICATE_VERSION,
+        MILESTONE5_CERTIFICATE_VERSION,
+    }:
         if normalized.get("protocol_version") != PROTOCOL_VERSION:
             raise MalformedCertificateError("Certificate protocol_version is required for Protocol v1 certificates.")
         if normalized.get("network_id") is None:
@@ -1549,13 +1942,51 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
         if "approval_threshold" not in normalized:
             raise MalformedCertificateError("Certificate approval_threshold is required for Protocol v1 certificates.")
 
+    if normalized.get("certificate_version") == MILESTONE5_CERTIFICATE_VERSION:
+        required_v2 = {
+            "creator_address": str,
+            "originality_rule_version": int,
+            "originality_decision": str,
+            "originality_reference_height": int,
+            "originality_reference_block_hash": str,
+            "originality_evidence_digest": str,
+            "minimum_valid_votes": int,
+            "approval_threshold_bps": int,
+            "total_valid_votes": int,
+            "vote_set_hash": str,
+            "certificate_reference_height": int,
+            "certificate_reference_block_hash": str,
+            "issued_timestamp": str,
+        }
+        for field_name, expected_type in required_v2.items():
+            value = certificate_payload.get(field_name)
+            if isinstance(value, bool) or not isinstance(value, expected_type):
+                raise MalformedCertificateError(f"Certificate {field_name} is required for version 2.")
+            if isinstance(value, str) and not value.strip():
+                raise MalformedCertificateError(f"Certificate {field_name} is required for version 2.")
+            normalized[field_name] = value.strip() if isinstance(value, str) else value
+        for field_name in (
+            "reviewer_policy_version", "reputation_rule_version",
+            "reviewer_snapshot_reference_height", "reviewer_snapshot_reference_block_hash",
+            "reviewer_snapshot_digest", "minimum_established_votes", "established_vote_count",
+        ):
+            if certificate_payload.get(field_name) is not None:
+                raise MalformedCertificateError(
+                    f"Certificate {field_name} must be null for version 2."
+                )
+            normalized[field_name] = None
+        status = certificate_payload.get("evidence_binding_status", "active")
+        if status != "active":
+            raise MalformedCertificateError("Received certificate evidence binding must be active.")
+        normalized["evidence_binding_status"] = status
+
     certificate = OriginalityCertificate.from_dict(normalized)
     _validate_certificate_internal(certificate, local_network_name)
     return certificate
 
 
 def _validate_certificate_internal(certificate, local_network_name):
-    if certificate.is_protocol_v1_certificate():
+    if certificate.is_versioned_certificate():
         expected_network_id = resolve_protocol_v1_network_id(network_name=local_network_name)
         if certificate.protocol_version != PROTOCOL_VERSION:
             raise MalformedCertificateError("Originality certificate protocol_version is unsupported.")

@@ -1,5 +1,5 @@
 # Media validation, perceptual hashing, and OCR.
 ImageHash==4.3.1
-# 10.3.0 has no Python 3.13 wheel and fails to build in the documented test environment.
+# Certificate-bound Rule-v1 aHash/dHash evidence requires this exact wheel version.
 pillow==12.3.0
 pytesseract==0.3.13

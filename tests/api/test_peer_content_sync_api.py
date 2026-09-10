@@ -630,7 +630,7 @@ def test_remote_content_reference_persists_across_storage_backends(
     assert submission.content_id == content_object.content_id
 
 
-def test_receiving_peer_certificate_creates_remote_content_reference(blockchain, submission_image, wallets):
+def test_receiving_v2_certificate_without_submission_fails_closed(blockchain, submission_image, wallets):
     client = _client(blockchain)
     _register_peer(client=client)
     _submission, certificate = _certified_submission_and_certificate(
@@ -651,19 +651,28 @@ def test_receiving_peer_certificate_creates_remote_content_reference(blockchain,
         },
     )
 
-    content_object = blockchain.get_content_object_by_hash(certificate.content_hash)
-    assert response.status_code == 200
-    assert content_object is not None
-    assert content_object.storage_status == "remote"
-    assert content_object.local_path is None
+    assert response.status_code == 400
+    assert "requires its validated submission" in response.json()["detail"]
+    assert blockchain.get_content_object_by_hash(certificate.content_hash) is None
 
 
 def test_receiving_peer_block_upgrades_remote_content_metadata(blockchain, submission_image, wallets):
     client = _client(blockchain)
     _register_peer(client=client)
     submission, certificate, block = _certified_peer_block(blockchain, submission_image, wallets)
+    transfer = peer_sync.build_originality_evidence_transfer(blockchain, certificate)
     blockchain.content_objects = []
     blockchain.originality_certificates = []
+
+    evidence_response = client.post(
+        "/peers/originality-evidence/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            **transfer,
+        },
+    )
+    assert evidence_response.status_code == 200, evidence_response.text
 
     certificate_response = client.post(
         "/peers/certificates/receive",
@@ -677,7 +686,7 @@ def test_receiving_peer_block_upgrades_remote_content_metadata(blockchain, submi
     content_object = blockchain.get_content_object_by_hash(certificate.content_hash)
     assert certificate_response.status_code == 200
     assert content_object is not None
-    assert content_object.mime_type == "application/octet-stream"
+    assert content_object.mime_type == block.mime_type
 
     block_response = client.post(
         "/peers/blocks/receive",
@@ -700,8 +709,19 @@ def test_receiving_peer_block_creates_remote_content_reference(blockchain, submi
     client = _client(blockchain)
     _register_peer(client=client)
     submission, certificate, block = _certified_peer_block(blockchain, submission_image, wallets)
+    transfer = peer_sync.build_originality_evidence_transfer(blockchain, certificate)
     blockchain.content_objects = []
     blockchain.originality_certificates = []
+
+    evidence_response = client.post(
+        "/peers/originality-evidence/receive",
+        json={
+            "origin_node_id": "peer-node-1",
+            "network_name": "zoidberg-testnet",
+            **transfer,
+        },
+    )
+    assert evidence_response.status_code == 200, evidence_response.text
 
     response = client.post(
         "/peers/blocks/receive",

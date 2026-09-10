@@ -2,7 +2,7 @@ from block import Block
 from blockchain import Blockchain
 from originality_certificate import OriginalityCertificate
 from peers import PeerStore
-from peer_sync import receive_peer_block, sync_chain_from_peers
+from peer_sync import build_originality_evidence_transfer, receive_peer_block, sync_chain_from_peers
 from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
 from protocol_v1_finality import (
     build_protocol_v1_finality_attestation,
@@ -122,6 +122,12 @@ def _mock_peer_nodes(monkeypatch, peer_nodes_by_url):
                         certificate.to_dict()
                         for certificate in node.originality_certificates
                         if certificate.certificate_id in certificate_ids
+                    ],
+                    "originality_evidence": [
+                        build_originality_evidence_transfer(node, certificate)
+                        for certificate in node.originality_certificates
+                        if certificate.certificate_id in certificate_ids
+                        and certificate.is_milestone5_certificate()
                     ],
                 })
         raise AssertionError(f"Unexpected URL: {url}")

@@ -62,7 +62,7 @@ cd zoidbergcoin-ui
 npm.cmd ci
 ```
 
-System prerequisites cannot be installed by pip or npm: install the Tesseract OCR executable and make `tesseract` available on `PATH` for OCR features. On Windows, use `npm.cmd` when PowerShell execution policy blocks `npm.ps1`.
+System prerequisites cannot be installed by pip or npm: install the optional Tesseract OCR executable and make `tesseract` available on `PATH` only for non-consensus advisory OCR features. Certificate-version-2 evidence deliberately never executes Tesseract and requires the exact Pillow/ImageHash pins. On Windows, use `npm.cmd` when PowerShell execution policy blocks `npm.ps1`.
 
 ## Deployment Notes
 

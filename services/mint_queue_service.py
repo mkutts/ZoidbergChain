@@ -67,7 +67,7 @@ class MintQueueService:
         submission.transition_to(QUEUED)
         return submission
 
-    def record(self, storage, submission, *, content_object=None, certificate=None, network_name, extract_text_func=extract_text):
+    def record(self, storage, submission, *, content_object=None, certificate=None, network_name, extract_text_func=extract_text, certificate_validator=None):
         record = submission.to_dict()
         record.update({"submission_status": submission.status, "certificate_status": "missing" if certificate is None else "valid", "content_status": STORAGE_STATUS_MISSING, "storage_status": STORAGE_STATUS_MISSING, "content_metadata_missing": True, "missing_fields": [], "mintable": False, "mint_block_reason": None, "download_url": None, "originality_score": certificate.originality_score if certificate else None, "mint_blocked": submission.mint_blocked, "mint_blocked_at": submission.mint_blocked_at, "mint_blocked_by": submission.mint_blocked_by, "mint_block_notes": submission.mint_block_notes})
         if certificate: record["certificate_id"] = certificate.certificate_id
@@ -76,11 +76,15 @@ class MintQueueService:
         if submission.status == MINTED: record["mint_block_reason"] = "already_minted"; record["missing_fields"].append("status"); return record
         if submission.status != QUEUED: record["mint_block_reason"] = "submission_not_approved"; record["missing_fields"].append("status"); return record
         if certificate is None: record["mint_block_reason"] = "certificate_missing"; record["missing_fields"].append("certificate_id"); return record
-        try: validate_certificate_for_submission(certificate, submission, network_name=network_name)
-        except ValueError as exc:
-            message = str(exc).lower(); record.update(certificate_status="invalid", mint_block_reason="certificate_content_hash_mismatch" if "content_hash" in message or "content_id" in message else "unknown_error", validation_error=str(exc)); record["missing_fields"].append("certificate"); return record
         if content_object is None:
             record["mint_block_reason"] = "content_metadata_missing"; record["missing_fields"].extend(["content_hash", "content_id", "mime_type", "content_type"]); return record
+        try:
+            if certificate_validator is not None:
+                certificate_validator(certificate, submission)
+            else:
+                validate_certificate_for_submission(certificate, submission, network_name=network_name)
+        except ValueError as exc:
+            message = str(exc).lower(); record.update(certificate_status="invalid", mint_block_reason="certificate_content_hash_mismatch" if "content_hash" in message or "content_id" in message else "unknown_error", validation_error=str(exc)); record["missing_fields"].append("certificate"); return record
         record.update(content_metadata_missing=False, content_id=content_object.content_id, content_type=content_object.content_type, mime_type=content_object.mime_type, content_status=content_object.storage_status, storage_status=content_object.storage_status)
         if content_object.storage_status in {STORAGE_STATUS_LOCAL, STORAGE_STATUS_VERIFIED}: record["download_url"] = f"/content/{content_object.content_hash}"
         if content_object.storage_status == STORAGE_STATUS_REMOTE: record["mint_block_reason"] = "content_payload_missing"; record["missing_fields"].append("content_payload"); return record
@@ -96,13 +100,13 @@ class MintQueueService:
             if not str(extract_text_func(file_path) if file_path and os.path.isfile(file_path) else "").strip(): record.update(mintable=False, mint_block_reason="no_text_content_extracted"); record["missing_fields"].append("text_content")
         return record
 
-    def evaluate(self, state, storage, submission_id, network_name, extract_text_func=extract_text):
+    def evaluate(self, state, storage, submission_id, network_name, extract_text_func=extract_text, certificate_validator=None):
         submission = self._submission(state, storage, submission_id)
         if submission is None:
             return {"submission_id": submission_id, "submission_status": None, "certificate_status": "missing", "content_status": STORAGE_STATUS_MISSING, "storage_status": STORAGE_STATUS_MISSING, "mintable": False, "mint_block_reason": "submission_not_found", "missing_fields": ["submission"], "content_metadata_missing": True, "mint_blocked": False, "mint_blocked_at": None, "mint_blocked_by": None, "mint_block_notes": None, "download_url": None}
         content = self._content_by_hash(state, storage, submission.content_hash) if submission.content_hash else None
         content = content or (self._content_by_id(state, storage, submission.content_id) if submission.content_id else None)
-        record = self.record(storage, submission, content_object=content, certificate=self._certificate(state, storage, submission_id), network_name=network_name, extract_text_func=extract_text_func)
+        record = self.record(storage, submission, content_object=content, certificate=self._certificate(state, storage, submission_id), network_name=network_name, extract_text_func=extract_text_func, certificate_validator=certificate_validator)
         if submission.status == QUEUED and record.get("mint_block_reason") == "certificate_missing": submission.status = APPROVED; record["submission_status"] = APPROVED
         return record
 
@@ -123,8 +127,8 @@ class MintQueueService:
                 return (0, *self.canonical_mint_order_key(certificate))
         return (1, submission_id.lower())
 
-    def list(self, state, storage, *, network_name, include_blocked=True, mintable_only=False, extract_text_func=extract_text):
-        records = [self.evaluate(state, storage, submission_id, network_name, extract_text_func) for submission_id in state.mint_queue]
+    def list(self, state, storage, *, network_name, include_blocked=True, mintable_only=False, extract_text_func=extract_text, certificate_validator=None):
+        records = [self.evaluate(state, storage, submission_id, network_name, extract_text_func, certificate_validator) for submission_id in state.mint_queue]
         records.sort(key=lambda record: self.record_order_key(state, storage, record))
         return [record for record in records if (not mintable_only or record.get("mintable")) and (include_blocked or record.get("mintable"))]
 

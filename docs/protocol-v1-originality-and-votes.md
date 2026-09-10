@@ -374,5 +374,21 @@ Milestone 5 Task 5.3 adds Originality Rule v1 and immutable evidence before
 voting. Exact SHA-256 duplicates of prior certified canonical media are the
 only automated hard reject. Perceptual, OCR/text, and near-duplicate matches
 are review flags only. Evidence commits to a canonical reference height/hash;
-the current certificate schema is intentionally unchanged. See
+Task 5.3 intentionally left the certificate schema unchanged. See
 `docs/milestone-5-task-5.3-originality-evidence-and-duplicate-pipeline.md`.
+
+# Milestone 5 evidence-bound certificates
+
+Task 5.4 adds certificate version 2 while retaining absent-version legacy and
+version-1 validation unchanged. Version 2 commits to Originality Rule v1, the
+decision, originality reference, complete evidence digest, raw media identity,
+vote set, and a canonical certificate reference. Reviewer-policy, reputation,
+snapshot, and established-quorum fields are explicit canonical nulls until a
+later certificate version activates them.
+
+Certificate-profile evidence requires exact Pillow 12.3.0 and ImageHash 4.3.1.
+Tesseract is excluded from certificate consensus: image OCR is canonically
+`UNAVAILABLE`, conservatively review-flagged, and included in the evidence
+digest. Peers transfer media plus evidence and independently recompute the full
+record before accepting a version-2 certificate. See
+`docs/milestone-5-task-5.4-certificate-evidence-binding-and-peer-validation.md`.

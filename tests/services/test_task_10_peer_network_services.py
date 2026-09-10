@@ -170,7 +170,8 @@ def test_chain_sync_service_delegates_ranking_validation_and_adoption():
     }
     collaborators = ChainSyncCollaborators(
         compare_summaries=ForkChoiceService.compare_summary_metrics,
-        store_certificates=lambda payloads: None,
+        store_certificates=lambda payloads, blocks: None,
+        store_evidence=lambda payloads, blocks: None,
         validate_candidate=lambda blocks, **kwargs: candidate,
         compare_candidate=lambda blocks: comparison,
         adopt_candidate=lambda blocks: adopted.append(blocks) or {

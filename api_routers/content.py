@@ -250,6 +250,7 @@ async def submit_content(
         peer_store=peer_store,
         origin_node_id=NODE_ID,
         network_name=NETWORK_NAME,
+        blockchain=blockchain,
     )
 
     return {
@@ -477,6 +478,7 @@ async def evaluate_submission(
                 peer_store=peer_store,
                 origin_node_id=NODE_ID,
                 network_name=NETWORK_NAME,
+                blockchain=blockchain,
             )
             if certificate
             else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}
@@ -549,6 +551,7 @@ async def mint_queued_submission(
             network_name=NETWORK_NAME,
             related_submission_id=submission_id,
             certificate=certificate,
+            blockchain=blockchain,
         )
         if minted
         else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}

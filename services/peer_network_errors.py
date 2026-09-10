@@ -69,6 +69,14 @@ class ConflictingCertificateError(PeerSyncError):
     pass
 
 
+class MalformedOriginalityEvidenceError(PeerSyncError):
+    pass
+
+
+class ConflictingOriginalityEvidenceError(PeerSyncError):
+    pass
+
+
 class UnknownSubmissionError(PeerSyncError):
     pass
 

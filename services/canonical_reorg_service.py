@@ -269,6 +269,36 @@ class CanonicalReorgService:
             else:
                 invalidated.append(str(evidence.get("submission_id") or ""))
         document["originality_evidence"] = retained
+        invalidated_certificates = set()
+        for certificate in document.get("originality_certificates", []) or []:
+            if certificate.get("certificate_version") != 2:
+                continue
+            references = {
+                (
+                    certificate.get("originality_reference_height"),
+                    str(certificate.get("originality_reference_block_hash") or "").strip().lower(),
+                ),
+                (
+                    certificate.get("certificate_reference_height"),
+                    str(certificate.get("certificate_reference_block_hash") or "").strip().lower(),
+                ),
+            }
+            if not references <= canonical:
+                certificate["evidence_binding_status"] = "invalidated_by_reorg"
+                submission_id = str(certificate.get("submission_id") or "")
+                invalidated_certificates.add(submission_id)
+                invalidated.append(submission_id)
+        for submission in document.get("submissions", []) or []:
+            if str(submission.get("submission_id") or "") not in invalidated_certificates:
+                continue
+            if submission.get("status") != "minted":
+                submission["certificate_id"] = None
+                if submission.get("status") in {"approved", "queued"}:
+                    submission["status"] = "pending"
+        document["mint_queue"] = [
+            submission_id for submission_id in document.get("mint_queue", []) or []
+            if str(submission_id) not in invalidated_certificates
+        ]
         return sorted(item for item in invalidated if item)
 
     @classmethod

@@ -29,7 +29,7 @@ from milestone5_policy import (
 )
 from native_transfer import normalize_wallet_address
 from protocol_v1_originality import calculate_signed_vote_identity
-from originality import validate_originality_evidence
+from originality import CERTIFICATE_EVIDENCE_PROFILE, validate_originality_evidence
 
 
 SUPPORTED_STORAGE_BACKENDS = {"json", "sqlite"}
@@ -368,18 +368,38 @@ def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[s
         if isinstance(block, dict) and block.get("index") is not None and block.get("hash")
     }
     evidence_submissions: set[str] = set()
+    evidence_digests: set[str] = set()
     for raw_evidence in list(document.get("originality_evidence", []) or []):
         evidence = validate_originality_evidence(raw_evidence)
         submission_id = str(evidence["submission_id"]).strip()
         if submission_id in evidence_submissions:
             raise StorageUniquenessError("Current originality evidence must be unique per submission.")
         evidence_submissions.add(submission_id)
+        evidence_digests.add(evidence["canonical_evidence_digest"])
         reference = (
             int(evidence["originality_reference_height"]),
             evidence["originality_reference_block_hash"],
         )
         if reference not in canonical_references:
             raise StorageUniquenessError("Current originality evidence references a non-canonical block.")
+    for certificate in list(document.get("originality_certificates", []) or []):
+        if not isinstance(certificate, dict) or certificate.get("certificate_version") != 2:
+            continue
+        if certificate.get("evidence_binding_status", "active") != "active":
+            continue
+        if certificate.get("originality_evidence_digest") not in evidence_digests:
+            raise StorageUniquenessError(
+                "Active certificate version 2 references unavailable originality evidence."
+            )
+        for height_field, hash_field in (
+            ("originality_reference_height", "originality_reference_block_hash"),
+            ("certificate_reference_height", "certificate_reference_block_hash"),
+        ):
+            reference = (certificate.get(height_field), certificate.get(hash_field))
+            if reference not in canonical_references:
+                raise StorageUniquenessError(
+                    "Active certificate version 2 references a non-canonical block."
+                )
     return claims
 
 
@@ -1013,7 +1033,13 @@ class StorageBackend(ABC):
         if not isinstance(submission_id, str) or not submission_id.strip():
             return None
         certificates = self.load_certificates() if certificates is None else certificates
-        return self._first_record_where(certificates, "submission_id", submission_id.strip())
+        for certificate in certificates:
+            if self._record_value(certificate, "submission_id") != submission_id.strip():
+                continue
+            if self._record_value(certificate, "evidence_binding_status") == "invalidated_by_reorg":
+                continue
+            return certificate
+        return None
 
     def load_originality_evidence(self):
         document = self.load_blockchain_document()
@@ -1542,6 +1568,13 @@ class SQLiteStorageBackend(StorageBackend):
             "SELECT submission_id, evidence_digest, reference_height, reference_block_hash FROM originality_evidence_records WHERE is_current = 1"
         ).fetchall()
         current_by_submission = {row[0]: row for row in current_rows}
+        certificate_bound_digests = {
+            certificate.get("originality_evidence_digest")
+            for certificate in document.get("originality_certificates", []) or []
+            if isinstance(certificate, dict)
+            and certificate.get("certificate_version") == 2
+            and certificate.get("evidence_binding_status", "active") == "active"
+        }
 
         for submission_id, row in current_by_submission.items():
             if submission_id not in by_submission:
@@ -1563,13 +1596,18 @@ class SQLiteStorageBackend(StorageBackend):
                 continue
             if existing is not None:
                 old_reference = (int(existing[2]), str(existing[3]))
-                if old_reference in canonical:
+                is_unbound_certificate_profile_migration = (
+                    evidence.get("certificate_verification_profile")
+                    == CERTIFICATE_EVIDENCE_PROFILE
+                    and existing[1] not in certificate_bound_digests
+                )
+                if old_reference in canonical and not is_unbound_certificate_profile_migration:
                     raise StorageUniquenessError(
                         "Immutable originality evidence cannot change while its reference remains canonical."
                     )
                 connection.execute(
-                    "UPDATE originality_evidence_records SET is_current = 0, invalidated_by_reorg = 1 WHERE evidence_digest = ?",
-                    (existing[1],),
+                    "UPDATE originality_evidence_records SET is_current = 0, invalidated_by_reorg = ? WHERE evidence_digest = ?",
+                    (0 if old_reference in canonical else 1, existing[1]),
                 )
             observed_at = _utc_now_iso()
             connection.execute(
@@ -1605,6 +1643,50 @@ class SQLiteStorageBackend(StorageBackend):
                             match["content_hash"], _canonical_record(match),
                         ),
                     )
+
+    @staticmethod
+    def _synchronize_certificate_evidence_bindings(connection, certificates) -> None:
+        for certificate in certificates or []:
+            if not isinstance(certificate, dict) or certificate.get("certificate_version") != 2:
+                continue
+            immutable = (
+                certificate.get("certificate_version"),
+                certificate.get("submission_id"),
+                certificate.get("content_hash"),
+                certificate.get("originality_evidence_digest"),
+                certificate.get("originality_reference_height"),
+                certificate.get("originality_reference_block_hash"),
+                certificate.get("certificate_reference_height"),
+                certificate.get("certificate_reference_block_hash"),
+            )
+            certificate_id = str(certificate.get("certificate_id") or "").strip().lower()
+            if not certificate_id or any(value is None for value in immutable):
+                raise StorageCorruptionError("Certificate version 2 has an incomplete evidence binding.")
+            existing = connection.execute(
+                """SELECT certificate_version, submission_id, content_hash, evidence_digest,
+                          originality_reference_height, originality_reference_block_hash,
+                          certificate_reference_height, certificate_reference_block_hash
+                   FROM originality_certificate_evidence_bindings WHERE certificate_id = ?""",
+                (certificate_id,),
+            ).fetchone()
+            if existing is not None and tuple(existing) != immutable:
+                raise StorageUniquenessError(
+                    "An immutable certificate evidence binding cannot be replaced."
+                )
+            status = str(certificate.get("evidence_binding_status") or "active")
+            connection.execute(
+                """INSERT OR IGNORE INTO originality_certificate_evidence_bindings
+                   (certificate_id, certificate_version, submission_id, content_hash,
+                    evidence_digest, originality_reference_height,
+                    originality_reference_block_hash, certificate_reference_height,
+                    certificate_reference_block_hash, binding_status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (certificate_id, *immutable, status),
+            )
+            connection.execute(
+                "UPDATE originality_certificate_evidence_bindings SET binding_status = ? WHERE certificate_id = ?",
+                (status, certificate_id),
+            )
 
     def list_originality_evidence_history(self, submission_id):
         with self._connect() as connection:
@@ -1802,6 +1884,28 @@ class SQLiteStorageBackend(StorageBackend):
                     FOREIGN KEY (evidence_digest) REFERENCES originality_evidence_records(evidence_digest)
                 )
                 """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS originality_certificate_evidence_bindings (
+                    certificate_id TEXT PRIMARY KEY,
+                    certificate_version INTEGER NOT NULL CHECK (certificate_version = 2),
+                    submission_id TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    evidence_digest TEXT NOT NULL,
+                    originality_reference_height INTEGER NOT NULL CHECK (originality_reference_height >= 0),
+                    originality_reference_block_hash TEXT NOT NULL,
+                    certificate_reference_height INTEGER NOT NULL CHECK (certificate_reference_height >= 0),
+                    certificate_reference_block_hash TEXT NOT NULL,
+                    binding_status TEXT NOT NULL DEFAULT 'active'
+                        CHECK (binding_status IN ('active', 'invalidated_by_reorg')),
+                    FOREIGN KEY (evidence_digest) REFERENCES originality_evidence_records(evidence_digest)
+                )
+                """
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS certificate_evidence_by_submission
+                   ON originality_certificate_evidence_bindings(submission_id, binding_status)"""
             )
             connection.execute(
                 """
@@ -2031,6 +2135,9 @@ class SQLiteStorageBackend(StorageBackend):
             self._synchronize_canonical_claims(connection, sections)
             self._synchronize_originality_evidence_records(
                 connection, sections.get("originality_evidence", []), sections
+            )
+            self._synchronize_certificate_evidence_bindings(
+                connection, sections.get("originality_certificates", [])
             )
             # One-time migration only: older SQLite databases stored a second
             # native-transaction JSON section.  Once relational rows exist,
@@ -2366,6 +2473,9 @@ class SQLiteStorageBackend(StorageBackend):
             self._synchronize_originality_evidence_records(
                 connection, sections.get("originality_evidence", []), sections
             )
+            self._synchronize_certificate_evidence_bindings(
+                connection, sections.get("originality_certificates", [])
+            )
             sections["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, sections.get("native_transactions", [])
             )
@@ -2424,6 +2534,9 @@ class SQLiteStorageBackend(StorageBackend):
             self._synchronize_originality_evidence_records(
                 connection, replacement.get("originality_evidence", []), replacement
             )
+            self._synchronize_certificate_evidence_bindings(
+                connection, replacement.get("originality_certificates", [])
+            )
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", []),
                 previous_transactions=sections.get("native_transactions", []),
@@ -2464,6 +2577,9 @@ class SQLiteStorageBackend(StorageBackend):
             self._synchronize_durable_vote_records(connection, replacement.get("votes", []))
             self._synchronize_originality_evidence_records(
                 connection, replacement.get("originality_evidence", []), replacement
+            )
+            self._synchronize_certificate_evidence_bindings(
+                connection, replacement.get("originality_certificates", [])
             )
             replacement["native_transactions"] = self._synchronize_native_transaction_records(
                 connection, replacement.get("native_transactions", []),

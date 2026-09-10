@@ -10,8 +10,10 @@ from block import Block
 from blockchain import Blockchain
 from peers import PeerStore
 from peer_sync import (
+    build_originality_evidence_transfer,
     receive_peer_block,
     receive_peer_certificate,
+    receive_peer_originality_evidence,
     receive_peer_submission,
     receive_peer_vote,
     sync_chain_from_peers,
@@ -198,6 +200,12 @@ def _mock_chain_sync(monkeypatch, source_blockchain):
                         for certificate in source_blockchain.originality_certificates
                         if certificate.certificate_id in certificate_ids
                     ],
+                    "originality_evidence": [
+                        build_originality_evidence_transfer(source_blockchain, certificate)
+                        for certificate in source_blockchain.originality_certificates
+                        if certificate.certificate_id in certificate_ids
+                        and certificate.is_milestone5_certificate()
+                    ],
                 }
             )
         raise AssertionError(f"Unexpected URL: {url}")
@@ -243,6 +251,17 @@ def test_mixed_backends_support_direct_peer_broadcast_flow_after_restart(
         source_blockchain,
         submission.submission_id,
         wallets,
+    )
+    evidence_transfer = build_originality_evidence_transfer(source_blockchain, certificate)
+    receive_peer_originality_evidence(
+        blockchain=target_blockchain,
+        peer_store=target_peer_store,
+        origin_node_id="node-a",
+        network_name="zoidberg-testnet",
+        evidence_payload=evidence_transfer["evidence"],
+        media_payload=evidence_transfer["media_bytes"],
+        media_mime_type=evidence_transfer["mime_type"],
+        local_network_name="zoidberg-testnet",
     )
     receive_peer_certificate(
         blockchain=target_blockchain,

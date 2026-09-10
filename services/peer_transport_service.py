@@ -80,12 +80,17 @@ class PeerBroadcastService:
                 })
         return self._report(results)
 
-    def broadcast_submission(self, submission, peer_store, origin_node_id, network_name, timeout_seconds):
+    def broadcast_submission(
+        self, submission, peer_store, origin_node_id, network_name, timeout_seconds,
+        originality_evidence=None,
+    ):
         payload = {
             "origin_node_id": origin_node_id,
             "network_name": network_name,
             "submission": submission.to_dict(),
         }
+        if originality_evidence is not None:
+            payload.update(originality_evidence)
         return self._broadcast_standard(
             peer_store=peer_store,
             network_name=network_name,
@@ -125,13 +130,33 @@ class PeerBroadcastService:
             object_id=vote.get("submission_id"),
         )
 
-    def broadcast_certificate(self, certificate, peer_store, origin_node_id, network_name, timeout_seconds):
+    def broadcast_certificate(
+        self, certificate, peer_store, origin_node_id, network_name, timeout_seconds,
+        originality_evidence=None,
+    ):
+        evidence_report = None
+        if originality_evidence is not None:
+            evidence_payload = {
+                "origin_node_id": origin_node_id,
+                "network_name": network_name,
+                **originality_evidence,
+            }
+            evidence_report = self._broadcast_standard(
+                peer_store=peer_store,
+                network_name=network_name,
+                origin_node_id=origin_node_id,
+                timeout_seconds=timeout_seconds,
+                path="/peers/originality-evidence/receive",
+                payload=evidence_payload,
+                object_kind="originality evidence",
+                object_id=certificate.originality_evidence_digest,
+            )
         payload = {
             "origin_node_id": origin_node_id,
             "network_name": network_name,
             "certificate": certificate.to_dict(),
         }
-        return self._broadcast_standard(
+        result = self._broadcast_standard(
             peer_store=peer_store,
             network_name=network_name,
             origin_node_id=origin_node_id,
@@ -141,10 +166,13 @@ class PeerBroadcastService:
             object_kind="certificate",
             object_id=certificate.certificate_id,
         )
+        result["originality_evidence"] = evidence_report
+        return result
 
     def broadcast_block(
         self, block, peer_store, origin_node_id, network_name,
         related_submission_id, certificate, timeout_seconds,
+        originality_evidence=None,
     ):
         payload = {
             "origin_node_id": origin_node_id,
@@ -158,6 +186,28 @@ class PeerBroadcastService:
             receive_url = f"{peer['url'].rstrip('/')}/peers/blocks/receive"
             certificate_result = None
             try:
+                if originality_evidence is not None:
+                    evidence_url = f"{peer['url'].rstrip('/')}/peers/originality-evidence/receive"
+                    evidence_payload = {
+                        "origin_node_id": origin_node_id,
+                        "network_name": network_name,
+                        **originality_evidence,
+                    }
+                    evidence_response = self.transport.post(
+                        evidence_url,
+                        json=evidence_payload,
+                        headers=self.build_headers(
+                            "POST", "/peers/originality-evidence/receive",
+                            evidence_payload, origin_node_id,
+                        ),
+                        timeout=timeout_seconds,
+                    )
+                    evidence_status = getattr(evidence_response, "status_code", None)
+                    if evidence_status is None or evidence_status >= 400:
+                        raise self.transport.request_error(
+                            f"Originality evidence peer returned status {evidence_status}: "
+                            f"{getattr(evidence_response, 'text', '')}"
+                        )
                 if certificate:
                     certificate_url = f"{peer['url'].rstrip('/')}/peers/certificates/receive"
                     certificate_payload = {

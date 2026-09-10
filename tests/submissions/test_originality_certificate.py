@@ -6,7 +6,11 @@ from originality_certificate import (
     calculate_vote_hash,
 )
 from protocol_v1 import PROTOCOL_VERSION
-from protocol_v1_originality import PROTOCOL_V1_CERTIFICATE_VERSION, resolve_protocol_v1_network_id
+from protocol_v1_originality import (
+    MILESTONE5_CERTIFICATE_VERSION,
+    PROTOCOL_V1_CERTIFICATE_VERSION,
+    resolve_protocol_v1_network_id,
+)
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -283,7 +287,7 @@ def test_certificate_can_be_created_from_approved_submission(blockchain, submiss
     assert certificate.minimum_votes_required == 5
     assert certificate.approved_at == APPROVED_AT
     assert certificate.network_name == NETWORK_NAME
-    assert certificate.certificate_version == PROTOCOL_V1_CERTIFICATE_VERSION
+    assert certificate.certificate_version == MILESTONE5_CERTIFICATE_VERSION
     assert certificate.protocol_version == PROTOCOL_VERSION
     assert certificate.network_id == resolve_protocol_v1_network_id(network_name=NETWORK_NAME)
     assert certificate.issuing_node_id == ISSUING_NODE_ID

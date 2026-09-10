@@ -56,6 +56,7 @@ class BlockValidationCollaborators:
     expected_voter_reward_records_by_id: Callable
     block_reward_transactions: Callable
     get_originality_certificate: Callable
+    validate_originality_certificate: Callable
     get_submission: Callable
     resolve_meme_reward_recipient: Callable
     get_content_object_by_hash: Callable
@@ -225,7 +226,7 @@ class BlockValidationService:
         if metadata.get("content_id") is not None and getattr(certificate, "content_id", None) is not None and certificate.content_id != metadata["content_id"]: self._raise("content_id_mismatch", "Block content_id does not match certificate content_id.", certificate_id=metadata["certificate_id"], submission_id=metadata["submission_id"])
         submission = c.get_submission(metadata["submission_id"])
         if submission:
-            validate_certificate_for_submission(certificate, submission, network_name=c.config["network_name"])
+            c.validate_originality_certificate(certificate, submission, chain=prior_chain)
             if metadata["content_hash"] != submission.content_hash: self._raise("content_hash_mismatch", "Block content_hash does not match submission.", submission_id=metadata["submission_id"])
             if metadata.get("content_id") is not None and metadata["content_id"] != submission.content_id: self._raise("content_id_mismatch", "Block content_id does not match submission.", submission_id=metadata["submission_id"])
         for field in required:

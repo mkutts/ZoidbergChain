@@ -13,7 +13,9 @@ import re
 import unicodedata
 from copy import deepcopy
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable
 
 from PIL import Image, ImageOps
@@ -26,6 +28,10 @@ from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID, canonical_hash, canonical_
 
 ORIGINALITY_RULE_VERSION = 1
 ORIGINALITY_EVIDENCE_VERSION = 1
+CERTIFICATE_EVIDENCE_PROFILE = "milestone-5-certificate-consensus-v1"
+CONSENSUS_PILLOW_VERSION = "12.3.0"
+CONSENSUS_IMAGEHASH_VERSION = "4.3.1"
+CONSENSUS_OCR_IDENTITY = "tesseract-disabled-review-only-v1"
 
 PASS = "PASS"
 FLAGGED_FOR_REVIEW = "FLAGGED_FOR_REVIEW"
@@ -168,26 +174,64 @@ def _image_from_bytes(payload: bytes) -> Image.Image:
     return frame
 
 
-def _image_features(payload: bytes, *, ocr: Callable[[Image.Image], str] | None = None) -> dict[str, Any]:
+def certificate_fuzzy_runtime_identity() -> dict[str, str]:
+    """Return and enforce the portable runtime used by bound evidence."""
+    try:
+        pillow_version = package_version("Pillow")
+        imagehash_version = package_version("ImageHash")
+    except PackageNotFoundError as exc:
+        raise RuntimeError("Certificate originality runtime is not installed.") from exc
+    expected = {
+        "pillow_version": CONSENSUS_PILLOW_VERSION,
+        "imagehash_version": CONSENSUS_IMAGEHASH_VERSION,
+        "ocr_identity": CONSENSUS_OCR_IDENTITY,
+    }
+    actual = {
+        "pillow_version": pillow_version,
+        "imagehash_version": imagehash_version,
+        "ocr_identity": CONSENSUS_OCR_IDENTITY,
+    }
+    if actual != expected:
+        raise RuntimeError(
+            "Certificate originality runtime mismatch: "
+            f"expected Pillow {CONSENSUS_PILLOW_VERSION} and ImageHash "
+            f"{CONSENSUS_IMAGEHASH_VERSION}; found Pillow {pillow_version} and "
+            f"ImageHash {imagehash_version}."
+        )
+    return expected
+
+
+def _image_features(
+    payload: bytes,
+    *,
+    ocr: Callable[[Image.Image], str] | None = None,
+    certificate_consensus: bool = False,
+) -> dict[str, Any]:
     image = _image_from_bytes(payload)
     perceptual_hash = str(imagehash.average_hash(image, hash_size=8))
     near_hash = str(imagehash.dhash(image, hash_size=8))
     ocr_result: dict[str, Any]
-    try:
-        extractor = ocr or (
-            lambda prepared: pytesseract.image_to_string(
-                prepared, config="--psm 11 --oem 1 -l eng"
-            )
-        )
-        prepared = ImageOps.autocontrast(image.convert("L")).point(
-            lambda pixel: 255 if pixel >= 160 else 0
-        )
-        normalized_text = normalize_ocr_text(extractor(prepared))
-        ocr_result = {"status": CHECK_SUCCESS, "normalized_text": normalized_text}
-    except pytesseract.TesseractNotFoundError:
+    if certificate_consensus:
+        # Tesseract and trained-data builds are not content-addressed in Rule
+        # v1.  Certificate evidence therefore never executes OCR.  The
+        # unavailable result is conservative and necessarily review-flagged.
         ocr_result = {"status": CHECK_UNAVAILABLE, "normalized_text": ""}
-    except Exception:
-        ocr_result = {"status": CHECK_FAILED, "normalized_text": ""}
+    else:
+        try:
+            extractor = ocr or (
+                lambda prepared: pytesseract.image_to_string(
+                    prepared, config="--psm 11 --oem 1 -l eng"
+                )
+            )
+            prepared = ImageOps.autocontrast(image.convert("L")).point(
+                lambda pixel: 255 if pixel >= 160 else 0
+            )
+            normalized_text = normalize_ocr_text(extractor(prepared))
+            ocr_result = {"status": CHECK_SUCCESS, "normalized_text": normalized_text}
+        except pytesseract.TesseractNotFoundError:
+            ocr_result = {"status": CHECK_UNAVAILABLE, "normalized_text": ""}
+        except Exception:
+            ocr_result = {"status": CHECK_FAILED, "normalized_text": ""}
     return {
         "perceptual_hash": perceptual_hash,
         "near_duplicate_hash": near_hash,
@@ -210,7 +254,8 @@ def _block_media_bytes(block: Any) -> bytes | None:
 
 
 def canonical_minted_media_features(
-    chain: list[Any], *, ocr: Callable[[Image.Image], str] | None = None
+    chain: list[Any], *, ocr: Callable[[Image.Image], str] | None = None,
+    certificate_consensus: bool = False,
 ) -> list[dict[str, Any]]:
     """Rebuild the deterministic optimization index from canonical blocks."""
     records: list[dict[str, Any]] = []
@@ -239,7 +284,9 @@ def canonical_minted_media_features(
         }
         if mime_type in SUPPORTED_IMAGE_MIME_TYPES:
             try:
-                features = _image_features(media, ocr=ocr)
+                features = _image_features(
+                    media, ocr=ocr, certificate_consensus=certificate_consensus
+                )
             except Exception:
                 record["ocr_status"] = CHECK_FAILED
             else:
@@ -346,6 +393,16 @@ def validate_originality_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Unsupported originality evidence version.")
     if evidence.get("final_prevote_decision") not in {PASS, FLAGGED_FOR_REVIEW, HARD_REJECT}:
         raise ValueError("Invalid final pre-vote originality decision.")
+    profile = evidence.get("certificate_verification_profile")
+    if profile is not None:
+        if profile != CERTIFICATE_EVIDENCE_PROFILE:
+            raise ValueError("Unsupported certificate evidence verification profile.")
+        if evidence.get("fuzzy_runtime_identity") != {
+            "pillow_version": CONSENSUS_PILLOW_VERSION,
+            "imagehash_version": CONSENSUS_IMAGEHASH_VERSION,
+            "ocr_identity": CONSENSUS_OCR_IDENTITY,
+        }:
+            raise ValueError("Certificate evidence fuzzy runtime identity is invalid.")
     for field in ("content_hash", "originality_reference_block_hash"):
         if not _HEX_64.fullmatch(str(evidence.get(field) or "")):
             raise ValueError(f"{field} must be a lowercase SHA-256 hash.")
@@ -356,8 +413,16 @@ def validate_originality_evidence(evidence: dict[str, Any]) -> dict[str, Any]:
 
 
 class OriginalityPipeline:
-    def __init__(self, *, ocr: Callable[[Image.Image], str] | None = None):
+    def __init__(
+        self,
+        *,
+        ocr: Callable[[Image.Image], str] | None = None,
+        certificate_consensus: bool = False,
+    ):
         self.ocr = ocr
+        self.certificate_consensus = bool(certificate_consensus)
+        if self.certificate_consensus:
+            certificate_fuzzy_runtime_identity()
         self._cached_head: tuple[int, str] | None = None
         self._cached_index: list[dict[str, Any]] = []
         self._query_head: tuple[int, str] | None = None
@@ -370,7 +435,11 @@ class OriginalityPipeline:
             int(_block_value(chain[-1], "index")), str(_block_value(chain[-1], "hash")).lower()
         )
         if head != self._cached_head:
-            self._cached_index = canonical_minted_media_features(chain, ocr=self.ocr)
+            self._cached_index = canonical_minted_media_features(
+                chain,
+                ocr=self.ocr,
+                certificate_consensus=self.certificate_consensus,
+            )
             self._cached_head = head
         return deepcopy(self._cached_index)
 
@@ -403,12 +472,25 @@ class OriginalityPipeline:
     def evaluate(
         self, submission: Any, content_object: Any, chain: list[Any], *, data_dir: str,
         minted_index: list[dict[str, Any]] | None = None,
+        media_bytes: bytes | None = None,
+        mime_type: str | None = None,
     ) -> dict[str, Any]:
         if not chain:
             raise ValueError("Originality evaluation requires a canonical reference block.")
         rule = originality_rule()
         reference = chain[-1]
-        media, mime_type = self._submission_media(content_object, submission, data_dir)
+        if media_bytes is None:
+            media, resolved_mime_type = self._submission_media(
+                content_object, submission, data_dir
+            )
+        else:
+            media = bytes(media_bytes)
+            resolved_mime_type = str(
+                mime_type
+                or getattr(content_object, "mime_type", None)
+                or "application/octet-stream"
+            ).lower()
+        mime_type = resolved_mime_type
         declared_hash = str(getattr(submission, "content_hash", "") or "").strip().lower()
         content_hash = hashlib.sha256(media).hexdigest() if media is not None else declared_hash
         if not _HEX_64.fullmatch(content_hash):
@@ -458,7 +540,11 @@ class OriginalityPipeline:
                 ocr_result["status"] = CHECK_UNAVAILABLE
             else:
                 try:
-                    features = _image_features(media, ocr=self.ocr)
+                    features = _image_features(
+                        media,
+                        ocr=self.ocr,
+                        certificate_consensus=self.certificate_consensus,
+                    )
                 except Exception:
                     perceptual_result["status"] = CHECK_FAILED
                     near_result["status"] = CHECK_FAILED
@@ -554,5 +640,77 @@ class OriginalityPipeline:
             "reason_codes": sorted(reason_codes),
             "final_prevote_decision": decision,
         }
+        if self.certificate_consensus:
+            evidence["certificate_verification_profile"] = CERTIFICATE_EVIDENCE_PROFILE
+            evidence["fuzzy_runtime_identity"] = certificate_fuzzy_runtime_identity()
         evidence["canonical_evidence_digest"] = originality_evidence_digest(evidence)
         return validate_originality_evidence(evidence)
+
+
+def revalidate_certificate_originality_evidence(
+    evidence: dict[str, Any],
+    *,
+    submission_id: str,
+    content_hash: str,
+    chain: list[Any],
+    media_bytes: bytes | None,
+    mime_type: str,
+) -> dict[str, Any]:
+    """Recompute every consensus-relevant Rule-v1 evidence field.
+
+    Tesseract output is intentionally outside this profile.  Its canonical
+    result is UNAVAILABLE, which forces review; exact, aHash, dHash, text
+    normalization, candidates, references, decisions, and the digest are all
+    independently recomputed.
+    """
+    validated = validate_originality_evidence(evidence)
+    if validated.get("certificate_verification_profile") != CERTIFICATE_EVIDENCE_PROFILE:
+        raise ValueError("Originality evidence is not certificate-consensus profile evidence.")
+    certificate_fuzzy_runtime_identity()
+    if validated.get("submission_id") != str(submission_id):
+        raise ValueError("Originality evidence submission_id does not match certificate submission.")
+    if validated.get("content_hash") != str(content_hash).strip().lower():
+        raise ValueError("Originality evidence content_hash does not match certificate content.")
+    if validated.get("originality_rule_version") != ORIGINALITY_RULE_VERSION:
+        raise ValueError("Originality evidence uses an unsupported originality rule version.")
+    if validated.get("originality_rule_digest") != originality_rule_digest(ORIGINALITY_RULE_VERSION):
+        raise ValueError("Originality evidence rule digest is inconsistent.")
+    if media_bytes is None:
+        raise ValueError("Canonical media bytes are required to validate originality evidence.")
+    media = bytes(media_bytes)
+    if hashlib.sha256(media).hexdigest() != validated["content_hash"]:
+        raise ValueError("Canonical media bytes do not match originality evidence content_hash.")
+
+    reference_height = validated["originality_reference_height"]
+    if (
+        isinstance(reference_height, bool)
+        or not isinstance(reference_height, int)
+        or reference_height < 0
+        or reference_height >= len(chain)
+    ):
+        raise ValueError("Originality evidence reference height is not canonical.")
+    reference_hash = str(_block_value(chain[reference_height], "hash") or "").lower()
+    if reference_hash != validated["originality_reference_block_hash"]:
+        raise ValueError("Originality evidence reference block is not canonical.")
+
+    reference_chain = list(chain[: reference_height + 1])
+    pipeline = OriginalityPipeline(certificate_consensus=True)
+    indexed = pipeline.index_for_chain(reference_chain)
+    recomputed = pipeline.evaluate(
+        SimpleNamespace(submission_id=str(submission_id), content_hash=str(content_hash)),
+        SimpleNamespace(mime_type=str(mime_type).lower()),
+        reference_chain,
+        data_dir="",
+        minted_index=indexed,
+        media_bytes=media,
+        mime_type=mime_type,
+    )
+    if originality_evidence_payload(recomputed) != originality_evidence_payload(validated):
+        left = originality_evidence_payload(validated)
+        right = originality_evidence_payload(recomputed)
+        changed = sorted(key for key in set(left) | set(right) if left.get(key) != right.get(key))
+        raise ValueError(
+            "Originality evidence does not match deterministic recomputation "
+            f"for fields: {', '.join(changed)}."
+        )
+    return validated

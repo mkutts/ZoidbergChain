@@ -125,6 +125,23 @@ only in existing admin operational diagnostics, never public transaction APIs.
 - testnet and production should run with a real peer secret, signed peer messages, and restricted CORS
 - current behavior remains appropriate for controlled dev/testnet use rather than production deployment
 
+## Evidence-bound certificate transfer
+
+Milestone 5 certificate version 2 cannot be accepted from a certificate object
+alone. Authenticated peers transfer the related submission/vote set, immutable
+originality evidence, and canonical media bytes through
+`/peers/originality-evidence/receive` before the certificate or certified block.
+Evidence can be fetched by digest through
+`/peers/originality-evidence/{evidence_digest}`, and chain-sync block responses
+include the required evidence transfers.
+
+Receivers verify media SHA-256, rule/runtime identity, evidence digest, canonical
+references and candidate ordering, then recompute the complete evidence against
+the referenced chain prefix. Missing media, missing evidence, mismatches, and
+unsupported rules fail closed. Replaying an identical evidence transfer is an
+idempotent success; evidence already bound to an active certificate cannot be
+replaced.
+
 ## Public Demo Notes
 
 - Stage 1 public deployment is a controlled testnet, not mainnet

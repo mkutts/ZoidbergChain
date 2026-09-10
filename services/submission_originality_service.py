@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from config import ACTIVE_USER_PERCENT_FOR_MIN_VOTES, MIN_VOTE_FLOOR, NETWORK_NAME, ORIGINALITY_APPROVAL_THRESHOLD, VOTING_WINDOW_HOURS
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
+from protocol_v1_originality import MILESTONE5_CERTIFICATE_VERSION
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE
 
 
@@ -93,11 +94,28 @@ class SubmissionOriginalityService:
         active_users = active_user_count(lookback_days=lookback_days, now=now)
         return {"active_users": active_users, "minimum_votes": self.calculate_minimum_votes_required(active_users), "vote_floor": MIN_VOTE_FLOOR, "active_percentage": ACTIVE_USER_PERCENT_FOR_MIN_VOTES}
 
-    def build_certificate(self, state, storage, submission, approved_at, network_name, issuing_node_id, voting_threshold):
+    def build_certificate(
+        self, state, storage, submission, approved_at, network_name, issuing_node_id,
+        voting_threshold, *, originality_evidence=None, certificate_reference=None,
+    ):
         votes = self.get_submission_votes(state, storage, submission.submission_id)
-        return OriginalityCertificate.from_approved_submission(submission, votes["votes"], voting_threshold(now=approved_at)["minimum_votes"], network_name, issuing_node_id, approved_at=approved_at)
+        reference = certificate_reference or {}
+        return OriginalityCertificate.from_approved_submission(
+            submission, votes["votes"], voting_threshold(now=approved_at)["minimum_votes"],
+            network_name, issuing_node_id, approved_at=approved_at,
+            certificate_version=MILESTONE5_CERTIFICATE_VERSION,
+            originality_evidence=originality_evidence,
+            certificate_reference_height=reference.get("height"),
+            certificate_reference_block_hash=reference.get("hash"),
+            issued_timestamp=reference.get("timestamp"),
+        )
 
-    def create_certificate(self, state, storage, submission_id, *, approved_at=None, network_name=NETWORK_NAME, issuing_node_id, allow_pending=False, promote_content, save=None, voting_threshold):
+    def create_certificate(
+        self, state, storage, submission_id, *, approved_at=None,
+        network_name=NETWORK_NAME, issuing_node_id, allow_pending=False,
+        promote_content, save=None, voting_threshold, originality_evidence=None,
+        certificate_reference=None, validation_context=None,
+    ):
         submission = self.get_submission(state, storage, submission_id)
         if not submission: raise ValueError(f"Submission not found: {submission_id}")
         statuses = {APPROVED, QUEUED} | ({PENDING} if allow_pending else set())
@@ -109,8 +127,15 @@ class SubmissionOriginalityService:
             return existing
         promote_content(submission)
         approved_at = time.time() if approved_at is None else approved_at
-        certificate = self.build_certificate(state, storage, submission, approved_at, network_name, issuing_node_id, voting_threshold)
-        validate_certificate_for_submission(certificate, submission, network_name=network_name, allowed_submission_statuses=statuses)
+        certificate = self.build_certificate(
+            state, storage, submission, approved_at, network_name, issuing_node_id,
+            voting_threshold, originality_evidence=originality_evidence,
+            certificate_reference=certificate_reference,
+        )
+        validate_certificate_for_submission(
+            certificate, submission, network_name=network_name,
+            allowed_submission_statuses=statuses, **(validation_context or {})
+        )
         state.originality_certificates.append(certificate); submission.certificate_id = certificate.certificate_id
         if save: save()
         return certificate

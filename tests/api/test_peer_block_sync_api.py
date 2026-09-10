@@ -566,12 +566,13 @@ def test_local_mint_broadcasts_block_without_failing_if_one_peer_is_down(
     assert response.json()["broadcast"]["attempted"] == 2
     assert response.json()["broadcast"]["succeeded"] == 1
     assert response.json()["broadcast"]["failed"] == 1
-    assert len(calls) == 3
-    assert calls[0]["url"].endswith("/peers/certificates/receive")
-    assert calls[1]["url"].endswith("/peers/blocks/receive")
-    assert calls[2]["url"].endswith("/peers/certificates/receive")
-    assert calls[1]["json"]["related_submission_id"] == submission.submission_id
-    assert calls[1]["json"]["certificate"]["certificate_id"] == blockchain.get_latest_block().certificate_id
+    assert len(calls) == 4
+    assert calls[0]["url"].endswith("/peers/originality-evidence/receive")
+    assert calls[1]["url"].endswith("/peers/certificates/receive")
+    assert calls[2]["url"].endswith("/peers/blocks/receive")
+    assert calls[3]["url"].endswith("/peers/originality-evidence/receive")
+    assert calls[2]["json"]["related_submission_id"] == submission.submission_id
+    assert calls[2]["json"]["certificate"]["certificate_id"] == blockchain.get_latest_block().certificate_id
 
 
 def test_manual_block_rebroadcast_endpoint_works(blockchain, wallets, monkeypatch):

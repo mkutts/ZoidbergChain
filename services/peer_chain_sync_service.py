@@ -23,6 +23,7 @@ class ChainSyncState:
 class ChainSyncCollaborators:
     compare_summaries: Callable[..., dict]
     store_certificates: Callable[[list], None]
+    store_evidence: Callable[[list], None]
     validate_candidate: Callable[..., list]
     compare_candidate: Callable[[list], dict]
     adopt_candidate: Callable[[list], dict]
@@ -113,15 +114,19 @@ class PeerChainSyncService:
             raise ChainSyncError(f"Peer blocks returned status {status_code}.")
         payload = response.json()
         certificates = []
+        originality_evidence = []
         if isinstance(payload, dict):
             blocks = payload.get("blocks")
             certificates = payload.get("certificates", [])
+            originality_evidence = payload.get("originality_evidence", [])
         else:
             blocks = payload
         if not isinstance(blocks, list):
             raise ChainSyncError("Peer blocks response must include a blocks list.")
         if not isinstance(certificates, list):
             raise ChainSyncError("Peer blocks certificates must be a list when provided.")
+        if not isinstance(originality_evidence, list):
+            raise ChainSyncError("Peer blocks originality_evidence must be a list when provided.")
         normalized_blocks = []
         normalized_certificates = list(certificates)
         for block_payload in blocks:
@@ -131,7 +136,11 @@ class PeerChainSyncService:
                     normalized_certificates.append(block_payload["certificate"])
             else:
                 normalized_blocks.append(block_payload)
-        return {"blocks": normalized_blocks, "certificates": normalized_certificates}
+        return {
+            "blocks": normalized_blocks,
+            "certificates": normalized_certificates,
+            "originality_evidence": originality_evidence,
+        }
 
     @staticmethod
     def result(
@@ -193,7 +202,12 @@ class PeerChainSyncService:
             peer, 0, origin_node_id=origin_node_id, network_name=network_name,
             timeout_seconds=timeout_seconds,
         )
-        collaborators.store_certificates(candidate_payload.get("certificates", []))
+        collaborators.store_evidence(
+            candidate_payload.get("originality_evidence", []), candidate_payload["blocks"]
+        )
+        collaborators.store_certificates(
+            candidate_payload.get("certificates", []), candidate_payload["blocks"]
+        )
         candidate_chain = collaborators.validate_candidate(
             candidate_payload["blocks"],
             expected_latest_hash=peer_latest_hash,

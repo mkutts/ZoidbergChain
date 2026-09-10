@@ -247,14 +247,23 @@ def test_certificate_with_wrong_originality_score_is_rejected(
     assert response.json()["detail"] == "Originality certificate originality_score is inconsistent."
 
 
-def test_certificate_stores_even_if_related_submission_is_missing(
+def test_protocol_v1_certificate_stores_even_if_related_submission_is_missing(
     blockchain,
     submission_image,
     wallets,
 ):
     client = _client(blockchain)
     _register_peer()
-    _submission, certificate = _certificate(blockchain, submission_image, wallets)
+    submission, _version_2_certificate = _certificate(blockchain, submission_image, wallets)
+    certificate = OriginalityCertificate.from_approved_submission(
+        submission,
+        blockchain.get_submission_votes(submission.submission_id)["votes"],
+        minimum_votes_required=5,
+        network_name="zoidberg-testnet",
+        issuing_node_id="legacy-peer-node",
+        approved_at=1_000_100,
+        certificate_version=1,
+    )
     blockchain.submissions = []
     blockchain.originality_certificates = []
 
@@ -391,8 +400,10 @@ def test_certificate_broadcasts_after_creation(
     )
 
     assert response.status_code == 200
-    assert calls[0]["url"] == "http://peer-one.test:8000/peers/certificates/receive"
-    assert calls[0]["json"]["certificate"]["certificate_id"] == response.json()["certificate"]["certificate_id"]
+    assert calls[0]["url"] == "http://peer-one.test:8000/peers/originality-evidence/receive"
+    assert calls[0]["json"]["evidence"]["canonical_evidence_digest"] == response.json()["certificate"]["originality_evidence_digest"]
+    assert calls[1]["url"] == "http://peer-one.test:8000/peers/certificates/receive"
+    assert calls[1]["json"]["certificate"]["certificate_id"] == response.json()["certificate"]["certificate_id"]
     assert response.json()["certificate_broadcast"]["succeeded"] == 1
 
 
@@ -417,5 +428,6 @@ def test_manual_certificate_broadcast_endpoint_works(
 
     assert response.status_code == 200
     assert response.json()["broadcast"]["succeeded"] == 1
-    assert calls[0]["url"] == "http://peer-one.test:8000/peers/certificates/receive"
-    assert calls[0]["json"]["certificate"] == certificate.to_dict()
+    assert calls[0]["url"] == "http://peer-one.test:8000/peers/originality-evidence/receive"
+    assert calls[1]["url"] == "http://peer-one.test:8000/peers/certificates/receive"
+    assert calls[1]["json"]["certificate"] == certificate.to_dict()

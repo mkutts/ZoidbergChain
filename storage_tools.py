@@ -39,6 +39,7 @@ _SECTION_TYPES = {
     "transfer_intents": list,
     "native_transactions": list,
     "originality_certificates": list,
+    "originality_evidence": list,
     "peers": list,
 }
 _SENSITIVE_KEYS = {
@@ -114,6 +115,7 @@ def _load_state(backend: StorageBackend) -> dict[str, Any]:
         "transfer_intents": deepcopy(blockchain_state.get("transfer_intents", [])),
         "native_transactions": deepcopy(blockchain_state.get("native_transactions", [])),
         "originality_certificates": deepcopy(blockchain_state.get("originality_certificates", [])),
+        "originality_evidence": deepcopy(blockchain_state.get("originality_evidence", [])),
         "peers": deepcopy(backend.load_peers() or blockchain_state.get("peers", [])),
     }
     _validate_state_shape(state, label="Storage state")
@@ -354,6 +356,7 @@ def _write_state_to_backend(backend: StorageBackend, state: dict[str, Any]) -> N
         "transfer_intents": deepcopy(state.get("transfer_intents", [])),
         "native_transactions": deepcopy(state.get("native_transactions", [])),
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),
+        "originality_evidence": deepcopy(state.get("originality_evidence", [])),
     }
     backend.save_blockchain_state(blockchain_state)
     backend.save_peers(deepcopy(state.get("peers", [])))
@@ -573,6 +576,7 @@ def import_storage(
         "transfer_intents": deepcopy(state.get("transfer_intents", [])),
         "native_transactions": deepcopy(state.get("native_transactions", [])),
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),
+        "originality_evidence": deepcopy(state.get("originality_evidence", [])),
         "peers": deepcopy(state.get("peers", [])),
     }
 

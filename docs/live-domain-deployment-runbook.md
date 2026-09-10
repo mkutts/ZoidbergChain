@@ -122,7 +122,7 @@ sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/python -m pip install --upgrad
 sudo -u <DEPLOY_USER> /srv/zoidbergchain/venv/bin/python -m pip install -r requirements.txt
 ```
 
-`requirements.txt` is the complete node installation and includes the core and originality/OCR groups. Install the system Tesseract OCR executable separately before starting a node that processes image originality submissions.
+`requirements.txt` is the complete node installation and includes the core and originality groups. Certificate-bound Rule-v1 validation requires the exact Pillow and ImageHash versions pinned in `requirements-originality.txt`; a node fails readiness when they differ. The system Tesseract executable is optional advisory tooling and is never executed for certificate-version-2 consensus evidence.
 
 Frontend dependencies and build:
 

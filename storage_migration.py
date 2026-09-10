@@ -25,6 +25,7 @@ _SECTION_DEFAULTS = {
     "mint_queue": [],
     "votes": [],
     "originality_certificates": [],
+    "originality_evidence": [],
     "peers": [],
 }
 _SECTION_TYPES = {
@@ -35,6 +36,7 @@ _SECTION_TYPES = {
     "mint_queue": list,
     "votes": list,
     "originality_certificates": list,
+    "originality_evidence": list,
     "peers": list,
 }
 

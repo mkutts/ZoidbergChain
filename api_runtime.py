@@ -199,6 +199,7 @@ from review_policy import (
     evaluate_review_eligibility,
     load_review_policy_config,
 )
+from protocol_v1 import encode_canonical_bytes
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -207,10 +208,12 @@ from peer_sync import (
     ConflictingTransactionError,
     ConflictingPeerMessageError,
     ConflictingCertificateError,
+    ConflictingOriginalityEvidenceError,
     DuplicateBlockError,
     DuplicateSubmissionError,
     MalformedBlockError,
     MalformedCertificateError,
+    MalformedOriginalityEvidenceError,
     MalformedSubmissionError,
     MalformedTransactionError,
     MalformedVoteError,
@@ -223,8 +226,10 @@ from peer_sync import (
     broadcast_transaction_to_peers,
     broadcast_vote_to_peers,
     broadcast_votes_to_peers,
+    build_originality_evidence_transfer,
     receive_peer_block,
     receive_peer_certificate,
+    receive_peer_originality_evidence,
     receive_peer_submission,
     receive_peer_transaction,
     receive_peer_vote,
@@ -355,6 +360,27 @@ class PeerCertificatePayload(_StrictBodyModel):
     vote_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
     approval_threshold: Annotated[float, Field(ge=0)] | None = None
+    creator_address: Annotated[str, Field(min_length=1, max_length=128)] | None = None
+    originality_rule_version: Annotated[int, Field(ge=1)] | None = None
+    originality_decision: Literal["PASS", "FLAGGED_FOR_REVIEW"] | None = None
+    originality_reference_height: Annotated[int, Field(ge=0)] | None = None
+    originality_reference_block_hash: ContentHashValue | None = None
+    originality_evidence_digest: ContentHashValue | None = None
+    reviewer_policy_version: Annotated[int, Field(ge=1)] | None = None
+    reputation_rule_version: Annotated[int, Field(ge=1)] | None = None
+    reviewer_snapshot_reference_height: Annotated[int, Field(ge=0)] | None = None
+    reviewer_snapshot_reference_block_hash: ContentHashValue | None = None
+    reviewer_snapshot_digest: ContentHashValue | None = None
+    minimum_valid_votes: Annotated[int, Field(ge=0)] | None = None
+    minimum_established_votes: Annotated[int, Field(ge=0)] | None = None
+    approval_threshold_bps: Annotated[int, Field(ge=0, le=10000)] | None = None
+    total_valid_votes: Annotated[int, Field(ge=0)] | None = None
+    established_vote_count: Annotated[int, Field(ge=0)] | None = None
+    vote_set_hash: ContentHashValue | None = None
+    certificate_reference_height: Annotated[int, Field(ge=0)] | None = None
+    certificate_reference_block_hash: ContentHashValue | None = None
+    issued_timestamp: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    evidence_binding_status: Literal["active", "invalidated_by_reorg"] | None = None
 
 
 class PeerBlockPayload(_StrictBodyModel):
@@ -418,6 +444,9 @@ class PeerSubmissionReceive(BaseModel):
     origin_node_id: NodeIdValue
     network_name: NetworkNameValue
     submission: PeerSubmissionPayload
+    evidence: dict[str, Any] | None = None
+    media_bytes: dict[str, Any] | None = None
+    mime_type: Annotated[str, Field(min_length=3, max_length=128)] | None = None
 
 
 class PeerVoteReceive(BaseModel):
@@ -463,6 +492,18 @@ class PeerCertificateReceive(BaseModel):
     origin_node_id: NodeIdValue
     network_name: NetworkNameValue
     certificate: PeerCertificatePayload
+
+
+class PeerOriginalityEvidenceReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    evidence: dict[str, Any]
+    media_bytes: dict[str, Any]
+    mime_type: Annotated[str, Field(min_length=3, max_length=128)]
+    submission: dict[str, Any] | None = None
+    votes: list[dict[str, Any]] | None = None
 
 
 class PeerTransactionReceive(BaseModel):
@@ -784,6 +825,12 @@ def _serialize_submission(submission):
 def _serialize_certificate(certificate):
     content_object = blockchain.get_content_object_by_hash(certificate.content_hash) if certificate.content_hash else None
     body = certificate.to_dict()
+    if certificate.is_milestone5_certificate():
+        body["originality_evidence_retrievable"] = bool(
+            blockchain.get_originality_evidence_by_digest(
+                certificate.originality_evidence_digest
+            )
+        )
     if content_object is not None:
         body["content_type"] = content_object.content_type
         body["mime_type"] = content_object.mime_type

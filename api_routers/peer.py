@@ -193,6 +193,9 @@ async def receive_submission_from_peer(request: Request, receive_request: PeerSu
             network_name=receive_request.network_name,
             submission_payload=receive_request.submission.model_dump(),
             local_network_name=NETWORK_NAME,
+            originality_evidence_payload=receive_request.evidence,
+            media_payload=receive_request.media_bytes,
+            media_mime_type=receive_request.mime_type,
         )
     except UnauthorizedPeerError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -297,6 +300,74 @@ async def receive_certificate_from_peer(request: Request, receive_request: PeerC
         raise HTTPException(status_code=400, detail=str(e))
     except ConflictingCertificateError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+
+@router.post('/peers/originality-evidence/receive')
+@api_limit("peer_receive")
+async def receive_originality_evidence_from_peer(
+    request: Request,
+    receive_request: PeerOriginalityEvidenceReceive,
+    _: None = Depends(require_peer_secret),
+):
+    _sync_runtime_globals()
+    try:
+        authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+            request,
+            claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
+        origin_node_id = (
+            authenticated_peer.sender_node_id
+            if authenticated_peer is not None
+            else receive_request.origin_node_id
+        )
+        return receive_peer_originality_evidence(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id=origin_node_id,
+            network_name=receive_request.network_name,
+            evidence_payload=receive_request.evidence,
+                media_payload=receive_request.media_bytes,
+                media_mime_type=receive_request.mime_type,
+                submission_payload=receive_request.submission,
+                votes_payload=receive_request.votes,
+                local_network_name=NETWORK_NAME,
+        )
+    except UnauthorizedPeerError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except WrongNetworkError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except UnknownSubmissionError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except MalformedOriginalityEvidenceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ConflictingOriginalityEvidenceError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get('/peers/originality-evidence/{evidence_digest}')
+@api_limit("peer_receive")
+async def get_peer_originality_evidence(
+    request: Request,
+    evidence_digest: str,
+    _: None = Depends(require_peer_secret),
+):
+    _sync_runtime_globals()
+    _require_protocol_v1_active_peer(request)
+    evidence = blockchain.get_originality_evidence_by_digest(evidence_digest)
+    if evidence is None:
+        raise HTTPException(status_code=404, detail="Originality evidence not found.")
+    submission = blockchain.get_submission(evidence["submission_id"])
+    media = blockchain._certificate_media_context(submission)
+    if media["media_bytes"] is None:
+        raise HTTPException(status_code=409, detail="Originality evidence media is unavailable.")
+        return {
+            "evidence": evidence,
+            "media_bytes": encode_canonical_bytes(media["media_bytes"]),
+            "mime_type": media["mime_type"],
+            "submission": submission.to_dict(),
+            "votes": blockchain.get_submission_votes(submission.submission_id)["votes"],
+        }
 
 
 @router.post('/peers/blocks/receive')
@@ -406,6 +477,12 @@ async def peer_chain_blocks(
             for certificate in blockchain.originality_certificates
             if certificate.certificate_id in certificate_ids
         ],
+        "originality_evidence": [
+            build_originality_evidence_transfer(blockchain, certificate)
+            for certificate in blockchain.originality_certificates
+            if certificate.certificate_id in certificate_ids
+            and certificate.is_milestone5_certificate()
+        ],
     }
 
 
@@ -439,6 +516,7 @@ async def broadcast_block(request: Request, block_hash: str):
             if block.certificate_id
             else None
         ),
+        blockchain=blockchain,
     )
     return {
         "message": "Block broadcast attempted.",
@@ -542,6 +620,7 @@ async def broadcast_certificate(request: Request, certificate_id: str):
         peer_store=peer_store,
         origin_node_id=NODE_ID,
         network_name=NETWORK_NAME,
+        blockchain=blockchain,
     )
     return {
         "message": "Originality certificate broadcast attempted.",
@@ -563,6 +642,7 @@ async def broadcast_submission(request: Request, submission_id: str):
         peer_store=peer_store,
         origin_node_id=NODE_ID,
         network_name=NETWORK_NAME,
+        blockchain=blockchain,
     )
     return {
         "message": "Submission broadcast attempted.",
@@ -649,6 +729,8 @@ _ROUTE_ORDER = {
     ('POST', '/submissions/{submission_id}/broadcast', 'broadcast_submission'): 93,
     ('POST', '/submissions/{submission_id}/votes/broadcast', 'broadcast_submission_votes'): 96,
     ('POST', '/transactions/{tx_id}/broadcast', 'broadcast_native_transaction'): 116,
+    ('POST', '/peers/originality-evidence/receive', 'receive_originality_evidence_from_peer'): 130,
+    ('GET', '/peers/originality-evidence/{evidence_digest}', 'get_peer_originality_evidence'): 131,
 }
 
 for _route in router.routes:

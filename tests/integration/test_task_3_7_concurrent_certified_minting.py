@@ -12,7 +12,7 @@ from eth_account.messages import encode_defunct
 
 from blockchain import Blockchain
 from services import LifecycleTimingRecorder
-from peer_sync import sync_chain_from_peers
+from peer_sync import build_originality_evidence_transfer, sync_chain_from_peers
 from peers import PeerStore
 from protocol_v1_finality import (
     build_protocol_v1_finality_attestation,
@@ -317,6 +317,12 @@ def _sync_peer(monkeypatch, source, target, peer_file):
                 "certificates": [
                     certificate.to_dict() for certificate in source.originality_certificates
                     if certificate.certificate_id in certificate_ids
+                ],
+                "originality_evidence": [
+                    build_originality_evidence_transfer(source, certificate)
+                    for certificate in source.originality_certificates
+                    if certificate.certificate_id in certificate_ids
+                    and certificate.is_milestone5_certificate()
                 ],
             })
         raise AssertionError(f"unexpected peer request: {url}")

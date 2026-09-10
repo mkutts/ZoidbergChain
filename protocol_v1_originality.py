@@ -22,6 +22,7 @@ from validators import is_valid_content_hash
 
 PROTOCOL_V1_VOTE_VERSION = PROTOCOL_VERSION
 PROTOCOL_V1_CERTIFICATE_VERSION = PROTOCOL_VERSION
+MILESTONE5_CERTIFICATE_VERSION = 2
 
 
 def calculate_signed_vote_identity(
@@ -365,6 +366,146 @@ def calculate_protocol_v1_certificate_id(certificate_fields: dict[str, Any], *, 
         build_protocol_v1_certificate_identity_payload(certificate_fields),
         object_type=OBJECT_TYPE_ORIGINALITY_CERTIFICATE,
         network_id=normalize_network_id(network_id),
+    )
+
+
+def _normalize_optional_non_negative_int(value: Any, *, field_name: str) -> int | None:
+    if value is None:
+        return None
+    return _normalize_non_negative_int(value, field_name=field_name)
+
+
+def _normalize_optional_hash(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    return normalize_protocol_v1_content_hash(value, field_name=field_name)
+
+
+def build_milestone5_certificate_identity_payload(
+    certificate_fields: dict[str, Any],
+) -> dict[str, Any]:
+    """Canonical version-2 certificate identity.
+
+    Null reviewer-state fields are deliberate compatibility markers.  They
+    mean that the pre-Task-5.5 reviewer policy is still active; they must not
+    be populated piecemeal.
+    """
+    version = certificate_fields.get("certificate_version")
+    if version != MILESTONE5_CERTIFICATE_VERSION:
+        raise ValueError("Milestone 5 certificate_version must be 2.")
+    protocol_version = certificate_fields.get("protocol_version")
+    if protocol_version != PROTOCOL_VERSION:
+        raise ValueError("Milestone 5 certificates must use protocol_version=1.")
+    network_id = normalize_network_id(certificate_fields.get("network_id"))
+    decision = certificate_fields.get("originality_decision")
+    if decision not in {"PASS", "FLAGGED_FOR_REVIEW"}:
+        raise ValueError("Milestone 5 certificate originality_decision is invalid.")
+
+    reviewer_policy_version = certificate_fields.get("reviewer_policy_version")
+    reputation_rule_version = certificate_fields.get("reputation_rule_version")
+    reviewer_reference_height = certificate_fields.get("reviewer_snapshot_reference_height")
+    reviewer_reference_hash = certificate_fields.get("reviewer_snapshot_reference_block_hash")
+    reviewer_digest = certificate_fields.get("reviewer_snapshot_digest")
+    minimum_established = certificate_fields.get("minimum_established_votes")
+    established_count = certificate_fields.get("established_vote_count")
+    reviewer_fields = (
+        reviewer_policy_version,
+        reputation_rule_version,
+        reviewer_reference_height,
+        reviewer_reference_hash,
+        reviewer_digest,
+        minimum_established,
+        established_count,
+    )
+    if any(value is not None for value in reviewer_fields):
+        raise ValueError(
+            "Milestone 5 certificate version 2 reserves reviewer policy, reputation, "
+            "snapshot, and established-quorum fields as null."
+        )
+
+    return {
+        "certificate_version": MILESTONE5_CERTIFICATE_VERSION,
+        "protocol_version": PROTOCOL_VERSION,
+        "network_id": network_id,
+        "submission_id": normalize_protocol_v1_submission_id(certificate_fields.get("submission_id")),
+        "content_hash": normalize_protocol_v1_content_hash(certificate_fields.get("content_hash")),
+        "creator_address": normalize_protocol_identity(
+            certificate_fields.get("creator_address") or certificate_fields.get("creator_wallet"),
+            field_name="creator_address",
+        ),
+        "originality_rule_version": _normalize_non_negative_int(
+            certificate_fields.get("originality_rule_version"), field_name="originality_rule_version"
+        ),
+        "originality_decision": decision,
+        "originality_reference_height": _normalize_non_negative_int(
+            certificate_fields.get("originality_reference_height"),
+            field_name="originality_reference_height",
+        ),
+        "originality_reference_block_hash": normalize_protocol_v1_content_hash(
+            certificate_fields.get("originality_reference_block_hash"),
+            field_name="originality_reference_block_hash",
+        ),
+        "originality_evidence_digest": normalize_protocol_v1_content_hash(
+            certificate_fields.get("originality_evidence_digest"),
+            field_name="originality_evidence_digest",
+        ),
+        "reviewer_policy_version": None,
+        "reputation_rule_version": None,
+        "reviewer_snapshot_reference_height": None,
+        "reviewer_snapshot_reference_block_hash": None,
+        "reviewer_snapshot_digest": None,
+        "minimum_valid_votes": _normalize_non_negative_int(
+            certificate_fields.get("minimum_valid_votes"), field_name="minimum_valid_votes"
+        ),
+        "minimum_established_votes": None,
+        "approval_threshold_bps": _normalize_non_negative_int(
+            certificate_fields.get("approval_threshold_bps"), field_name="approval_threshold_bps"
+        ),
+        "total_valid_votes": _normalize_non_negative_int(
+            certificate_fields.get("total_valid_votes"), field_name="total_valid_votes"
+        ),
+        "established_vote_count": None,
+        "original_votes": _normalize_non_negative_int(
+            certificate_fields.get("original_votes"), field_name="original_votes"
+        ),
+        "not_original_votes": _normalize_non_negative_int(
+            certificate_fields.get("not_original_votes"), field_name="not_original_votes"
+        ),
+        "unsure_votes": _normalize_non_negative_int(
+            certificate_fields.get("unsure_votes"), field_name="unsure_votes"
+        ),
+        "vote_set_hash": normalize_protocol_v1_content_hash(
+            certificate_fields.get("vote_set_hash") or certificate_fields.get("vote_hash"),
+            field_name="vote_set_hash",
+        ),
+        "certificate_reference_height": _normalize_non_negative_int(
+            certificate_fields.get("certificate_reference_height"),
+            field_name="certificate_reference_height",
+        ),
+        "certificate_reference_block_hash": normalize_protocol_v1_content_hash(
+            certificate_fields.get("certificate_reference_block_hash"),
+            field_name="certificate_reference_block_hash",
+        ),
+        "issued_timestamp": normalize_decimal_string(
+            certificate_fields.get("issued_timestamp"), field_name="issued_timestamp"
+        ),
+        "originality_score": normalize_decimal_string(
+            certificate_fields.get("originality_score"), field_name="originality_score"
+        ),
+    }
+
+
+def calculate_milestone5_certificate_id(
+    certificate_fields: dict[str, Any], *, network_id: str
+) -> str:
+    normalized_network_id = normalize_network_id(network_id)
+    payload = build_milestone5_certificate_identity_payload(certificate_fields)
+    if payload["network_id"] != normalized_network_id:
+        raise ValueError("Certificate network_id does not match the certificate hash domain.")
+    return canonical_domain_hash(
+        payload,
+        object_type=OBJECT_TYPE_ORIGINALITY_CERTIFICATE,
+        network_id=normalized_network_id,
     )
 
 

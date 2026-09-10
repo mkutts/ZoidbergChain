@@ -9,8 +9,10 @@ from block import Block
 from blockchain import Blockchain
 from peers import PeerStore
 from peer_sync import (
+    build_originality_evidence_transfer,
     receive_peer_block,
     receive_peer_certificate,
+    receive_peer_originality_evidence,
     receive_peer_submission,
     receive_peer_vote,
     sync_chain_from_peers,
@@ -268,6 +270,22 @@ def test_peer_synced_state_persists_after_reload(backend_factory, isolated_data_
             vote_payload=vote,
             local_network_name="zoidberg-testnet",
         )
+    evidence_transfer = build_originality_evidence_transfer(
+        source["blockchain"],
+        source["certificate"],
+    )
+    receive_peer_originality_evidence(
+        blockchain=target,
+        peer_store=target_peer_store,
+        origin_node_id="peer-a",
+        network_name="zoidberg-testnet",
+        evidence_payload=evidence_transfer["evidence"],
+        media_payload=evidence_transfer["media_bytes"],
+        media_mime_type=evidence_transfer["mime_type"],
+        local_network_name="zoidberg-testnet",
+        submission_payload=evidence_transfer["submission"],
+        votes_payload=evidence_transfer["votes"],
+    )
     receive_peer_certificate(
         blockchain=target,
         peer_store=target_peer_store,
@@ -374,6 +392,14 @@ def test_chain_sync_persists_cumulative_originality_score_after_reload(
                         certificate.to_dict()
                         for certificate in source["blockchain"].originality_certificates
                         if certificate.certificate_id in certificate_ids
+                    ],
+                    "originality_evidence": [
+                        build_originality_evidence_transfer(
+                            source["blockchain"], certificate
+                        )
+                        for certificate in source["blockchain"].originality_certificates
+                        if certificate.certificate_id in certificate_ids
+                        and certificate.is_milestone5_certificate()
                     ],
                 }
             )

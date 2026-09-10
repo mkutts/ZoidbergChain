@@ -8,7 +8,9 @@ from dataclasses import dataclass
 
 from config import ACTIVE_USER_PERCENT_FOR_MIN_VOTES, MIN_VOTE_FLOOR, NETWORK_NAME, ORIGINALITY_APPROVAL_THRESHOLD, VOTING_WINDOW_HOURS
 from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
-from protocol_v1_originality import MILESTONE5_CERTIFICATE_VERSION
+from native_transfer import normalize_wallet_address
+from milestone5_policy import MIN_VALID_VOTES
+from protocol_v1_originality import MILESTONE5_CERTIFICATE_VERSION, MILESTONE5_CERTIFICATE_V3_VERSION
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE
 
 
@@ -62,7 +64,10 @@ class SubmissionOriginalityService:
         submission = self.get_submission(state, storage, submission_id)
         if not submission: raise ValueError(f"Submission not found: {submission_id}")
         if vote_type not in VOTE_TYPES: raise ValueError(f"Invalid vote type: {vote_type}")
-        if voter == submission.submitter: raise ValueError("Submission creator cannot vote on their own submission.")
+        normalized_voter = normalize_wallet_address(voter)
+        normalized_creator = normalize_wallet_address(submission.submitter)
+        if (normalized_voter is not None and normalized_voter == normalized_creator) or voter == submission.submitter:
+            raise ValueError("Submission creator cannot vote on their own submission.")
         if storage.get_vote(submission_id, voter, state.votes): raise ValueError("Wallet has already voted on this submission.")
         if self.is_submission_voting_locked(state, storage, submission): raise ValueError("Finalized or certified submissions cannot receive votes.")
         vote = self.record_vote(state, voter, submission_id, created_at)
@@ -97,14 +102,24 @@ class SubmissionOriginalityService:
     def build_certificate(
         self, state, storage, submission, approved_at, network_name, issuing_node_id,
         voting_threshold, *, originality_evidence=None, certificate_reference=None,
+        certificate_version=MILESTONE5_CERTIFICATE_VERSION, counted_votes=None,
+        reviewer_snapshot=None, established_vote_count=None,
     ):
         votes = self.get_submission_votes(state, storage, submission.submission_id)
+        vote_records = votes["votes"] if counted_votes is None else list(counted_votes)
         reference = certificate_reference or {}
+        minimum_votes = (
+            MIN_VALID_VOTES
+            if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION
+            else voting_threshold(now=approved_at)["minimum_votes"]
+        )
         return OriginalityCertificate.from_approved_submission(
-            submission, votes["votes"], voting_threshold(now=approved_at)["minimum_votes"],
+            submission, vote_records, minimum_votes,
             network_name, issuing_node_id, approved_at=approved_at,
-            certificate_version=MILESTONE5_CERTIFICATE_VERSION,
+            certificate_version=certificate_version,
             originality_evidence=originality_evidence,
+            reviewer_snapshot=reviewer_snapshot,
+            established_vote_count=established_vote_count,
             certificate_reference_height=reference.get("height"),
             certificate_reference_block_hash=reference.get("hash"),
             issued_timestamp=reference.get("timestamp"),
@@ -115,6 +130,8 @@ class SubmissionOriginalityService:
         network_name=NETWORK_NAME, issuing_node_id, allow_pending=False,
         promote_content, save=None, voting_threshold, originality_evidence=None,
         certificate_reference=None, validation_context=None,
+        certificate_version=MILESTONE5_CERTIFICATE_VERSION, counted_votes=None,
+        reviewer_snapshot=None, established_vote_count=None,
     ):
         submission = self.get_submission(state, storage, submission_id)
         if not submission: raise ValueError(f"Submission not found: {submission_id}")
@@ -131,6 +148,9 @@ class SubmissionOriginalityService:
             state, storage, submission, approved_at, network_name, issuing_node_id,
             voting_threshold, originality_evidence=originality_evidence,
             certificate_reference=certificate_reference,
+            certificate_version=certificate_version, counted_votes=counted_votes,
+            reviewer_snapshot=reviewer_snapshot,
+            established_vote_count=established_vote_count,
         )
         validate_certificate_for_submission(
             certificate, submission, network_name=network_name,

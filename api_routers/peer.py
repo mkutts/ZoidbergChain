@@ -253,6 +253,8 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
                 "reviewer_policy_version": receive_request.reviewer_policy_version,
                 "reputation_rule_version": receive_request.reputation_rule_version,
                 "reviewer_status": receive_request.reviewer_status,
+                "reviewer_eligible": receive_request.reviewer_eligible,
+                "vote_identity": receive_request.vote_identity,
                 "reviewer_status_effective_height": receive_request.reviewer_status_effective_height,
                 "reviewer_status_reference_block_hash": receive_request.reviewer_status_reference_block_hash,
             },

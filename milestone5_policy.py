@@ -27,6 +27,35 @@ PROBATION_MAX_VOTES_PER_EPOCH = 5
 PROBATION_MIN_VALID_VOTES_FOR_PROMOTION = 10
 ESTABLISHED_MAX_VOTES_PER_EPOCH = 25
 
+# Certificate-v3 consensus constants are deliberately separate from Reviewer
+# Policy v1.  Reviewer Policy v1 was already activated by Task 5.5 and its
+# canonical digest must not be reinterpreted by a later certificate version.
+MIN_VALID_VOTES = 5
+MIN_ESTABLISHED_VOTES = 1
+APPROVAL_THRESHOLD_BPS = 7000
+
+
+def certificate_v3_approval_passes(original_votes: int, not_original_votes: int) -> bool:
+    for label, value in (("original_votes", original_votes), ("not_original_votes", not_original_votes)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"{label} must be a non-negative integer.")
+    decisive = original_votes + not_original_votes
+    return decisive > 0 and original_votes * 10_000 >= decisive * APPROVAL_THRESHOLD_BPS
+
+
+def certificate_v3_quorum_satisfied(
+    *, total_valid_votes: int, established_vote_count: int,
+    original_votes: int, not_original_votes: int,
+) -> bool:
+    for label, value in (("total_valid_votes", total_valid_votes), ("established_vote_count", established_vote_count)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"{label} must be a non-negative integer.")
+    return (
+        total_valid_votes >= MIN_VALID_VOTES
+        and established_vote_count >= MIN_ESTABLISHED_VOTES
+        and certificate_v3_approval_passes(original_votes, not_original_votes)
+    )
+
 REVIEWER_STATUSES = (
     "NEW",
     "PROBATIONARY_REVIEWER",

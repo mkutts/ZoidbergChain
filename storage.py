@@ -239,6 +239,7 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
     reviewer_policy_version = vote.get("reviewer_policy_version")
     reputation_rule_version = vote.get("reputation_rule_version")
     reviewer_status = vote.get("reviewer_status")
+    reviewer_eligible = vote.get("reviewer_eligible")
     status_height = vote.get("reviewer_status_effective_height")
     status_hash = vote.get("reviewer_status_reference_block_hash")
     if any(value is not None for value in (reviewer_policy_version, reputation_rule_version, reviewer_status)):
@@ -248,6 +249,8 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
         reputation_rules(reputation_rule_version)
         reviewer_status = validate_reviewer_status(reviewer_status)
         status_height, status_hash = _canonical_reference(status_height, status_hash)
+        if reviewer_eligible is not None and not isinstance(reviewer_eligible, bool):
+            raise ValueError("Reviewer eligibility result must be a boolean when recorded.")
     return {
         "evidence_id": evidence_id,
         "vote_identity": identity,
@@ -269,6 +272,7 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
         "reviewer_policy_version": reviewer_policy_version,
         "reputation_rule_version": reputation_rule_version,
         "reviewer_status": reviewer_status,
+        "reviewer_eligible": reviewer_eligible,
         "reviewer_status_effective_height": status_height,
         "reviewer_status_reference_block_hash": status_hash,
         "observed_at": str(vote.get("created_at") or _utc_now_iso()),
@@ -367,6 +371,11 @@ def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[s
         for block in list(document.get("chain", []) or [])
         if isinstance(block, dict) and block.get("index") is not None and block.get("hash")
     }
+    finalized_references = {
+        (int(record["block_height"]), _normalized_claim_value(record.get("block_hash")))
+        for record in list(document.get("finalized_blocks", []) or [])
+        if isinstance(record, dict) and record.get("block_height") is not None and record.get("block_hash")
+    }
     evidence_submissions: set[str] = set()
     evidence_digests: set[str] = set()
     for raw_evidence in list(document.get("originality_evidence", []) or []):
@@ -383,13 +392,13 @@ def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[s
         if reference not in canonical_references:
             raise StorageUniquenessError("Current originality evidence references a non-canonical block.")
     for certificate in list(document.get("originality_certificates", []) or []):
-        if not isinstance(certificate, dict) or certificate.get("certificate_version") != 2:
+        if not isinstance(certificate, dict) or certificate.get("certificate_version") not in {2, 3}:
             continue
         if certificate.get("evidence_binding_status", "active") != "active":
             continue
         if certificate.get("originality_evidence_digest") not in evidence_digests:
             raise StorageUniquenessError(
-                "Active certificate version 2 references unavailable originality evidence."
+                "Active evidence-bound certificate references unavailable originality evidence."
             )
         for height_field, hash_field in (
             ("originality_reference_height", "originality_reference_block_hash"),
@@ -398,7 +407,20 @@ def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[s
             reference = (certificate.get(height_field), certificate.get(hash_field))
             if reference not in canonical_references:
                 raise StorageUniquenessError(
-                    "Active certificate version 2 references a non-canonical block."
+                    "Active evidence-bound certificate references a non-canonical block."
+                )
+        if certificate.get("certificate_version") == 3:
+            reviewer_reference = (
+                certificate.get("reviewer_snapshot_reference_height"),
+                certificate.get("reviewer_snapshot_reference_block_hash"),
+            )
+            certificate_reference = (
+                certificate.get("certificate_reference_height"),
+                certificate.get("certificate_reference_block_hash"),
+            )
+            if reviewer_reference not in finalized_references or certificate_reference not in finalized_references:
+                raise StorageUniquenessError(
+                    "Active certificate version 3 references non-finalized reviewer or certificate state."
                 )
     return claims
 
@@ -1455,6 +1477,7 @@ class SQLiteStorageBackend(StorageBackend):
             "signed_payload_version", "protocol_version", "network_id", "nonce", "issued_at",
             "expires_at", "signature", "signature_scheme", "signed_message", "signed_message_hash",
             "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
+            "reviewer_eligible",
             "reviewer_status_effective_height", "reviewer_status_reference_block_hash", "observed_at",
         )
         where = " WHERE submission_id = ?" if submission_id is not None else ""
@@ -1464,7 +1487,11 @@ class SQLiteStorageBackend(StorageBackend):
                 f"SELECT {', '.join(columns)} FROM durable_vote_records{where} ORDER BY observed_at, evidence_id",
                 parameters,
             ).fetchall()
-        return [dict(zip(columns, row)) for row in rows]
+        results = [dict(zip(columns, row)) for row in rows]
+        for result in results:
+            if result.get("reviewer_eligible") is not None:
+                result["reviewer_eligible"] = bool(result["reviewer_eligible"])
+        return results
 
     @staticmethod
     def _normalize_reviewer_address(value: str) -> str:
@@ -1624,7 +1651,7 @@ class SQLiteStorageBackend(StorageBackend):
             certificate.get("originality_evidence_digest")
             for certificate in document.get("originality_certificates", []) or []
             if isinstance(certificate, dict)
-            and certificate.get("certificate_version") == 2
+            and certificate.get("certificate_version") in {2, 3}
             and certificate.get("evidence_binding_status", "active") == "active"
         }
 
@@ -1699,7 +1726,7 @@ class SQLiteStorageBackend(StorageBackend):
     @staticmethod
     def _synchronize_certificate_evidence_bindings(connection, certificates) -> None:
         for certificate in certificates or []:
-            if not isinstance(certificate, dict) or certificate.get("certificate_version") != 2:
+            if not isinstance(certificate, dict) or certificate.get("certificate_version") not in {2, 3}:
                 continue
             immutable = (
                 certificate.get("certificate_version"),
@@ -1713,7 +1740,7 @@ class SQLiteStorageBackend(StorageBackend):
             )
             certificate_id = str(certificate.get("certificate_id") or "").strip().lower()
             if not certificate_id or any(value is None for value in immutable):
-                raise StorageCorruptionError("Certificate version 2 has an incomplete evidence binding.")
+                raise StorageCorruptionError("Evidence-bound certificate has an incomplete evidence binding.")
             existing = connection.execute(
                 """SELECT certificate_version, submission_id, content_hash, evidence_digest,
                           originality_reference_height, originality_reference_block_hash,
@@ -1883,6 +1910,7 @@ class SQLiteStorageBackend(StorageBackend):
                     reviewer_policy_version INTEGER,
                     reputation_rule_version INTEGER,
                     reviewer_status TEXT CHECK (reviewer_status IS NULL OR reviewer_status IN ('NEW', 'PROBATIONARY_REVIEWER', 'ESTABLISHED_REVIEWER', 'COOLDOWN', 'SUSPENDED')),
+                    reviewer_eligible INTEGER CHECK (reviewer_eligible IS NULL OR reviewer_eligible IN (0, 1)),
                     reviewer_status_effective_height INTEGER,
                     reviewer_status_reference_block_hash TEXT,
                     observed_at TEXT NOT NULL,
@@ -1890,6 +1918,14 @@ class SQLiteStorageBackend(StorageBackend):
                 )
                 """
             )
+            durable_columns = {
+                row[1] for row in connection.execute("PRAGMA table_info(durable_vote_records)").fetchall()
+            }
+            if "reviewer_eligible" not in durable_columns:
+                connection.execute(
+                    "ALTER TABLE durable_vote_records ADD COLUMN reviewer_eligible INTEGER "
+                    "CHECK (reviewer_eligible IS NULL OR reviewer_eligible IN (0, 1))"
+                )
             connection.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS one_accepted_vote_per_submission_wallet
@@ -1941,7 +1977,7 @@ class SQLiteStorageBackend(StorageBackend):
                 """
                 CREATE TABLE IF NOT EXISTS originality_certificate_evidence_bindings (
                     certificate_id TEXT PRIMARY KEY,
-                    certificate_version INTEGER NOT NULL CHECK (certificate_version = 2),
+                    certificate_version INTEGER NOT NULL CHECK (certificate_version IN (2, 3)),
                     submission_id TEXT NOT NULL,
                     content_hash TEXT NOT NULL,
                     evidence_digest TEXT NOT NULL,
@@ -1955,6 +1991,37 @@ class SQLiteStorageBackend(StorageBackend):
                 )
                 """
             )
+            binding_sql_row = connection.execute(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'originality_certificate_evidence_bindings'"
+            ).fetchone()
+            if binding_sql_row and "certificate_version = 2" in str(binding_sql_row[0]):
+                connection.execute(
+                    "ALTER TABLE originality_certificate_evidence_bindings "
+                    "RENAME TO originality_certificate_evidence_bindings_task55"
+                )
+                connection.execute(
+                    """
+                    CREATE TABLE originality_certificate_evidence_bindings (
+                        certificate_id TEXT PRIMARY KEY,
+                        certificate_version INTEGER NOT NULL CHECK (certificate_version IN (2, 3)),
+                        submission_id TEXT NOT NULL,
+                        content_hash TEXT NOT NULL,
+                        evidence_digest TEXT NOT NULL,
+                        originality_reference_height INTEGER NOT NULL CHECK (originality_reference_height >= 0),
+                        originality_reference_block_hash TEXT NOT NULL,
+                        certificate_reference_height INTEGER NOT NULL CHECK (certificate_reference_height >= 0),
+                        certificate_reference_block_hash TEXT NOT NULL,
+                        binding_status TEXT NOT NULL DEFAULT 'active'
+                            CHECK (binding_status IN ('active', 'invalidated_by_reorg')),
+                        FOREIGN KEY (evidence_digest) REFERENCES originality_evidence_records(evidence_digest)
+                    )
+                    """
+                )
+                connection.execute(
+                    """INSERT INTO originality_certificate_evidence_bindings
+                       SELECT * FROM originality_certificate_evidence_bindings_task55"""
+                )
+                connection.execute("DROP TABLE originality_certificate_evidence_bindings_task55")
             connection.execute(
                 """CREATE INDEX IF NOT EXISTS certificate_evidence_by_submission
                    ON originality_certificate_evidence_bindings(submission_id, binding_status)"""

@@ -43,8 +43,8 @@ from config import (
     VOTING_WINDOW_HOURS,
 )
 from review_policy import current_day_window, evaluate_review_eligibility, load_review_policy_config
-from protocol_v1_originality import calculate_signed_vote_identity
-from originality_certificate import OriginalityCertificate, validate_certificate_for_submission
+from protocol_v1_originality import calculate_signed_vote_identity, MILESTONE5_CERTIFICATE_V3_VERSION
+from originality_certificate import OriginalityCertificate, validate_certificate_for_submission, validate_certificate_v3_vote_record
 from originality import (
     CERTIFICATE_EVIDENCE_PROFILE,
     EXACT_MINTED_CONTENT_DUPLICATE,
@@ -103,7 +103,7 @@ from protocol_v1_native_transfer import (
 )
 from storage import StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
 from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
-from milestone5_policy import ESTABLISHED_MAX_VOTES_PER_EPOCH, PROBATION_MAX_VOTES_PER_EPOCH, REVIEW_EPOCH_BLOCKS, REVIEWER_POLICY_VERSION, REPUTATION_RULE_VERSION, bootstrap_established_reviewers
+from milestone5_policy import APPROVAL_THRESHOLD_BPS, ESTABLISHED_MAX_VOTES_PER_EPOCH, MIN_ESTABLISHED_VOTES, MIN_VALID_VOTES, PROBATION_MAX_VOTES_PER_EPOCH, REVIEW_EPOCH_BLOCKS, REVIEWER_POLICY_VERSION, REPUTATION_RULE_VERSION, bootstrap_established_reviewers
 from protocol_v1_genesis import (
     GenesisValidationError,
     PUBLIC_TESTNET_V1_INITIAL_REWARD_POOL,
@@ -1220,6 +1220,7 @@ class Blockchain:
             "reviewer_policy_version": REVIEWER_POLICY_VERSION if reviewer_decision else None,
             "reputation_rule_version": REPUTATION_RULE_VERSION if reviewer_decision else None,
             "reviewer_status": reviewer_decision.status if reviewer_decision else None,
+            "reviewer_eligible": reviewer_decision.eligible if reviewer_decision else None,
             "reviewer_status_effective_height": reviewer_decision.snapshot.get("reference_finalized_height") if reviewer_decision else None,
             "reviewer_status_reference_block_hash": reviewer_decision.snapshot.get("reference_finalized_block_hash") if reviewer_decision else None,
         }
@@ -1885,7 +1886,28 @@ class Blockchain:
             },
         )
 
-    def build_reviewer_snapshot(self, reviewer_addresses=None, *, policy_version=REVIEWER_POLICY_VERSION):
+    def is_finalized_canonical_reference(self, height, block_hash):
+        if isinstance(height, bool) or not isinstance(height, int) or height < 0:
+            return False
+        normalized_hash = str(block_hash or "").strip().lower()
+        if height >= len(self.chain) or str(self.chain[height].hash).strip().lower() != normalized_hash:
+            return False
+        return any(
+            int(record.get("block_height", -1)) == height
+            and str(record.get("block_hash") or "").strip().lower() == normalized_hash
+            for record in self.finalized_blocks if isinstance(record, dict)
+        )
+
+    def get_reviewer_status_at_reference(self, reviewer_address, height, block_hash, *, policy_version=REVIEWER_POLICY_VERSION):
+        if not self.is_finalized_canonical_reference(height, block_hash):
+            raise ValueError("Reviewer reference is not a finalized canonical block.")
+        return self._reviewer_eligibility_service.status_at_reference(
+            reviewer_address=reviewer_address, chain=self.chain,
+            finalized_head={"block_height": height, "block_hash": str(block_hash).lower()},
+            storage=self.storage, policy_version=policy_version,
+        )["status"]
+
+    def build_reviewer_snapshot(self, reviewer_addresses=None, *, policy_version=REVIEWER_POLICY_VERSION, reference=None):
         if reviewer_addresses is None:
             addresses = set(bootstrap_established_reviewers(policy_version))
             if hasattr(self.storage, "list_reviewer_states"):
@@ -1894,9 +1916,65 @@ class Blockchain:
             addresses = set(reviewer_addresses)
         return self._reviewer_eligibility_service.snapshot(
             reviewer_addresses=addresses, chain=self.chain,
-            finalized_head=self.get_finalized_head(), storage=self.storage,
+            finalized_head=reference or self.get_finalized_head(), storage=self.storage,
             policy_version=policy_version,
         )
+
+    def get_certificate_v3_vote_context(self, submission_id, *, reference=None):
+        """Return independently validated votes and their finalized snapshot."""
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        finalized = reference or self.get_finalized_head()
+        if finalized is None or not self.is_finalized_canonical_reference(
+            int(finalized["block_height"]), finalized["block_hash"]
+        ):
+            return {"votes": [], "snapshot": None, "established_vote_count": 0}
+        accepted_identities = set()
+        if hasattr(self.storage, "list_durable_votes"):
+            accepted_identities = {
+                item.get("vote_identity")
+                for item in self.storage.list_durable_votes(submission_id=submission_id)
+                if item.get("lifecycle_state") == "accepted"
+                and item.get("identity_status") == "canonical"
+                and item.get("reviewer_eligible") is True
+            }
+        valid_votes = []
+        for vote in self.storage.get_votes_for_submission(submission_id, self.votes):
+            if vote.get("vote_identity") not in accepted_identities:
+                continue
+            try:
+                validate_certificate_v3_vote_record(
+                    vote,
+                    submission_id=submission_id,
+                    content_hash=submission.content_hash,
+                    creator_address=submission.submitter,
+                    network_id=self.protocol_v1_network_id(),
+                    reviewer_status_resolver=self.get_reviewer_status_at_reference,
+                )
+            except ValueError:
+                continue
+            valid_votes.append(vote)
+        snapshot = self.build_reviewer_snapshot(
+            [vote.get("voter_wallet_address") or vote.get("voter") for vote in valid_votes],
+            reference=finalized,
+        )
+        eligible_by_address = {
+            item["address"]: item["status"]
+            for item in snapshot["reviewers"]
+            if item["status"] in {"PROBATIONARY_REVIEWER", "ESTABLISHED_REVIEWER"}
+        }
+        valid_votes = [
+            vote for vote in valid_votes
+            if normalize_wallet_address(vote.get("voter_wallet_address") or vote.get("voter")) in eligible_by_address
+        ]
+        if len(valid_votes) != len(snapshot["reviewers"]):
+            snapshot = self.build_reviewer_snapshot(
+                [vote.get("voter_wallet_address") or vote.get("voter") for vote in valid_votes],
+                reference=finalized,
+            )
+        established = sum(item["status"] == "ESTABLISHED_REVIEWER" for item in snapshot["reviewers"])
+        return {"votes": valid_votes, "snapshot": snapshot, "established_vote_count": established}
 
     def reconcile_canonical_reviewer_states(self):
         """Apply all transitions implied by the current finalized ancestry."""
@@ -2636,6 +2714,20 @@ class Blockchain:
                 "chain": validation_chain,
                 **media,
             }
+            if certificate.is_certificate_v3():
+                context = self.get_certificate_v3_vote_context(
+                    submission.submission_id,
+                    reference={
+                        "block_height": certificate.reviewer_snapshot_reference_height,
+                        "block_hash": certificate.reviewer_snapshot_reference_block_hash,
+                    },
+                )
+                kwargs.update({
+                    "votes": context["votes"],
+                    "reviewer_snapshot": context["snapshot"],
+                    "reviewer_status_resolver": self.get_reviewer_status_at_reference,
+                    "finalized_reference_validator": self.is_finalized_canonical_reference,
+                })
         return validate_certificate_for_submission(
             certificate,
             submission,
@@ -2945,7 +3037,20 @@ class Blockchain:
         evidence = self.ensure_certificate_originality_evidence(submission_id)
         if evidence["final_prevote_decision"] == HARD_REJECT:
             raise ValueError("Hard rejected submissions cannot receive originality certificates.")
-        tip = self.get_latest_block()
+        finalized = self.get_finalized_head()
+        issue_v3 = finalized is not None
+        tip = self.chain[int(finalized["block_height"])] if issue_v3 else self.get_latest_block()
+        vote_context = self.get_certificate_v3_vote_context(submission_id, reference=finalized) if issue_v3 else None
+        if issue_v3:
+            votes = vote_context["votes"]
+            original = sum(vote.get("vote_type") == VOTE_ORIGINAL for vote in votes)
+            not_original = sum(vote.get("vote_type") == VOTE_NOT_ORIGINAL for vote in votes)
+            if len(votes) < MIN_VALID_VOTES:
+                raise ValueError("Certificate-v3 requires at least 5 canonically valid votes.")
+            if vote_context["established_vote_count"] < MIN_ESTABLISHED_VOTES:
+                raise ValueError("Certificate-v3 requires at least one established-reviewer vote.")
+            if original * 10_000 < (original + not_original) * APPROVAL_THRESHOLD_BPS:
+                raise ValueError("Certificate-v3 approval threshold is not satisfied.")
         media = self._certificate_media_context(submission)
         certificate = self._submission_originality_service.create_certificate(
             self._submission_originality_state(), self.storage, submission_id,
@@ -2955,6 +3060,10 @@ class Blockchain:
             save=self.save_blockchain if save else None,
             voting_threshold=self.get_voting_threshold,
             originality_evidence=evidence,
+            certificate_version=(MILESTONE5_CERTIFICATE_V3_VERSION if issue_v3 else 2),
+            counted_votes=(vote_context["votes"] if issue_v3 else None),
+            reviewer_snapshot=(vote_context["snapshot"] if issue_v3 else None),
+            established_vote_count=(vote_context["established_vote_count"] if issue_v3 else None),
             certificate_reference={
                 "height": tip.index,
                 "hash": tip.hash,
@@ -2964,6 +3073,12 @@ class Blockchain:
                 "originality_evidence": evidence,
                 "chain": self.chain,
                 **media,
+                **({
+                    "votes": vote_context["votes"],
+                    "reviewer_snapshot": vote_context["snapshot"],
+                    "reviewer_status_resolver": self.get_reviewer_status_at_reference,
+                    "finalized_reference_validator": self.is_finalized_canonical_reference,
+                } if issue_v3 else {}),
             },
         )
         self.lifecycle_timing.mark(submission_id, "certificate_created", certificate_id=certificate.certificate_id)
@@ -2978,18 +3093,38 @@ class Blockchain:
         vote_summary = self.get_submission_votes(submission_id)
         now = now if now is not None else time.time()
         voting_window_expired = now >= submission.created_at + (VOTING_WINDOW_HOURS * 60 * 60)
-        minimum_votes = self.get_voting_threshold(now=now)["minimum_votes"]
-        minimum_votes_reached = len(vote_summary["votes"]) >= minimum_votes
+        issue_v3 = self.get_finalized_head() is not None
+        vote_context = self.get_certificate_v3_vote_context(submission_id) if issue_v3 else None
+        counted_votes = vote_context["votes"] if issue_v3 else vote_summary["votes"]
+        original_votes = sum(vote.get("vote_type") == VOTE_ORIGINAL for vote in counted_votes)
+        not_original_votes = sum(vote.get("vote_type") == VOTE_NOT_ORIGINAL for vote in counted_votes)
+        decisive_votes = original_votes + not_original_votes
+        approval_percentage = original_votes / decisive_votes if decisive_votes else 0
+        minimum_votes = MIN_VALID_VOTES if issue_v3 else self.get_voting_threshold(now=now)["minimum_votes"]
+        minimum_votes_reached = len(counted_votes) >= minimum_votes
+        established_votes_reached = bool(not issue_v3 or vote_context["established_vote_count"] >= MIN_ESTABLISHED_VOTES)
+        integer_approval_reached = bool(
+            decisive_votes > 0
+            and original_votes * 10_000 >= decisive_votes * APPROVAL_THRESHOLD_BPS
+        )
 
         result = {
             "submission_id": submission_id,
             "status": submission.status,
             "minimum_votes": minimum_votes,
-            "votes_cast": len(vote_summary["votes"]),
-            "approval_percentage": vote_summary["approval_percentage"],
+            "votes_cast": len(counted_votes),
+            "approval_percentage": approval_percentage,
             "voting_window_expired": voting_window_expired,
             "minimum_votes_reached": minimum_votes_reached,
         }
+        if issue_v3:
+            result.update({
+                "certificate_version": MILESTONE5_CERTIFICATE_V3_VERSION,
+                "minimum_established_votes": MIN_ESTABLISHED_VOTES,
+                "established_vote_count": vote_context["established_vote_count"],
+                "established_votes_reached": established_votes_reached,
+                "approval_threshold_bps": APPROVAL_THRESHOLD_BPS,
+            })
 
         if submission.status != PENDING:
             result["reason"] = "already_finalized"
@@ -3015,11 +3150,16 @@ class Blockchain:
             result["reason"] = "automated_originality_rejected"
             return result
 
-        if not (voting_window_expired or minimum_votes_reached):
+        if issue_v3 and not (minimum_votes_reached and established_votes_reached):
+            result["reason"] = "awaiting_fixed_quorum"
+            return result
+
+        if not issue_v3 and not (voting_window_expired or minimum_votes_reached):
             result["reason"] = "awaiting_votes_or_window"
             return result
 
-        if vote_summary["approval_percentage"] >= ORIGINALITY_APPROVAL_THRESHOLD:
+        approval_passed = integer_approval_reached if issue_v3 else approval_percentage >= ORIGINALITY_APPROVAL_THRESHOLD
+        if approval_passed:
             self.lifecycle_timing.mark(submission_id, "vote_passed")
             previous_status = submission.status
             previous_certificate_id = submission.certificate_id

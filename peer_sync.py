@@ -42,6 +42,7 @@ from originality_certificate import (
     calculate_vote_hash,
     calculate_originality_score,
     validate_certificate_for_submission,
+    validate_certificate_v3_vote_record,
 )
 from originality import (
     HARD_REJECT,
@@ -61,9 +62,11 @@ from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION, decode_canonical_byt
 from protocol_v1_genesis import GenesisValidationError
 from protocol_v1_originality import (
     MILESTONE5_CERTIFICATE_VERSION,
+    MILESTONE5_CERTIFICATE_V3_VERSION,
     PROTOCOL_V1_CERTIFICATE_VERSION,
     PROTOCOL_V1_VOTE_VERSION,
     build_protocol_v1_vote_message,
+    calculate_signed_vote_identity,
     resolve_protocol_v1_network_id,
 )
 from submission import (
@@ -803,6 +806,18 @@ def receive_peer_originality_evidence(
             raise MalformedOriginalityEvidenceError(
                 "Transferred vote content_hash does not match originality evidence."
             )
+        if vote.get("reviewer_eligible") is True:
+            try:
+                validate_certificate_v3_vote_record(
+                    vote,
+                    submission_id=submission.submission_id,
+                    content_hash=evidence["content_hash"],
+                    creator_address=submission.submitter,
+                    network_id=resolve_protocol_v1_network_id(network_name=local_network_name),
+                    reviewer_status_resolver=blockchain.get_reviewer_status_at_reference,
+                )
+            except ValueError as exc:
+                raise MalformedOriginalityEvidenceError(str(exc)) from exc
         existing_vote = _find_existing_vote(
             blockchain, submission.submission_id, vote["voter"]
         )
@@ -811,6 +826,17 @@ def receive_peer_originality_evidence(
                 "Transferred vote conflicts with the local certificate vote set."
             )
         if existing_vote is None:
+            if vote.get("reviewer_eligible") is True and hasattr(blockchain.storage, "record_durable_vote_with_epoch_limit"):
+                epoch_start = (int(vote["reviewer_status_effective_height"]) // REVIEW_EPOCH_BLOCKS) * REVIEW_EPOCH_BLOCKS
+                maximum = PROBATION_MAX_VOTES_PER_EPOCH if vote["reviewer_status"] == "PROBATIONARY_REVIEWER" else ESTABLISHED_MAX_VOTES_PER_EPOCH
+                durable = blockchain.storage.record_durable_vote_with_epoch_limit(
+                    vote, maximum_votes=maximum, epoch_start_height=epoch_start,
+                    epoch_end_height=epoch_start + REVIEW_EPOCH_BLOCKS - 1,
+                )
+                if durable["lifecycle_state"] != "accepted":
+                    raise MalformedOriginalityEvidenceError(
+                        "Transferred certificate-v3 vote exceeds reviewer quota or conflicts with a counted vote."
+                    )
             validated_votes.append(vote)
     existing = blockchain.get_originality_evidence_by_digest(
         evidence["canonical_evidence_digest"]
@@ -950,6 +976,8 @@ def receive_peer_vote(
                 "action": "duplicate",
                 "vote": existing_vote,
             }
+        if normalized_vote.get("vote_identity") and hasattr(blockchain.storage, "record_durable_vote"):
+            blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="accepted")
         raise ConflictingVoteError("Wallet has already voted differently on this submission.")
 
     reviewer_snapshot_present = normalized_vote.get("reviewer_policy_version") is not None
@@ -970,6 +998,7 @@ def receive_peer_vote(
             raise MalformedVoteError(f"Peer reviewer is not eligible: {decision.reason}.")
         if any(normalized_vote.get(key) != value for key, value in expected.items()):
             raise MalformedVoteError("Peer reviewer snapshot does not match locally derived canonical state.")
+        normalized_vote["reviewer_eligible"] = True
 
     try:
         vote = blockchain.cast_submission_vote(
@@ -996,6 +1025,8 @@ def receive_peer_vote(
             "reviewer_policy_version",
             "reputation_rule_version",
             "reviewer_status",
+            "reviewer_eligible",
+            "vote_identity",
             "reviewer_status_effective_height",
             "reviewer_status_reference_block_hash",
         ]:
@@ -1634,6 +1665,22 @@ def _store_chain_sync_evidence(
 
 def _validate_certificate_vote_set_against_local_submission(blockchain, certificate, submission):
     vote_summary = blockchain.get_submission_votes(submission.submission_id)
+    if certificate.is_certificate_v3():
+        vote_summary = {
+            **vote_summary,
+            "votes": blockchain.get_certificate_v3_vote_context(
+                submission.submission_id,
+                reference={
+                    "block_height": certificate.reviewer_snapshot_reference_height,
+                    "block_hash": certificate.reviewer_snapshot_reference_block_hash,
+                },
+            )["votes"],
+        }
+        vote_summary["counts"] = {
+            VOTE_ORIGINAL: sum(v.get("vote_type") == VOTE_ORIGINAL for v in vote_summary["votes"]),
+            VOTE_NOT_ORIGINAL: sum(v.get("vote_type") == VOTE_NOT_ORIGINAL for v in vote_summary["votes"]),
+            VOTE_UNSURE: sum(v.get("vote_type") == VOTE_UNSURE for v in vote_summary["votes"]),
+        }
     expected_counts = {
         "vote_total": len(vote_summary["votes"]),
         "decisive_vote_total": vote_summary["counts"][VOTE_ORIGINAL] + vote_summary["counts"][VOTE_NOT_ORIGINAL],
@@ -1858,6 +1905,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             or certificate_version not in {
                 PROTOCOL_V1_CERTIFICATE_VERSION,
                 MILESTONE5_CERTIFICATE_VERSION,
+                MILESTONE5_CERTIFICATE_V3_VERSION,
             }
         ):
             raise MalformedCertificateError("Certificate certificate_version is unsupported.")
@@ -1977,6 +2025,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
     if normalized.get("certificate_version") in {
         PROTOCOL_V1_CERTIFICATE_VERSION,
         MILESTONE5_CERTIFICATE_VERSION,
+        MILESTONE5_CERTIFICATE_V3_VERSION,
     }:
         if normalized.get("protocol_version") != PROTOCOL_VERSION:
             raise MalformedCertificateError("Certificate protocol_version is required for Protocol v1 certificates.")
@@ -1985,7 +2034,7 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
         if "approval_threshold" not in normalized:
             raise MalformedCertificateError("Certificate approval_threshold is required for Protocol v1 certificates.")
 
-    if normalized.get("certificate_version") == MILESTONE5_CERTIFICATE_VERSION:
+    if normalized.get("certificate_version") in {MILESTONE5_CERTIFICATE_VERSION, MILESTONE5_CERTIFICATE_V3_VERSION}:
         required_v2 = {
             "creator_address": str,
             "originality_rule_version": int,
@@ -2008,16 +2057,24 @@ def _normalize_certificate_payload(certificate_payload, local_network_name):
             if isinstance(value, str) and not value.strip():
                 raise MalformedCertificateError(f"Certificate {field_name} is required for version 2.")
             normalized[field_name] = value.strip() if isinstance(value, str) else value
-        for field_name in (
+        reviewer_fields = (
             "reviewer_policy_version", "reputation_rule_version",
             "reviewer_snapshot_reference_height", "reviewer_snapshot_reference_block_hash",
             "reviewer_snapshot_digest", "minimum_established_votes", "established_vote_count",
-        ):
-            if certificate_payload.get(field_name) is not None:
-                raise MalformedCertificateError(
-                    f"Certificate {field_name} must be null for version 2."
-                )
-            normalized[field_name] = None
+        )
+        if normalized.get("certificate_version") == MILESTONE5_CERTIFICATE_VERSION:
+            for field_name in reviewer_fields:
+                if certificate_payload.get(field_name) is not None:
+                    raise MalformedCertificateError(
+                        f"Certificate {field_name} must be null for version 2."
+                    )
+                normalized[field_name] = None
+        else:
+            for field_name in reviewer_fields:
+                value = certificate_payload.get(field_name)
+                if isinstance(value, bool) or not isinstance(value, (int if field_name.endswith(("version", "height", "votes", "count")) else str)):
+                    raise MalformedCertificateError(f"Certificate {field_name} is required for version 3.")
+                normalized[field_name] = value.strip().lower() if isinstance(value, str) else value
         status = certificate_payload.get("evidence_binding_status", "active")
         if status != "active":
             raise MalformedCertificateError("Received certificate evidence binding must be active.")
@@ -2037,7 +2094,7 @@ def _validate_certificate_internal(certificate, local_network_name):
             raise MalformedCertificateError("Originality certificate belongs to a different network.")
         if certificate.approval_threshold is None:
             raise MalformedCertificateError("Originality certificate approval_threshold is required.")
-        if not math.isclose(float(certificate.approval_threshold), ORIGINALITY_APPROVAL_THRESHOLD):
+        if not certificate.is_certificate_v3() and not math.isclose(float(certificate.approval_threshold), ORIGINALITY_APPROVAL_THRESHOLD):
             raise MalformedCertificateError("Originality certificate approval threshold is inconsistent.")
     elif certificate.network_name != local_network_name:
         raise MalformedCertificateError("Originality certificate belongs to a different network.")
@@ -2045,16 +2102,17 @@ def _validate_certificate_internal(certificate, local_network_name):
         raise MalformedCertificateError("Originality certificate vote_hash is required.")
     if certificate.minimum_votes_required is None:
         raise MalformedCertificateError("Originality certificate minimum_votes_required is required.")
-    if certificate.approval_percentage < ORIGINALITY_APPROVAL_THRESHOLD:
+    if not certificate.is_certificate_v3() and certificate.approval_percentage < ORIGINALITY_APPROVAL_THRESHOLD:
         raise MalformedCertificateError(
             "Originality certificate approval percentage is below the required threshold."
         )
-    if certificate.originality_score is None:
-        raise MalformedCertificateError("Originality certificate originality_score is required.")
-    if certificate.originality_score != calculate_originality_score(certificate):
-        raise MalformedCertificateError(
-            "Originality certificate originality_score is inconsistent."
-        )
+    if not certificate.is_certificate_v3():
+        if certificate.originality_score is None:
+            raise MalformedCertificateError("Originality certificate originality_score is required.")
+        if certificate.originality_score != calculate_originality_score(certificate):
+            raise MalformedCertificateError(
+                "Originality certificate originality_score is inconsistent."
+            )
 
     vote_counts = [
         certificate.original_votes,
@@ -2081,11 +2139,12 @@ def _validate_certificate_internal(certificate, local_network_name):
     if certificate.decisive_vote_total <= 0:
         raise MalformedCertificateError("Originality certificate must include decisive votes.")
 
-    expected_approval = certificate.original_votes / certificate.decisive_vote_total
-    if not math.isclose(certificate.approval_percentage, expected_approval):
-        raise MalformedCertificateError(
-            "Originality certificate approval percentage is inconsistent."
-        )
+    if not certificate.is_certificate_v3():
+        expected_approval = certificate.original_votes / certificate.decisive_vote_total
+        if not math.isclose(certificate.approval_percentage, expected_approval):
+            raise MalformedCertificateError(
+                "Originality certificate approval percentage is inconsistent."
+            )
     try:
         expected_certificate_id = calculate_certificate_id(
             certificate.to_core_dict(),
@@ -2546,6 +2605,8 @@ def _normalize_vote_payload(vote_payload, local_network_name):
             "reviewer_status",
             "reviewer_status_effective_height",
             "reviewer_status_reference_block_hash",
+            "reviewer_eligible",
+            "vote_identity",
         ],
         MalformedVoteError,
         "Vote payload",
@@ -2628,6 +2689,7 @@ def _normalize_vote_payload(vote_payload, local_network_name):
     for field_name in (
         "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
         "reviewer_status_effective_height", "reviewer_status_reference_block_hash",
+        "reviewer_eligible", "vote_identity",
     ):
         normalized[field_name] = vote_payload.get(field_name)
 
@@ -2653,6 +2715,8 @@ def _normalize_vote_payload(vote_payload, local_network_name):
         if not isinstance(reference_hash, str) or not is_valid_content_hash(reference_hash):
             raise MalformedVoteError("Vote reviewer_status_reference_block_hash must be a canonical hash.")
         normalized["reviewer_status_reference_block_hash"] = reference_hash.lower()
+        if normalized.get("reviewer_eligible") not in {None, True}:
+            raise MalformedVoteError("Vote reviewer_eligible must be true for an eligible reviewer snapshot.")
 
     if normalized.get("vote_version") is None and any(
         normalized.get(field_name) is not None
@@ -2721,6 +2785,21 @@ def _normalize_vote_payload(vote_payload, local_network_name):
                 raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
             if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(expected_message):
                 raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
+            calculated_identity = calculate_signed_vote_identity(
+                wallet_address=expected_voter,
+                submission_id=normalized["submission_id"],
+                content_hash=normalized["content_hash"],
+                vote_type=normalized["vote_type"],
+                nonce=normalized["vote_nonce"],
+                issued_at=normalized["vote_issued_at"],
+                expires_at=normalized["vote_expires_at"],
+                network_id=normalized["network_id"],
+                signature=normalized["vote_signature"],
+                signature_scheme=normalized["signature_scheme"],
+            )
+            if normalized.get("vote_identity") not in {None, calculated_identity}:
+                raise MalformedVoteError("Vote vote_identity is inconsistent.")
+            normalized["vote_identity"] = calculated_identity
         else:
             if normalized.get("vote_version") is not None:
                 raise MalformedVoteError("Vote signature metadata is incompatible with the declared vote_version.")

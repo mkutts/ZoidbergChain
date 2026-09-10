@@ -336,6 +336,13 @@ class PeerVotePayload(_StrictBodyModel):
     identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     created_at: Annotated[float, Field(ge=0)] | None = None
     vote_timestamp: Annotated[float, Field(ge=0)] | None = None
+    reviewer_policy_version: Annotated[int, Field(ge=1)] | None = None
+    reputation_rule_version: Annotated[int, Field(ge=1)] | None = None
+    reviewer_status: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    reviewer_eligible: bool | None = None
+    vote_identity: ContentHashValue | None = None
+    reviewer_status_effective_height: Annotated[int, Field(ge=0)] | None = None
+    reviewer_status_reference_block_hash: ContentHashValue | None = None
 
 
 class PeerCertificatePayload(_StrictBodyModel):
@@ -477,6 +484,8 @@ class PeerVoteReceive(BaseModel):
     reviewer_policy_version: Annotated[int, Field(ge=1)] | None = None
     reputation_rule_version: Annotated[int, Field(ge=1)] | None = None
     reviewer_status: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    reviewer_eligible: bool | None = None
+    vote_identity: ContentHashValue | None = None
     reviewer_status_effective_height: Annotated[int, Field(ge=0)] | None = None
     reviewer_status_reference_block_hash: ContentHashValue | None = None
 

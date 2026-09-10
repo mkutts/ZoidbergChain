@@ -271,7 +271,7 @@ class CanonicalReorgService:
         document["originality_evidence"] = retained
         invalidated_certificates = set()
         for certificate in document.get("originality_certificates", []) or []:
-            if certificate.get("certificate_version") != 2:
+            if certificate.get("certificate_version") not in {2, 3}:
                 continue
             references = {
                 (
@@ -283,6 +283,11 @@ class CanonicalReorgService:
                     str(certificate.get("certificate_reference_block_hash") or "").strip().lower(),
                 ),
             }
+            if certificate.get("certificate_version") == 3:
+                references.add((
+                    certificate.get("reviewer_snapshot_reference_height"),
+                    str(certificate.get("reviewer_snapshot_reference_block_hash") or "").strip().lower(),
+                ))
             if not references <= canonical:
                 certificate["evidence_binding_status"] = "invalidated_by_reorg"
                 submission_id = str(certificate.get("submission_id") or "")

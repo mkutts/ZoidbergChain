@@ -199,11 +199,85 @@ class ReviewerEligibilityService:
         used = sum(1 for vote in votes if epoch is not None and vote.get("reviewer_status_effective_height") is not None and review_epoch(int(vote["reviewer_status_effective_height"])) == epoch)
         return {"address": evidence["reviewer_address"], "status": status, "reviewer_policy_version": REVIEWER_POLICY_VERSION, "current_review_epoch": epoch, "wallet_age_epochs": evidence["wallet_age_epochs"], "qualification_paths": evidence["qualifying_paths"], "probation_started_epoch": started, "probation_valid_vote_count": probation_votes, "votes_used_this_epoch": used, "votes_remaining_this_epoch": max(0, limit - used), "promotion_requirements": {"minimum_duration_epochs": PROBATION_MIN_DURATION_EPOCHS, "minimum_valid_votes": PROBATION_MIN_VALID_VOTES_FOR_PROMOTION}, "bootstrap_established": bool(state.get("bootstrap_established"))}
 
+    def status_at_reference(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION) -> dict[str, Any]:
+        """Reconstruct policy status at an explicit finalized canonical reference.
+
+        Earned status is derived from canonical ancestry and durable accepted
+        votes instead of a node's current projection.  Explicit cooldown and
+        suspension transitions remain authoritative when their canonical
+        effective reference is at or before the requested snapshot.
+        """
+        address = normalize_wallet_address(reviewer_address)
+        if address is None:
+            raise ValueError("reviewer_address must be a valid Ethereum-style 0x address.")
+        height, block_hash, blocks = self.finalized_context(chain, finalized_head)
+        if height is None:
+            return {"status": "NEW", "bootstrap_established": False, "qualification_effective_height": None}
+        history = storage.list_reviewer_state_history(address) if hasattr(storage, "list_reviewer_state_history") else []
+        applicable = [
+            item for item in history
+            if item.get("status_effective_height") is not None
+            and int(item["status_effective_height"]) <= height
+            and item.get("reviewer_policy_version") == policy_version
+            and item.get("reputation_rule_version") == REPUTATION_RULE_VERSION
+        ]
+        if applicable:
+            latest = max(applicable, key=lambda item: (int(item["status_effective_height"]), int(item["transition_sequence"])))
+            if latest.get("to_status") in {"COOLDOWN", "SUSPENDED"}:
+                return {"status": latest["to_status"], "bootstrap_established": False, "qualification_effective_height": None}
+        if address in bootstrap_established_reviewers(policy_version):
+            return {"status": "ESTABLISHED_REVIEWER", "bootstrap_established": True, "qualification_effective_height": 0}
+        evidence = self.qualification(
+            reviewer_address=address, chain=blocks, finalized_head=finalized_head,
+            policy_version=policy_version,
+        )
+        if not evidence["overall_qualified"]:
+            return {"status": "NEW", "bootstrap_established": False, "qualification_effective_height": None}
+        qualification_height = None
+        for candidate_height in range(height + 1):
+            candidate_block = next(
+                block for block in blocks if int(self._block_value(block, "index")) == candidate_height
+            )
+            candidate_head = {
+                "block_height": candidate_height,
+                "block_hash": str(self._block_value(candidate_block, "hash")).strip().lower(),
+            }
+            candidate = self.qualification(
+                reviewer_address=address, chain=blocks,
+                finalized_head=candidate_head, policy_version=policy_version,
+            )
+            if candidate["overall_qualified"]:
+                qualification_height = candidate_height
+                break
+        accepted = [
+            vote for vote in self._accepted_votes(storage, address)
+            if vote.get("reviewer_policy_version") == policy_version
+            and vote.get("reputation_rule_version") == REPUTATION_RULE_VERSION
+            and vote.get("reviewer_status") == "PROBATIONARY_REVIEWER"
+            and vote.get("reviewer_status_effective_height") is not None
+            and qualification_height is not None
+            and qualification_height <= int(vote["reviewer_status_effective_height"]) <= height
+        ]
+        duration_met = (
+            qualification_height is not None
+            and review_epoch(height, policy_version) - review_epoch(qualification_height, policy_version)
+            >= PROBATION_MIN_DURATION_EPOCHS
+        )
+        status = (
+            "ESTABLISHED_REVIEWER"
+            if duration_met and len(accepted) >= PROBATION_MIN_VALID_VOTES_FOR_PROMOTION
+            else "PROBATIONARY_REVIEWER"
+        )
+        return {"status": status, "bootstrap_established": False, "qualification_effective_height": qualification_height}
+
     def snapshot(self, *, reviewer_addresses, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION) -> dict[str, Any]:
         height, block_hash, _ = self.finalized_context(chain, finalized_head)
         reviewers = []
         for address in sorted({normalize_wallet_address(value) for value in reviewer_addresses if normalize_wallet_address(value)}):
-            state, _evidence = self.reconcile(reviewer_address=address, chain=chain, finalized_head=finalized_head, storage=storage, policy_version=policy_version, persist=False)
-            reviewers.append({"address": address, "status": state["current_status"], "bootstrap_provenance": "PUBLIC_TESTNET_V1_BOOTSTRAP_ESTABLISHED_REVIEWERS" if state.get("bootstrap_established") else None})
+            state = self.status_at_reference(
+                reviewer_address=address, chain=chain, finalized_head=finalized_head,
+                storage=storage, policy_version=policy_version,
+            )
+            reviewers.append({"address": address, "status": state["status"], "bootstrap_provenance": "PUBLIC_TESTNET_V1_BOOTSTRAP_ESTABLISHED_REVIEWERS" if state.get("bootstrap_established") else None})
         payload = canonical_json_data({"reviewer_policy_version": policy_version, "reputation_rule_version": REPUTATION_RULE_VERSION, "reference_finalized_height": height, "reference_finalized_block_hash": block_hash, "review_epoch": review_epoch(height, policy_version) if height is not None else None, "reviewers": reviewers})
         return {**payload, "reviewer_snapshot_digest": canonical_hash(payload), "canonical_serialization": canonical_json_text(payload)}

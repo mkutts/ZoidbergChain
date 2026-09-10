@@ -95,7 +95,7 @@ def test_policy_is_canonical_versioned_and_environment_independent(monkeypatch):
     assert reputation_rules_canonical_text() == first_reputation
     assert (reviewer_policy_digest(), reputation_rules_digest()) == first_digests
     assert reviewer_policy()["vote_weight"] == 1
-    assert reviewer_policy_digest() == "ea8028d9ff5def80dcc3f707b31cad7b1c42a5ebc885c1c135ec741cf78f2ea1"
+    assert reviewer_policy_digest() == "ac6140446255e0d2a4f076f0d257a48d6a6a446dde2272a51568e8f020ee90eb"
     assert reputation_rules_digest() == "9bfdfc196fd6d54796d699b513a550672b6e12d659b9dbb52f1e44b065be17fb"
     assert bootstrap_established_reviewers() == ()
     with pytest.raises(ValueError, match="Unsupported reviewer policy version"):

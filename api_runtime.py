@@ -474,6 +474,11 @@ class PeerVoteReceive(BaseModel):
     identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     created_at: Annotated[float, Field(ge=0)] | None = None
     vote_timestamp: Annotated[float, Field(ge=0)] | None = None
+    reviewer_policy_version: Annotated[int, Field(ge=1)] | None = None
+    reputation_rule_version: Annotated[int, Field(ge=1)] | None = None
+    reviewer_status: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    reviewer_status_effective_height: Annotated[int, Field(ge=0)] | None = None
+    reviewer_status_reference_block_hash: ContentHashValue | None = None
 
 
 class PeerBlockReceive(BaseModel):
@@ -1312,6 +1317,16 @@ def _enforce_review_policy(wallet_address: str, *, scope: str = "review"):
     _, decision = _review_eligibility_for_wallet(wallet_address, scope=scope)
     if not decision.eligible:
         _review_policy_http_exception(decision.reason, decision.recommended_action)
+    # The legacy environment policy is a local service-access gate only.  On a
+    # network node it can refuse service, but it cannot grant consensus voting
+    # rights that canonical Reviewer Policy v1 does not grant.
+    if ENVIRONMENT != "development":
+        consensus = blockchain.get_reviewer_vote_decision(wallet_address)
+        if not consensus.eligible:
+            _review_policy_http_exception(
+                consensus.reason,
+                "Earn reviewer eligibility through finalized canonical activity or use a network-policy bootstrap wallet.",
+            )
 
 
 def _require_content_reference(content_hash: str | None, content_id: str | None):

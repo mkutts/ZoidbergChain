@@ -49,6 +49,14 @@ from originality import (
     revalidate_certificate_originality_evidence,
     validate_originality_evidence,
 )
+from milestone5_policy import (
+    ESTABLISHED_MAX_VOTES_PER_EPOCH,
+    PROBATION_MAX_VOTES_PER_EPOCH,
+    REVIEW_EPOCH_BLOCKS,
+    REVIEWER_POLICY_VERSION,
+    REPUTATION_RULE_VERSION,
+    validate_reviewer_status,
+)
 from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION, decode_canonical_bytes, encode_canonical_bytes
 from protocol_v1_genesis import GenesisValidationError
 from protocol_v1_originality import (
@@ -944,6 +952,25 @@ def receive_peer_vote(
             }
         raise ConflictingVoteError("Wallet has already voted differently on this submission.")
 
+    reviewer_snapshot_present = normalized_vote.get("reviewer_policy_version") is not None
+    decision = None
+    if reviewer_snapshot_present:
+        try:
+            decision = blockchain.get_reviewer_vote_decision(normalized_vote["voter"])
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
+        expected = {
+            "reviewer_policy_version": REVIEWER_POLICY_VERSION,
+            "reputation_rule_version": REPUTATION_RULE_VERSION,
+            "reviewer_status": decision.status,
+            "reviewer_status_effective_height": decision.snapshot.get("reference_finalized_height"),
+            "reviewer_status_reference_block_hash": decision.snapshot.get("reference_finalized_block_hash"),
+        }
+        if not decision.eligible:
+            raise MalformedVoteError(f"Peer reviewer is not eligible: {decision.reason}.")
+        if any(normalized_vote.get(key) != value for key, value in expected.items()):
+            raise MalformedVoteError("Peer reviewer snapshot does not match locally derived canonical state.")
+
     try:
         vote = blockchain.cast_submission_vote(
             submission_id=normalized_vote["submission_id"],
@@ -966,11 +993,27 @@ def receive_peer_vote(
             "vote_expires_at",
             "signed_at",
             "identity_source",
+            "reviewer_policy_version",
+            "reputation_rule_version",
+            "reviewer_status",
+            "reviewer_status_effective_height",
+            "reviewer_status_reference_block_hash",
         ]:
             if normalized_vote.get(key) is not None:
                 vote[key] = normalized_vote.get(key)
     except ValueError as e:
         raise MalformedVoteError(str(e))
+
+    if reviewer_snapshot_present and hasattr(blockchain.storage, "record_durable_vote_with_epoch_limit"):
+        epoch_start = int(decision.review_epoch) * REVIEW_EPOCH_BLOCKS
+        maximum = PROBATION_MAX_VOTES_PER_EPOCH if decision.status == "PROBATIONARY_REVIEWER" else ESTABLISHED_MAX_VOTES_PER_EPOCH
+        durable = blockchain.storage.record_durable_vote_with_epoch_limit(
+            vote, maximum_votes=maximum, epoch_start_height=epoch_start,
+            epoch_end_height=epoch_start + REVIEW_EPOCH_BLOCKS - 1,
+        )
+        if durable["lifecycle_state"] != "accepted":
+            blockchain.votes.remove(vote)
+            raise MalformedVoteError("Peer reviewer has reached the valid vote limit for this review epoch.")
 
     blockchain.save_blockchain()
     return {
@@ -2498,6 +2541,11 @@ def _normalize_vote_payload(vote_payload, local_network_name):
             "identity_source",
             "created_at",
             "vote_timestamp",
+            "reviewer_policy_version",
+            "reputation_rule_version",
+            "reviewer_status",
+            "reviewer_status_effective_height",
+            "reviewer_status_reference_block_hash",
         ],
         MalformedVoteError,
         "Vote payload",
@@ -2577,6 +2625,34 @@ def _normalize_vote_payload(vote_payload, local_network_name):
     normalized["vote_expires_at"] = vote_payload.get("vote_expires_at")
     normalized["signed_at"] = vote_payload.get("signed_at")
     normalized["identity_source"] = vote_payload.get("identity_source")
+    for field_name in (
+        "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
+        "reviewer_status_effective_height", "reviewer_status_reference_block_hash",
+    ):
+        normalized[field_name] = vote_payload.get(field_name)
+
+    reviewer_values = tuple(normalized.get(field) for field in (
+        "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
+        "reviewer_status_effective_height", "reviewer_status_reference_block_hash",
+    ))
+    if any(value is not None for value in reviewer_values) and not all(value is not None for value in reviewer_values):
+        raise MalformedVoteError("Reviewer policy snapshot fields must be supplied together.")
+    if all(value is not None for value in reviewer_values):
+        if isinstance(normalized["reviewer_policy_version"], bool) or normalized["reviewer_policy_version"] != REVIEWER_POLICY_VERSION:
+            raise MalformedVoteError("Vote reviewer_policy_version is unsupported.")
+        if isinstance(normalized["reputation_rule_version"], bool) or normalized["reputation_rule_version"] != REPUTATION_RULE_VERSION:
+            raise MalformedVoteError("Vote reputation_rule_version is unsupported.")
+        try:
+            normalized["reviewer_status"] = validate_reviewer_status(normalized["reviewer_status"])
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
+        height = normalized["reviewer_status_effective_height"]
+        if isinstance(height, bool) or not isinstance(height, int) or height < 0:
+            raise MalformedVoteError("Vote reviewer_status_effective_height must be a non-negative integer.")
+        reference_hash = normalized["reviewer_status_reference_block_hash"]
+        if not isinstance(reference_hash, str) or not is_valid_content_hash(reference_hash):
+            raise MalformedVoteError("Vote reviewer_status_reference_block_hash must be a canonical hash.")
+        normalized["reviewer_status_reference_block_hash"] = reference_hash.lower()
 
     if normalized.get("vote_version") is None and any(
         normalized.get(field_name) is not None

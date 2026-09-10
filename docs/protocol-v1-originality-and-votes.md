@@ -1,5 +1,11 @@
 # Protocol v1 Originality Certificates and Votes
 
+Milestone 5 Task 5.5 activates canonical earned reviewer eligibility,
+probation, promotion, finalized-height epochs, and per-epoch quotas.
+Environment review settings are local service restrictions only outside
+development. See
+`docs/milestone-5-task-5.5-earned-reviewer-eligibility-and-probation.md`.
+
 Authoritative note: [docs/protocol-v1.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1.md) is the primary Public Testnet v1 protocol specification. If this document conflicts with it or with [docs/protocol-v1-freeze-report.json](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-freeze-report.json), the authoritative spec and freeze report win.
 
 ## 1. Vote object version

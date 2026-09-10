@@ -1,8 +1,6 @@
 """Deterministic Milestone 5 reviewer and reputation policy definitions.
 
-These definitions are network data, not operator configuration.  Task 5.2
-intentionally reserves thresholds and transition rules for later tasks while
-freezing the fields that have already been decided.
+These definitions are network data, not operator configuration.
 """
 
 from __future__ import annotations
@@ -16,6 +14,18 @@ from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID, canonical_hash, canonical_
 
 REVIEWER_POLICY_VERSION = 1
 REPUTATION_RULE_VERSION = 1
+
+REVIEW_EPOCH_BLOCKS = 5
+MIN_WALLET_AGE_EPOCHS = 3
+CREATOR_PATH_MIN_FINALIZED_MINTED_SUBMISSIONS = 2
+ZOID_PATH_MIN_FINALIZED_NATIVE_TRANSACTIONS = 5
+ZOID_PATH_MIN_ACTIVITY_SPAN_EPOCHS = 3
+MIXED_PATH_MIN_FINALIZED_MINTED_SUBMISSIONS = 1
+MIXED_PATH_MIN_FINALIZED_NATIVE_TRANSACTIONS = 2
+PROBATION_MIN_DURATION_EPOCHS = 3
+PROBATION_MAX_VOTES_PER_EPOCH = 5
+PROBATION_MIN_VALID_VOTES_FOR_PROMOTION = 10
+ESTABLISHED_MAX_VOTES_PER_EPOCH = 25
 
 REVIEWER_STATUSES = (
     "NEW",
@@ -38,10 +48,24 @@ _REVIEWER_POLICIES: dict[int, dict[str, Any]] = {
         "statuses": list(REVIEWER_STATUSES),
         "vote_weight": 1,
         "bootstrap_established_reviewers": list(PUBLIC_TESTNET_V1_BOOTSTRAP_ESTABLISHED_REVIEWERS),
+        "review_epoch_blocks": REVIEW_EPOCH_BLOCKS,
+        "minimum_wallet_age_epochs": MIN_WALLET_AGE_EPOCHS,
         "earned_admission": {
-            "enabled": False,
-            "paths": [],
-            "reserved_for_task": "5.5",
+            "enabled": True,
+            "canonical_path_order": ["creator", "zoid_activity", "mixed"],
+            "creator_path_min_finalized_minted_submissions": CREATOR_PATH_MIN_FINALIZED_MINTED_SUBMISSIONS,
+            "zoid_path_min_finalized_native_transactions": ZOID_PATH_MIN_FINALIZED_NATIVE_TRANSACTIONS,
+            "zoid_path_min_activity_span_epochs": ZOID_PATH_MIN_ACTIVITY_SPAN_EPOCHS,
+            "mixed_path_min_finalized_minted_submissions": MIXED_PATH_MIN_FINALIZED_MINTED_SUBMISSIONS,
+            "mixed_path_min_finalized_native_transactions": MIXED_PATH_MIN_FINALIZED_NATIVE_TRANSACTIONS,
+        },
+        "probation": {
+            "minimum_duration_epochs": PROBATION_MIN_DURATION_EPOCHS,
+            "maximum_valid_votes_per_epoch": PROBATION_MAX_VOTES_PER_EPOCH,
+            "minimum_valid_votes_for_promotion": PROBATION_MIN_VALID_VOTES_FOR_PROMOTION,
+        },
+        "established_reviewer": {
+            "maximum_valid_votes_per_epoch": ESTABLISHED_MAX_VOTES_PER_EPOCH,
         },
         "quorum": {
             "activation": "reserved_for_later_milestone_5_task",
@@ -120,3 +144,11 @@ def validate_reviewer_status(status: str) -> str:
     if normalized not in REVIEWER_STATUSES:
         raise ValueError(f"Unsupported reviewer status: {status!r}")
     return normalized
+
+
+def review_epoch(finalized_height: int, version: int = REVIEWER_POLICY_VERSION) -> int:
+    """Return the zero-based epoch: finalized canonical height // 5."""
+    policy = reviewer_policy(version)
+    if isinstance(finalized_height, bool) or not isinstance(finalized_height, int) or finalized_height < 0:
+        raise ValueError("finalized_height must be a non-negative integer.")
+    return finalized_height // int(policy["review_epoch_blocks"])

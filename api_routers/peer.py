@@ -250,6 +250,11 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
                 "identity_source": receive_request.identity_source,
                 "created_at": receive_request.created_at,
                 "vote_timestamp": receive_request.vote_timestamp,
+                "reviewer_policy_version": receive_request.reviewer_policy_version,
+                "reputation_rule_version": receive_request.reputation_rule_version,
+                "reviewer_status": receive_request.reviewer_status,
+                "reviewer_status_effective_height": receive_request.reviewer_status_effective_height,
+                "reviewer_status_reference_block_hash": receive_request.reviewer_status_reference_block_hash,
             },
             local_network_name=NETWORK_NAME,
         )

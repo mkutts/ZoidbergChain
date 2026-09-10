@@ -487,11 +487,18 @@ async def get_review_policy(
     eligibility = None
     if normalized_wallet:
         _, eligibility = _review_eligibility_for_wallet(normalized_wallet)
-    return build_public_policy_summary(
+    response = build_public_policy_summary(
         config,
         wallet_address=normalized_wallet,
         eligibility=eligibility,
     )
+    response["policy_scope"] = "local_service_access"
+    response["consensus_policy_note"] = (
+        "Environment review settings may refuse local service but cannot grant network reviewer eligibility."
+    )
+    if normalized_wallet:
+        response["consensus_reviewer"] = blockchain.get_reviewer_status(normalized_wallet, persist=False)
+    return response
 
 
 @router.post('/auth/wallet/transfer-challenge')

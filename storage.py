@@ -1418,6 +1418,36 @@ class SQLiteStorageBackend(StorageBackend):
             connection.execute("BEGIN IMMEDIATE")
             return self._insert_durable_vote_record(connection, record, lifecycle_state=lifecycle_state)
 
+    def record_durable_vote_with_epoch_limit(
+        self, vote: dict[str, Any], *, maximum_votes: int, epoch_start_height: int,
+        epoch_end_height: int,
+    ) -> dict[str, Any]:
+        """Atomically enforce one reviewer's finalized-height epoch quota."""
+        if isinstance(maximum_votes, bool) or not isinstance(maximum_votes, int) or maximum_votes <= 0:
+            raise ValueError("maximum_votes must be a positive integer.")
+        record = _normalized_vote_record(vote)
+        if record["reviewer_policy_version"] is None or record["reviewer_status_effective_height"] is None:
+            raise ValueError("Epoch-limited votes require a complete reviewer policy snapshot.")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT evidence_id, lifecycle_state FROM durable_vote_records WHERE evidence_id = ? OR vote_identity = ?",
+                (record["evidence_id"], record.get("vote_identity")),
+            ).fetchone()
+            if existing is not None:
+                return {"evidence_id": existing[0], "lifecycle_state": existing[1], "replay": True}
+            used = connection.execute(
+                """SELECT COUNT(*) FROM durable_vote_records
+                   WHERE voter_address = ? AND reviewer_policy_version = ?
+                     AND lifecycle_state = 'accepted'
+                     AND reviewer_status_effective_height BETWEEN ? AND ?""",
+                (record["voter_address"], record["reviewer_policy_version"], epoch_start_height, epoch_end_height),
+            ).fetchone()[0]
+            if int(used) >= maximum_votes:
+                record["rejection_reason"] = "review_epoch_vote_limit_reached"
+                return self._insert_durable_vote_record(connection, record, lifecycle_state="rejected")
+            return self._insert_durable_vote_record(connection, record, lifecycle_state="accepted")
+
     def list_durable_votes(self, *, submission_id: str | None = None) -> list[dict[str, Any]]:
         columns = (
             "evidence_id", "vote_identity", "identity_status", "submission_id", "content_hash",
@@ -1491,6 +1521,7 @@ class SQLiteStorageBackend(StorageBackend):
         reputation_rule_version: int = REPUTATION_RULE_VERSION,
         status_effective_height: int,
         status_reference_block_hash: str,
+        bootstrap_established: bool = False,
         reason: str | None = None,
     ) -> dict[str, Any]:
         address = self._normalize_reviewer_address(reviewer_address)
@@ -1505,10 +1536,20 @@ class SQLiteStorageBackend(StorageBackend):
             ).fetchone()
             if existing is None:
                 raise ValueError(f"Reviewer state not found: {address}")
+            if (
+                existing[0] == status
+                and bool(existing[1]) == bool(bootstrap_established and status == "ESTABLISHED_REVIEWER")
+            ):
+                return self.get_reviewer_state(address)
+            if bootstrap_established and (
+                status != "ESTABLISHED_REVIEWER"
+                or address not in bootstrap_established_reviewers(reviewer_policy_version)
+            ):
+                raise ValueError("Bootstrap-established state must match the versioned reviewer policy grant set.")
             sequence = connection.execute(
                 "SELECT COALESCE(MAX(transition_sequence), -1) + 1 FROM reviewer_state_transitions WHERE reviewer_address = ?", (address,)
             ).fetchone()[0]
-            bootstrap = bool(existing[1]) and status == "ESTABLISHED_REVIEWER"
+            bootstrap = bool(bootstrap_established) or (bool(existing[1]) and status == "ESTABLISHED_REVIEWER")
             connection.execute(
                 """UPDATE reviewer_states SET current_status = ?, reviewer_policy_version = ?, reputation_rule_version = ?,
                    status_effective_height = ?, status_reference_block_hash = ?, bootstrap_established = ?, updated_at = ?
@@ -1524,6 +1565,17 @@ class SQLiteStorageBackend(StorageBackend):
                 (address, sequence, existing[0], status, reviewer_policy_version, reputation_rule_version, height, block_hash, int(bootstrap), reason, observed_at),
             )
         return self.get_reviewer_state(address)
+
+    def list_reviewer_states(self) -> list[dict[str, Any]]:
+        columns = ("reviewer_address", "current_status", "reviewer_policy_version", "reputation_rule_version", "status_effective_height", "status_reference_block_hash", "bootstrap_established", "created_at", "updated_at")
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT {', '.join(columns)} FROM reviewer_states ORDER BY reviewer_address"
+            ).fetchall()
+        results = [dict(zip(columns, row)) for row in rows]
+        for result in results:
+            result["bootstrap_established"] = bool(result["bootstrap_established"])
+        return results
 
     def get_reviewer_state(self, reviewer_address: str) -> dict[str, Any] | None:
         address = self._normalize_reviewer_address(reviewer_address)

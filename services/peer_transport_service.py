@@ -116,6 +116,8 @@ class PeerBroadcastService:
             "voter_wallet_address", "signature_scheme", "vote_signature", "vote_message",
             "signed_message_hash", "vote_nonce", "vote_issued_at", "vote_expires_at",
             "signed_at", "identity_source",
+            "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
+            "reviewer_status_effective_height", "reviewer_status_reference_block_hash",
         ]:
             if vote.get(key) is not None:
                 payload[key] = vote.get(key)

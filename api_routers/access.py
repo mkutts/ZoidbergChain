@@ -517,6 +517,55 @@ async def get_reviewer_offenses(request: Request, wallet_address: str):
     return {"reviewer_address": normalized, "offenses": blockchain.get_reviewer_offenses(normalized)}
 
 
+def _collusion_report():
+    """Local recomputation only; this helper has no consensus write path."""
+    return collusion_analytics_service.analyze_storage(
+        blockchain.storage, chain=blockchain.chain, finalized_head=blockchain.get_finalized_head()
+    )
+
+
+@router.get('/analytics/collusion/alerts')
+@api_limit("public_read")
+async def get_collusion_alerts(request: Request):
+    _sync_runtime_globals()
+    return _collusion_report()
+
+
+@router.get('/analytics/collusion/reviewers/{wallet_address}')
+@api_limit("public_read")
+async def get_reviewer_collusion_alerts(request: Request, wallet_address: str):
+    _sync_runtime_globals()
+    normalized = _normalize_native_account_address(wallet_address)
+    report = _collusion_report()
+    report["reviewer_address"] = normalized
+    report["alerts"] = [item for item in report["alerts"] if normalized in item["reviewer_addresses"]]
+    report["alert_count"] = len(report["alerts"])
+    return report
+
+
+@router.get('/analytics/collusion/submissions/{submission_id}')
+@api_limit("public_read")
+async def get_submission_collusion_alerts(request: Request, submission_id: str):
+    _sync_runtime_globals()
+    report = _collusion_report()
+    report["submission_id"] = submission_id
+    report["alerts"] = [item for item in report["alerts"] if submission_id in item["submission_ids"]]
+    report["alert_count"] = len(report["alerts"])
+    return report
+
+
+@router.get('/analytics/collusion/creators/{wallet_address}')
+@api_limit("public_read")
+async def get_creator_collusion_alerts(request: Request, wallet_address: str):
+    _sync_runtime_globals()
+    normalized = _normalize_native_account_address(wallet_address)
+    report = _collusion_report()
+    report["creator_address"] = normalized
+    report["alerts"] = [item for item in report["alerts"] if normalized in item["creator_addresses"]]
+    report["alert_count"] = len(report["alerts"])
+    return report
+
+
 @router.post('/auth/wallet/transfer-challenge')
 @api_limit("wallet_create")
 async def create_wallet_transfer_challenge(
@@ -605,6 +654,10 @@ _ROUTE_ORDER = {
     ('GET', '/review/policy', 'get_review_policy'): 52,
     ('GET', '/reviewers/{wallet_address}/reputation', 'get_reviewer_reputation'): 132,
     ('GET', '/reviewers/{wallet_address}/offenses', 'get_reviewer_offenses'): 133,
+    ('GET', '/analytics/collusion/alerts', 'get_collusion_alerts'): 135,
+    ('GET', '/analytics/collusion/reviewers/{wallet_address}', 'get_reviewer_collusion_alerts'): 136,
+    ('GET', '/analytics/collusion/submissions/{submission_id}', 'get_submission_collusion_alerts'): 137,
+    ('GET', '/analytics/collusion/creators/{wallet_address}', 'get_creator_collusion_alerts'): 138,
     ('POST', '/auth/wallet/transfer-challenge', 'create_wallet_transfer_challenge'): 53,
     ('GET', '/auth/wallet/session', 'get_wallet_session'): 54,
     ('POST', '/auth/wallet/logout', 'logout_wallet_session'): 55,

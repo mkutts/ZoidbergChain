@@ -47,8 +47,8 @@ def test_router_assembly_has_no_generic_forwarding_fallback():
     import api
 
     routes = [route for route in api.app.routes if isinstance(route, APIRoute)]
-    assert len(routes) == 135
-    assert [route.endpoint.__route_order__ for route in routes] == list(range(135))
+    assert len(routes) == 139
+    assert [route.endpoint.__route_order__ for route in routes] == list(range(139))
     assert {route.endpoint.__module__ for route in routes} == {
         f"api_routers.{name}" for name in ROUTER_MODULES
     }

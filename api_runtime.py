@@ -245,6 +245,9 @@ from peer_sync import (
     native_transaction_delivery_worker,
 )
 from services.native_transaction_delivery_service import native_transaction_outbox_diagnostics
+from services.collusion_analytics_service import CollusionAnalyticsService
+
+collusion_analytics_service = CollusionAnalyticsService()
 
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(

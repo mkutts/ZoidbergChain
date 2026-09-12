@@ -621,6 +621,54 @@
     "declared_status_code": null
   },
   {
+    "method": "GET",
+    "path": "/analytics/collusion/alerts",
+    "name": "get_collusion_alerts",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/collusion/creators/{wallet_address}",
+    "name": "get_creator_collusion_alerts",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/collusion/reviewers/{wallet_address}",
+    "name": "get_reviewer_collusion_alerts",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/analytics/collusion/submissions/{submission_id}",
+    "name": "get_submission_collusion_alerts",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
     "method": "POST",
     "path": "/auth/wallet/challenge",
     "name": "create_wallet_challenge",

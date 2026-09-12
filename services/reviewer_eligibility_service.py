@@ -19,11 +19,13 @@ from milestone5_policy import (
     ZOID_PATH_MIN_ACTIVITY_SPAN_EPOCHS,
     ZOID_PATH_MIN_FINALIZED_NATIVE_TRANSACTIONS,
     bootstrap_established_reviewers,
+    reputation_rules,
     review_epoch,
     reviewer_policy,
 )
 from native_transfer import normalize_wallet_address
 from protocol_v1 import canonical_hash, canonical_json_data, canonical_json_text
+from reviewer_reputation import ReviewerReputationService
 
 
 PATH_ORDER = ("creator", "zoid_activity", "mixed")
@@ -143,6 +145,43 @@ class ReviewerEligibilityService:
             return state, evidence
         bootstrap = address in bootstrap_established_reviewers(policy_version)
         durable_transitions = persist and hasattr(storage, "transition_reviewer_state")
+        reputation = ReviewerReputationService(storage)
+        active_penalty = reputation.effective_penalty(address, epoch)
+        underlying_projection = None
+        if state["current_status"] in {"COOLDOWN", "SUSPENDED"} and hasattr(storage, "list_reviewer_state_history"):
+            eligible_history = [
+                item for item in storage.list_reviewer_state_history(address)
+                if item.get("to_status") not in {"COOLDOWN", "SUSPENDED"}
+                and item.get("status_effective_height") is not None
+                and int(item["status_effective_height"]) <= height
+            ]
+            if eligible_history:
+                latest_underlying = eligible_history[-1]
+                underlying_projection = {
+                    **state,
+                    "current_status": latest_underlying["to_status"],
+                    "status_effective_height": latest_underlying["status_effective_height"],
+                    "status_reference_block_hash": latest_underlying["status_reference_block_hash"],
+                }
+        if state["current_status"] in {"COOLDOWN", "SUSPENDED"} and active_penalty is None:
+            penalties = reputation.penalties(address)
+            if penalties:
+                restoration = underlying_projection["current_status"] if underlying_projection else penalties[-1]["prior_reviewer_status"]
+                if restoration in {"COOLDOWN", "SUSPENDED"}:
+                    restoration = "ESTABLISHED_REVIEWER" if bootstrap else "PROBATIONARY_REVIEWER" if evidence["overall_qualified"] else "NEW"
+                reason = canonical_json_text({"reason_code": "REPUTATION_PENALTY_EXPIRED", "effective_review_epoch": epoch})
+                if durable_transitions:
+                    state = storage.transition_reviewer_state(
+                        address, to_status=restoration, reviewer_policy_version=policy_version,
+                        reputation_rule_version=REPUTATION_RULE_VERSION,
+                        status_effective_height=height, status_reference_block_hash=block_hash,
+                        bootstrap_established=bootstrap and restoration == "ESTABLISHED_REVIEWER",
+                        reason=reason,
+                    )
+                else:
+                    state = {**state, "current_status": restoration}
+        elif active_penalty is not None and underlying_projection is not None:
+            state = underlying_projection
         if not durable_transitions and state["current_status"] == "NEW":
             if bootstrap:
                 state = {**state, "current_status": "ESTABLISHED_REVIEWER", "bootstrap_established": True, "status_effective_height": height, "status_reference_block_hash": block_hash}
@@ -170,6 +209,22 @@ class ReviewerEligibilityService:
                     state = storage.transition_reviewer_state(address, to_status="ESTABLISHED_REVIEWER", reviewer_policy_version=policy_version, reputation_rule_version=REPUTATION_RULE_VERSION, status_effective_height=height, status_reference_block_hash=block_hash, reason=reason)
                 else:
                     state = {**state, "current_status": "ESTABLISHED_REVIEWER", "status_effective_height": height, "status_reference_block_hash": block_hash}
+        underlying_status = state["current_status"]
+        if active_penalty is not None:
+            effective_status = active_penalty["effective_status"]
+            if durable_transitions and state["current_status"] != effective_status:
+                reason = canonical_json_text({"reason_code": "ACTIVE_REPUTATION_PENALTY", "offense_id": active_penalty["offense_id"], "penalty_end_epoch": active_penalty["effective_end_epoch"]})
+                state = storage.transition_reviewer_state(
+                    address, to_status=effective_status,
+                    reviewer_policy_version=policy_version,
+                    reputation_rule_version=REPUTATION_RULE_VERSION,
+                    status_effective_height=height,
+                    status_reference_block_hash=block_hash,
+                    reason=reason,
+                )
+            else:
+                state = {**state, "current_status": effective_status}
+        state = {**state, "underlying_reviewer_status": underlying_status}
         return state, evidence
 
     def vote_decision(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION) -> ReviewerVoteDecision:
@@ -197,9 +252,9 @@ class ReviewerEligibilityService:
         )
         limit = PROBATION_MAX_VOTES_PER_EPOCH if status == "PROBATIONARY_REVIEWER" else ESTABLISHED_MAX_VOTES_PER_EPOCH if status == "ESTABLISHED_REVIEWER" else 0
         used = sum(1 for vote in votes if epoch is not None and vote.get("reviewer_status_effective_height") is not None and review_epoch(int(vote["reviewer_status_effective_height"])) == epoch)
-        return {"address": evidence["reviewer_address"], "status": status, "reviewer_policy_version": REVIEWER_POLICY_VERSION, "current_review_epoch": epoch, "wallet_age_epochs": evidence["wallet_age_epochs"], "qualification_paths": evidence["qualifying_paths"], "probation_started_epoch": started, "probation_valid_vote_count": probation_votes, "votes_used_this_epoch": used, "votes_remaining_this_epoch": max(0, limit - used), "promotion_requirements": {"minimum_duration_epochs": PROBATION_MIN_DURATION_EPOCHS, "minimum_valid_votes": PROBATION_MIN_VALID_VOTES_FOR_PROMOTION}, "bootstrap_established": bool(state.get("bootstrap_established"))}
+        return {"address": evidence["reviewer_address"], "status": status, "underlying_reviewer_status": state.get("underlying_reviewer_status", status), "reviewer_policy_version": REVIEWER_POLICY_VERSION, "reputation_rule_version": REPUTATION_RULE_VERSION, "current_review_epoch": epoch, "wallet_age_epochs": evidence["wallet_age_epochs"], "qualification_paths": evidence["qualifying_paths"], "probation_started_epoch": started, "probation_valid_vote_count": probation_votes, "votes_used_this_epoch": used, "votes_remaining_this_epoch": max(0, limit - used), "promotion_requirements": {"minimum_duration_epochs": PROBATION_MIN_DURATION_EPOCHS, "minimum_valid_votes": PROBATION_MIN_VALID_VOTES_FOR_PROMOTION}, "bootstrap_established": bool(state.get("bootstrap_established"))}
 
-    def status_at_reference(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION) -> dict[str, Any]:
+    def status_at_reference(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION, reputation_rule_version: int = REPUTATION_RULE_VERSION) -> dict[str, Any]:
         """Reconstruct policy status at an explicit finalized canonical reference.
 
         Earned status is derived from canonical ancestry and durable accepted
@@ -213,26 +268,30 @@ class ReviewerEligibilityService:
         height, block_hash, blocks = self.finalized_context(chain, finalized_head)
         if height is None:
             return {"status": "NEW", "bootstrap_established": False, "qualification_effective_height": None}
-        history = storage.list_reviewer_state_history(address) if hasattr(storage, "list_reviewer_state_history") else []
-        applicable = [
-            item for item in history
-            if item.get("status_effective_height") is not None
-            and int(item["status_effective_height"]) <= height
-            and item.get("reviewer_policy_version") == policy_version
-            and item.get("reputation_rule_version") == REPUTATION_RULE_VERSION
-        ]
-        if applicable:
-            latest = max(applicable, key=lambda item: (int(item["status_effective_height"]), int(item["transition_sequence"])))
-            if latest.get("to_status") in {"COOLDOWN", "SUSPENDED"}:
-                return {"status": latest["to_status"], "bootstrap_established": False, "qualification_effective_height": None}
+        reputation_rules(reputation_rule_version)
+        penalties = ReviewerReputationService(storage).penalties(address)
+        if not penalties and hasattr(storage, "list_reviewer_state_history"):
+            applicable = [
+                item for item in storage.list_reviewer_state_history(address)
+                if item.get("status_effective_height") is not None
+                and int(item["status_effective_height"]) <= height
+                and item.get("reviewer_policy_version") == policy_version
+                and item.get("reputation_rule_version") == reputation_rule_version
+            ]
+            if applicable and applicable[-1].get("to_status") in {"COOLDOWN", "SUSPENDED"}:
+                return {"status": applicable[-1]["to_status"], "underlying_status": "NEW", "bootstrap_established": False, "qualification_effective_height": None}
         if address in bootstrap_established_reviewers(policy_version):
-            return {"status": "ESTABLISHED_REVIEWER", "bootstrap_established": True, "qualification_effective_height": 0}
+            underlying = "ESTABLISHED_REVIEWER"
+            active = ReviewerReputationService(storage).effective_penalty(address, review_epoch(height, policy_version), reputation_rule_version=reputation_rule_version)
+            return {"status": active["effective_status"] if active else underlying, "underlying_status": underlying, "bootstrap_established": True, "qualification_effective_height": 0}
         evidence = self.qualification(
             reviewer_address=address, chain=blocks, finalized_head=finalized_head,
             policy_version=policy_version,
         )
         if not evidence["overall_qualified"]:
-            return {"status": "NEW", "bootstrap_established": False, "qualification_effective_height": None}
+            underlying = "NEW"
+            active = ReviewerReputationService(storage).effective_penalty(address, review_epoch(height, policy_version), reputation_rule_version=reputation_rule_version)
+            return {"status": active["effective_status"] if active else underlying, "underlying_status": underlying, "bootstrap_established": False, "qualification_effective_height": None}
         qualification_height = None
         for candidate_height in range(height + 1):
             candidate_block = next(
@@ -252,7 +311,6 @@ class ReviewerEligibilityService:
         accepted = [
             vote for vote in self._accepted_votes(storage, address)
             if vote.get("reviewer_policy_version") == policy_version
-            and vote.get("reputation_rule_version") == REPUTATION_RULE_VERSION
             and vote.get("reviewer_status") == "PROBATIONARY_REVIEWER"
             and vote.get("reviewer_status_effective_height") is not None
             and qualification_height is not None
@@ -268,16 +326,18 @@ class ReviewerEligibilityService:
             if duration_met and len(accepted) >= PROBATION_MIN_VALID_VOTES_FOR_PROMOTION
             else "PROBATIONARY_REVIEWER"
         )
-        return {"status": status, "bootstrap_established": False, "qualification_effective_height": qualification_height}
+        active = ReviewerReputationService(storage).effective_penalty(address, review_epoch(height, policy_version), reputation_rule_version=reputation_rule_version)
+        return {"status": active["effective_status"] if active else status, "underlying_status": status, "bootstrap_established": False, "qualification_effective_height": qualification_height}
 
-    def snapshot(self, *, reviewer_addresses, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION) -> dict[str, Any]:
+    def snapshot(self, *, reviewer_addresses, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION, reputation_rule_version: int = REPUTATION_RULE_VERSION) -> dict[str, Any]:
         height, block_hash, _ = self.finalized_context(chain, finalized_head)
         reviewers = []
         for address in sorted({normalize_wallet_address(value) for value in reviewer_addresses if normalize_wallet_address(value)}):
             state = self.status_at_reference(
                 reviewer_address=address, chain=chain, finalized_head=finalized_head,
                 storage=storage, policy_version=policy_version,
+                reputation_rule_version=reputation_rule_version,
             )
             reviewers.append({"address": address, "status": state["status"], "bootstrap_provenance": "PUBLIC_TESTNET_V1_BOOTSTRAP_ESTABLISHED_REVIEWERS" if state.get("bootstrap_established") else None})
-        payload = canonical_json_data({"reviewer_policy_version": policy_version, "reputation_rule_version": REPUTATION_RULE_VERSION, "reference_finalized_height": height, "reference_finalized_block_hash": block_hash, "review_epoch": review_epoch(height, policy_version) if height is not None else None, "reviewers": reviewers})
+        payload = canonical_json_data({"reviewer_policy_version": policy_version, "reputation_rule_version": reputation_rule_version, "reference_finalized_height": height, "reference_finalized_block_hash": block_hash, "review_epoch": review_epoch(height, policy_version) if height is not None else None, "reviewers": reviewers})
         return {**payload, "reviewer_snapshot_digest": canonical_hash(payload), "canonical_serialization": canonical_json_text(payload)}

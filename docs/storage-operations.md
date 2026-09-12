@@ -327,6 +327,9 @@ For local operators and test environments:
 - JSON remains the local-development default for compatibility, but Public
   Testnet v1 requires SQLite for Milestone 4 native transaction and peer-delivery
   durability.
+- Milestone 5 Task 5.7 reviewer offense, penalty, and excess-attempt history is
+  included in SQLite backup/export/import. JSON does not provide equivalent
+  reputation durability, and JSON-to-SQLite migration fabricates no offenses.
 - The migration path currently copies whole persisted sections as-is; schema normalization is intentionally deferred.
 - Backup, export, and import work at the storage snapshot level and do not change consensus or peer-authentication behavior.
 # Milestone 5 originality evidence

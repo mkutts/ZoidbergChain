@@ -501,6 +501,22 @@ async def get_review_policy(
     return response
 
 
+@router.get('/reviewers/{wallet_address}/reputation')
+@api_limit("public_read")
+async def get_reviewer_reputation(request: Request, wallet_address: str):
+    _sync_runtime_globals()
+    normalized = _normalize_native_account_address(wallet_address)
+    return blockchain.get_reviewer_status(normalized, persist=False)
+
+
+@router.get('/reviewers/{wallet_address}/offenses')
+@api_limit("public_read")
+async def get_reviewer_offenses(request: Request, wallet_address: str):
+    _sync_runtime_globals()
+    normalized = _normalize_native_account_address(wallet_address)
+    return {"reviewer_address": normalized, "offenses": blockchain.get_reviewer_offenses(normalized)}
+
+
 @router.post('/auth/wallet/transfer-challenge')
 @api_limit("wallet_create")
 async def create_wallet_transfer_challenge(
@@ -587,6 +603,8 @@ _ROUTE_ORDER = {
     ('POST', '/auth/wallet/submission-challenge', 'create_wallet_submission_challenge'): 50,
     ('POST', '/auth/wallet/vote-challenge', 'create_wallet_vote_challenge'): 51,
     ('GET', '/review/policy', 'get_review_policy'): 52,
+    ('GET', '/reviewers/{wallet_address}/reputation', 'get_reviewer_reputation'): 132,
+    ('GET', '/reviewers/{wallet_address}/offenses', 'get_reviewer_offenses'): 133,
     ('POST', '/auth/wallet/transfer-challenge', 'create_wallet_transfer_challenge'): 53,
     ('GET', '/auth/wallet/session', 'get_wallet_session'): 54,
     ('POST', '/auth/wallet/logout', 'logout_wallet_session'): 55,

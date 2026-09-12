@@ -114,6 +114,14 @@ from protocol_v1_genesis import (
 )
 from validators import is_valid_ethereum_address, is_valid_public_key, is_valid_user_wallet_identity
 from wallet_auth import hash_wallet_message, normalize_wallet_address
+from reviewer_reputation import (
+    CREATOR_SELF_VOTE,
+    SIGNED_VOTE_EQUIVOCATION,
+    VOTE_DURING_COOLDOWN,
+    VOTE_DURING_SUSPENSION,
+    ReviewerReputationService,
+    build_offense_evidence,
+)
 from access_control import access_decision_for_wallet, generate_access_code, hash_access_code, normalize_email, normalize_handle, normalize_text_field, utc_now_iso
 from services import AccessAdminService, AccessAdminState, BlockProductionCollaborators, BlockProductionService, BlockProductionState, BlockValidationCollaborators, BlockValidationService, CanonicalReorgError, CanonicalReorgService, ContentCoordinationService, ContentCoordinationState, FeedbackService, FeedbackState, FinalityAttestationError, FinalityPolicy, FinalityService, ForkChoiceCollaborators, ForkChoiceService, LifecycleTimingRecorder, MintQueueService, MintQueueState, NativeBlockValidationError, NativeLedgerService, NativeLedgerState, NativeMempoolService, RewardCollaborators, RewardService, RewardState, ReviewerEligibilityService, SubmissionOriginalityService, SubmissionOriginalityState, build_native_transaction_outbox_records, normalize_validator_set
 
@@ -240,6 +248,7 @@ class Blockchain:
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
+        self._reviewer_reputation_service = ReviewerReputationService(self.storage)
         ensure_content_storage_dir(data_dir=self.storage.data_dir)
         self._validate_frozen_public_testnet_v1_runtime_constants()
 
@@ -1203,11 +1212,8 @@ class Blockchain:
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
         verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type)
-        reviewer_decision = None
-        if self.get_finalized_head() is not None or ENVIRONMENT != "development":
-            reviewer_decision = self.get_reviewer_vote_decision(voter)
-            if not reviewer_decision.eligible:
-                raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
+        voter = normalize_wallet_address(voter) or voter
+        reviewer_decision = self.get_reviewer_vote_decision(voter) if self.get_finalized_head() is not None or ENVIRONMENT != "development" else None
         durable_vote = {
             "voter": voter, "submission_id": submission_id, "vote_type": vote_type,
             "voter_wallet_address": voter, "content_hash": submission.content_hash,
@@ -1236,11 +1242,60 @@ class Blockchain:
             signature=durable_vote["vote_signature"],
             signature_scheme=durable_vote["signature_scheme"],
         )
+        if hasattr(self.storage, "list_durable_votes"):
+            prior_identity = next((item for item in self.storage.list_durable_votes(submission_id=submission_id) if item.get("vote_identity") == durable_vote["vote_identity"]), None)
+            if prior_identity is not None:
+                raise ValueError("Wallet has already submitted this signed vote.")
+        finalized = self.get_finalized_head()
+        epoch = reviewer_decision.review_epoch if reviewer_decision else None
+        state_before = reviewer_decision.snapshot.get("underlying_reviewer_status", reviewer_decision.status) if reviewer_decision else "NEW"
+
+        def record_offense(offense_type, votes, *, active_penalty_id=None):
+            if finalized is None or epoch is None or not hasattr(self.storage, "record_reviewer_offense"):
+                return None
+            offense = build_offense_evidence(
+                offense_type=offense_type, votes=votes,
+                reference_finalized_height=int(finalized["block_height"]),
+                reference_finalized_block_hash=finalized["block_hash"],
+                review_epoch=int(epoch), creator_address=submission.submitter,
+                active_penalty_id=active_penalty_id,
+            )
+            outcome = self._reviewer_reputation_service.apply_verified_offense(offense, state_before=state_before)
+            self._persist_reputation_outcome(outcome)
+            return outcome
+
         existing = self.storage.get_vote(submission_id, voter, self.votes)
         if existing is not None:
             if hasattr(self.storage, "record_durable_vote"):
-                self.storage.record_durable_vote(durable_vote, lifecycle_state="accepted")
+                self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason="conflicting_counted_vote")
+            if existing.get("vote_type") != vote_type and existing.get("vote_identity") and existing.get("vote_signature"):
+                record_offense(SIGNED_VOTE_EQUIVOCATION, [existing, durable_vote])
             raise ValueError("Wallet has already voted on this submission.")
+        if normalize_wallet_address(submission.submitter) == voter:
+            if hasattr(self.storage, "record_durable_vote"):
+                self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason="creator_self_vote")
+            record_offense(CREATOR_SELF_VOTE, [durable_vote])
+            raise ValueError("Submission creator cannot vote on their own submission.")
+        if reviewer_decision and reviewer_decision.status in {"COOLDOWN", "SUSPENDED"}:
+            active = self._reviewer_reputation_service.effective_penalty(voter, int(epoch))
+            if hasattr(self.storage, "record_durable_vote"):
+                self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason="reviewer_status_ineligible")
+            record_offense(
+                VOTE_DURING_COOLDOWN if reviewer_decision.status == "COOLDOWN" else VOTE_DURING_SUSPENSION,
+                [durable_vote], active_penalty_id=active["penalty_id"] if active else None,
+            )
+            raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
+        if reviewer_decision and not reviewer_decision.eligible:
+            if hasattr(self.storage, "record_durable_vote"):
+                self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason=reviewer_decision.reason)
+            if reviewer_decision.reason == "review_epoch_vote_limit_reached" and finalized is not None:
+                outcome = self._reviewer_reputation_service.record_rate_limit_excess(
+                    durable_vote, reference_finalized_height=int(finalized["block_height"]),
+                    reference_finalized_block_hash=finalized["block_hash"],
+                    review_epoch=int(epoch), state_before=state_before,
+                )
+                self._persist_reputation_outcome(outcome)
+            raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
         vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
         vote.update(durable_vote)
         if reviewer_decision and hasattr(self.storage, "record_durable_vote_with_epoch_limit"):
@@ -1258,6 +1313,13 @@ class Blockchain:
             if durable_result["lifecycle_state"] != "accepted":
                 self.votes.remove(vote)
                 if durable_result.get("rejection_reason") == "review_epoch_vote_limit_reached":
+                    if finalized is not None:
+                        outcome = self._reviewer_reputation_service.record_rate_limit_excess(
+                            vote, reference_finalized_height=int(finalized["block_height"]),
+                            reference_finalized_block_hash=finalized["block_hash"],
+                            review_epoch=int(epoch), state_before=state_before,
+                        )
+                        self._persist_reputation_outcome(outcome)
                     raise ValueError("Reviewer has reached the valid vote limit for this review epoch.")
                 raise ValueError("Wallet has already voted on this submission.")
         self.save_blockchain()
@@ -1863,11 +1925,92 @@ class Blockchain:
             policy_version=policy_version, persist=persist,
         )
         votes = self._reviewer_eligibility_service._accepted_votes(self.storage, evidence["reviewer_address"])
-        return self._reviewer_eligibility_service.status_payload(state, evidence, votes) | {
+        payload = self._reviewer_eligibility_service.status_payload(state, evidence, votes) | {
             "reference_finalized_height": evidence["reference_finalized_height"],
             "reference_finalized_block_hash": evidence["reference_finalized_block_hash"],
             "qualification_evidence": evidence,
         }
+        reputation = self._reviewer_reputation_service.summary(
+            evidence["reviewer_address"], evidence["review_epoch"],
+            state.get("underlying_reviewer_status", state["current_status"]),
+        )
+        payload.update(reputation)
+        payload["reputation"] = reputation
+        return payload
+
+    def get_reviewer_offenses(self, reviewer_address):
+        address = normalize_wallet_address(reviewer_address)
+        if address is None:
+            raise ValueError("reviewer_address must be a valid Ethereum-style 0x address.")
+        return self._reviewer_reputation_service.offenses(address)
+
+    def receive_reviewer_offense_evidence(self, offense):
+        from reviewer_reputation import validate_offense_evidence
+
+        durable_votes = self.storage.list_durable_votes() if hasattr(self.storage, "list_durable_votes") else []
+        accepted_votes = {
+            vote.get("vote_identity"): vote
+            for vote in durable_votes
+            if vote.get("vote_identity") and vote.get("lifecycle_state") == "accepted"
+        }
+
+        def historical_underlying_status(vote):
+            state = self._reviewer_eligibility_service.status_at_reference(
+                reviewer_address=vote["reviewer_address"], chain=self.chain,
+                finalized_head={
+                    "block_height": vote["reviewer_status_effective_height"],
+                    "block_hash": vote["reviewer_status_reference_block_hash"],
+                },
+                storage=self.storage,
+                policy_version=vote["reviewer_policy_version"],
+                reputation_rule_version=vote["reputation_rule_version"],
+            )
+            return state.get("underlying_status", state["status"])
+
+        validated = validate_offense_evidence(
+            offense,
+            finalized_reference_validator=self.is_finalized_canonical_reference,
+            creator_resolver=lambda submission_id: (
+                self.get_submission(submission_id).submitter
+                if self.get_submission(submission_id) is not None else None
+            ),
+            accepted_vote_resolver=accepted_votes.get,
+            reviewer_status_resolver=historical_underlying_status,
+        )
+        status = self.get_reviewer_status(validated["reviewer_address"])
+        outcome = self._reviewer_reputation_service.apply_verified_offense(
+            validated,
+            state_before=status.get("underlying_reviewer_status", status["status"]),
+        )
+        self._persist_reputation_outcome(outcome)
+        return {"accepted": True, "action": "duplicate" if outcome.replay else "created", "offense": outcome.offense}
+
+    def _persist_reputation_outcome(self, outcome):
+        if outcome.offense is None or outcome.replay:
+            return
+        offense = outcome.offense
+        finalized = self.get_finalized_head()
+        if finalized is None:
+            return
+        active = self._reviewer_reputation_service.effective_penalty(
+            offense["reviewer_address"], int(finalized["block_height"]) // REVIEW_EPOCH_BLOCKS,
+        )
+        if active is None:
+            return
+        resulting = active["effective_status"]
+        current = self.storage.get_reviewer_state(offense["reviewer_address"])
+        if current is None:
+            current = self.storage.initialize_reviewer_state(offense["reviewer_address"])
+        if current["current_status"] != resulting:
+            from protocol_v1 import canonical_json_text
+            self.storage.transition_reviewer_state(
+                offense["reviewer_address"], to_status=resulting,
+                reviewer_policy_version=REVIEWER_POLICY_VERSION,
+                reputation_rule_version=REPUTATION_RULE_VERSION,
+                status_effective_height=offense["reference_finalized_height"],
+                status_reference_block_hash=offense["reference_finalized_block_hash"],
+                reason=canonical_json_text({"reason_code": offense["reason_code"], "offense_id": offense["offense_id"]}),
+            )
 
     def get_reviewer_vote_decision(self, reviewer_address, *, policy_version=REVIEWER_POLICY_VERSION):
         decision = self._reviewer_eligibility_service.vote_decision(
@@ -1898,16 +2041,17 @@ class Blockchain:
             for record in self.finalized_blocks if isinstance(record, dict)
         )
 
-    def get_reviewer_status_at_reference(self, reviewer_address, height, block_hash, *, policy_version=REVIEWER_POLICY_VERSION):
+    def get_reviewer_status_at_reference(self, reviewer_address, height, block_hash, *, policy_version=REVIEWER_POLICY_VERSION, reputation_rule_version=REPUTATION_RULE_VERSION):
         if not self.is_finalized_canonical_reference(height, block_hash):
             raise ValueError("Reviewer reference is not a finalized canonical block.")
         return self._reviewer_eligibility_service.status_at_reference(
             reviewer_address=reviewer_address, chain=self.chain,
             finalized_head={"block_height": height, "block_hash": str(block_hash).lower()},
             storage=self.storage, policy_version=policy_version,
+            reputation_rule_version=reputation_rule_version,
         )["status"]
 
-    def build_reviewer_snapshot(self, reviewer_addresses=None, *, policy_version=REVIEWER_POLICY_VERSION, reference=None):
+    def build_reviewer_snapshot(self, reviewer_addresses=None, *, policy_version=REVIEWER_POLICY_VERSION, reputation_rule_version=REPUTATION_RULE_VERSION, reference=None):
         if reviewer_addresses is None:
             addresses = set(bootstrap_established_reviewers(policy_version))
             if hasattr(self.storage, "list_reviewer_states"):
@@ -1917,7 +2061,7 @@ class Blockchain:
         return self._reviewer_eligibility_service.snapshot(
             reviewer_addresses=addresses, chain=self.chain,
             finalized_head=reference or self.get_finalized_head(), storage=self.storage,
-            policy_version=policy_version,
+            policy_version=policy_version, reputation_rule_version=reputation_rule_version,
         )
 
     def get_certificate_v3_vote_context(self, submission_id, *, reference=None):
@@ -1938,6 +2082,7 @@ class Blockchain:
                 if item.get("lifecycle_state") == "accepted"
                 and item.get("identity_status") == "canonical"
                 and item.get("reviewer_eligible") is True
+                and item.get("reputation_rule_version") == REPUTATION_RULE_VERSION
             }
         valid_votes = []
         for vote in self.storage.get_votes_for_submission(submission_id, self.votes):

@@ -56,6 +56,7 @@ from milestone5_policy import (
     REVIEW_EPOCH_BLOCKS,
     REVIEWER_POLICY_VERSION,
     REPUTATION_RULE_VERSION,
+    reputation_rules,
     validate_reviewer_status,
 )
 from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION, decode_canonical_bytes, encode_canonical_bytes
@@ -964,6 +965,33 @@ def receive_peer_vote(
     if normalized_vote.get("content_hash") and submission.content_hash != normalized_vote["content_hash"]:
         raise MalformedVoteError("Vote content_hash does not match submission.")
 
+    reviewer_snapshot_present = normalized_vote.get("reviewer_policy_version") is not None
+    decision = None
+    if reviewer_snapshot_present:
+        try:
+            decision = blockchain.get_reviewer_vote_decision(normalized_vote["voter"])
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
+    finalized = blockchain.get_finalized_head()
+
+    def record_peer_offense(offense_type, votes, *, active_penalty_id=None):
+        if finalized is None or decision is None or not hasattr(blockchain.storage, "record_reviewer_offense"):
+            return None
+        from reviewer_reputation import build_offense_evidence
+        offense = build_offense_evidence(
+            offense_type=offense_type, votes=votes,
+            reference_finalized_height=int(finalized["block_height"]),
+            reference_finalized_block_hash=finalized["block_hash"],
+            review_epoch=int(decision.review_epoch), creator_address=submission.submitter,
+            active_penalty_id=active_penalty_id,
+        )
+        outcome = blockchain._reviewer_reputation_service.apply_verified_offense(
+            offense,
+            state_before=decision.snapshot.get("underlying_reviewer_status", decision.status),
+        )
+        blockchain._persist_reputation_outcome(outcome)
+        return outcome
+
     existing_vote = _find_existing_vote(
         blockchain,
         normalized_vote["submission_id"],
@@ -977,16 +1005,13 @@ def receive_peer_vote(
                 "vote": existing_vote,
             }
         if normalized_vote.get("vote_identity") and hasattr(blockchain.storage, "record_durable_vote"):
-            blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="accepted")
+            blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="rejected", rejection_reason="conflicting_counted_vote")
+        if existing_vote.get("vote_identity") and existing_vote.get("vote_signature"):
+            from reviewer_reputation import SIGNED_VOTE_EQUIVOCATION
+            record_peer_offense(SIGNED_VOTE_EQUIVOCATION, [existing_vote, normalized_vote])
         raise ConflictingVoteError("Wallet has already voted differently on this submission.")
 
-    reviewer_snapshot_present = normalized_vote.get("reviewer_policy_version") is not None
-    decision = None
     if reviewer_snapshot_present:
-        try:
-            decision = blockchain.get_reviewer_vote_decision(normalized_vote["voter"])
-        except ValueError as exc:
-            raise MalformedVoteError(str(exc)) from exc
         expected = {
             "reviewer_policy_version": REVIEWER_POLICY_VERSION,
             "reputation_rule_version": REPUTATION_RULE_VERSION,
@@ -994,11 +1019,39 @@ def receive_peer_vote(
             "reviewer_status_effective_height": decision.snapshot.get("reference_finalized_height"),
             "reviewer_status_reference_block_hash": decision.snapshot.get("reference_finalized_block_hash"),
         }
-        if not decision.eligible:
+        from reviewer_reputation import (
+            CREATOR_SELF_VOTE, VOTE_DURING_COOLDOWN, VOTE_DURING_SUSPENSION,
+        )
+        if normalize_wallet_address(submission.submitter) == normalize_wallet_address(normalized_vote["voter"]):
+            if hasattr(blockchain.storage, "record_durable_vote"):
+                blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="rejected", rejection_reason="creator_self_vote")
+            record_peer_offense(CREATOR_SELF_VOTE, [normalized_vote])
+            raise MalformedVoteError("Submission creator cannot vote on their own submission.")
+        if decision.status in {"COOLDOWN", "SUSPENDED"}:
+            active = blockchain._reviewer_reputation_service.effective_penalty(normalized_vote["voter"], int(decision.review_epoch))
+            if hasattr(blockchain.storage, "record_durable_vote"):
+                blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="rejected", rejection_reason="reviewer_status_ineligible")
+            record_peer_offense(
+                VOTE_DURING_COOLDOWN if decision.status == "COOLDOWN" else VOTE_DURING_SUSPENSION,
+                [normalized_vote], active_penalty_id=active["penalty_id"] if active else None,
+            )
             raise MalformedVoteError(f"Peer reviewer is not eligible: {decision.reason}.")
         if any(normalized_vote.get(key) != value for key, value in expected.items()):
             raise MalformedVoteError("Peer reviewer snapshot does not match locally derived canonical state.")
         normalized_vote["reviewer_eligible"] = True
+        if not decision.eligible:
+            if hasattr(blockchain.storage, "record_durable_vote"):
+                blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="rejected", rejection_reason=decision.reason)
+            if decision.reason == "review_epoch_vote_limit_reached":
+                outcome = blockchain._reviewer_reputation_service.record_rate_limit_excess(
+                    normalized_vote,
+                    reference_finalized_height=int(finalized["block_height"]),
+                    reference_finalized_block_hash=finalized["block_hash"],
+                    review_epoch=int(decision.review_epoch),
+                    state_before=decision.snapshot.get("underlying_reviewer_status", decision.status),
+                )
+                blockchain._persist_reputation_outcome(outcome)
+            raise MalformedVoteError(f"Peer reviewer is not eligible: {decision.reason}.")
 
     try:
         vote = blockchain.cast_submission_vote(
@@ -1044,6 +1097,15 @@ def receive_peer_vote(
         )
         if durable["lifecycle_state"] != "accepted":
             blockchain.votes.remove(vote)
+            if durable.get("rejection_reason") == "review_epoch_vote_limit_reached" and finalized is not None:
+                outcome = blockchain._reviewer_reputation_service.record_rate_limit_excess(
+                    vote,
+                    reference_finalized_height=int(finalized["block_height"]),
+                    reference_finalized_block_hash=finalized["block_hash"],
+                    review_epoch=int(decision.review_epoch),
+                    state_before=decision.snapshot.get("underlying_reviewer_status", decision.status),
+                )
+                blockchain._persist_reputation_outcome(outcome)
             raise MalformedVoteError("Peer reviewer has reached the valid vote limit for this review epoch.")
 
     blockchain.save_blockchain()
@@ -1194,6 +1256,14 @@ def broadcast_vote_to_peers(
 ):
     return _peer_broadcast_service().broadcast_vote(
         vote, peer_store, origin_node_id, network_name, timeout_seconds
+    )
+
+
+def broadcast_reviewer_offense_to_peers(
+    offense, peer_store, origin_node_id, network_name, timeout_seconds=3,
+):
+    return _peer_broadcast_service().broadcast_reviewer_offense(
+        offense, peer_store, origin_node_id, network_name, timeout_seconds
     )
 
 
@@ -2702,8 +2772,10 @@ def _normalize_vote_payload(vote_payload, local_network_name):
     if all(value is not None for value in reviewer_values):
         if isinstance(normalized["reviewer_policy_version"], bool) or normalized["reviewer_policy_version"] != REVIEWER_POLICY_VERSION:
             raise MalformedVoteError("Vote reviewer_policy_version is unsupported.")
-        if isinstance(normalized["reputation_rule_version"], bool) or normalized["reputation_rule_version"] != REPUTATION_RULE_VERSION:
-            raise MalformedVoteError("Vote reputation_rule_version is unsupported.")
+        try:
+            reputation_rules(normalized["reputation_rule_version"])
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
         try:
             normalized["reviewer_status"] = validate_reviewer_status(normalized["reviewer_status"])
         except ValueError as exc:

@@ -45,6 +45,7 @@ PROTOCOL_V1_PEER_NONCE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}
 PEER_MESSAGE_TYPE_PEER_REGISTRATION = "peer-registration"
 PEER_MESSAGE_TYPE_SUBMISSION = "submission"
 PEER_MESSAGE_TYPE_VOTE = "vote"
+PEER_MESSAGE_TYPE_REVIEWER_OFFENSE = "reviewer-offense"
 PEER_MESSAGE_TYPE_CERTIFICATE = "certificate"
 PEER_MESSAGE_TYPE_BLOCK = "block"
 PEER_MESSAGE_TYPE_NATIVE_TRANSACTION = "native-transaction"
@@ -59,6 +60,7 @@ PROTOCOL_V1_PEER_MESSAGE_TYPES = {
     PEER_MESSAGE_TYPE_PEER_REGISTRATION,
     PEER_MESSAGE_TYPE_SUBMISSION,
     PEER_MESSAGE_TYPE_VOTE,
+    PEER_MESSAGE_TYPE_REVIEWER_OFFENSE,
     PEER_MESSAGE_TYPE_CERTIFICATE,
     PEER_MESSAGE_TYPE_BLOCK,
     PEER_MESSAGE_TYPE_NATIVE_TRANSACTION,
@@ -119,6 +121,7 @@ _PEER_ROUTE_BINDINGS = (
     _PeerRouteBinding("POST", re.compile(r"^/peers/register$"), PEER_MESSAGE_TYPE_PEER_REGISTRATION),
     _PeerRouteBinding("POST", re.compile(r"^/peers/submissions/receive$"), PEER_MESSAGE_TYPE_SUBMISSION),
     _PeerRouteBinding("POST", re.compile(r"^/peers/votes/receive$"), PEER_MESSAGE_TYPE_VOTE),
+    _PeerRouteBinding("POST", re.compile(r"^/peers/reviewer-offenses/receive$"), PEER_MESSAGE_TYPE_REVIEWER_OFFENSE),
     _PeerRouteBinding("POST", re.compile(r"^/peers/certificates/receive$"), PEER_MESSAGE_TYPE_CERTIFICATE),
     _PeerRouteBinding("POST", re.compile(r"^/peers/blocks/receive$"), PEER_MESSAGE_TYPE_BLOCK),
     _PeerRouteBinding("POST", re.compile(r"^/peers/transactions/receive$"), PEER_MESSAGE_TYPE_NATIVE_TRANSACTION),

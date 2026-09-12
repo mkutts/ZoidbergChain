@@ -1493,6 +1493,243 @@ class SQLiteStorageBackend(StorageBackend):
                 result["reviewer_eligible"] = bool(result["reviewer_eligible"])
         return results
 
+    def record_reviewer_offense(self, offense: dict[str, Any]) -> dict[str, Any]:
+        required = {
+            "offense_id", "offense_version", "reviewer_address", "offense_type",
+            "reputation_rule_version", "reference_finalized_height",
+            "reference_finalized_block_hash", "review_epoch", "evidence_payload",
+            "evidence_digest", "recorded_state_before", "resulting_state",
+            "escalation_count", "reason_code",
+        }
+        missing = sorted(required.difference(offense))
+        if missing:
+            raise ValueError(f"Reviewer offense is missing fields: {', '.join(missing)}.")
+        address = self._normalize_reviewer_address(offense["reviewer_address"])
+        reputation_rules(int(offense["reputation_rule_version"]))
+        values = {
+            "offense_id": str(offense["offense_id"]).lower(),
+            "offense_version": int(offense["offense_version"]),
+            "reviewer_address": address,
+            "offense_type": str(offense["offense_type"]),
+            "submission_id": offense.get("submission_id"),
+            "content_hash": offense.get("content_hash"),
+            "vote_identities_json": _canonical_record(sorted(offense.get("vote_identities") or [])),
+            "reputation_rule_version": int(offense["reputation_rule_version"]),
+            "reference_finalized_height": int(offense["reference_finalized_height"]),
+            "reference_finalized_block_hash": str(offense["reference_finalized_block_hash"]).lower(),
+            "review_epoch": int(offense["review_epoch"]),
+            "evidence_json": _canonical_record(offense["evidence_payload"]),
+            "evidence_digest": str(offense["evidence_digest"]).lower(),
+            "recorded_state_before": str(offense["recorded_state_before"]),
+            "resulting_state": str(offense["resulting_state"]),
+            "penalty_start_epoch": offense.get("penalty_start_epoch"),
+            "penalty_end_epoch": offense.get("penalty_end_epoch"),
+            "escalation_count": int(offense["escalation_count"]),
+            "reason_code": str(offense["reason_code"]),
+            "recorded_at": _utc_now_iso(),
+        }
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT offense_id FROM reviewer_offense_records WHERE offense_id = ?",
+                (values["offense_id"],),
+            ).fetchone()
+            if existing is not None:
+                return {"offense_id": existing[0], "replay": True}
+            connection.execute(
+                """INSERT INTO reviewer_offense_records
+                   (offense_id, offense_version, reviewer_address, offense_type,
+                    submission_id, content_hash, vote_identities_json,
+                    reputation_rule_version, reference_finalized_height,
+                    reference_finalized_block_hash, review_epoch, evidence_json,
+                    evidence_digest, recorded_state_before, resulting_state,
+                    penalty_start_epoch, penalty_end_epoch, escalation_count,
+                    reason_code, recorded_at)
+                   VALUES (:offense_id, :offense_version, :reviewer_address, :offense_type,
+                    :submission_id, :content_hash, :vote_identities_json,
+                    :reputation_rule_version, :reference_finalized_height,
+                    :reference_finalized_block_hash, :review_epoch, :evidence_json,
+                    :evidence_digest, :recorded_state_before, :resulting_state,
+                    :penalty_start_epoch, :penalty_end_epoch, :escalation_count,
+                    :reason_code, :recorded_at)""",
+                values,
+            )
+        return {"offense_id": values["offense_id"], "replay": False}
+
+    def list_reviewer_offenses(
+        self, reviewer_address: str | None = None, *, offense_type: str | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses, parameters = [], []
+        if reviewer_address is not None:
+            clauses.append("reviewer_address = ?")
+            parameters.append(self._normalize_reviewer_address(reviewer_address))
+        if offense_type is not None:
+            clauses.append("offense_type = ?")
+            parameters.append(str(offense_type))
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        columns = (
+            "offense_id", "offense_version", "reviewer_address", "offense_type",
+            "submission_id", "content_hash", "vote_identities_json",
+            "reputation_rule_version", "reference_finalized_height",
+            "reference_finalized_block_hash", "review_epoch", "evidence_json",
+            "evidence_digest", "recorded_state_before", "resulting_state",
+            "penalty_start_epoch", "penalty_end_epoch", "escalation_count",
+            "reason_code", "recorded_at",
+        )
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT {', '.join(columns)} FROM reviewer_offense_records{where} "
+                "ORDER BY reference_finalized_height, offense_id",
+                tuple(parameters),
+            ).fetchall()
+        results = [dict(zip(columns, row)) for row in rows]
+        for result in results:
+            result["vote_identities"] = json.loads(result.pop("vote_identities_json"))
+            result["evidence_payload"] = json.loads(result.pop("evidence_json"))
+        return results
+
+    def record_reviewer_penalty(self, penalty: dict[str, Any]) -> dict[str, Any]:
+        address = self._normalize_reviewer_address(penalty["reviewer_address"])
+        values = {
+            "penalty_id": str(penalty.get("penalty_id") or penalty["offense_id"]).lower(),
+            "offense_id": str(penalty["offense_id"]).lower(),
+            "reviewer_address": address,
+            "penalty_type": str(penalty["penalty_type"]),
+            "penalty_status": validate_reviewer_status(penalty["penalty_status"]),
+            "penalty_start_epoch": int(penalty["penalty_start_epoch"]),
+            "penalty_duration_epochs": int(penalty["penalty_duration_epochs"]),
+            "penalty_end_epoch": int(penalty["penalty_end_epoch"]),
+            "reference_finalized_height": int(penalty["reference_finalized_height"]),
+            "reference_finalized_block_hash": str(penalty["reference_finalized_block_hash"]).lower(),
+            "reputation_rule_version": int(penalty["reputation_rule_version"]),
+            "prior_reviewer_status": validate_reviewer_status(penalty["prior_reviewer_status"]),
+            "recorded_at": _utc_now_iso(),
+        }
+        reputation_rules(values["reputation_rule_version"])
+        if values["penalty_status"] not in {"COOLDOWN", "SUSPENDED"}:
+            raise ValueError("Penalty status must be COOLDOWN or SUSPENDED.")
+        if values["penalty_duration_epochs"] <= 0 or values["penalty_end_epoch"] <= values["penalty_start_epoch"]:
+            raise ValueError("Penalty duration must end after its start epoch.")
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT penalty_id FROM reviewer_penalties WHERE penalty_id = ? OR offense_id = ?",
+                (values["penalty_id"], values["offense_id"]),
+            ).fetchone()
+            if existing is not None:
+                return {"penalty_id": existing[0], "replay": True}
+            connection.execute(
+                """INSERT INTO reviewer_penalties
+                   (penalty_id, offense_id, reviewer_address, penalty_type, penalty_status,
+                    penalty_start_epoch, penalty_duration_epochs, penalty_end_epoch,
+                    reference_finalized_height, reference_finalized_block_hash,
+                    reputation_rule_version, prior_reviewer_status, recorded_at)
+                   VALUES (:penalty_id, :offense_id, :reviewer_address, :penalty_type,
+                    :penalty_status, :penalty_start_epoch, :penalty_duration_epochs,
+                    :penalty_end_epoch, :reference_finalized_height,
+                    :reference_finalized_block_hash, :reputation_rule_version,
+                    :prior_reviewer_status, :recorded_at)""",
+                values,
+            )
+        return {"penalty_id": values["penalty_id"], "replay": False}
+
+    def list_reviewer_penalties(self, reviewer_address: str | None = None) -> list[dict[str, Any]]:
+        columns = (
+            "penalty_id", "offense_id", "reviewer_address", "penalty_type",
+            "penalty_status", "penalty_start_epoch", "penalty_duration_epochs",
+            "penalty_end_epoch", "reference_finalized_height",
+            "reference_finalized_block_hash", "reputation_rule_version",
+            "prior_reviewer_status", "recorded_at",
+        )
+        where, parameters = "", ()
+        if reviewer_address is not None:
+            where = " WHERE reviewer_address = ?"
+            parameters = (self._normalize_reviewer_address(reviewer_address),)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT {', '.join(columns)} FROM reviewer_penalties{where} "
+                "ORDER BY penalty_start_epoch, penalty_id",
+                parameters,
+            ).fetchall()
+        return [dict(zip(columns, row)) for row in rows]
+
+    def record_rate_limit_excess_attempt(
+        self, vote: dict[str, Any], *, review_epoch: int,
+        reference_finalized_height: int, reference_finalized_block_hash: str,
+    ) -> dict[str, Any]:
+        record = _normalized_vote_record(vote)
+        if record["identity_status"] != "canonical" or record["vote_identity"] is None:
+            raise ValueError("Rate-limit excess attempts require a canonical signed vote identity.")
+        values = {
+            "vote_identity": record["vote_identity"],
+            "reviewer_address": record["voter_address"],
+            "review_epoch": int(review_epoch),
+            "reference_finalized_height": int(reference_finalized_height),
+            "reference_finalized_block_hash": str(reference_finalized_block_hash).lower(),
+            "vote_evidence_json": record["source_record_json"],
+            "recorded_at": _utc_now_iso(),
+        }
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT vote_identity FROM reviewer_rate_limit_excess_attempts WHERE vote_identity = ?",
+                (values["vote_identity"],),
+            ).fetchone()
+            replay = existing is not None
+            if not replay:
+                connection.execute(
+                    """INSERT INTO reviewer_rate_limit_excess_attempts
+                       (vote_identity, reviewer_address, review_epoch,
+                        reference_finalized_height, reference_finalized_block_hash,
+                        vote_evidence_json, recorded_at)
+                       VALUES (:vote_identity, :reviewer_address, :review_epoch,
+                        :reference_finalized_height, :reference_finalized_block_hash,
+                        :vote_evidence_json, :recorded_at)""",
+                    values,
+                )
+            rows = connection.execute(
+                """SELECT vote_identity, vote_evidence_json
+                   FROM reviewer_rate_limit_excess_attempts
+                   WHERE reviewer_address = ? AND review_epoch = ?
+                   ORDER BY vote_identity""",
+                (values["reviewer_address"], values["review_epoch"]),
+            ).fetchall()
+        return {
+            "replay": replay,
+            "count": len(rows),
+            "vote_identities": [row[0] for row in rows],
+            "votes": [json.loads(row[1]) for row in rows],
+        }
+
+    def list_rate_limit_excess_attempts(self, reviewer_address: str | None = None) -> list[dict[str, Any]]:
+        columns = (
+            "vote_identity", "reviewer_address", "review_epoch",
+            "reference_finalized_height", "reference_finalized_block_hash",
+            "vote_evidence_json", "recorded_at",
+        )
+        where, parameters = "", ()
+        if reviewer_address is not None:
+            where = " WHERE reviewer_address = ?"
+            parameters = (self._normalize_reviewer_address(reviewer_address),)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT {', '.join(columns)} FROM reviewer_rate_limit_excess_attempts{where} "
+                "ORDER BY review_epoch, vote_identity",
+                parameters,
+            ).fetchall()
+        results = [dict(zip(columns, row)) for row in rows]
+        for result in results:
+            result["vote_evidence"] = json.loads(result.pop("vote_evidence_json"))
+        return results
+
+    def clear_reviewer_reputation_records(self) -> None:
+        """Clear relational reputation data for an explicit snapshot replacement."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("DELETE FROM reviewer_penalties")
+            connection.execute("DELETE FROM reviewer_offense_records")
+            connection.execute("DELETE FROM reviewer_rate_limit_excess_attempts")
+
     @staticmethod
     def _normalize_reviewer_address(value: str) -> str:
         normalized = normalize_wallet_address(value)
@@ -1626,6 +1863,13 @@ class SQLiteStorageBackend(StorageBackend):
         for result in results:
             result["bootstrap_established"] = bool(result["bootstrap_established"])
         return results
+
+    def clear_reviewer_state_records(self) -> None:
+        """Clear reviewer projections for an explicit portable snapshot import."""
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute("DELETE FROM reviewer_state_transitions")
+            connection.execute("DELETE FROM reviewer_states")
 
     @staticmethod
     def _synchronize_originality_evidence_records(connection, evidence_records, document) -> None:
@@ -1932,6 +2176,86 @@ class SQLiteStorageBackend(StorageBackend):
                 ON durable_vote_records(submission_id, voter_address)
                 WHERE lifecycle_state = 'accepted'
                 """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reviewer_offense_records (
+                    offense_id TEXT PRIMARY KEY,
+                    offense_version INTEGER NOT NULL CHECK (offense_version > 0),
+                    reviewer_address TEXT NOT NULL,
+                    offense_type TEXT NOT NULL CHECK (offense_type IN (
+                        'SIGNED_VOTE_EQUIVOCATION', 'CREATOR_SELF_VOTE',
+                        'RATE_LIMIT_ABUSE', 'VOTE_DURING_COOLDOWN',
+                        'VOTE_DURING_SUSPENSION'
+                    )),
+                    submission_id TEXT,
+                    content_hash TEXT,
+                    vote_identities_json TEXT NOT NULL,
+                    reputation_rule_version INTEGER NOT NULL CHECK (reputation_rule_version > 0),
+                    reference_finalized_height INTEGER NOT NULL CHECK (reference_finalized_height >= 0),
+                    reference_finalized_block_hash TEXT NOT NULL,
+                    review_epoch INTEGER NOT NULL CHECK (review_epoch >= 0),
+                    evidence_json TEXT NOT NULL,
+                    evidence_digest TEXT NOT NULL,
+                    recorded_state_before TEXT NOT NULL,
+                    resulting_state TEXT NOT NULL,
+                    penalty_start_epoch INTEGER,
+                    penalty_end_epoch INTEGER,
+                    escalation_count INTEGER NOT NULL CHECK (escalation_count >= 0),
+                    reason_code TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    UNIQUE (evidence_digest),
+                    CHECK ((penalty_start_epoch IS NULL) = (penalty_end_epoch IS NULL))
+                )
+                """
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS reviewer_offenses_by_address_type
+                   ON reviewer_offense_records(reviewer_address, offense_type, review_epoch)"""
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reviewer_penalties (
+                    penalty_id TEXT PRIMARY KEY,
+                    offense_id TEXT NOT NULL UNIQUE,
+                    reviewer_address TEXT NOT NULL,
+                    penalty_type TEXT NOT NULL,
+                    penalty_status TEXT NOT NULL CHECK (penalty_status IN ('COOLDOWN', 'SUSPENDED')),
+                    penalty_start_epoch INTEGER NOT NULL CHECK (penalty_start_epoch >= 0),
+                    penalty_duration_epochs INTEGER NOT NULL CHECK (penalty_duration_epochs > 0),
+                    penalty_end_epoch INTEGER NOT NULL,
+                    reference_finalized_height INTEGER NOT NULL CHECK (reference_finalized_height >= 0),
+                    reference_finalized_block_hash TEXT NOT NULL,
+                    reputation_rule_version INTEGER NOT NULL CHECK (reputation_rule_version > 0),
+                    prior_reviewer_status TEXT NOT NULL CHECK (prior_reviewer_status IN (
+                        'NEW', 'PROBATIONARY_REVIEWER', 'ESTABLISHED_REVIEWER', 'COOLDOWN', 'SUSPENDED'
+                    )),
+                    recorded_at TEXT NOT NULL,
+                    FOREIGN KEY (offense_id) REFERENCES reviewer_offense_records(offense_id),
+                    CHECK (penalty_end_epoch > penalty_start_epoch)
+                )
+                """
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS reviewer_penalties_by_address_epoch
+                   ON reviewer_penalties(reviewer_address, penalty_start_epoch, penalty_end_epoch)"""
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reviewer_rate_limit_excess_attempts (
+                    vote_identity TEXT PRIMARY KEY,
+                    reviewer_address TEXT NOT NULL,
+                    review_epoch INTEGER NOT NULL CHECK (review_epoch >= 0),
+                    reference_finalized_height INTEGER NOT NULL CHECK (reference_finalized_height >= 0),
+                    reference_finalized_block_hash TEXT NOT NULL,
+                    vote_evidence_json TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS reviewer_rate_excess_by_address_epoch
+                   ON reviewer_rate_limit_excess_attempts(reviewer_address, review_epoch)"""
             )
             connection.execute(
                 """

@@ -490,6 +490,14 @@ class PeerVoteReceive(BaseModel):
     reviewer_status_reference_block_hash: ContentHashValue | None = None
 
 
+class PeerReviewerOffenseReceive(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    origin_node_id: NodeIdValue
+    network_name: NetworkNameValue
+    offense: dict[str, Any]
+
+
 class PeerBlockReceive(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

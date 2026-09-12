@@ -272,6 +272,31 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
         raise HTTPException(status_code=409, detail=str(e))
 
 
+@router.post('/peers/reviewer-offenses/receive')
+@api_limit("peer_receive")
+async def receive_reviewer_offense_from_peer(
+    request: Request,
+    receive_request: PeerReviewerOffenseReceive,
+    _: None = Depends(require_peer_secret),
+):
+    _sync_runtime_globals()
+    authenticated_peer = _require_protocol_v1_peer_claims_match_auth(
+        request,
+        claimed_node_id=receive_request.origin_node_id,
+        claimed_network_name=receive_request.network_name,
+    )
+    origin_node_id = authenticated_peer.sender_node_id if authenticated_peer is not None else receive_request.origin_node_id
+    peer = peer_store.get_active_peer(origin_node_id)
+    if peer is None:
+        raise HTTPException(status_code=403, detail="Peer is not registered or active.")
+    if receive_request.network_name != NETWORK_NAME or peer.get("network_name") != NETWORK_NAME:
+        raise HTTPException(status_code=400, detail="Peer offense belongs to a different network.")
+    try:
+        return blockchain.receive_reviewer_offense_evidence(receive_request.offense)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @router.post('/peers/certificates/receive')
 @api_limit("peer_receive")
 async def receive_certificate_from_peer(request: Request, receive_request: PeerCertificateReceive, _: None = Depends(require_peer_secret)):
@@ -723,6 +748,7 @@ _ROUTE_ORDER = {
     ('GET', '/peers/mempool/summary', 'get_peer_mempool_summary'): 61,
     ('POST', '/peers/submissions/receive', 'receive_submission_from_peer'): 62,
     ('POST', '/peers/votes/receive', 'receive_vote_from_peer'): 63,
+    ('POST', '/peers/reviewer-offenses/receive', 'receive_reviewer_offense_from_peer'): 134,
     ('POST', '/peers/certificates/receive', 'receive_certificate_from_peer'): 64,
     ('POST', '/peers/blocks/receive', 'receive_block_from_peer'): 65,
     ('GET', '/peers/chain/summary', 'peer_chain_summary'): 68,

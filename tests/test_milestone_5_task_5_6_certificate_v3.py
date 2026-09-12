@@ -141,7 +141,7 @@ def _signed_vote(account, submission_id, content_hash, choice, status, number):
 def test_v3_constants_and_policy_identities_are_locked():
     assert (MIN_VALID_VOTES, MIN_ESTABLISHED_VOTES, APPROVAL_THRESHOLD_BPS) == (5, 1, 7000)
     assert reviewer_policy_digest() == "ac6140446255e0d2a4f076f0d257a48d6a6a446dde2272a51568e8f020ee90eb"
-    assert reputation_rules_digest() == "9bfdfc196fd6d54796d699b513a550672b6e12d659b9dbb52f1e44b065be17fb"
+    assert reputation_rules_digest(1) == "9bfdfc196fd6d54796d699b513a550672b6e12d659b9dbb52f1e44b065be17fb"
 
 
 def test_v3_canonical_payload_and_certificate_id_golden_vector():
@@ -375,7 +375,7 @@ def test_blockchain_reconstructs_established_participation_without_weighting(tmp
             "voter": established.address,
             "vote_type": "unsure",
             "reviewer_policy_version": 1,
-            "reputation_rule_version": 1,
+            "reputation_rule_version": 2,
             "reviewer_status": "PROBATIONARY_REVIEWER",
             "reviewer_status_effective_height": 15 if number < 5 else 20,
             "reviewer_status_reference_block_hash": f"{15 if number < 5 else 20:064x}",
@@ -395,6 +395,7 @@ def test_blockchain_reconstructs_established_participation_without_weighting(tmp
         )
         vote["reviewer_status_effective_height"] = 30
         vote["reviewer_status_reference_block_hash"] = f"{30:064x}"
+        vote["reputation_rule_version"] = 2
         backend.record_durable_vote(vote)
         chain.votes.append(vote)
     context = chain.get_certificate_v3_vote_context(submission.submission_id)

@@ -13,7 +13,8 @@ from protocol_v1 import PUBLIC_TESTNET_V1_NETWORK_ID, canonical_hash, canonical_
 
 
 REVIEWER_POLICY_VERSION = 1
-REPUTATION_RULE_VERSION = 1
+LEGACY_REPUTATION_RULE_VERSION = 1
+REPUTATION_RULE_VERSION = 2
 
 REVIEW_EPOCH_BLOCKS = 5
 MIN_WALLET_AGE_EPOCHS = 3
@@ -33,6 +34,13 @@ ESTABLISHED_MAX_VOTES_PER_EPOCH = 25
 MIN_VALID_VOTES = 5
 MIN_ESTABLISHED_VOTES = 1
 APPROVAL_THRESHOLD_BPS = 7000
+
+OFFENSE_EVIDENCE_VERSION = 1
+EQUIVOCATION_COOLDOWN_EPOCHS = (3, 10)
+SELF_VOTE_COOLDOWN_EPOCHS = (1, 3)
+RATE_LIMIT_ABUSE_COOLDOWN_EPOCHS = (1, 3)
+SUSPENSION_EPOCHS = 25
+RATE_LIMIT_EXCESS_THRESHOLD = 3
 
 
 def certificate_v3_approval_passes(original_votes: int, not_original_votes: int) -> bool:
@@ -107,10 +115,10 @@ _REVIEWER_POLICIES: dict[int, dict[str, Any]] = {
 }
 
 _REPUTATION_RULES: dict[int, dict[str, Any]] = {
-    REPUTATION_RULE_VERSION: {
+    LEGACY_REPUTATION_RULE_VERSION: {
         "network_id": PUBLIC_TESTNET_V1_NETWORK_ID,
         "policy_kind": "reputation",
-        "reputation_rule_version": REPUTATION_RULE_VERSION,
+        "reputation_rule_version": LEGACY_REPUTATION_RULE_VERSION,
         "automatic_penalties": {
             "enabled": False,
             "objective_protocol_violations_only": True,
@@ -118,7 +126,57 @@ _REPUTATION_RULES: dict[int, dict[str, Any]] = {
             "reserved_for_task": "5.6",
         },
         "collusion_analytics": "alert_only",
-    }
+    },
+    REPUTATION_RULE_VERSION: {
+        "network_id": PUBLIC_TESTNET_V1_NETWORK_ID,
+        "policy_kind": "reputation",
+        "reputation_rule_version": REPUTATION_RULE_VERSION,
+        "offense_evidence_version": OFFENSE_EVIDENCE_VERSION,
+        "review_epoch_source": "finalized_canonical_height",
+        "review_epoch_blocks": REVIEW_EPOCH_BLOCKS,
+        "automatic_penalties": {
+            "enabled": True,
+            "objective_protocol_violations_only": True,
+            "offense_count_scope": "per_offense_type",
+            "rules": {
+                "SIGNED_VOTE_EQUIVOCATION": {
+                    "incident_grouping": "reviewer_submission_content",
+                    "cooldown_epochs_by_offense_sequence": list(EQUIVOCATION_COOLDOWN_EPOCHS),
+                    "suspension_from_offense_sequence": 3,
+                    "suspension_epochs": SUSPENSION_EPOCHS,
+                },
+                "CREATOR_SELF_VOTE": {
+                    "incident_grouping": "signed_vote_identity",
+                    "cooldown_epochs_by_offense_sequence": list(SELF_VOTE_COOLDOWN_EPOCHS),
+                    "suspension_from_offense_sequence": 3,
+                    "suspension_epochs": SUSPENSION_EPOCHS,
+                },
+                "RATE_LIMIT_ABUSE": {
+                    "incident_grouping": "reviewer_review_epoch",
+                    "valid_excess_attempts_required": RATE_LIMIT_EXCESS_THRESHOLD,
+                    "cooldown_epochs_by_offense_sequence": list(RATE_LIMIT_ABUSE_COOLDOWN_EPOCHS),
+                    "suspension_from_offense_sequence": 3,
+                    "suspension_epochs": SUSPENSION_EPOCHS,
+                },
+                "VOTE_DURING_COOLDOWN": {
+                    "incident_grouping": "active_penalty_signed_vote_identity",
+                    "extension_formula": "max(existing_end_epoch, offense_epoch + active_penalty_duration_epochs)",
+                },
+                "VOTE_DURING_SUSPENSION": {
+                    "incident_grouping": "active_penalty_signed_vote_identity",
+                    "effect": "record_only_keep_existing_suspension",
+                },
+            },
+        },
+        "multiple_penalties": {
+            "effective_end_epoch": "maximum_active_end_epoch",
+            "status_precedence": ["SUSPENDED", "COOLDOWN"],
+            "restoration": "underlying_reviewer_status",
+        },
+        "non_penalized_vote_choices": ["original", "not_original", "unsure"],
+        "identical_signed_replay": "idempotent_non_penalizing",
+        "collusion_analytics": "alert_only",
+    },
 }
 
 

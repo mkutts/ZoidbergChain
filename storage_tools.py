@@ -40,7 +40,16 @@ _SECTION_TYPES = {
     "native_transactions": list,
     "originality_certificates": list,
     "originality_evidence": list,
+    "reviewer_states": list,
+    "reviewer_state_history": list,
+    "reviewer_offenses": list,
+    "reviewer_penalties": list,
+    "rate_limit_excess_attempts": list,
     "peers": list,
+}
+_OPTIONAL_REPUTATION_SECTIONS = {
+    "reviewer_states", "reviewer_state_history", "reviewer_offenses",
+    "reviewer_penalties", "rate_limit_excess_attempts",
 }
 _SENSITIVE_KEYS = {
     "private_key",
@@ -116,6 +125,15 @@ def _load_state(backend: StorageBackend) -> dict[str, Any]:
         "native_transactions": deepcopy(blockchain_state.get("native_transactions", [])),
         "originality_certificates": deepcopy(blockchain_state.get("originality_certificates", [])),
         "originality_evidence": deepcopy(blockchain_state.get("originality_evidence", [])),
+        "reviewer_states": deepcopy(backend.list_reviewer_states()) if hasattr(backend, "list_reviewer_states") else [],
+        "reviewer_state_history": deepcopy([
+            transition
+            for state in backend.list_reviewer_states()
+            for transition in backend.list_reviewer_state_history(state["reviewer_address"])
+        ]) if hasattr(backend, "list_reviewer_states") and hasattr(backend, "list_reviewer_state_history") else [],
+        "reviewer_offenses": deepcopy(backend.list_reviewer_offenses()) if hasattr(backend, "list_reviewer_offenses") else [],
+        "reviewer_penalties": deepcopy(backend.list_reviewer_penalties()) if hasattr(backend, "list_reviewer_penalties") else [],
+        "rate_limit_excess_attempts": deepcopy(backend.list_rate_limit_excess_attempts()) if hasattr(backend, "list_rate_limit_excess_attempts") else [],
         "peers": deepcopy(backend.load_peers() or blockchain_state.get("peers", [])),
     }
     _validate_state_shape(state, label="Storage state")
@@ -288,6 +306,9 @@ def _validate_state_shape(state: dict[str, Any], *, label: str) -> None:
         raise ValueError(f"{label} must be an object.")
     for section_name, expected_type in _SECTION_TYPES.items():
         if section_name not in state:
+            if section_name in _OPTIONAL_REPUTATION_SECTIONS:
+                state[section_name] = []
+                continue
             raise ValueError(f"{label} is missing state section: {section_name}.")
         if not isinstance(state[section_name], expected_type):
             raise ValueError(
@@ -360,6 +381,46 @@ def _write_state_to_backend(backend: StorageBackend, state: dict[str, Any]) -> N
     }
     backend.save_blockchain_state(blockchain_state)
     backend.save_peers(deepcopy(state.get("peers", [])))
+    if hasattr(backend, "clear_reviewer_state_records"):
+        backend.clear_reviewer_state_records()
+        history_by_address: dict[str, list[dict[str, Any]]] = {}
+        for transition in state.get("reviewer_state_history", []):
+            history_by_address.setdefault(transition["reviewer_address"], []).append(transition)
+        states_by_address = {item["reviewer_address"]: item for item in state.get("reviewer_states", [])}
+        for address in sorted(set(states_by_address) | set(history_by_address)):
+            transitions = sorted(history_by_address.get(address, []), key=lambda item: item["transition_sequence"])
+            initial = transitions[0] if transitions else states_by_address[address]
+            backend.initialize_reviewer_state(
+                address, current_status=initial.get("to_status", initial.get("current_status", "NEW")),
+                reviewer_policy_version=initial.get("reviewer_policy_version", 1),
+                reputation_rule_version=initial.get("reputation_rule_version", 1),
+                status_effective_height=initial.get("status_effective_height"),
+                status_reference_block_hash=initial.get("status_reference_block_hash"),
+                bootstrap_established=bool(initial.get("bootstrap_established")),
+                reason=initial.get("reason"),
+            )
+            for transition in transitions[1:]:
+                backend.transition_reviewer_state(
+                    address, to_status=transition["to_status"],
+                    reviewer_policy_version=transition["reviewer_policy_version"],
+                    reputation_rule_version=transition["reputation_rule_version"],
+                    status_effective_height=transition["status_effective_height"],
+                    status_reference_block_hash=transition["status_reference_block_hash"],
+                    bootstrap_established=bool(transition.get("bootstrap_established")),
+                    reason=transition.get("reason"),
+                )
+    if hasattr(backend, "clear_reviewer_reputation_records"):
+        backend.clear_reviewer_reputation_records()
+        for offense in state.get("reviewer_offenses", []):
+            backend.record_reviewer_offense(offense)
+        for penalty in state.get("reviewer_penalties", []):
+            backend.record_reviewer_penalty(penalty)
+        for attempt in state.get("rate_limit_excess_attempts", []):
+            backend.record_rate_limit_excess_attempt(
+                attempt["vote_evidence"], review_epoch=attempt["review_epoch"],
+                reference_finalized_height=attempt["reference_finalized_height"],
+                reference_finalized_block_hash=attempt["reference_finalized_block_hash"],
+            )
 
 
 def _normalize_imported_content_objects(
@@ -577,6 +638,11 @@ def import_storage(
         "native_transactions": deepcopy(state.get("native_transactions", [])),
         "originality_certificates": deepcopy(state.get("originality_certificates", [])),
         "originality_evidence": deepcopy(state.get("originality_evidence", [])),
+        "reviewer_states": deepcopy(state.get("reviewer_states", [])),
+        "reviewer_state_history": deepcopy(state.get("reviewer_state_history", [])),
+        "reviewer_offenses": deepcopy(state.get("reviewer_offenses", [])),
+        "reviewer_penalties": deepcopy(state.get("reviewer_penalties", [])),
+        "rate_limit_excess_attempts": deepcopy(state.get("rate_limit_excess_attempts", [])),
         "peers": deepcopy(state.get("peers", [])),
     }
 

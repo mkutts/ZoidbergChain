@@ -19,6 +19,7 @@ from milestone5_policy import (
     MIN_VALID_VOTES,
     REVIEWER_POLICY_VERSION,
     REPUTATION_RULE_VERSION,
+    reputation_rules,
 )
 from protocol_v1_originality import (
     MILESTONE5_CERTIFICATE_VERSION,
@@ -50,6 +51,7 @@ def validate_certificate_v3_vote_record(
     creator_address,
     network_id,
     reviewer_status_resolver,
+    reputation_rule_version=None,
 ):
     """Independently validate one signed, policy-bound counted v3 vote."""
     if not isinstance(vote, dict):
@@ -66,7 +68,9 @@ def validate_certificate_v3_vote_record(
         raise ValueError("Certificate-v3 vote content_hash does not match the certificate.")
     if vote.get("reviewer_policy_version") != REVIEWER_POLICY_VERSION:
         raise ValueError("Certificate-v3 vote reviewer_policy_version is unsupported.")
-    if vote.get("reputation_rule_version") != REPUTATION_RULE_VERSION:
+    expected_reputation_rule = vote.get("reputation_rule_version") if reputation_rule_version is None else reputation_rule_version
+    reputation_rules(expected_reputation_rule)
+    if vote.get("reputation_rule_version") != expected_reputation_rule:
         raise ValueError("Certificate-v3 vote reputation_rule_version is unsupported.")
     if vote.get("reviewer_eligible") is not True:
         raise ValueError("Certificate-v3 vote is not marked canonically eligible.")
@@ -76,7 +80,13 @@ def validate_certificate_v3_vote_record(
         raise ValueError("Certificate-v3 vote reviewer reference height is invalid.")
     if len(reference_hash) != 64 or any(ch not in "0123456789abcdef" for ch in reference_hash):
         raise ValueError("Certificate-v3 vote reviewer reference hash is invalid.")
-    derived_status = reviewer_status_resolver(voter, height, reference_hash)
+    try:
+        derived_status = reviewer_status_resolver(
+            voter, height, reference_hash,
+            reputation_rule_version=expected_reputation_rule,
+        )
+    except TypeError:
+        derived_status = reviewer_status_resolver(voter, height, reference_hash)
     if derived_status not in {"PROBATIONARY_REVIEWER", "ESTABLISHED_REVIEWER"}:
         raise ValueError("Certificate-v3 vote reviewer was not eligible at its finalized reference.")
     if vote.get("reviewer_status") != derived_status:
@@ -419,8 +429,7 @@ def validate_certificate_for_submission(
         if certificate.is_certificate_v3():
             if certificate.reviewer_policy_version != REVIEWER_POLICY_VERSION:
                 raise ValueError("Certificate-v3 reviewer_policy_version is unsupported.")
-            if certificate.reputation_rule_version != REPUTATION_RULE_VERSION:
-                raise ValueError("Certificate-v3 reputation_rule_version is unsupported.")
+            reputation_rules(certificate.reputation_rule_version)
             if certificate.minimum_valid_votes != MIN_VALID_VOTES or certificate.minimum_votes_required != MIN_VALID_VOTES:
                 raise ValueError("Certificate-v3 minimum valid-vote quorum is inconsistent.")
             if certificate.minimum_established_votes != MIN_ESTABLISHED_VOTES:
@@ -452,7 +461,7 @@ def validate_certificate_for_submission(
                 raise ValueError("Certificate-v3 reviewer snapshot digest is inconsistent.")
             if reviewer_snapshot.get("reviewer_snapshot_digest") != certificate.reviewer_snapshot_digest:
                 raise ValueError("Certificate-v3 reviewer snapshot assertion is inconsistent.")
-            if snapshot_payload["reviewer_policy_version"] != REVIEWER_POLICY_VERSION or snapshot_payload["reputation_rule_version"] != REPUTATION_RULE_VERSION:
+            if snapshot_payload["reviewer_policy_version"] != REVIEWER_POLICY_VERSION or snapshot_payload["reputation_rule_version"] != certificate.reputation_rule_version:
                 raise ValueError("Certificate-v3 reviewer snapshot policy versions are inconsistent.")
             if snapshot_payload["reference_finalized_height"] != certificate.reviewer_snapshot_reference_height or snapshot_payload["reference_finalized_block_hash"] != certificate.reviewer_snapshot_reference_block_hash:
                 raise ValueError("Certificate-v3 reviewer snapshot reference is inconsistent.")
@@ -483,11 +492,19 @@ def validate_certificate_for_submission(
                 if address in snapshot_statuses:
                     raise ValueError("Certificate-v3 reviewer snapshot contains a duplicate reviewer.")
                 asserted_status = item.get("status")
-                derived_status = reviewer_status_resolver(
-                    address,
-                    certificate.reviewer_snapshot_reference_height,
-                    certificate.reviewer_snapshot_reference_block_hash,
-                )
+                try:
+                    derived_status = reviewer_status_resolver(
+                        address,
+                        certificate.reviewer_snapshot_reference_height,
+                        certificate.reviewer_snapshot_reference_block_hash,
+                        reputation_rule_version=certificate.reputation_rule_version,
+                    )
+                except TypeError:
+                    derived_status = reviewer_status_resolver(
+                        address,
+                        certificate.reviewer_snapshot_reference_height,
+                        certificate.reviewer_snapshot_reference_block_hash,
+                    )
                 if asserted_status != derived_status:
                     raise ValueError("Certificate-v3 reviewer snapshot status is not locally reproducible.")
                 snapshot_statuses[address] = asserted_status
@@ -503,6 +520,7 @@ def validate_certificate_for_submission(
                     creator_address=certificate.creator_address,
                     network_id=certificate.network_id,
                     reviewer_status_resolver=reviewer_status_resolver,
+                    reputation_rule_version=certificate.reputation_rule_version,
                 )
                 voter = normalize_wallet_address(vote.get("voter_wallet_address") or vote.get("voter"))
                 if voter in seen:
@@ -733,7 +751,7 @@ class OriginalityCertificate:
             originality_reference_block_hash=(originality_evidence or {}).get("originality_reference_block_hash"),
             originality_evidence_digest=(originality_evidence or {}).get("canonical_evidence_digest"),
             reviewer_policy_version=(REVIEWER_POLICY_VERSION if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION else None),
-            reputation_rule_version=(REPUTATION_RULE_VERSION if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION else None),
+            reputation_rule_version=((reviewer_snapshot or {}).get("reputation_rule_version", REPUTATION_RULE_VERSION) if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION else None),
             reviewer_snapshot_reference_height=((reviewer_snapshot or {}).get("reference_finalized_height") if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION else None),
             reviewer_snapshot_reference_block_hash=((reviewer_snapshot or {}).get("reference_finalized_block_hash") if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION else None),
             reviewer_snapshot_digest=((reviewer_snapshot or {}).get("reviewer_snapshot_digest") if certificate_version == MILESTONE5_CERTIFICATE_V3_VERSION else None),

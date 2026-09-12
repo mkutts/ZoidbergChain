@@ -1288,6 +1288,20 @@
   },
   {
     "method": "POST",
+    "path": "/peers/reviewer-offenses/receive",
+    "name": "receive_reviewer_offense_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerReviewerOffenseReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
     "path": "/peers/submissions/receive",
     "name": "receive_submission_from_peer",
     "classification": "peer",
@@ -1358,6 +1372,30 @@
     "method": "GET",
     "path": "/review/policy",
     "name": "get_review_policy",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/reviewers/{wallet_address}/offenses",
+    "name": "get_reviewer_offenses",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/reviewers/{wallet_address}/reputation",
+    "name": "get_reviewer_reputation",
     "classification": "public",
     "authentication_expected": false,
     "authorization_expected": false,

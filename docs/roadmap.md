@@ -1,5 +1,17 @@
 # Roadmap
 
+## Milestone 5 release status
+
+Milestone 5 (Proof of Originality Security and Reviewer Reputation) is complete
+for Public Testnet v1 as of September 12, 2026, with documented non-blocking
+risks. The final gate passed 1,152 backend tests and includes integrated
+two-node/restart reconstruction, fixed certificate-v3 quorum, objective
+reputation evidence, and advisory-only collusion analytics.
+Completion does not claim global authorship proof; fuzzy matching and collusion
+signals remain review/advisory mechanisms with documented limitations.
+
+See [Milestone 5 release-readiness report](milestone-5-release-readiness-report.md).
+
 As of Saturday, August 1, 2026, ZoidbergChain is complete through Task 8 for controlled dev/testnet use.
 
 ## Current Status

@@ -17,7 +17,7 @@ from peer_sync import (
     receive_peer_vote,
     sync_chain_from_peers,
 )
-from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID, encode_canonical_bytes
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from content import calculate_content_id
 from submission import Submission, VOTE_ORIGINAL
@@ -253,6 +253,7 @@ def test_peer_synced_state_persists_after_reload(backend_factory, isolated_data_
         now=4_000.0,
     )
 
+    media = source["blockchain"]._certificate_media_context(source["submission"])
     receive_peer_submission(
         blockchain=target,
         peer_store=target_peer_store,
@@ -260,6 +261,8 @@ def test_peer_synced_state_persists_after_reload(backend_factory, isolated_data_
         network_name="zoidberg-testnet",
         submission_payload=source["submission"].to_dict(),
         local_network_name="zoidberg-testnet",
+        media_payload=encode_canonical_bytes(media["media_bytes"]),
+        media_mime_type=media["mime_type"],
     )
     for vote in source["blockchain"].votes:
         receive_peer_vote(

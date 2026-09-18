@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from typing import Any, Callable
 
 from PIL import Image, ImageOps
+from media_admission_policy import effective_local_defense_limits
 import imagehash
 import pytesseract
 
@@ -220,7 +221,9 @@ def _image_features(
         try:
             extractor = ocr or (
                 lambda prepared: pytesseract.image_to_string(
-                    prepared, config="--psm 11 --oem 1 -l eng"
+                    prepared,
+                    config="--psm 11 --oem 1 -l eng",
+                    timeout=effective_local_defense_limits()["ocr_wall_time_seconds"],
                 )
             )
             prepared = ImageOps.autocontrast(image.convert("L")).point(

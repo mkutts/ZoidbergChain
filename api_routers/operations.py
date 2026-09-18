@@ -201,10 +201,11 @@ async def add_block(
     """
     if not image.filename:
         raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
-    file_bytes = await image.read()
     try:
-        validate_content_size(len(file_bytes))
+        file_bytes = await read_upload_file_bounded(image)
         safe_original_filename, _ = _validate_uploaded_image_payload(image, file_bytes)
+    except TechnicalMediaValidationError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     try:

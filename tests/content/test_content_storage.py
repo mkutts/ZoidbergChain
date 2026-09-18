@@ -1,6 +1,8 @@
 from pathlib import Path
+import io
 
 import pytest
+from PIL import Image
 
 import storage
 from blockchain import Blockchain
@@ -30,10 +32,16 @@ from storage import JSONStorageBackend, SQLiteStorageBackend
 from wallet import Wallet
 
 
-PNG_BYTES = b"\x89PNG\r\n\x1a\npng-test"
-JPEG_BYTES = b"\xff\xd8\xff\xdbjpeg-test\xff\xd9"
-GIF_BYTES = b"GIF89agif-test"
-WEBP_BYTES = b"RIFF\x0c\x00\x00\x00WEBPwebp"
+def _image_bytes(format_name):
+    buffer = io.BytesIO()
+    Image.new("RGB", (2, 2), "red").save(buffer, format=format_name)
+    return buffer.getvalue()
+
+
+PNG_BYTES = _image_bytes("PNG")
+JPEG_BYTES = _image_bytes("JPEG")
+GIF_BYTES = _image_bytes("GIF")
+WEBP_BYTES = _image_bytes("WEBP")
 TEXT_BYTES = b"zoidberg text content"
 
 
@@ -276,10 +284,10 @@ def test_original_filename_is_safely_sanitized_and_truncated(monkeypatch):
     import content
 
     monkeypatch.setattr(content.config, "MAX_FILENAME_LENGTH", 8)
-    assert sanitize_original_filename("..\\..\\evil?.png") == "evil_.pn"
+    assert sanitize_original_filename("..\\..\\evil?.png") == "evil_.png"
 
 
-def test_legacy_submission_content_object_stays_local_and_unverifiable(isolated_data_dir, submission_image):
+def test_direct_submission_content_object_is_technically_verified(isolated_data_dir, submission_image):
     backend = _json_backend(isolated_data_dir, "legacy-node")
     blockchain, owner = _blockchain(backend)
 
@@ -291,10 +299,10 @@ def test_legacy_submission_content_object_stays_local_and_unverifiable(isolated_
 
     content_object = blockchain.get_content_object_by_hash(submission.content_hash)
     verification = verify_content_object_payload(content_object, data_dir=backend.data_dir)
-    assert content_object.storage_status == "local"
-    assert content_object.hash_scheme == HASH_SCHEME_LEGACY
-    assert verification["verified"] is False
-    assert verification["error"] == "legacy_unverifiable"
+    assert content_object.storage_status == "verified"
+    assert content_object.hash_scheme == HASH_SCHEME_SHA256_BYTES
+    assert content_object.metadata["technical_validation"]["outcome"] == "ACCEPT"
+    assert verification["verified"] is True
 
 
 def test_integrity_check_reports_corrupt_verified_content(isolated_data_dir):
@@ -316,7 +324,7 @@ def test_integrity_check_reports_corrupt_verified_content(isolated_data_dir):
     assert any("hash_mismatch" in detail for detail in report["details"])
 
 
-def test_integrity_check_warns_for_legacy_unverifiable_content(isolated_data_dir, submission_image):
+def test_integrity_check_verifies_hardened_direct_submission_content(isolated_data_dir, submission_image):
     backend = _json_backend(isolated_data_dir, "integrity-legacy")
     blockchain, owner = _blockchain(backend)
     blockchain.submit_content(
@@ -329,4 +337,4 @@ def test_integrity_check_warns_for_legacy_unverifiable_content(isolated_data_dir
     report = storage.check_storage_integrity(backend)
 
     assert report["healthy"] is True
-    assert any("legacy/unverifiable" in detail for detail in report["details"])
+    assert any("content verified" in detail for detail in report["details"])

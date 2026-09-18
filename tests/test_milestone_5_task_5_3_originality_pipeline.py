@@ -250,7 +250,7 @@ def test_sqlite_exact_duplicate_is_rejected_before_vote_and_survives_restart(tmp
     assert history[-1]["is_current"] is True
 
 
-def test_flagged_and_pass_submissions_can_vote(tmp_path):
+def test_pass_submission_can_vote_but_unvalidated_remote_media_cannot_enter_review(tmp_path):
     chain = _sqlite_chain(tmp_path)
     clean = chain.upload_text_content(text_content="entirely fresh deterministic prose", submitted_by="creator")
     passed = chain.submit_content_operation(content_hash=clean.content_hash, content_id=clean.content_id, text_content=clean.text_content, submitter="creator")
@@ -261,11 +261,8 @@ def test_flagged_and_pass_submissions_can_vote(tmp_path):
         content_hash="f" * 64, submitted_by="creator", mime_type="image/png",
         content_type="image", storage_status="remote",
     )
-    flagged = chain.submit_content_operation(content_hash=remote.content_hash, content_id=remote.content_id, submitter="creator")
-    evidence = chain.get_originality_evidence(flagged.submission_id)
-    assert evidence["final_prevote_decision"] == FLAGGED_FOR_REVIEW
-    assert evidence["perceptual_hash_result"]["status"] == CHECK_UNAVAILABLE
-    chain.cast_submission_vote(flagged.submission_id, "reviewer-b", VOTE_ORIGINAL)
+    with pytest.raises(ValueError, match="Technically validated media bytes are required"):
+        chain.submit_content_operation(content_hash=remote.content_hash, content_id=remote.content_id, submitter="creator")
 
 
 def test_later_chain_growth_does_not_retroactively_change_evidence(tmp_path):

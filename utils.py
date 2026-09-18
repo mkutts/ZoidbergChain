@@ -3,6 +3,7 @@ import imagehash
 import pytesseract
 import re
 import os
+from media_admission_policy import effective_local_defense_limits
 
 def hash_image(image_path):
         """Generate a perceptual hash for an image."""
@@ -28,8 +29,11 @@ def extract_text(image_path):
             img = Image.open(image_path)
 
             # Use Tesseract to extract text
-            raw_text = pytesseract.image_to_string(img, config="--psm 11")
-            print(f"Raw Extracted Text: {raw_text}")  # Debug output
+            raw_text = pytesseract.image_to_string(
+                img,
+                config="--psm 11",
+                timeout=effective_local_defense_limits()["ocr_wall_time_seconds"],
+            )
 
             # Clean the text: remove newlines, extra spaces, and unusual characters
             cleaned_text = re.sub(r'\s+', ' ', raw_text)  # Replace newlines and extra spaces with a single space

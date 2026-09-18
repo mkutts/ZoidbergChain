@@ -25,10 +25,11 @@ async def upload_content(
     _sync_runtime_globals()
     submitted_by = _normalize_supported_user_identity(submitted_by, field_name="submitted_by")
 
-    file_bytes = await file.read()
     try:
-        validate_content_size(len(file_bytes))
+        file_bytes = await read_upload_file_bounded(file)
         safe_caption = validate_caption(caption)
+    except TechnicalMediaValidationError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -66,7 +67,7 @@ async def upload_text_content(request: Request, payload: TextContentUpload):
 
     try:
         content_object = blockchain.upload_text_content_operation(
-            text_content=validate_text_content(payload.text_content),
+            text_content=payload.text_content,
             submitted_by=submitted_by,
             caption=validate_caption(payload.caption),
         )
@@ -215,10 +216,11 @@ async def submit_content(
             if image is None or not image.filename:
                 raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
 
-            file_bytes = await image.read()
             try:
-                validate_content_size(len(file_bytes))
+                file_bytes = await read_upload_file_bounded(image)
                 safe_original_filename, _detected_mime_type = _validate_uploaded_image_payload(image, file_bytes)
+            except TechnicalMediaValidationError as exc:
+                raise HTTPException(status_code=413, detail=str(exc)) from exc
             except ValueError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
 

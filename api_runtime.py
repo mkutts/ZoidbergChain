@@ -47,6 +47,12 @@ from wallet import Wallet
 from transaction import Transaction
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED
 from utils import extract_text
+from media_technical_validation import (
+    TechnicalMediaRequestLimitMiddleware,
+    TechnicalMediaValidationError,
+    read_upload_file_bounded,
+    validate_media_bytes,
+)
 from validators import (
     ETHEREUM_ADDRESS_PATTERN,
     HEX_32_PATTERN,
@@ -762,38 +768,18 @@ def _block_media_download_url(block):
 
 
 def _validate_uploaded_image_payload(image: UploadFile, file_bytes: bytes) -> tuple[str, str]:
-    try:
-        safe_original_filename = sanitize_original_filename(image.filename)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if not safe_original_filename:
-        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
-
     declared_mime_type = (image.content_type or "").strip().lower() or None
-    if declared_mime_type == "application/octet-stream":
-        declared_mime_type = None
-    if declared_mime_type is not None and declared_mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
-
-    detected_mime_type = detect_mime_type_from_bytes(file_bytes)
-    if detected_mime_type is None or detected_mime_type not in SUPPORTED_IMAGE_MIME_TYPES:
-        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp")
-
-    if (
-        declared_mime_type
-        and declared_mime_type != detected_mime_type
-        and ENABLE_STRICT_MIME_VALIDATION
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Declared mime_type {declared_mime_type!r} does not match detected mime_type "
-                f"{detected_mime_type!r}."
-            ),
+    try:
+        validated = validate_media_bytes(
+            file_bytes,
+            declared_mime_type=declared_mime_type,
+            original_filename=image.filename,
         )
-
-    return safe_original_filename, detected_mime_type
+    except TechnicalMediaValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not str(validated.result["detected_mime_type"]).startswith("image/"):
+        raise HTTPException(status_code=400, detail="Invalid image format. Allowed formats: jpg, jpeg, png, webp, gif")
+    return validated.result["safe_display_filename"], validated.result["detected_mime_type"]
 
 
 def _serialize_submission(submission):
@@ -1912,6 +1898,7 @@ async def lifespan(app):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(TechnicalMediaRequestLimitMiddleware)
 
 # CORS: allow both local and live frontend origins.
 app.add_middleware(

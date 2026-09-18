@@ -10,6 +10,8 @@ from content import (
     validate_mime_type,
 )
 from validators import is_valid_content_hash
+from media_admission_policy import media_admission_policy
+from media_technical_validation import TechnicalMediaValidationError, validate_media_bytes
 
 from .peer_network_errors import ContentSyncError
 
@@ -68,19 +70,14 @@ class PeerContentSyncService:
         if not isinstance(metadata, dict):
             raise ContentSyncError("Peer content metadata response is malformed.")
 
+        policy = media_admission_policy()
+        accepted_limit = policy["consensus_protocol"]["byte_limits"]["accepted_image_bytes"]
+        allowed_mimes = {item["mime_type"] for item in policy["consensus_protocol"]["allowed_media_types"]}
         file_size_bytes = metadata.get("file_size_bytes")
-        if isinstance(file_size_bytes, int):
-            try:
-                validate_content_size(max(file_size_bytes, 1), mime_type=metadata.get("mime_type"))
-            except ValueError:
-                return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
-        if isinstance(metadata.get("mime_type"), str):
-            try:
-                validate_mime_type(metadata.get("mime_type"))
-            except ValueError:
-                return {"status": "failed_verification", "reason": "unsupported_mime_type", "peer": peer.get("node_id")}
-        if isinstance(file_size_bytes, int) and file_size_bytes > self.max_content_file_size_bytes:
+        if isinstance(file_size_bytes, int) and (file_size_bytes <= 0 or file_size_bytes > accepted_limit):
             return {"status": "failed_verification", "reason": "oversized_metadata", "peer": peer.get("node_id")}
+        if isinstance(metadata.get("mime_type"), str) and metadata.get("mime_type").lower() not in allowed_mimes:
+            return {"status": "failed_verification", "reason": "unsupported_mime_type", "peer": peer.get("node_id")}
 
         binary_path = f"/peers/content/{content_hash}"
         binary_headers = self.build_headers(
@@ -90,6 +87,7 @@ class PeerContentSyncService:
         binary_kwargs = {"timeout": timeout_seconds}
         if binary_headers:
             binary_kwargs["headers"] = binary_headers
+        binary_kwargs["stream"] = True
         binary_response = self.transport.get(
             f"{peer['url'].rstrip('/')}{binary_path}", **binary_kwargs
         )
@@ -101,25 +99,43 @@ class PeerContentSyncService:
                 f"Peer content returned status {binary_status}: {getattr(binary_response, 'text', '')}"
             )
 
-        payload_bytes = binary_response.content
+        response_length = getattr(binary_response, "headers", {}).get("content-length")
+        try:
+            if response_length is not None and int(response_length) > accepted_limit:
+                return {"status": "failed_verification", "reason": "oversized_payload", "peer": peer.get("node_id")}
+        except (TypeError, ValueError):
+            pass
+        if callable(getattr(binary_response, "iter_content", None)):
+            chunks, received = [], 0
+            for chunk in binary_response.iter_content(chunk_size=64 * 1024):
+                if not chunk:
+                    continue
+                received += len(chunk)
+                if received > accepted_limit:
+                    return {"status": "failed_verification", "reason": "oversized_payload", "peer": peer.get("node_id")}
+                chunks.append(chunk)
+            payload_bytes = b"".join(chunks)
+        else:
+            payload_bytes = binary_response.content
         if not payload_bytes:
             return {"status": "failed_verification", "reason": "empty_payload", "peer": peer.get("node_id")}
         try:
-            validate_content_size(len(payload_bytes), mime_type=metadata.get("mime_type"))
-        except ValueError as exc:
-            reason = "oversized_payload" if "max size" in str(exc).lower() else "empty_payload"
-            return {"status": "failed_verification", "reason": reason, "peer": peer.get("node_id")}
-
-        try:
-            resolved_payload = resolve_payload_hash(
+            validated_media = validate_media_bytes(
                 payload_bytes,
-                str(
+                declared_mime_type=str(
                     metadata.get("mime_type")
                     or binary_response.headers.get("content-type")
                     or "application/octet-stream"
                 ).split(";")[0].strip(),
             )
-        except (UnicodeDecodeError, ValueError) as exc:
+            resolved_payload = {
+                "content_hash": validated_media.result["raw_media_sha256"],
+                "stored_bytes": validated_media.raw_media_bytes,
+                "mime_type": validated_media.result["detected_mime_type"],
+                "text_content": validated_media.text_content,
+                "hash_scheme": "sha256_text" if validated_media.result["detected_mime_type"] == "text/plain" else "sha256_bytes",
+            }
+        except (TechnicalMediaValidationError, UnicodeDecodeError, ValueError) as exc:
             raise ContentSyncError(str(exc)) from exc
 
         if resolved_payload["content_hash"] != content_hash:
@@ -138,6 +154,7 @@ class PeerContentSyncService:
                 mime_type=resolved_payload["mime_type"],
                 data_dir=collaborators.data_dir,
                 hash_scheme=resolved_payload["hash_scheme"],
+                technical_validation=validated_media.result,
             )
             content_object = collaborators.register_uploaded_content(
                 content_hash=content_hash,
@@ -152,6 +169,7 @@ class PeerContentSyncService:
                 content_type_hint=metadata.get("content_type"),
                 byte_hash=stored_content["byte_hash"],
                 hash_scheme=stored_content["hash_scheme"],
+                technical_validation=validated_media.result,
             )
         except (UnicodeDecodeError, ValueError) as exc:
             raise ContentSyncError(str(exc)) from exc

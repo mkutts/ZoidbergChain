@@ -60,6 +60,12 @@ from milestone5_policy import (
     validate_reviewer_status,
 )
 from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION, decode_canonical_bytes, encode_canonical_bytes
+from media_technical_validation import (
+    TechnicalMediaValidationError,
+    decode_canonical_media_bounded,
+    validate_media_bytes,
+    validate_technical_evidence,
+)
 from protocol_v1_genesis import GenesisValidationError
 from protocol_v1_originality import (
     MILESTONE5_CERTIFICATE_VERSION,
@@ -729,10 +735,16 @@ def receive_peer_originality_evidence(
         submission = Submission.from_dict({**normalized_submission, "image_path": ""})
         created_submission = True
     try:
-        media = decode_canonical_bytes(media_payload)
+        media = decode_canonical_media_bounded(media_payload)
     except ValueError as exc:
         raise MalformedOriginalityEvidenceError("Canonical evidence media payload is invalid.") from exc
     mime_type = str(media_mime_type or "application/octet-stream").strip().lower()
+    try:
+        validated_media = validate_media_bytes(media, declared_mime_type=mime_type)
+    except TechnicalMediaValidationError as exc:
+        raise MalformedOriginalityEvidenceError(str(exc)) from exc
+    media = validated_media.raw_media_bytes
+    mime_type = validated_media.result["detected_mime_type"]
     media_hash = hashlib.sha256(media).hexdigest()
     if media_hash != evidence.get("content_hash"):
         raise MalformedOriginalityEvidenceError(
@@ -884,7 +896,8 @@ def receive_peer_originality_evidence(
         media,
         mime_type=mime_type,
         data_dir=blockchain.storage.data_dir,
-        hash_scheme=HASH_SCHEME_SHA256_BYTES,
+        hash_scheme=("sha256_text" if mime_type == TEXT_MIME_TYPE else HASH_SCHEME_SHA256_BYTES),
+        technical_validation=validated_media.result,
     )
     content_object = blockchain.register_uploaded_content(
         content_hash=evidence["content_hash"],
@@ -902,7 +915,8 @@ def receive_peer_originality_evidence(
             else (CONTENT_TYPE_MIXED if (submission.text_content or "").strip() else CONTENT_TYPE_IMAGE)
         ),
         byte_hash=media_hash,
-        hash_scheme=HASH_SCHEME_SHA256_BYTES,
+        hash_scheme=("sha256_text" if mime_type == TEXT_MIME_TYPE else HASH_SCHEME_SHA256_BYTES),
+        technical_validation=validated_media.result,
     )
     submission.content_hash = content_object.content_hash
     submission.content_id = content_object.content_id
@@ -1150,60 +1164,62 @@ def receive_peer_submission(
             }
         raise DuplicateSubmissionError("Submission already exists.")
 
-    submission = Submission.from_dict(
-        {
-            **normalized_payload,
-            "status": PENDING,
-            "image_path": "",
-        }
-    )
-    blockchain.submissions.append(submission)
-    blockchain.register_remote_content_reference(
-        content_hash=submission.content_hash,
-        content_id=submission.content_id,
-        submitted_by=submission.submitter,
-        mime_type=(
-            TEXT_MIME_TYPE
-            if not normalized_payload.get("image_path") and submission.text_content
-            else "application/octet-stream"
-        ),
-        content_type=(
-            CONTENT_TYPE_MIXED
-            if normalized_payload.get("image_path") and submission.text_content
-            else (CONTENT_TYPE_IMAGE if normalized_payload.get("image_path") else CONTENT_TYPE_TEXT)
-        ),
-        caption=submission.text_content or None,
-        text_content=submission.text_content or None,
-        storage_status="remote",
-        submission_id=submission.submission_id,
-    )
-    if originality_evidence_payload is not None:
+    validated_media = None
+    media = None
+    if media_payload is not None:
         try:
-            media = decode_canonical_bytes(media_payload)
-            if hashlib.sha256(media).hexdigest() != submission.content_hash:
-                raise ValueError("Submission media does not match content_hash.")
-            mime_type = str(media_mime_type or "application/octet-stream").lower()
+            media = decode_canonical_media_bounded(media_payload)
+            validated_media = validate_media_bytes(media, declared_mime_type=media_mime_type)
+        except (TechnicalMediaValidationError, ValueError) as exc:
+            raise MalformedSubmissionError(str(exc)) from exc
+        if validated_media.result["raw_media_sha256"] != normalized_payload["content_hash"]:
+            raise MalformedSubmissionError("Submission media does not match content_hash.")
+    else:
+        content_object = blockchain.get_content_object_by_hash(normalized_payload["content_hash"])
+        try:
+            if content_object is None:
+                raise ValueError("missing content")
+            local_media = blockchain._certificate_media_context(
+                Submission.from_dict({**normalized_payload, "image_path": ""})
+            )["media_bytes"]
+            validate_technical_evidence(
+                dict(content_object.metadata or {}).get("technical_validation"), local_media
+            )
+        except (TypeError, ValueError):
+            raise MalformedSubmissionError(
+                "Peer submissions require technically validated media bytes before review."
+            )
+
+    submission = Submission.from_dict(
+        {**normalized_payload, "status": PENDING, "image_path": ""}
+    )
+    if validated_media is not None:
+        try:
+            mime_type = validated_media.result["detected_mime_type"]
             stored = store_content_bytes(
                 submission.content_hash,
-                media,
+                validated_media.raw_media_bytes,
                 mime_type=mime_type,
                 data_dir=blockchain.storage.data_dir,
-                hash_scheme=HASH_SCHEME_SHA256_BYTES,
+                hash_scheme=("sha256_text" if mime_type == TEXT_MIME_TYPE else HASH_SCHEME_SHA256_BYTES),
+                technical_validation=validated_media.result,
             )
             blockchain.register_uploaded_content(
                 content_hash=submission.content_hash,
                 submitted_by=submission.submitter,
                 mime_type=mime_type,
-                file_size_bytes=len(media),
+                file_size_bytes=len(validated_media.raw_media_bytes),
                 storage_status=STORAGE_STATUS_VERIFIED,
                 local_path=stored["local_path"],
                 file_name=stored["file_name"],
-                text_content=(media.decode("utf-8") if mime_type == TEXT_MIME_TYPE else None),
-                byte_hash=hashlib.sha256(media).hexdigest(),
-                hash_scheme=HASH_SCHEME_SHA256_BYTES,
+                text_content=validated_media.text_content,
+                byte_hash=validated_media.result["raw_media_sha256"],
+                hash_scheme=stored["hash_scheme"],
+                technical_validation=validated_media.result,
             )
         except (UnicodeDecodeError, ValueError) as exc:
             raise MalformedSubmissionError(str(exc)) from exc
+    blockchain.submissions.append(submission)
     blockchain.link_content_objects_to_submissions()
     local_evidence = blockchain.evaluate_prevote_originality(submission.submission_id)
     if originality_evidence_payload is not None:

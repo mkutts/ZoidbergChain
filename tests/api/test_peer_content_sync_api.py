@@ -107,6 +107,10 @@ def _fake_response(status_code, *, json_body=None, content=b"", text="", headers
         def json(self):
             return json_body
 
+        def iter_content(self, chunk_size=64 * 1024):
+            for offset in range(0, len(self.content), chunk_size):
+                yield self.content[offset:offset + chunk_size]
+
     return _Response()
 
 
@@ -263,7 +267,7 @@ def test_fetch_content_from_peer_fetches_and_verifies_text_content(blockchain, m
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
     calls = []
 
-    def fake_get(url, headers=None, timeout=None):
+    def fake_get(url, headers=None, timeout=None, stream=False):
         calls.append({"url": url, "headers": headers, "timeout": timeout})
         if url.endswith("/metadata"):
             return _fake_response(
@@ -311,7 +315,7 @@ def test_fetch_content_from_peer_rejects_hash_mismatch_and_keeps_remote_referenc
     blockchain.register_remote_content_reference(content_hash=expected_hash, submitted_by="peer-wallet")
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
 
-    def fake_get(url, headers=None, timeout=None):
+    def fake_get(url, headers=None, timeout=None, stream=False):
         if url.endswith("/metadata"):
             return _fake_response(
                 200,
@@ -360,7 +364,7 @@ def test_signed_peer_content_sync_still_rejects_hash_mismatch(blockchain, monkey
     }
     calls = []
 
-    def fake_get(url, headers=None, timeout=None):
+    def fake_get(url, headers=None, timeout=None, stream=False):
         calls.append({"url": url, "headers": headers, "timeout": timeout})
         if url.endswith("/metadata"):
             return _fake_response(
@@ -404,7 +408,7 @@ def test_fetch_content_from_peer_rejects_mime_mismatch(blockchain, monkeypatch):
     content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
 
-    def fake_get(url, headers=None, timeout=None):
+    def fake_get(url, headers=None, timeout=None, stream=False):
         if url.endswith("/metadata"):
             return _fake_response(
                 200,
@@ -423,7 +427,7 @@ def test_fetch_content_from_peer_rejects_mime_mismatch(blockchain, monkeypatch):
 
     monkeypatch.setattr(peer_sync.requests, "get", fake_get)
 
-    with pytest.raises(peer_sync.ContentSyncError, match="does not match detected mime_type"):
+    with pytest.raises(peer_sync.ContentSyncError, match="DECLARED_MIME_MISMATCH"):
         peer_sync.fetch_content_from_peer(
             blockchain,
             peer,
@@ -432,14 +436,14 @@ def test_fetch_content_from_peer_rejects_mime_mismatch(blockchain, monkeypatch):
         )
 
 
-def test_fetch_content_from_peer_rejects_oversized_payload(blockchain, monkeypatch):
+def test_fetch_content_from_peer_ignores_legacy_environment_size_override(blockchain, monkeypatch):
     content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
     import content
 
     monkeypatch.setattr(content.config, "MAX_CONTENT_FILE_SIZE_BYTES", 4)
 
-    def fake_get(url, headers=None, timeout=None):
+    def fake_get(url, headers=None, timeout=None, stream=False):
         if url.endswith("/metadata"):
             return _fake_response(
                 200,
@@ -465,15 +469,14 @@ def test_fetch_content_from_peer_rejects_oversized_payload(blockchain, monkeypat
         origin_node_id="local-node",
     )
 
-    assert result["status"] == "failed_verification"
-    assert result["reason"] == "oversized_metadata"
+    assert result["status"] == "fetched_and_verified"
 
 
 def test_peer_metadata_local_path_is_ignored(blockchain, monkeypatch):
     content_hash = compute_text_content_hash(TEXT_BYTES.decode("utf-8"))
     peer = {"node_id": "peer-node-1", "url": "http://peer-one.test:8000"}
 
-    def fake_get(url, headers=None, timeout=None):
+    def fake_get(url, headers=None, timeout=None, stream=False):
         if url.endswith("/metadata"):
             return _fake_response(
                 200,
@@ -531,7 +534,7 @@ def test_sync_missing_content_short_circuits_for_verified_or_missing_peers(block
     assert no_peers["status"] == "no_peers_available"
 
 
-def test_receive_peer_submission_creates_remote_content_object_and_manual_sync_verifies_it(
+def test_receive_peer_submission_without_media_cannot_create_remote_review_state(
     blockchain,
     wallets,
     monkeypatch,
@@ -546,54 +549,19 @@ def test_receive_peer_submission_creates_remote_content_object_and_manual_sync_v
     payload["content_hash"] = content_hash
     payload["content_id"] = hashlib.sha256(content_hash.encode("utf-8")).hexdigest()[:32]
 
-    def fake_get(url, headers=None, timeout=None):
-        if url.endswith("/metadata"):
-            return _fake_response(
-                200,
-                json_body={
-                    "content": {
-                        "content_hash": content_hash,
-                        "mime_type": "text/plain",
-                        "content_type": "text",
-                        "submitted_by": wallets["owner"].public_key,
-                        "file_size_bytes": len(peer_text.encode("utf-8")),
-                        "byte_hash": content_hash,
-                    }
-                },
-            )
-        return _fake_response(
-            200,
-            content=peer_text.encode("utf-8"),
-            headers={"content-type": "text/plain"},
-        )
-
-    monkeypatch.setattr(peer_sync.requests, "get", fake_get)
-
     receive_response = client.post(
         "/peers/submissions/receive",
         json=_receive_submission_payload(payload),
     )
 
-    submission = blockchain.get_submission(payload["submission_id"])
-    content_object = blockchain.get_content_object_by_hash(content_hash)
-    assert receive_response.status_code == 200
-    assert submission is not None
-    assert submission.content_id == content_object.content_id
-    assert content_object.storage_status == "remote"
-    assert content_object.local_path is None
-
-    sync_response = client.post(f"/content/{content_hash}/sync")
-
-    content_object = blockchain.get_content_object_by_hash(content_hash)
-    assert sync_response.status_code == 200
-    assert sync_response.json()["result"]["status"] == "fetched_and_verified"
-    assert sync_response.json()["content"]["storage_status"] == "verified"
-    assert content_object.storage_status == "verified"
-    assert submission.content_id == content_object.content_id
+    assert receive_response.status_code == 400
+    assert "technically validated media bytes" in receive_response.json()["detail"]
+    assert blockchain.get_submission(payload["submission_id"]) is None
+    assert blockchain.get_content_object_by_hash(content_hash) is None
 
 
 @pytest.mark.parametrize("backend_kind", ["json", "sqlite"])
-def test_remote_content_reference_persists_across_storage_backends(
+def test_peer_submission_without_media_is_not_persisted_across_storage_backends(
     backend_kind,
     isolated_data_dir,
     wallets,
@@ -611,23 +579,19 @@ def test_remote_content_reference_persists_across_storage_backends(
         text_content="Persisted remote peer content",
     )
 
-    result = peer_sync.receive_peer_submission(
-        blockchain=blockchain,
-        peer_store=peer_store,
-        origin_node_id="peer-node-1",
-        network_name="zoidberg-testnet",
-        submission_payload=submission_payload,
-        local_network_name="zoidberg-testnet",
-    )
+    with pytest.raises(peer_sync.MalformedSubmissionError, match="technically validated media bytes"):
+        peer_sync.receive_peer_submission(
+            blockchain=blockchain,
+            peer_store=peer_store,
+            origin_node_id="peer-node-1",
+            network_name="zoidberg-testnet",
+            submission_payload=submission_payload,
+            local_network_name="zoidberg-testnet",
+        )
 
     reloaded, _ = _make_blockchain(backend)
-    content_object = reloaded.get_content_object_by_hash(result["submission"]["content_hash"])
-    submission = reloaded.get_submission(result["submission"]["submission_id"])
-    assert content_object is not None
-    assert content_object.storage_status == "remote"
-    assert content_object.local_path is None
-    assert submission is not None
-    assert submission.content_id == content_object.content_id
+    assert reloaded.get_content_object_by_hash(submission_payload["content_hash"]) is None
+    assert reloaded.get_submission(submission_payload["submission_id"]) is None
 
 
 def test_receiving_v2_certificate_without_submission_fails_closed(blockchain, submission_image, wallets):

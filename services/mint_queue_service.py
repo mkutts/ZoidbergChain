@@ -132,6 +132,43 @@ class MintQueueService:
         records.sort(key=lambda record: self.record_order_key(state, storage, record))
         return [record for record in records if (not mintable_only or record.get("mintable")) and (include_blocked or record.get("mintable"))]
 
+    def first_mintable(self, state, storage, *, network_name, extract_text_func=extract_text, certificate_validator=None):
+        """Return the canonical first mintable record without materializing the full queue.
+
+        Canonical ordering depends only on immutable certificate identifiers.
+        Full certificate, evidence, and content verification is still performed
+        for each ranked candidate until the first mintable record is found. An
+        invalid earlier-ranked candidate is skipped exactly as it is by
+        ``list(..., mintable_only=True)``; later candidates cannot change which
+        valid record is first.
+        """
+        ranked = []
+        for submission_id in state.mint_queue:
+            submission = self._submission(state, storage, submission_id)
+            if submission is None or submission.status != QUEUED or submission.mint_blocked:
+                continue
+            certificate = self._certificate(state, storage, submission_id)
+            if certificate is None:
+                continue
+            try:
+                order_key = self.canonical_mint_order_key(certificate)
+            except ValueError:
+                continue
+            ranked.append((order_key, str(submission_id)))
+
+        for _order_key, submission_id in sorted(ranked):
+            record = self.evaluate(
+                state,
+                storage,
+                submission_id,
+                network_name,
+                extract_text_func,
+                certificate_validator,
+            )
+            if record.get("mintable"):
+                return record
+        return None
+
     def block(self, state, storage, submission_id, reason, notes=None, blocked_by=None):
         submission = self._submission(state, storage, submission_id)
         if submission is None: raise ValueError(f"Submission not found: {submission_id}")

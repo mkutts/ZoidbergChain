@@ -1,4 +1,5 @@
 import json
+import io
 from pathlib import Path
 
 import pytest
@@ -10,12 +11,19 @@ from peers import PeerStore
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from submission import MINTED, VOTE_ORIGINAL
 from wallet import Wallet
+from PIL import Image
 
 
-PNG_BYTES = b"\x89PNG\r\n\x1a\npng-test"
-JPEG_BYTES = b"\xff\xd8\xff\xdbjpeg-test\xff\xd9"
-GIF_BYTES = b"GIF89agif-test"
-WEBP_BYTES = b"RIFF\x0c\x00\x00\x00WEBPwebp"
+def _image_bytes(format_name):
+    buffer = io.BytesIO()
+    Image.new("RGB", (2, 2), "red").save(buffer, format=format_name)
+    return buffer.getvalue()
+
+
+PNG_BYTES = _image_bytes("PNG")
+JPEG_BYTES = _image_bytes("JPEG")
+GIF_BYTES = _image_bytes("GIF")
+WEBP_BYTES = _image_bytes("WEBP")
 TEXT_BYTES = b"api text content"
 
 
@@ -143,10 +151,10 @@ def test_empty_upload_is_rejected(blockchain, wallets):
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Uploaded file is empty."
+    assert "MALFORMED_MEDIA" in response.json()["detail"]
 
 
-def test_oversized_upload_is_rejected(blockchain, wallets, monkeypatch):
+def test_environment_cannot_relax_or_reinterpret_frozen_upload_policy(blockchain, wallets, monkeypatch):
     client = _client(blockchain)
     import content
 
@@ -154,11 +162,10 @@ def test_oversized_upload_is_rejected(blockchain, wallets, monkeypatch):
     response = client.post(
         "/content/upload",
         data={"submitted_by": wallets["owner"].public_key},
-        files={"file": ("too-big.png", b"x" * 6, "image/png")},
+        files={"file": ("still-valid.png", PNG_BYTES, "image/png")},
     )
 
-    assert response.status_code == 400
-    assert "exceeds max size" in response.json()["detail"]
+    assert response.status_code == 200
 
 
 def test_file_at_limit_is_accepted(blockchain, wallets, monkeypatch):
@@ -175,7 +182,7 @@ def test_file_at_limit_is_accepted(blockchain, wallets, monkeypatch):
     assert response.status_code == 200
 
 
-def test_text_above_limit_is_rejected(blockchain, wallets, monkeypatch):
+def test_environment_text_limit_does_not_change_frozen_protocol_policy(blockchain, wallets, monkeypatch):
     client = _client(blockchain)
     import content
 
@@ -185,8 +192,7 @@ def test_text_above_limit_is_rejected(blockchain, wallets, monkeypatch):
         json={"text_content": "hello", "submitted_by": wallets["owner"].public_key},
     )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Text content exceeds max size of 4 bytes."
+    assert response.status_code == 200
 
 
 def test_text_at_limit_is_accepted(blockchain, wallets, monkeypatch):
@@ -227,7 +233,7 @@ def test_declared_detected_mime_mismatch_is_rejected_in_strict_mode(blockchain, 
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Declared mime_type 'image/jpeg' does not match detected mime_type 'image/png'."
+    assert "DECLARED_MIME_MISMATCH" in response.json()["detail"]
 
 
 def test_filename_extension_alone_does_not_determine_mime(blockchain, wallets):
@@ -266,7 +272,7 @@ def test_submit_content_rejects_invalid_image_type_with_clear_error(blockchain, 
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid image format. Allowed formats: jpg, jpeg, png, webp"
+    assert "UNSUPPORTED_MEDIA_TYPE" in response.json()["detail"]
 
 
 def test_path_traversal_filename_is_ignored(blockchain, wallets):
@@ -299,7 +305,7 @@ def test_overlong_filename_is_safely_truncated_in_metadata(blockchain, wallets, 
 
     assert response.status_code == 200
     content_object = blockchain.get_content_object_by_hash(response.json()["content_hash"])
-    assert len(content_object.metadata["original_filename"]) <= 12
+    assert len(content_object.metadata["original_filename"].encode("ascii")) <= 255
 
 
 def test_upload_hash_is_computed_from_bytes(blockchain, wallets):

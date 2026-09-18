@@ -1,4 +1,5 @@
 import requests
+import hashlib
 from fastapi.testclient import TestClient
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -6,6 +7,7 @@ from eth_account.messages import encode_defunct
 from peers import PeerStore
 from submission import APPROVED, MINTED, PENDING, REJECTED, Submission
 from wallet_auth import hash_wallet_message
+from protocol_v1 import encode_canonical_bytes
 
 
 def _client(blockchain):
@@ -36,6 +38,7 @@ def _submission_payload(
     text_content="Peer submission content",
     created_at=1_000_000.0,
 ):
+    canonical = text_content.strip().encode("utf-8")
     return Submission(
         submission_id=submission_id,
         image_path="peer-submissions/meme.jpg",
@@ -43,15 +46,20 @@ def _submission_payload(
         submitter=submitter,
         status=PENDING,
         created_at=created_at,
+        content_hash=hashlib.sha256(canonical).hexdigest(),
     ).to_dict()
 
 
 def _receive_payload(submission, origin_node_id="peer-node-1", network_name="zoidberg-testnet"):
-    return {
+    payload = {
         "origin_node_id": origin_node_id,
         "network_name": network_name,
         "submission": submission,
     }
+    if submission.get("text_content"):
+        payload["media_bytes"] = encode_canonical_bytes(submission["text_content"].strip().encode("utf-8"))
+        payload["mime_type"] = "text/plain"
+    return payload
 
 
 def _sign_message(message, account):
@@ -156,6 +164,7 @@ def test_receive_peer_signed_submission_preserves_signature_metadata(blockchain)
         submission_nonce="peer-nonce-1",
         signed_at="2026-07-14T00:00:00+00:00",
         identity_source="metamask_signed",
+        content_hash=hashlib.sha256(b"Peer signed submission").hexdigest(),
     )
     submission.submission_signature = _sign_message(submission.submission_message, account)
     submission.signed_message_hash = hash_wallet_message(submission.submission_message)

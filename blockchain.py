@@ -12,10 +12,13 @@ from block import Block, PROTOCOL_V1_BLOCK_VERSION
 from transaction import Transaction
 from wallet import Wallet
 from utils import extract_text
+from media_technical_validation import validate_media_bytes
 import json
+import weakref
 from copy import deepcopy
 from decimal import Decimal
 from datetime import datetime, timezone
+from threading import Lock
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
@@ -101,7 +104,7 @@ from protocol_v1_native_transfer import (
     looks_like_protocol_v1_native_transfer_message,
     resolve_protocol_v1_network_id,
 )
-from storage import StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
+from storage import SQLiteStorageBackend, StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
 from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
 from milestone5_policy import APPROVAL_THRESHOLD_BPS, ESTABLISHED_MAX_VOTES_PER_EPOCH, MIN_ESTABLISHED_VOTES, MIN_VALID_VOTES, PROBATION_MAX_VOTES_PER_EPOCH, REVIEW_EPOCH_BLOCKS, REVIEWER_POLICY_VERSION, REPUTATION_RULE_VERSION, bootstrap_established_reviewers
 from protocol_v1_genesis import (
@@ -178,6 +181,26 @@ def _coerce_timestamp(value):
 
 
 _NATIVE_ZOID_REWARD_SCALE = Decimal("1000000")
+_CERTIFIED_COMMIT_LOCKS = weakref.WeakValueDictionary()
+_CERTIFIED_COMMIT_LOCKS_GUARD = Lock()
+
+
+def _certified_commit_lock_for_storage(storage):
+    if isinstance(storage, SQLiteStorageBackend):
+        storage_kind = "sqlite"
+        storage_path = getattr(storage, "sqlite_db_path", None)
+    else:
+        storage_kind = "blockchain"
+        storage_path = getattr(storage, "blockchain_file", None)
+    if storage_path:
+        identity = (
+            storage_kind,
+            os.path.normcase(os.path.realpath(os.path.abspath(storage_path))),
+        )
+    else:
+        identity = ("storage-object", id(storage))
+    with _CERTIFIED_COMMIT_LOCKS_GUARD:
+        return _CERTIFIED_COMMIT_LOCKS.setdefault(identity, Lock())
 
 
 def _short_public_key(public_key):
@@ -233,6 +256,7 @@ class Blockchain:
         self._originality_pipeline = OriginalityPipeline(certificate_consensus=True)
         self._originality_index_cache_head = None
         self._originality_index_cache_records = None
+        self._validated_chain_prefix_hashes = None
         self._mint_queue_service = MintQueueService()
         self._native_ledger_service = NativeLedgerService()
         self._native_mempool_service = NativeMempoolService(self._native_ledger_service)
@@ -248,6 +272,7 @@ class Blockchain:
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
+        self._certified_commit_lock = _certified_commit_lock_for_storage(self.storage)
         self._reviewer_reputation_service = ReviewerReputationService(self.storage)
         ensure_content_storage_dir(data_dir=self.storage.data_dir)
         self._validate_frozen_public_testnet_v1_runtime_constants()
@@ -476,6 +501,9 @@ class Blockchain:
         """
         existing_wallets = dict(self.wallets)
         existing_submissions = {item.submission_id: item for item in self.submissions}
+        existing_content_objects = {
+            item.content_id: item for item in self.content_objects
+        }
         existing_certificates = {item.certificate_id: item for item in self.originality_certificates}
         self.chain = [Block.from_dict(block_data) for block_data in loaded_data.get("chain", [])]
         wallets = {}
@@ -494,7 +522,17 @@ class Blockchain:
                 submission.__dict__.update(restored.__dict__)
             submissions.append(submission)
         self.submissions = submissions
-        self.content_objects = [ContentObject.from_dict(item) for item in loaded_data.get("content_objects", [])]
+        content_objects = []
+        for item in loaded_data.get("content_objects", []):
+            existing = existing_content_objects.get(item.get("content_id"))
+            if existing is not None and existing.to_dict() == item:
+                # An exact durable-document match needs no repeated constructor
+                # normalization. Any evidence or metadata difference takes the
+                # full fail-closed parsing path below.
+                content_objects.append(existing)
+            else:
+                content_objects.append(ContentObject.from_dict(item))
+        self.content_objects = content_objects
         self.mint_queue = list(loaded_data.get("mint_queue", []) or [])
         self.votes = list(loaded_data.get("votes", []) or [])
         native_state = self._restore_native_transaction_state(loaded_data.get("native_transactions", []), loaded_data.get("transfer_intents", []))
@@ -1452,6 +1490,7 @@ class Blockchain:
             raise ValueError("Wallet not found.")
         if not wallet.validate_private_key(private_key, miner):
             raise ValueError("Private key does not match the wallet ID.")
+        validate_media_bytes(file_bytes, original_filename=original_filename)
         image_path = os.path.join("temp", os.path.basename(original_filename))
         os.makedirs("temp", exist_ok=True)
         try:
@@ -1758,6 +1797,38 @@ class Blockchain:
                 getattr(existing_content_object, "local_path", None),
                 data_dir=self.storage.data_dir,
             )
+
+        if existing_content_object is not None:
+            existing_evidence = dict(existing_content_object.metadata or {}).get(
+                "technical_validation"
+            )
+            if existing_evidence is not None:
+                # Reuse is authorized only by durable PASS evidence after its
+                # version, policy, digest, length, and exact SHA-256 binding are
+                # checked against the bytes currently on disk. Any mismatch
+                # fails closed instead of triggering permissive revalidation.
+                verified_evidence = (
+                    self._content_coordination_service.ensure_technically_valid_content(
+                        existing_content_object, data_dir=self.storage.data_dir
+                    )
+                )
+                if (
+                    existing_content_object.content_hash
+                    != verified_evidence["raw_media_sha256"]
+                    or str(existing_content_object.mime_type).lower()
+                    != verified_evidence["detected_mime_type"]
+                ):
+                    raise ValueError(
+                        "Technical validation evidence does not match the content identity."
+                    )
+                submission.content_hash = existing_content_object.content_hash
+                submission.content_id = existing_content_object.content_id
+                if resolved_image_path and os.path.isfile(resolved_image_path):
+                    submission.image_path = resolved_image_path
+                metadata = dict(existing_content_object.metadata or {})
+                metadata.setdefault("submission_id", submission.submission_id)
+                existing_content_object.metadata = metadata
+                return existing_content_object
 
         expects_binary_payload = bool((submission.image_path or "").strip())
         if getattr(existing_content_object, "content_type", None) in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}:
@@ -2524,77 +2595,19 @@ class Blockchain:
         created_at=None,
         byte_hash=None,
         hash_scheme=None,
+        technical_validation=None,
     ):
-        content_type = None
-        if content_type_hint:
-            content_type = _validate_content_type(content_type_hint)
-        elif mime_type == TEXT_MIME_TYPE:
-            content_type = CONTENT_TYPE_TEXT
-        elif (text_content or "").strip() or (caption or "").strip():
-            content_type = CONTENT_TYPE_MIXED
-        else:
-            content_type = CONTENT_TYPE_IMAGE
-
-        if mime_type == TEXT_MIME_TYPE and content_type == CONTENT_TYPE_IMAGE:
-            content_type = CONTENT_TYPE_TEXT
-
-        content_object = self.get_content_object_by_hash(content_hash)
-        if content_object:
-            metadata = dict(content_object.metadata or {})
-            if byte_hash:
-                metadata["byte_hash"] = byte_hash
-            if original_filename:
-                metadata["original_filename"] = original_filename
-            content_object.mime_type = mime_type
-            content_object.file_size_bytes = file_size_bytes
-            content_object.storage_status = storage_status
-            content_object.hash_scheme = hash_scheme or content_object.hash_scheme
-            if local_path:
-                content_object.local_path = local_path
-            if file_name:
-                content_object.file_name = file_name
-            if caption:
-                content_object.caption = caption.strip()
-            if text_content:
-                content_object.text_content = text_content.strip()
-            if content_object.content_type == CONTENT_TYPE_IMAGE and content_type == CONTENT_TYPE_MIXED:
-                content_object.content_type = CONTENT_TYPE_MIXED
-            content_object.metadata = metadata
-            verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
-            content_object.hash_scheme = verification["hash_scheme"]
-            content_object.verified_at = verification["verified_at"]
-            content_object.verification_error = verification["error"]
-            return content_object
-
-        content_object = ContentObject(
-            content_hash=content_hash,
-            content_type=content_type,
-            mime_type=mime_type,
-            submitted_by=submitted_by,
-            network_name=NETWORK_NAME,
-            created_at=time.time() if created_at is None else created_at,
-            file_name=file_name,
-            file_size_bytes=file_size_bytes,
-            storage_status=storage_status,
-            local_path=local_path,
-            text_content=text_content,
-            caption=caption,
-            metadata=(
-                {
-                    **({"byte_hash": byte_hash} if byte_hash else {}),
-                    **({"original_filename": original_filename} if original_filename else {}),
-                }
-            ),
-            hash_scheme=hash_scheme or HASH_SCHEME_UNKNOWN,
-            verified_at=time.time() if storage_status == STORAGE_STATUS_VERIFIED else None,
-            verification_error=None,
+        return self._content_coordination_service.register_uploaded_content(
+            self._content_coordination_state(), self.storage, NETWORK_NAME,
+            content_hash=content_hash, submitted_by=submitted_by,
+            mime_type=mime_type, file_size_bytes=file_size_bytes,
+            storage_status=storage_status, local_path=local_path,
+            file_name=file_name, original_filename=original_filename,
+            caption=caption, text_content=text_content,
+            content_type_hint=content_type_hint, created_at=created_at,
+            byte_hash=byte_hash, hash_scheme=hash_scheme,
+            technical_validation=technical_validation,
         )
-        verification = verify_content_object_payload(content_object, data_dir=self.storage.data_dir)
-        content_object.hash_scheme = verification["hash_scheme"]
-        content_object.verified_at = verification["verified_at"]
-        content_object.verification_error = verification["error"]
-        self.content_objects.append(content_object)
-        return content_object
 
     def upload_binary_content(
         self,
@@ -2640,6 +2653,10 @@ class Blockchain:
             )
         if content_object is None:
             raise ValueError("content_hash or content_id is required.")
+
+        self._content_coordination_service.ensure_technically_valid_content(
+            content_object, data_dir=self.storage.data_dir
+        )
 
         image_path = ""
         if content_object.content_type in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED, CONTENT_TYPE_TEXT}:
@@ -2748,6 +2765,11 @@ class Blockchain:
             ]
 
         content_object = self.get_content_object_by_hash(submission.content_hash)
+        if content_object is None:
+            raise ValueError("Technically validated media is required before originality evaluation.")
+        self._content_coordination_service.ensure_technically_valid_content(
+            content_object, data_dir=self.storage.data_dir
+        )
         evidence = self._originality_pipeline.evaluate(
             submission,
             content_object,
@@ -3380,6 +3402,12 @@ class Blockchain:
         return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text, self.validate_originality_certificate)
     def get_mint_queue(self, include_blocked=True, mintable_only=False):
         return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
+    def _first_mintable_queue_record(self):
+        return self._mint_queue_service.first_mintable(
+            self._mint_queue_state(), self.storage, network_name=NETWORK_NAME,
+            extract_text_func=extract_text,
+            certificate_validator=self.validate_originality_certificate,
+        )
     def _apply_certified_candidate_in_commit(self, candidate, submission):
         """Apply all durable effects of one already-validated certified block.
 
@@ -3557,6 +3585,26 @@ class Blockchain:
         validate_meme=True,
         max_retries=200,
     ):
+        # Multiple Blockchain facades in one process share this lock by durable
+        # storage identity. This prevents them from all selecting the same
+        # pre-transaction queue head. Separate processes still rely on the
+        # existing SQLite BEGIN IMMEDIATE + head CAS + replay boundary.
+        with self._certified_commit_lock:
+            return self._commit_next_certified_submission_with_retry_locked(
+                miner=miner,
+                max_block_size_kb=max_block_size_kb,
+                validate_meme=validate_meme,
+                max_retries=max_retries,
+            )
+
+    def _commit_next_certified_submission_with_retry_locked(
+        self,
+        *,
+        miner=None,
+        max_block_size_kb=500,
+        validate_meme=True,
+        max_retries=200,
+    ):
         """Commit the canonical ready submission, safely retrying write contention.
 
         This is the concurrency coordinator for certified minting.  Every
@@ -3574,8 +3622,8 @@ class Blockchain:
         for attempt in range(max_retries + 1):
             document = self.storage.load_blockchain_state()
             self._restore_blockchain_state_document(document)
-            ready = self.get_mint_queue(include_blocked=True, mintable_only=True)
-            if not ready:
+            ready = self._first_mintable_queue_record()
+            if ready is None:
                 return {
                     "committed": False,
                     "submission_id": None,
@@ -3583,7 +3631,7 @@ class Blockchain:
                     "stale_head_retries": stale_head_retries,
                     "sqlite_busy_retries": sqlite_busy_retries,
                 }
-            submission_id = ready[0]["submission_id"]
+            submission_id = ready["submission_id"]
             expected_head = self._current_canonical_head()
             try:
                 self.commit_certified_submission(
@@ -3839,9 +3887,64 @@ class Blockchain:
         return removed_entries
 
     def validate_candidate_block_for_local_acceptance(self, block, *, current_chain=None):
-        return self._block_validation_service.validate_candidate(
-            block, self._block_validation_collaborators(), current_chain=current_chain
+        working_chain = current_chain or self.chain
+        self._ensure_validated_chain_prefix(working_chain)
+        accepted = self._block_validation_service.validate_candidate(
+            block, self._block_validation_collaborators(),
+            current_chain=working_chain, validated_chain_prefix=True,
         )
+        self._validated_chain_prefix_hashes = tuple(
+            [*self._validated_chain_prefix_hashes, block.hash]
+        )
+        return accepted
+
+    def _ensure_validated_chain_prefix(self, chain):
+        """Validate a restored chain once per exact cryptographic prefix.
+
+        Cached semantic validation never replaces byte/hash verification. Every
+        reuse recalculates each cached block hash and link from the restored
+        document. Cache loss or any mismatch runs the complete chain validator;
+        a valid append-only suffix receives full block/certificate validation
+        exactly once before extending the cache.
+        """
+        chain_dicts = self.chain_to_dicts(chain)
+        cached = self._validated_chain_prefix_hashes
+        if not cached or len(cached) > len(chain_dicts):
+            if not self.is_chain_valid(chain_dicts):
+                raise ValueError("Current chain failed validation before candidate acceptance.")
+            return
+
+        stored_hashes = tuple(str(item.get("hash") or "") for item in chain_dicts)
+        prefix_length = len(cached)
+        reusable = stored_hashes[:prefix_length] == cached
+        if reusable:
+            for index in range(prefix_length):
+                current = chain_dicts[index]
+                if current["hash"] != self.calculate_hash_from_dict(current):
+                    reusable = False
+                    break
+                if index and current.get("previous_hash") != chain_dicts[index - 1].get("hash"):
+                    reusable = False
+                    break
+        if not reusable:
+            if not self.is_chain_valid(chain_dicts):
+                raise ValueError("Current chain failed validation before candidate acceptance.")
+            return
+
+        collaborators = self._block_validation_collaborators()
+        for index in range(prefix_length, len(chain_dicts)):
+            current = chain_dicts[index]
+            if current["hash"] != self.calculate_hash_from_dict(current):
+                raise ValueError("Current chain contains a block hash mismatch.")
+            if index == 0:
+                self.validate_canonical_public_testnet_v1_genesis(current)
+            elif current.get("previous_hash") != chain_dicts[index - 1].get("hash"):
+                raise ValueError("Current chain contains a broken previous-hash link.")
+            if index:
+                self._block_validation_service.validate_block(
+                    current, collaborators, prior_chain=chain_dicts[:index]
+                )
+        self._validated_chain_prefix_hashes = stored_hashes
     def build_block_candidate(
         self,
         image_path,
@@ -4020,9 +4123,16 @@ class Blockchain:
         )
     def is_chain_valid(self, chain):
         """Validate a given chain."""
-        return self._block_validation_service.validate_chain(
+        valid = self._block_validation_service.validate_chain(
             chain, self._block_validation_collaborators()
         )
+        if valid:
+            chain_dicts = self.chain_to_dicts(chain)
+            current_hashes = tuple(block.hash for block in self.chain)
+            validated_hashes = tuple(str(item.get("hash") or "") for item in chain_dicts)
+            if validated_hashes == current_hashes:
+                self._validated_chain_prefix_hashes = validated_hashes
+        return valid
     def get_native_balance(self, wallet_address):
         normalized_wallet = self._normalize_native_wallet_identity(wallet_address)
         if normalized_wallet is None:

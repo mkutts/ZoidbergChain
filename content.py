@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import config
+from media_technical_validation import sanitize_display_filename
 
 
 CONTENT_TYPE_IMAGE = "image"
@@ -300,21 +301,7 @@ def validate_text_content(text_content: str) -> str:
 
 
 def sanitize_original_filename(filename: str | None) -> str | None:
-    if filename is None:
-        return None
-    if not isinstance(filename, str):
-        raise ValueError("filename must be a string when provided.")
-    candidate = os.path.basename(filename.strip())
-    if not candidate or candidate in {".", ".."}:
-        return None
-    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", candidate).strip("._")
-    if not safe:
-        safe = "upload"
-    if len(safe) > config.MAX_FILENAME_LENGTH:
-        safe = safe[: config.MAX_FILENAME_LENGTH].rstrip("._")
-    if not safe:
-        raise ValueError("Invalid filename metadata.")
-    return safe
+    return sanitize_display_filename(filename)
 
 
 def detect_mime_type_from_bytes(data: bytes) -> str | None:
@@ -874,18 +861,42 @@ def store_content_bytes(
     content_storage_dir: str | None = None,
     max_size_bytes: int | None = None,
     hash_scheme: str | None = None,
+    technical_validation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_hash = _validate_content_hash_value(content_hash)
     payload = bytes(data)
-    if max_size_bytes is None:
-        max_size_bytes = config.MAX_CONTENT_FILE_SIZE_BYTES
-    validate_content_size(len(payload), mime_type=mime_type if mime_type in SUPPORTED_TEXT_MIME_TYPES else None)
+    if technical_validation is not None:
+        from media_admission_policy import media_admission_policy
+        from media_technical_validation import validate_technical_evidence
+        validate_technical_evidence(technical_validation, payload)
+        expected_mime = technical_validation["detected_mime_type"]
+        if str(mime_type).strip().lower() != expected_mime:
+            raise ValueError("Stored media MIME does not match technical validation evidence.")
+        policy_limits = media_admission_policy()["consensus_protocol"]["byte_limits"]
+        max_size_bytes = policy_limits[
+            "accepted_plain_text_bytes_after_canonicalization"
+            if expected_mime == TEXT_MIME_TYPE else "accepted_image_bytes"
+        ]
+        if not payload:
+            raise ValueError("Uploaded file is empty.")
+        resolved_payload = {
+            "mime_type": expected_mime,
+            "content_hash": technical_validation["raw_media_sha256"],
+            "hash_scheme": HASH_SCHEME_SHA256_TEXT if expected_mime == TEXT_MIME_TYPE else HASH_SCHEME_SHA256_BYTES,
+            "text_content": payload.decode("utf-8") if expected_mime == TEXT_MIME_TYPE else None,
+            "stored_bytes": payload,
+            "byte_hash": technical_validation["raw_media_sha256"],
+        }
+    else:
+        if max_size_bytes is None:
+            max_size_bytes = config.MAX_CONTENT_FILE_SIZE_BYTES
+        validate_content_size(len(payload), mime_type=mime_type if mime_type in SUPPORTED_TEXT_MIME_TYPES else None)
+        resolved_payload = resolve_payload_hash(payload, mime_type)
     if len(payload) > max_size_bytes:
         raise ValueError(
             f"Content file exceeds MAX_CONTENT_FILE_SIZE_BYTES ({max_size_bytes} bytes)."
         )
 
-    resolved_payload = resolve_payload_hash(payload, mime_type)
     resolved_mime_type = resolved_payload["mime_type"]
     normalized_scheme = _validate_hash_scheme(hash_scheme) if hash_scheme not in (None, "") else resolved_payload["hash_scheme"]
     if normalized_scheme not in {
@@ -1038,11 +1049,20 @@ class ContentObject:
 
         if self.local_path is not None:
             self.local_path = _validate_non_empty_string(self.local_path, "local_path")
+        self.metadata = dict(self.metadata or {})
         if self.text_content is not None:
-            self.text_content = validate_text_content(self.text_content)
+            if self.metadata.get("technical_validation"):
+                self.text_content = canonicalize_text_content(self.text_content)
+                from media_admission_policy import media_admission_policy
+                maximum = media_admission_policy()["consensus_protocol"]["byte_limits"][
+                    "accepted_plain_text_bytes_after_canonicalization"
+                ]
+                if len(self.text_content.encode("utf-8")) > maximum:
+                    raise ValueError(f"Text content exceeds frozen policy size of {maximum} bytes.")
+            else:
+                self.text_content = validate_text_content(self.text_content)
         if self.caption is not None:
             self.caption = validate_caption(self.caption)
-        self.metadata = dict(self.metadata or {})
         self.hash_scheme = _validate_hash_scheme(self.hash_scheme)
         self.verified_at = _coerce_optional_float(self.verified_at, "verified_at")
         self.verification_error = _clean_optional_string(self.verification_error)

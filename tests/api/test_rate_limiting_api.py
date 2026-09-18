@@ -1,6 +1,14 @@
 import importlib
 
 from fastapi.testclient import TestClient
+import io
+from PIL import Image
+
+
+def _valid_rate_limit_png(color):
+    buffer = io.BytesIO()
+    Image.new("RGB", (1, 1), color).save(buffer, format="PNG")
+    return buffer.getvalue()
 
 from peers import PeerStore
 from submission import VOTE_ORIGINAL
@@ -140,12 +148,12 @@ def test_content_upload_is_rate_limited_when_enabled(blockchain, wallets, monkey
     first_response = client.post(
         "/content/upload",
         data={"submitted_by": wallets["owner"].public_key},
-        files={"file": ("rate-limit-1.png", b"\x89PNG\r\n\x1a\npng-test", "image/png")},
+        files={"file": ("rate-limit-1.png", _valid_rate_limit_png("red"), "image/png")},
     )
     second_response = client.post(
         "/content/upload",
         data={"submitted_by": wallets["owner"].public_key},
-        files={"file": ("rate-limit-2.png", b"\x89PNG\r\n\x1a\npng-test-2", "image/png")},
+        files={"file": ("rate-limit-2.png", _valid_rate_limit_png("blue"), "image/png")},
     )
 
     assert first_response.status_code == 200

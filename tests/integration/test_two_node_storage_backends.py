@@ -18,7 +18,7 @@ from peer_sync import (
     receive_peer_vote,
     sync_chain_from_peers,
 )
-from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID, encode_canonical_bytes
 from storage import JSONStorageBackend, SQLiteStorageBackend
 from submission import Submission, VOTE_ORIGINAL
 from transaction import Transaction
@@ -134,6 +134,7 @@ def _evaluate_and_mint(blockchain, submission_id, wallets):
 
 
 def _broadcast_submission_and_votes(source_blockchain, target_blockchain, target_peer_store, submission):
+    media = source_blockchain._certificate_media_context(submission)
     receive_peer_submission(
         blockchain=target_blockchain,
         peer_store=target_peer_store,
@@ -141,6 +142,8 @@ def _broadcast_submission_and_votes(source_blockchain, target_blockchain, target
         network_name="zoidberg-testnet",
         submission_payload=submission.to_dict(),
         local_network_name="zoidberg-testnet",
+        media_payload=encode_canonical_bytes(media["media_bytes"]),
+        media_mime_type=media["mime_type"],
     )
     for vote in source_blockchain.votes:
         receive_peer_vote(

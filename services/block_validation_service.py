@@ -270,7 +270,10 @@ class BlockValidationService:
         self.validate_native_transactions(block_dict, c, prior_chain=prior_chain)
         return True
 
-    def validate_candidate(self, block, c: BlockValidationCollaborators, *, current_chain=None):
+    def validate_candidate(
+        self, block, c: BlockValidationCollaborators, *, current_chain=None,
+        validated_chain_prefix=False,
+    ):
         working_chain = current_chain or c.chain
         latest = working_chain[-1]
         if block.previous_hash != latest.hash: raise ValueError("Block does not extend the local chain tip.")
@@ -283,7 +286,8 @@ class BlockValidationService:
             if transaction.sender not in {"GENESIS", "REWARD_POOL"} and not c.validate_transaction(transaction): raise ValueError("Block contains an invalid transaction.")
         prior = c.chain_to_dicts(working_chain)
         self.validate_block(block_dict, c, prior_chain=prior)
-        if not self.validate_chain(prior + [block_dict], c): raise ValueError("Block failed chain validation.")
+        if not validated_chain_prefix and not self.validate_chain(prior + [block_dict], c):
+            raise ValueError("Block failed chain validation.")
         return True
 
     def validate_chain(self, chain, c: BlockValidationCollaborators):

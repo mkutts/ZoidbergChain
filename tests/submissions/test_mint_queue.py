@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier, Lock
+
 import pytest
 
 from blockchain import Blockchain
@@ -17,10 +20,11 @@ def _certify_submission(blockchain, submission):
     blockchain.create_originality_certificate(submission.submission_id, approved_at=1_000_100)
 
 
-def _new_ordering_node(tmp_path, name, wallets):
+def _new_ordering_node(tmp_path, name, wallets, backend_name="sqlite"):
     node_dir = tmp_path / name
     node_dir.mkdir()
     storage = create_storage_backend(
+        backend_name,
         blockchain_file=str(node_dir / "blockchain.json"),
         peers_file=str(node_dir / "peers.json"),
         sqlite_db_path=str(node_dir / "zoidbergchain.db"),
@@ -272,7 +276,147 @@ def test_ordered_ready_set_excludes_uncertified_rejected_invalid_and_minted_entr
     ]
 
 
-def test_legacy_submission_without_content_id_can_still_be_minted(blockchain, submission_image, wallets, monkeypatch):
+def test_task_6_3a_first_mintable_preserves_order_without_full_queue_validation(
+    blockchain, approved_submissions, monkeypatch
+):
+    for submission in reversed(approved_submissions):
+        blockchain.add_to_mint_queue(submission.submission_id)
+    expected = blockchain.get_mint_queue(mintable_only=True)[0]["submission_id"]
+
+    original_evaluate = blockchain._mint_queue_service.evaluate
+    evaluated = []
+
+    def counted_evaluate(state, storage, submission_id, *args, **kwargs):
+        evaluated.append(submission_id)
+        return original_evaluate(state, storage, submission_id, *args, **kwargs)
+
+    monkeypatch.setattr(blockchain._mint_queue_service, "evaluate", counted_evaluate)
+    selected = blockchain._first_mintable_queue_record()
+
+    assert selected["submission_id"] == expected
+    assert evaluated == [expected]
+
+
+def test_task_6_3a_first_mintable_skips_invalid_earlier_certificate(
+    blockchain, approved_submissions, monkeypatch
+):
+    invalid, valid, _ = approved_submissions
+    blockchain.add_to_mint_queue(invalid.submission_id)
+    blockchain.add_to_mint_queue(valid.submission_id)
+    invalid_certificate = blockchain.get_originality_certificate_for_submission(
+        invalid.submission_id
+    )
+    invalid_certificate.content_hash = "0" * 64
+
+    original_evaluate = blockchain._mint_queue_service.evaluate
+    evaluated = []
+
+    def counted_evaluate(state, storage, submission_id, *args, **kwargs):
+        evaluated.append(submission_id)
+        return original_evaluate(state, storage, submission_id, *args, **kwargs)
+
+    monkeypatch.setattr(blockchain._mint_queue_service, "evaluate", counted_evaluate)
+    selected = blockchain._first_mintable_queue_record()
+
+    assert selected["submission_id"] == valid.submission_id
+    assert evaluated == [invalid.submission_id, valid.submission_id]
+
+
+def test_task_6_3a_same_storage_workers_coordinate_one_logical_commit(
+    blockchain, approved_submissions, wallets, monkeypatch
+):
+    expected = approved_submissions[0]
+    blockchain.add_to_mint_queue(expected.submission_id)
+    workers = [
+        Blockchain(
+            project_owner_wallet=wallets["owner"],
+            Contributor_one=wallets["contributor_one"],
+            Contributor_two=wallets["contributor_two"],
+            storage_backend=blockchain.storage,
+        )
+        for _ in range(4)
+    ]
+    gate = Barrier(len(workers))
+    selection_lock = Lock()
+    selected_submission_ids = []
+
+    for worker in workers:
+        original_select = worker._first_mintable_queue_record
+
+        def counted_select(original_select=original_select):
+            record = original_select()
+            with selection_lock:
+                selected_submission_ids.append(
+                    None if record is None else record["submission_id"]
+                )
+            return record
+
+        monkeypatch.setattr(worker, "_first_mintable_queue_record", counted_select)
+
+    def commit(worker):
+        gate.wait()
+        return worker.commit_next_certified_submission_with_retry(
+            miner=wallets["contributor_one"].public_key,
+            validate_meme=False,
+        )
+
+    with ThreadPoolExecutor(max_workers=len(workers)) as executor:
+        outcomes = list(executor.map(commit, workers))
+
+    committed = [outcome for outcome in outcomes if outcome["committed"]]
+    current_state = [outcome for outcome in outcomes if not outcome["committed"]]
+    assert committed == [
+        {
+            "committed": True,
+            "submission_id": expected.submission_id,
+            "retries": 0,
+            "stale_head_retries": 0,
+            "sqlite_busy_retries": 0,
+        }
+    ]
+    assert len(current_state) == 3
+    assert all(outcome["submission_id"] is None for outcome in current_state)
+    assert selected_submission_ids.count(expected.submission_id) == 1
+    assert selected_submission_ids.count(None) == 3
+    assert len(blockchain.storage.load_blockchain_state()["chain"]) == 2
+
+
+@pytest.mark.parametrize("backend_name", ["sqlite", "json"])
+def test_task_6_3a_independent_storage_coordinators_do_not_serialize(
+    isolated_data_dir, wallets, monkeypatch, backend_name
+):
+    nodes = [
+        _new_ordering_node(isolated_data_dir, name, wallets, backend_name)
+        for name in ("independent-coordinator-a", "independent-coordinator-b")
+    ]
+    overlap = Barrier(2, timeout=5)
+
+    def overlap_probe(**_kwargs):
+        overlap.wait()
+        return {"committed": False, "submission_id": None}
+
+    for node in nodes:
+        monkeypatch.setattr(
+            node,
+            "_commit_next_certified_submission_with_retry_locked",
+            overlap_probe,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = list(
+            executor.map(
+                lambda node: node.commit_next_certified_submission_with_retry(),
+                nodes,
+            )
+        )
+
+    assert outcomes == [
+        {"committed": False, "submission_id": None},
+        {"committed": False, "submission_id": None},
+    ]
+
+
+def test_legacy_submission_without_validated_content_cannot_enter_review(blockchain, submission_image, wallets):
     submission = Submission.from_dict(
         {
             "submission_id": "legacy-mint-submission",
@@ -284,12 +428,9 @@ def test_legacy_submission_without_content_id_can_still_be_minted(blockchain, su
         }
     )
     blockchain.submissions.append(submission)
-    _certify_submission(blockchain, submission)
-    blockchain.add_to_mint_queue(submission.submission_id)
-    monkeypatch.setattr(blockchain, "add_block", lambda **kwargs: True)
+    with pytest.raises(ValueError, match="Technically validated media"):
+        _certify_submission(blockchain, submission)
 
-    result = blockchain.mint_next_queued_submission(miner=wallets["contributor_one"].public_key)
-
-    assert result is True
-    assert submission.content_id is not None
-    assert submission.status == MINTED
+    assert blockchain.get_originality_evidence(submission.submission_id) is None
+    assert submission.status == PENDING
+    assert submission.submission_id not in blockchain.mint_queue

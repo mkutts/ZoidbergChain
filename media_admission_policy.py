@@ -8,6 +8,7 @@ images, run OCR, attest submissions, or change consensus activation.
 from __future__ import annotations
 
 from copy import deepcopy
+from functools import lru_cache
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -267,7 +268,8 @@ class PolicyEvaluationInput:
     resource_limit_terminated: bool = False
 
 
-def media_admission_policy(version: int = MEDIA_ADMISSION_POLICY_VERSION) -> dict[str, Any]:
+@lru_cache(maxsize=None)
+def _validated_media_admission_policy(version: int) -> dict[str, Any]:
     if isinstance(version, bool) or not isinstance(version, int):
         raise MediaAdmissionPolicyError(
             REASON_INVALID_POLICY_INPUT,
@@ -280,6 +282,12 @@ def media_admission_policy(version: int = MEDIA_ADMISSION_POLICY_VERSION) -> dic
             REASON_UNKNOWN_POLICY_VERSION,
             f"Unsupported media-admission policy version: {version}",
         ) from exc
+
+
+def media_admission_policy(version: int = MEDIA_ADMISSION_POLICY_VERSION) -> dict[str, Any]:
+    # Validate each immutable built-in policy once, but continue returning a
+    # defensive copy so callers cannot mutate process-wide policy authority.
+    return deepcopy(_validated_media_admission_policy(version))
 
 
 def validate_media_admission_policy(policy: Mapping[str, Any]) -> dict[str, Any]:
@@ -355,8 +363,9 @@ def media_admission_policy_canonical_text(
     return canonical_json_text(media_admission_policy(version))
 
 
+@lru_cache(maxsize=None)
 def media_admission_policy_digest(version: int = MEDIA_ADMISSION_POLICY_VERSION) -> str:
-    return canonical_hash(media_admission_policy(version))
+    return canonical_hash(_validated_media_admission_policy(version))
 
 
 def effective_local_defense_limits(

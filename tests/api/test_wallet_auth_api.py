@@ -365,7 +365,9 @@ def test_verified_session_can_request_submission_challenge(blockchain):
     assert body["wallet_address"] == account.address.lower()
     assert body["content_hash"] == uploaded["content_hash"]
     assert body["content_id"] == uploaded["content_id"]
-    assert "Action: submit_content" in body["message"]
+    assert '"domain":"zoidbergchain/submitter-attestation/v1"' in body["message"]
+    assert body["canonical_payload"]["submission_id"] == body["submission_id"]
+    assert body["canonical_payload"]["technical_evidence_digest"] == body["technical_evidence_digest"]
     assert account.address.lower() in body["message"].lower()
     assert uploaded["content_hash"] in body["message"]
     assert body["nonce"]

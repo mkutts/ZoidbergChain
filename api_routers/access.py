@@ -405,12 +405,16 @@ async def create_wallet_submission_challenge(
     safe_caption = validate_caption(payload.caption)
 
     try:
+        technical_validation = blockchain.technical_validation_evidence_for_content(content_object)
         challenge = wallet_auth_manager.issue_submission_challenge(
             wallet_address=wallet_address,
             content_hash=content_object.content_hash,
             content_id=content_object.content_id,
             caption=safe_caption,
+            technical_validation=technical_validation,
         )
+    except SubmitterAttestationError as exc:
+        return _public_error(str(exc), status_code=400, code=exc.reason_code)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

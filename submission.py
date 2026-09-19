@@ -6,6 +6,10 @@ from dataclasses import dataclass, field
 
 from content import calculate_content_id
 
+ATTESTATION_REQUIRED = "public_testnet_v1_required"
+ATTESTATION_LEGACY = "legacy_pre_activation"
+ATTESTATION_DEVELOPMENT = "development_only_unsigned"
+
 
 PENDING = "pending"
 APPROVED = "approved"
@@ -20,6 +24,11 @@ VOTE_UNSURE = "unsure"
 VOTE_TYPES = {VOTE_ORIGINAL, VOTE_NOT_ORIGINAL, VOTE_UNSURE}
 
 SUBMISSION_STATUSES = {PENDING, APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
+ATTESTATION_REQUIREMENTS = {
+    ATTESTATION_REQUIRED,
+    ATTESTATION_LEGACY,
+    ATTESTATION_DEVELOPMENT,
+}
 VALID_STATUS_TRANSITIONS = {
     PENDING: {APPROVED, REJECTED, HARD_REJECTED},
     APPROVED: {QUEUED, HARD_REJECTED},
@@ -72,12 +81,18 @@ class Submission:
     submission_nonce: str | None = None
     signed_at: str | None = None
     identity_source: str | None = None
+    # Newly constructed unsigned records are development-only. Historical
+    # deserialization explicitly supplies the legacy default in from_dict().
+    attestation_requirement: str = ATTESTATION_DEVELOPMENT
+    submitter_attestation: dict | None = None
     decision_reason: str | None = None
     decision_finalized_at: float | None = None
 
     def __post_init__(self):
         if self.status not in SUBMISSION_STATUSES:
             raise ValueError(f"Invalid submission status: {self.status}")
+        if self.attestation_requirement not in ATTESTATION_REQUIREMENTS:
+            raise ValueError(f"Invalid attestation requirement: {self.attestation_requirement}")
         if not self.content_hash:
             self.content_hash = calculate_submission_content_hash(
                 self.image_path,
@@ -125,6 +140,8 @@ class Submission:
             "submission_nonce": self.submission_nonce,
             "signed_at": self.signed_at,
             "identity_source": self.identity_source,
+            "attestation_requirement": self.attestation_requirement,
+            "submitter_attestation": self.submitter_attestation,
         }
         if self.decision_reason is not None:
             payload["decision_reason"] = self.decision_reason
@@ -158,6 +175,8 @@ class Submission:
             submission_nonce=data.get("submission_nonce"),
             signed_at=data.get("signed_at"),
             identity_source=data.get("identity_source"),
+            attestation_requirement=data.get("attestation_requirement", ATTESTATION_LEGACY),
+            submitter_attestation=data.get("submitter_attestation"),
             decision_reason=data.get("decision_reason"),
             decision_finalized_at=data.get("decision_finalized_at"),
         )

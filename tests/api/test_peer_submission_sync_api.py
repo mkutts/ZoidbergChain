@@ -85,6 +85,22 @@ def test_receiving_valid_peer_submission(blockchain, wallets):
     assert blockchain.submissions[0].status == PENDING
 
 
+def test_public_testnet_peer_submission_fails_closed_without_attestation(
+    blockchain, wallets, monkeypatch
+):
+    client = _client(blockchain)
+    _register_peer()
+    monkeypatch.setattr("peer_sync.is_development", lambda: False)
+    monkeypatch.setattr("blockchain.ENVIRONMENT", "public_testnet")
+    payload = _submission_payload(wallets["owner"].public_key)
+
+    response = client.post("/peers/submissions/receive", json=_receive_payload(payload))
+
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("missing_attestation:")
+    assert blockchain.submissions == []
+
+
 def test_receive_peer_submission_rejects_unregistered_peer(blockchain, wallets):
     client = _client(blockchain)
     payload = _submission_payload(wallets["owner"].public_key)

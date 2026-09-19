@@ -217,6 +217,28 @@ def test_signed_submission_accepts_uploaded_content_and_derives_creator_from_ver
     assert submission["identity_source"] == "metamask_signed"
     assert submission["signature_scheme"] == "personal_sign"
     assert submission["signed_message_hash"]
+    assert submission["attestation_requirement"] == "public_testnet_v1_required"
+    assert submission["attestation_status"]["valid"] is True
+    assert submission["submitter_attestation"]["domain"] == "zoidbergchain/submitter-attestation/v1"
+
+
+def test_signed_image_submission_uses_the_same_required_attestation_path(blockchain, submission_image):
+    client = _client(blockchain)
+    account = _create_metamask_account()
+    headers = _verify_wallet_session(client, account)
+    uploaded = _upload_image_content_via_api(client, account.address, submission_image)
+
+    submission = _submit_signed_content_via_api(
+        client,
+        account,
+        headers,
+        content_hash=uploaded["content_hash"],
+        content_id=uploaded["content_id"],
+    )
+
+    assert submission["content_hash"] == uploaded["content_hash"]
+    assert submission["attestation_status"]["valid"] is True
+    assert submission["submitter_attestation"]["canonical_payload"]["raw_media_sha256"] == uploaded["content_hash"]
 
 
 def test_signed_submission_rejects_missing_signature(blockchain):
@@ -246,6 +268,7 @@ def test_signed_submission_rejects_missing_signature(blockchain):
 
     assert response.status_code == 400
     assert "signature is required" in response.json()["detail"].lower()
+    assert response.json()["code"] == "invalid_signature"
 
 
 def test_signed_submission_rejects_wrong_wallet_signature(blockchain):
@@ -277,6 +300,7 @@ def test_signed_submission_rejects_wrong_wallet_signature(blockchain):
 
     assert response.status_code == 400
     assert "does not match the verified session wallet" in response.json()["detail"].lower()
+    assert response.json()["code"] == "signer_mismatch"
 
 
 def test_signed_submission_rejects_replayed_nonce(blockchain):
@@ -320,6 +344,7 @@ def test_signed_submission_rejects_replayed_nonce(blockchain):
     assert first.status_code == 200
     assert second.status_code == 401
     assert "already been used" in second.json()["detail"].lower()
+    assert second.json()["code"] == "nonce_replayed"
 
 
 def test_signed_submission_accepts_browser_normalized_newlines(blockchain):

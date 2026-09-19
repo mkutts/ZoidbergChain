@@ -13,6 +13,15 @@ from transaction import Transaction
 from wallet import Wallet
 from utils import extract_text
 from media_technical_validation import validate_media_bytes
+from protocol_v1_submitter_attestation import (
+    ATTESTATION_DEVELOPMENT,
+    ATTESTATION_LEGACY,
+    ATTESTATION_REQUIRED,
+    REASON_MISSING_ATTESTATION,
+    REASON_NONCE_REPLAYED,
+    SubmitterAttestationError,
+    validate_submitter_attestation,
+)
 import json
 import weakref
 from copy import deepcopy
@@ -273,6 +282,7 @@ class Blockchain:
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
         self._certified_commit_lock = _certified_commit_lock_for_storage(self.storage)
+        self._submission_attestation_lock = self._certified_commit_lock
         self._reviewer_reputation_service = ReviewerReputationService(self.storage)
         ensure_content_storage_dir(data_dir=self.storage.data_dir)
         self._validate_frozen_public_testnet_v1_runtime_constants()
@@ -1223,24 +1233,44 @@ class Blockchain:
 
     def submit_signed_content_operation(self, *, wallet_address, message, signature, content_hash, content_id, text_content, auth_manager):
         verification = auth_manager.verify_submission_signature(wallet_address=wallet_address, message=message, signature=signature, content_hash=content_hash, content_id=content_id)
-        submission = self.submit_existing_content(content_hash=content_hash, content_id=content_id, submitter=wallet_address, text_content=text_content or "")
-        submission.creator_wallet_address = wallet_address
-        submission.signature_scheme = str(verification["signature_scheme"])
-        submission.submission_signature = str(verification["submission_signature"])
-        submission.submission_message = str(verification["submission_message"])
-        submission.signed_message_hash = str(verification["signed_message_hash"])
-        submission.submission_nonce = str(verification["nonce"])
-        submission.signed_at = str(verification["signed_at"])
-        submission.identity_source = str(verification["identity_source"])
-        self.evaluate_prevote_originality(submission.submission_id)
-        self.save_blockchain()
-        return submission
+        with self._submission_attestation_lock:
+            # Refresh under the storage-scoped process lock so concurrent facades
+            # observe an already consumed durable nonce before creating review state.
+            self.load_blockchain()
+            self.ensure_submitter_attestation_not_replayed(verification["submitter_attestation"])
+            submission = self.submit_existing_content(
+                content_hash=content_hash,
+                content_id=content_id,
+                submitter=wallet_address,
+                text_content=text_content or "",
+                submission_id=str(verification["submission_id"]),
+                attestation_requirement=ATTESTATION_REQUIRED,
+                submitter_attestation=dict(verification["submitter_attestation"]),
+            )
+            submission.creator_wallet_address = wallet_address
+            submission.signature_scheme = str(verification["signature_scheme"])
+            submission.submission_signature = str(verification["submission_signature"])
+            submission.submission_message = str(verification["submission_message"])
+            submission.signed_message_hash = str(verification["signed_message_hash"])
+            submission.submission_nonce = str(verification["nonce"])
+            submission.signed_at = str(verification["signed_at"])
+            submission.identity_source = str(verification["identity_source"])
+            self.save_blockchain()
+            return submission
 
     def submit_content_operation(self, *, content_hash=None, content_id=None, image_path=None, text_content="", submitter=""):
         if content_hash is not None or content_id is not None:
-            submission = self.submit_existing_content(content_hash=content_hash, content_id=content_id, submitter=submitter, text_content=text_content or "")
+            submission = self.submit_existing_content(
+                content_hash=content_hash,
+                content_id=content_id,
+                submitter=submitter,
+                text_content=text_content or "",
+                attestation_requirement=ATTESTATION_DEVELOPMENT,
+            )
         else:
             submission = self.submit_content(image_path=image_path or "", text_content=text_content, submitter=submitter)
+            submission.attestation_requirement = ATTESTATION_DEVELOPMENT
+            submission.identity_source = "development_unsigned"
         self.evaluate_prevote_originality(submission.submission_id)
         self.save_blockchain()
         return submission
@@ -2628,7 +2658,118 @@ class Blockchain:
         caption=None,
     ):
         return self._content_coordination_service.upload_text_content(self._content_coordination_state(), self.storage, NETWORK_NAME, text_content=text_content, submitted_by=submitted_by, caption=caption)
-    def submit_existing_content(self, *, content_hash=None, submitter, text_content="", content_id=None):
+
+    def technical_validation_evidence_for_content(self, content_object):
+        return self._content_coordination_service.ensure_technically_valid_content(
+            content_object, data_dir=self.storage.data_dir
+        )
+
+    def _submitter_attestation_context(self, submission):
+        content_object = self.get_content_object_by_hash(submission.content_hash)
+        if content_object is None:
+            raise SubmitterAttestationError(
+                REASON_MISSING_ATTESTATION,
+                "Technically validated content is required for submitter attestation verification.",
+            )
+        try:
+            raw_media_bytes = load_content_bytes(
+                content_object.content_hash,
+                content_object.mime_type,
+                data_dir=self.storage.data_dir,
+            )
+        except (FileNotFoundError, UnicodeDecodeError, ValueError) as exc:
+            raise SubmitterAttestationError(
+                REASON_MISSING_ATTESTATION,
+                "Accepted media bytes are unavailable for submitter attestation verification.",
+            ) from exc
+        evidence = dict(content_object.metadata or {}).get("technical_validation")
+        return content_object, raw_media_bytes, evidence
+
+    def validate_submission_attestation(self, submission, *, allow_legacy=True):
+        requirement = getattr(submission, "attestation_requirement", ATTESTATION_LEGACY)
+        if requirement == ATTESTATION_LEGACY:
+            if not allow_legacy:
+                raise SubmitterAttestationError(
+                    REASON_MISSING_ATTESTATION, "Legacy submission has no submitter attestation."
+                )
+            return {"status": ATTESTATION_LEGACY, "valid": False, "reason_code": None}
+        if requirement == ATTESTATION_DEVELOPMENT:
+            if ENVIRONMENT == "development":
+                return {
+                    "status": ATTESTATION_DEVELOPMENT,
+                    "valid": False,
+                    "reason_code": REASON_MISSING_ATTESTATION,
+                }
+            raise SubmitterAttestationError(
+                REASON_MISSING_ATTESTATION,
+                "Development-only unsigned submissions are not eligible on Public Testnet.",
+            )
+        if requirement != ATTESTATION_REQUIRED:
+            raise SubmitterAttestationError(
+                REASON_MISSING_ATTESTATION, "Submission attestation requirement is invalid."
+            )
+        _content_object, raw_media_bytes, evidence = self._submitter_attestation_context(submission)
+        record = validate_submitter_attestation(
+            submission.submitter_attestation,
+            expected_wallet_address=submission.submitter,
+            expected_submission_id=submission.submission_id,
+            expected_raw_media_sha256=submission.content_hash,
+            expected_technical_evidence=evidence,
+            raw_media_bytes=raw_media_bytes,
+            expected_network_id=self.protocol_v1_network_id(),
+        )
+        return {"status": "valid", "valid": True, "reason_code": None, "attestation": record}
+
+    def submission_attestation_status(self, submission):
+        try:
+            return self.validate_submission_attestation(submission)
+        except SubmitterAttestationError as exc:
+            return {
+                "status": "invalid",
+                "valid": False,
+                "reason_code": exc.reason_code,
+            }
+
+    def require_valid_submitter_attestation(self, submission):
+        return self.validate_submission_attestation(submission)
+
+    def ensure_submitter_attestation_not_replayed(self, record, *, exclude_submission_id=None):
+        if not isinstance(record, dict):
+            raise SubmitterAttestationError(REASON_MISSING_ATTESTATION, "Submitter attestation is required.")
+        nonce = str(record.get("nonce") or "").strip()
+        signature = str(record.get("signature") or "").strip().lower()
+        message_hash = str(record.get("canonical_message_hash") or "").strip().lower()
+        if not nonce or not signature or not message_hash:
+            raise SubmitterAttestationError(
+                REASON_MISSING_ATTESTATION,
+                "Submitter attestation replay identity is incomplete.",
+            )
+        for existing in self.submissions:
+            if exclude_submission_id and existing.submission_id == exclude_submission_id:
+                continue
+            existing_record = getattr(existing, "submitter_attestation", None)
+            if not isinstance(existing_record, dict):
+                continue
+            if (
+                str(existing_record.get("nonce") or "").strip() == nonce
+                or str(existing_record.get("signature") or "").strip().lower() == signature
+                or str(existing_record.get("canonical_message_hash") or "").strip().lower() == message_hash
+            ):
+                raise SubmitterAttestationError(
+                    REASON_NONCE_REPLAYED, "Submitter attestation nonce or signature was already consumed."
+                )
+
+    def submit_existing_content(
+        self,
+        *,
+        content_hash=None,
+        submitter,
+        text_content="",
+        content_id=None,
+        submission_id=None,
+        attestation_requirement=ATTESTATION_DEVELOPMENT,
+        submitter_attestation=None,
+    ):
         content_object = None
         if content_id:
             content_object = self.get_content_object(content_id)
@@ -2681,7 +2822,12 @@ class Blockchain:
             status=PENDING,
             content_hash=content_object.content_hash,
             content_id=content_object.content_id,
+            **({"submission_id": submission_id} if submission_id is not None else {}),
+            attestation_requirement=attestation_requirement,
+            submitter_attestation=submitter_attestation,
         )
+        self.ensure_submitter_attestation_not_replayed(submitter_attestation) if attestation_requirement == ATTESTATION_REQUIRED else None
+        self.require_valid_submitter_attestation(submission)
         self.submissions.append(submission)
         self._ensure_content_object_for_submission(
             submission,
@@ -2754,6 +2900,7 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError(f"Submission not found: {submission_id}")
+        self.require_valid_submitter_attestation(submission)
         existing = self.get_originality_evidence(submission_id)
         if existing is not None and self._originality_reference_is_canonical(existing) and not force:
             return deepcopy(existing)
@@ -2802,6 +2949,10 @@ class Blockchain:
         return deepcopy(evidence)
 
     def ensure_current_originality_evidence(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        self.require_valid_submitter_attestation(submission)
         evidence = self.get_originality_evidence(submission_id)
         if evidence is None or not self._originality_reference_is_canonical(evidence):
             evidence = self.evaluate_prevote_originality(submission_id, force=evidence is not None)

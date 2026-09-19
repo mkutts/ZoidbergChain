@@ -297,6 +297,32 @@ def canonical_document_claims(document: dict[str, Any]) -> dict[str, list[dict[s
     seen_nonces: set[tuple[str, str]] = set()
     seen_rewards: dict[str, str] = {}
 
+    seen_pending_submission_ids: set[str] = set()
+    seen_attestation_nonces: set[tuple[str, str]] = set()
+    seen_attestation_signatures: set[str] = set()
+    for raw_submission in list(document.get("submissions", []) or []):
+        if not isinstance(raw_submission, dict):
+            raise StorageUniquenessError("Submission state contains a malformed record.")
+        submission_id = _normalized_claim_value(raw_submission.get("submission_id"))
+        if not submission_id or submission_id in seen_pending_submission_ids:
+            raise StorageUniquenessError("Submission identifiers must be present and unique.")
+        seen_pending_submission_ids.add(submission_id)
+        attestation = raw_submission.get("submitter_attestation")
+        if attestation is None:
+            continue
+        if not isinstance(attestation, dict):
+            raise StorageUniquenessError("Submitter attestation must be an object.")
+        signer = _normalized_claim_value(attestation.get("signer_wallet"))
+        nonce = str(attestation.get("nonce") or "").strip()
+        signature = str(attestation.get("signature") or "").strip().lower()
+        if not signer or not nonce or not signature:
+            raise StorageUniquenessError("Submitter attestation replay identity is incomplete.")
+        nonce_key = (signer, nonce)
+        if nonce_key in seen_attestation_nonces or signature in seen_attestation_signatures:
+            raise StorageUniquenessError("Submitter attestation nonce or signature is already consumed.")
+        seen_attestation_nonces.add(nonce_key)
+        seen_attestation_signatures.add(signature)
+
     for block in list(document.get("chain", []) or []):
         if not isinstance(block, dict):
             raise StorageUniquenessError("Canonical chain contains a malformed block record.")

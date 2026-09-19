@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
-from eth_account import Account
-from eth_account.messages import encode_defunct
 from fastapi import Header, HTTPException
+from wallet_signatures import (
+    canonicalize_wallet_message,
+    normalize_wallet_address,
+    recover_signed_wallet_address,
+)
 from native_transfer import (
     NATIVE_TRANSACTION_NONCE_POLICY,
     verify_transfer_signature as verify_signed_native_transfer_message,
@@ -19,6 +24,17 @@ from protocol_v1_native_transfer import (
     resolve_protocol_v1_network_id,
 )
 from protocol_v1 import PROTOCOL_VERSION
+from protocol_v1_submitter_attestation import (
+    REASON_INVALID_SIGNATURE,
+    REASON_MESSAGE_MISMATCH,
+    REASON_NONCE_INVALID,
+    REASON_NONCE_REPLAYED,
+    REASON_SIGNER_MISMATCH,
+    SubmitterAttestationError,
+    build_submitter_attestation_message,
+    build_submitter_attestation_payload,
+    build_submitter_attestation_record,
+)
 from protocol_v1_originality import (
     PROTOCOL_V1_VOTE_VERSION,
     build_protocol_v1_vote_message,
@@ -56,6 +72,8 @@ class SubmissionChallenge:
     content_hash: str
     content_id: str | None
     caption: str | None
+    submission_id: str
+    attestation_payload: dict
     nonce: str
     message: str
     issued_at: datetime
@@ -103,16 +121,6 @@ def _utc_now() -> datetime:
 
 def _isoformat(value: datetime) -> str:
     return value.astimezone(timezone.utc).isoformat()
-
-
-def normalize_wallet_address(wallet_address: str) -> str | None:
-    candidate = str(wallet_address or "").strip()
-    if len(candidate) != 42 or candidate[:2].lower() != "0x":
-        return None
-    hex_part = candidate[2:]
-    if not hex_part or any(ch not in "0123456789abcdefABCDEF" for ch in hex_part):
-        return None
-    return f"0x{hex_part.lower()}"
 
 
 def build_wallet_login_message(
@@ -226,25 +234,6 @@ def hash_wallet_message(message: str) -> str:
     return hashlib.sha256(canonicalize_wallet_message(message).encode("utf-8")).hexdigest()
 
 
-def canonicalize_wallet_message(message: str) -> str:
-    return str(message or "").replace("\r\n", "\n").replace("\r", "\n")
-
-
-def recover_signed_wallet_address(message: str, signature: str) -> str:
-    try:
-        recovered = Account.recover_message(
-            encode_defunct(text=canonicalize_wallet_message(message)),
-            signature=signature,
-        )
-    except Exception as exc:
-        raise ValueError("Malformed signature or unsupported signature payload.") from exc
-
-    recovered_normalized = normalize_wallet_address(recovered)
-    if not recovered_normalized:
-        raise ValueError("Recovered signature address is invalid.")
-    return recovered_normalized
-
-
 class WalletAuthManager:
     def __init__(
         self,
@@ -263,6 +252,7 @@ class WalletAuthManager:
         self._submission_challenges_by_message_hash: dict[str, SubmissionChallenge] = {}
         self._vote_challenges_by_message_hash: dict[str, VoteChallenge] = {}
         self._transfer_challenges_by_message_hash: dict[str, TransferChallenge] = {}
+        self._lock = threading.RLock()
 
     def clear(self) -> None:
         self._challenges_by_wallet.clear()
@@ -384,49 +374,79 @@ class WalletAuthManager:
         content_hash: str,
         content_id: str | None = None,
         caption: str | None = None,
-    ) -> dict[str, str]:
-        self.prune_expired()
-        normalized = normalize_wallet_address(wallet_address)
-        if not normalized:
-            raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
-        if not isinstance(content_hash, str) or not content_hash.strip():
-            raise ValueError("content_hash is required.")
+        technical_validation: dict | None = None,
+    ) -> dict[str, Any]:
+        with self._lock:
+            self.prune_expired()
+            normalized = normalize_wallet_address(wallet_address)
+            if not normalized:
+                raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
+            if not isinstance(content_hash, str) or not content_hash.strip():
+                raise ValueError("content_hash is required.")
+            evidence = dict(technical_validation or {})
+            required_evidence = (
+                "policy_id", "policy_version", "policy_digest", "evidence_version",
+                "evidence_digest", "raw_media_sha256",
+            )
+            if any(evidence.get(field) in (None, "") for field in required_evidence):
+                raise ValueError("Technically validated media evidence is required before attestation.")
 
-        issued_at = _utc_now()
-        expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
-        nonce = secrets.token_urlsafe(24)
-        message = build_wallet_submission_message(
-            wallet_address=normalized,
-            network_name=self.network_name,
-            content_hash=content_hash.strip(),
-            content_id=(content_id or "").strip() or None,
-            caption=(caption or "").strip() or None,
-            nonce=nonce,
-            issued_at=issued_at,
-            expires_at=expires_at,
-        )
-        challenge = SubmissionChallenge(
-            wallet_address=normalized,
-            content_hash=content_hash.strip(),
-            content_id=(content_id or "").strip() or None,
-            caption=(caption or "").strip() or None,
-            nonce=nonce,
-            message=message,
-            issued_at=issued_at,
-            expires_at=expires_at,
-        )
-        self._submission_challenges_by_message_hash[hash_wallet_message(message)] = challenge
-        return {
-            "wallet_address": normalized,
-            "normalized_wallet_address": normalized,
-            "content_hash": challenge.content_hash,
-            "content_id": challenge.content_id or "",
-            "caption": challenge.caption or "",
-            "nonce": nonce,
-            "message": message,
-            "issued_at": _isoformat(issued_at),
-            "expires_at": _isoformat(expires_at),
-        }
+            issued_at = _utc_now()
+            expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
+            nonce = secrets.token_urlsafe(24)
+            submission_id = secrets.token_hex(16)
+            network_id = resolve_protocol_v1_network_id(network_name=self.network_name)
+            payload = build_submitter_attestation_payload(
+                wallet_address=normalized,
+                network_id=network_id,
+                submission_id=submission_id,
+                raw_media_sha256=evidence["raw_media_sha256"],
+                policy_id=evidence["policy_id"],
+                policy_version=evidence["policy_version"],
+                policy_digest=evidence["policy_digest"],
+                technical_evidence_version=evidence["evidence_version"],
+                technical_evidence_digest=evidence["evidence_digest"],
+                nonce=nonce,
+                issued_at=issued_at,
+                expires_at=expires_at,
+            )
+            message = build_submitter_attestation_message(**payload)
+            challenge = SubmissionChallenge(
+                wallet_address=normalized,
+                content_hash=content_hash.strip(),
+                content_id=(content_id or "").strip() or None,
+                caption=(caption or "").strip() or None,
+                submission_id=submission_id,
+                attestation_payload=payload,
+                nonce=nonce,
+                message=message,
+                issued_at=issued_at,
+                expires_at=expires_at,
+            )
+            self._submission_challenges_by_message_hash[hash_wallet_message(message)] = challenge
+            return {
+                "wallet_address": normalized,
+                "normalized_wallet_address": normalized,
+                "content_hash": challenge.content_hash,
+                "content_id": challenge.content_id or "",
+                "caption": challenge.caption or "",
+                "submission_id": submission_id,
+                "nonce": nonce,
+                "message": message,
+                "canonical_payload": payload,
+                "attestation_version": payload["attestation_version"],
+                "statement_id": payload["statement_id"],
+                "statement_version": payload["statement_version"],
+                "statement": payload["statement"],
+                "network_id": network_id,
+                "policy_id": payload["policy_id"],
+                "policy_version": payload["policy_version"],
+                "policy_digest": payload["policy_digest"],
+                "technical_evidence_version": payload["technical_evidence_version"],
+                "technical_evidence_digest": payload["technical_evidence_digest"],
+                "issued_at": _isoformat(issued_at),
+                "expires_at": _isoformat(expires_at),
+            }
 
     def verify_submission_signature(
         self,
@@ -436,60 +456,71 @@ class WalletAuthManager:
         signature: str,
         content_hash: str,
         content_id: str | None = None,
-    ) -> dict[str, str | bool]:
-        self.prune_expired()
-        normalized = normalize_wallet_address(wallet_address)
-        if not normalized:
-            raise ValueError("Invalid wallet address. Expected an Ethereum-style 0x address.")
-        if not isinstance(signature, str) or not signature.strip():
-            raise ValueError("Missing signature.")
-        if not isinstance(message, str) or not message.strip():
-            raise ValueError("Missing signed submission message.")
+    ) -> dict[str, Any]:
+        with self._lock:
+            self.prune_expired()
+            normalized = normalize_wallet_address(wallet_address)
+            if not normalized:
+                raise SubmitterAttestationError(REASON_SIGNER_MISMATCH, "Attestation wallet is invalid.")
+            if not isinstance(signature, str) or not signature.strip():
+                raise SubmitterAttestationError(REASON_INVALID_SIGNATURE, "Missing signature.")
+            if not isinstance(message, str) or not message.strip():
+                raise SubmitterAttestationError(REASON_MESSAGE_MISMATCH, "Missing signed attestation message.")
 
-        message_hash = hash_wallet_message(message)
-        challenge = self._submission_challenges_by_message_hash.get(message_hash)
-        if challenge is None:
-            raise ValueError("No active submission challenge found for this message.")
-        if challenge.used:
-            raise ValueError("Submission challenge has already been used.")
-        if challenge.expires_at <= _utc_now():
-            raise ValueError("Submission challenge has expired.")
-        normalized_message = canonicalize_wallet_message(message)
-        if normalized_message != canonicalize_wallet_message(challenge.message):
-            raise ValueError("Submission challenge message does not match the stored challenge.")
-        if challenge.wallet_address != normalized:
-            raise ValueError("Submission challenge wallet does not match the verified session wallet.")
-        if content_hash.strip() != challenge.content_hash:
-            raise ValueError("Submission content_hash does not match the signed challenge.")
+            message_hash = hash_wallet_message(message)
+            challenge = self._submission_challenges_by_message_hash.get(message_hash)
+            if challenge is None:
+                raise SubmitterAttestationError(REASON_NONCE_INVALID, "No active attestation challenge found for this message.")
+            if challenge.used:
+                raise SubmitterAttestationError(REASON_NONCE_REPLAYED, "Attestation challenge has already been used.")
+            if challenge.expires_at <= _utc_now():
+                raise SubmitterAttestationError(REASON_NONCE_INVALID, "Attestation challenge has expired.")
+            normalized_message = canonicalize_wallet_message(message)
+            if normalized_message != canonicalize_wallet_message(challenge.message):
+                raise SubmitterAttestationError(REASON_MESSAGE_MISMATCH, "Attestation message does not match the stored challenge.")
+            if challenge.wallet_address != normalized:
+                raise SubmitterAttestationError(REASON_SIGNER_MISMATCH, "Attestation wallet does not match the verified session wallet.")
+            if content_hash.strip() != challenge.content_hash:
+                raise SubmitterAttestationError("media_hash_mismatch", "Submission content_hash does not match the attestation.")
 
-        normalized_content_id = (content_id or "").strip() or None
-        if challenge.content_id != normalized_content_id:
-            raise ValueError("Submission content_id does not match the signed challenge.")
+            normalized_content_id = (content_id or "").strip() or None
+            if challenge.content_id != normalized_content_id:
+                raise SubmitterAttestationError("media_hash_mismatch", "Submission content_id does not match the attestation.")
 
-        recovered_normalized = recover_signed_wallet_address(normalized_message, signature)
-        if recovered_normalized != normalized:
-            raise ValueError("Signature does not match the verified session wallet.")
+            try:
+                recovered_normalized = recover_signed_wallet_address(normalized_message, signature)
+            except ValueError as exc:
+                raise SubmitterAttestationError(REASON_INVALID_SIGNATURE, "Attestation signature is invalid.") from exc
+            if recovered_normalized != normalized:
+                raise SubmitterAttestationError(REASON_SIGNER_MISMATCH, "Signature does not match the verified session wallet.")
 
-        challenge.used = True
-        signed_at = _utc_now()
-        return {
-            "verified": True,
-            "wallet_address": normalized,
-            "normalized_wallet_address": normalized,
-            "content_hash": challenge.content_hash,
-            "content_id": challenge.content_id or "",
-            "caption": challenge.caption or "",
-            "nonce": challenge.nonce,
-            "signature_scheme": "personal_sign",
-            "submission_signature": signature.strip(),
-            "submission_message": canonicalize_wallet_message(challenge.message),
-            "signed_message_hash": message_hash,
-            "issued_at": _isoformat(challenge.issued_at),
-            "expires_at": _isoformat(challenge.expires_at),
-            "signed_at": _isoformat(signed_at),
-            "identity_source": "metamask_signed",
-            "message": "Submission signature verified",
-        }
+            challenge.used = True
+            signed_at = _utc_now()
+            attestation = build_submitter_attestation_record(
+                payload=challenge.attestation_payload,
+                signature=signature,
+                verified_at=signed_at,
+            )
+            return {
+                "verified": True,
+                "wallet_address": normalized,
+                "normalized_wallet_address": normalized,
+                "content_hash": challenge.content_hash,
+                "content_id": challenge.content_id or "",
+                "caption": challenge.caption or "",
+                "submission_id": challenge.submission_id,
+                "nonce": challenge.nonce,
+                "signature_scheme": "personal_sign",
+                "submission_signature": signature.strip(),
+                "submission_message": canonicalize_wallet_message(challenge.message),
+                "signed_message_hash": message_hash,
+                "issued_at": _isoformat(challenge.issued_at),
+                "expires_at": _isoformat(challenge.expires_at),
+                "signed_at": _isoformat(signed_at),
+                "identity_source": "metamask_signed",
+                "submitter_attestation": attestation,
+                "message": "Submission signature verified",
+            }
 
     def issue_vote_challenge(
         self,

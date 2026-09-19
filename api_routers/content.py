@@ -161,9 +161,17 @@ async def submit_content(
                 detail="Direct file submission is no longer supported here. Upload content first, then create a signed submission.",
             )
         if not message:
-            raise HTTPException(status_code=400, detail="signed submission message is required.")
+            return _public_error(
+                "signed submitter attestation message is required.",
+                status_code=400,
+                code="missing_attestation",
+            )
         if not signature:
-            raise HTTPException(status_code=400, detail="signature is required.")
+            return _public_error(
+                "submitter attestation signature is required.",
+                status_code=400,
+                code="invalid_signature",
+            )
 
         content_object = _require_content_reference(content_hash, content_id)
         normalized_wallet = normalize_wallet_address(wallet_address or verified_wallet)
@@ -186,6 +194,8 @@ async def submit_content(
             status_code = 400
             if "expired" in detail.lower() or "already been used" in detail.lower():
                 status_code = 401
+            if isinstance(exc, SubmitterAttestationError):
+                return _public_error(detail, status_code=status_code, code=exc.reason_code)
             raise HTTPException(status_code=status_code, detail=detail) from exc
 
     else:

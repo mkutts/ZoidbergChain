@@ -206,6 +206,7 @@ from review_policy import (
     load_review_policy_config,
 )
 from protocol_v1 import encode_canonical_bytes
+from protocol_v1_submitter_attestation import SubmitterAttestationError
 
 from peers import PeerStore, normalize_peer_url
 from peer_sync import (
@@ -322,6 +323,8 @@ class PeerSubmissionPayload(_StrictBodyModel):
     submission_nonce: Annotated[str, Field(min_length=1, max_length=256)] | None = None
     signed_at: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    attestation_requirement: Annotated[str, Field(min_length=1, max_length=64)] | None = None
+    submitter_attestation: dict[str, Any] | None = None
 
 
 class PeerVotePayload(_StrictBodyModel):
@@ -795,6 +798,9 @@ def _serialize_submission(submission):
         "signature_scheme": submission.signature_scheme,
         "signed_at": submission.signed_at,
         "signed_message_hash": submission.signed_message_hash,
+        "attestation_requirement": getattr(submission, "attestation_requirement", "legacy_pre_activation"),
+        "attestation_status": blockchain.submission_attestation_status(submission),
+        "submitter_attestation": getattr(submission, "submitter_attestation", None),
         "status": submission.status,
         "created_at": submission.created_at,
         "hard_reject_reason": submission.hard_reject_reason,

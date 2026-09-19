@@ -35,6 +35,7 @@ from config import (
     peer_shared_secret_is_configured,
     peer_signature_window_seconds,
     signed_peer_messages_enabled,
+    is_development,
 )
 from originality_certificate import (
     OriginalityCertificate,
@@ -60,6 +61,12 @@ from milestone5_policy import (
     validate_reviewer_status,
 )
 from protocol_v1 import OBJECT_TYPE_VOTE, PROTOCOL_VERSION, decode_canonical_bytes, encode_canonical_bytes
+from protocol_v1_submitter_attestation import (
+    ATTESTATION_DEVELOPMENT,
+    ATTESTATION_LEGACY,
+    ATTESTATION_REQUIRED,
+    SubmitterAttestationError,
+)
 from media_technical_validation import (
     TechnicalMediaValidationError,
     decode_canonical_media_bounded,
@@ -1193,6 +1200,9 @@ def receive_peer_submission(
     submission = Submission.from_dict(
         {**normalized_payload, "status": PENDING, "image_path": ""}
     )
+    if submission.attestation_requirement != ATTESTATION_REQUIRED and is_development():
+        submission.attestation_requirement = ATTESTATION_DEVELOPMENT
+        submission.identity_source = submission.identity_source or "development_peer_unsigned"
     if validated_media is not None:
         try:
             mime_type = validated_media.result["detected_mime_type"]
@@ -1219,6 +1229,17 @@ def receive_peer_submission(
             )
         except (UnicodeDecodeError, ValueError) as exc:
             raise MalformedSubmissionError(str(exc)) from exc
+    try:
+        if submission.attestation_requirement not in {ATTESTATION_REQUIRED, ATTESTATION_DEVELOPMENT}:
+            raise SubmitterAttestationError(
+                "missing_attestation",
+                "Peer Public Testnet v1 submissions require a signed submitter attestation.",
+            )
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            blockchain.ensure_submitter_attestation_not_replayed(submission.submitter_attestation)
+        blockchain.require_valid_submitter_attestation(submission)
+    except SubmitterAttestationError as exc:
+        raise MalformedSubmissionError(f"{exc.reason_code}: {exc}") from exc
     blockchain.submissions.append(submission)
     blockchain.link_content_objects_to_submissions()
     local_evidence = blockchain.evaluate_prevote_originality(submission.submission_id)
@@ -2684,6 +2705,8 @@ def _normalize_vote_payload(vote_payload, local_network_name):
             "vote_expires_at",
             "signed_at",
             "identity_source",
+            "attestation_requirement",
+            "submitter_attestation",
             "created_at",
             "vote_timestamp",
             "reviewer_policy_version",
@@ -2939,6 +2962,8 @@ def _normalize_submission_payload(submission_payload):
             "submission_nonce",
             "signed_at",
             "identity_source",
+            "attestation_requirement",
+            "submitter_attestation",
         ],
         MalformedSubmissionError,
         "Submission payload",
@@ -3032,6 +3057,8 @@ def _normalize_submission_payload(submission_payload):
     normalized["submission_nonce"] = submission_payload.get("submission_nonce")
     normalized["signed_at"] = submission_payload.get("signed_at")
     normalized["identity_source"] = submission_payload.get("identity_source")
+    normalized["attestation_requirement"] = submission_payload.get("attestation_requirement") or ATTESTATION_LEGACY
+    normalized["submitter_attestation"] = submission_payload.get("submitter_attestation")
 
     creator_wallet_address = normalized["creator_wallet_address"]
     creator_wallet_normalized = normalize_wallet_address(creator_wallet_address) if isinstance(creator_wallet_address, str) else None

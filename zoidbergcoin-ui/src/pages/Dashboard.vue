@@ -290,6 +290,15 @@
             <label for="submission-content-id">Content ID</label>
             <input id="submission-content-id" type="text" v-model.trim="submissionContentId" placeholder="Optional advanced reference from the upload step" class="input-field">
           </div>
+
+          <div class="field-group attestation-panel">
+            <p class="section-label">Required Submitter Attestation</p>
+            <p class="hint">{{ submitterAttestationStatement }}</p>
+            <label class="attestation-checkbox">
+              <input v-model="attestationAcknowledged" type="checkbox">
+              <span>I have read and explicitly acknowledge this statement before signing it with MetaMask.</span>
+            </label>
+          </div>
         </div>
 
         <div class="card-actions">
@@ -990,6 +999,10 @@ import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.j
 import { getEligibilityRuleChecks } from '../utils/eligibilityChecklist.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 import {
+  SUBMITTER_ATTESTATION_STATEMENT,
+  prepareSubmitterAttestationChallenge,
+} from '../utils/submitterAttestation.js';
+import {
   buildBlockContentAvailability,
   buildBlockDisplay,
   buildProtocolNetworkIdentity,
@@ -1043,6 +1056,8 @@ export default {
       certificateError: '',
       blocksError: '',
       isSubmitting: false,
+      attestationAcknowledged: false,
+      submitterAttestationStatement: SUBMITTER_ATTESTATION_STATEMENT,
       isLoading: false,
       isQueueLoading: false,
       isBlocksLoading: false,
@@ -1278,7 +1293,7 @@ export default {
       if (this.submissionEligibility && this.submissionEligibility.can_submit === false) {
         return false;
       }
-      return true;
+      return this.attestationAcknowledged;
     },
     submitButtonLabel() {
       if (this.isSubmitting) {
@@ -1293,11 +1308,14 @@ export default {
       if (this.submissionEligibility && this.submissionEligibility.can_submit === false) {
         return 'Submission Blocked';
       }
+      if (!this.attestationAcknowledged) {
+        return 'Acknowledge Attestation To Submit';
+      }
       return this.uploadedContent ? 'Sign And Submit' : 'Sign And Submit';
     },
     submissionIdentityHint() {
       if (this.hasVerifiedWalletIdentity) {
-        return 'Your verified wallet will sign this submission before it enters community voting.';
+        return 'Your verified wallet will sign the exact content, policy, technical-validation evidence, network, submission ID, and permanence statement before community voting.';
       }
       if (!this.walletManager.state.isConnected) {
         return 'Connect MetaMask first so the app knows which wallet should own this submission.';
@@ -1438,6 +1456,10 @@ export default {
         this.errorMessage = this.submissionEligibility.message || 'Submission is currently blocked.';
         return;
       }
+      if (!this.attestationAcknowledged) {
+        this.errorMessage = 'Read and acknowledge the submitter attestation before signing.';
+        return;
+      }
 
       this.isSubmitting = true;
       try {
@@ -1472,7 +1494,11 @@ export default {
           caption: this.textContent || preparedContent?.caption || this.contentCaption || null,
         });
 
-        const signature = await this.signWalletMessage(challengeResponse.data.message);
+        const preparedAttestation = prepareSubmitterAttestationChallenge(
+          challengeResponse.data,
+          { acknowledged: this.attestationAcknowledged },
+        );
+        const signature = await this.signWalletMessage(preparedAttestation.message);
 
         const formData = new FormData();
         formData.append('wallet_address', this.submissionWalletAddress);
@@ -1483,7 +1509,7 @@ export default {
         if (finalSubmissionText) {
           formData.append('text_content', finalSubmissionText);
         }
-        formData.append('message', challengeResponse.data.message);
+        formData.append('message', preparedAttestation.message);
         formData.append('signature', signature);
 
         const response = await apiClient.post('/submit_content', formData, {
@@ -1496,6 +1522,7 @@ export default {
         this.memeFile = null;
         this.submissionContentHash = '';
         this.submissionContentId = '';
+        this.attestationAcknowledged = false;
         const fileInput = document.getElementById('meme-upload');
         if (fileInput) {
           fileInput.value = '';

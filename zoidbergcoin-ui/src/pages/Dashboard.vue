@@ -524,24 +524,36 @@
             </div>
 
             <div class="submission-actions">
-              <p v-if="currentWalletVoteForSubmission(submission)" class="meta">
-                Your vote: {{ formatStatus(currentWalletVoteForSubmission(submission).vote_type) }}
+              <p v-if="currentWalletVoteForSubmission(submission, 'originality')" class="meta">
+                Your originality vote: {{ formatStatus(currentWalletVoteForSubmission(submission, 'originality').vote_type) }}
+              </p>
+              <p v-if="currentWalletVoteForSubmission(submission, 'admissibility')" class="meta">
+                Your content admissibility vote: {{ formatStatus(currentWalletVoteForSubmission(submission, 'admissibility').vote_type) }}
               </p>
               <div class="reward-summary-panel">
                 <p class="section-label">Voter Reward</p>
                 <strong>{{ describeSubmissionReward(submission) }}</strong>
               </div>
+              <p class="section-label">Is this submission original under the current originality rules?</p>
               <div class="vote-actions">
-                <button @click="vote(submission.submission_id, 'original')" class="btn vote" :disabled="voteDisabled(submission)">
+                <button @click="vote(submission.submission_id, 'original', 'originality')" class="btn vote" :disabled="voteDisabled(submission, 'originality')">
                   Original
                 </button>
-                <button @click="vote(submission.submission_id, 'not_original')" class="btn vote" :disabled="voteDisabled(submission)">
+                <button @click="vote(submission.submission_id, 'not_original', 'originality')" class="btn vote" :disabled="voteDisabled(submission, 'originality')">
                   Not Original
                 </button>
-                <button @click="vote(submission.submission_id, 'unsure')" class="btn vote" :disabled="voteDisabled(submission)">
+                <button @click="vote(submission.submission_id, 'unsure', 'originality')" class="btn vote" :disabled="voteDisabled(submission, 'originality')">
                   Unsure
                 </button>
               </div>
+              <template v-if="submission.attestation_requirement === 'public_testnet_v1_required'">
+                <p class="section-label">Does this submission satisfy the Public Testnet v1 content-admissibility rules?</p>
+                <div class="vote-actions">
+                  <button @click="vote(submission.submission_id, 'admissible', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Admissible</button>
+                  <button @click="vote(submission.submission_id, 'not_admissible', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Not Admissible</button>
+                  <button @click="vote(submission.submission_id, 'unsure', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Unsure</button>
+                </div>
+              </template>
             </div>
           </article>
         </div>
@@ -1744,7 +1756,7 @@ export default {
     async fetchVotesForSubmission(submissionId) {
       try {
         const response = await apiClient.get(`/submissions/${submissionId}/votes`);
-        return response.data?.votes || [];
+        return [...(response.data?.votes || []), ...(response.data?.admissibility_votes || [])];
       } catch (error) {
         if (error?.response?.status === 404) {
           return [];
@@ -1786,14 +1798,14 @@ export default {
       }
       return this.certificatesBySubmission[submission.submission_id] || null;
     },
-    currentWalletVoteForSubmission(submission) {
+    currentWalletVoteForSubmission(submission, dimension = 'originality') {
       if (!submission?.submission_id || !this.voteWalletAddress) {
         return null;
       }
       const votes = this.votesBySubmission[submission.submission_id] || [];
-      return votes.find((vote) => vote.voter === this.voteWalletAddress) || null;
+      return votes.find((vote) => vote.voter === this.voteWalletAddress && (vote.dimension || 'originality') === dimension) || null;
     },
-    voteDisabled(submission) {
+    voteDisabled(submission, dimension = 'originality') {
       if (!this.walletManager.state.isConnected || !this.hasVerifiedWalletIdentity || !this.voteWalletAddress) {
         return true;
       }
@@ -1803,7 +1815,7 @@ export default {
       if (submission?.submitter === this.voteWalletAddress) {
         return true;
       }
-      return Boolean(this.currentWalletVoteForSubmission(submission));
+      return Boolean(this.currentWalletVoteForSubmission(submission, dimension));
     },
     certificateLookupComplete(submission) {
       return Boolean(
@@ -1934,16 +1946,20 @@ export default {
         throw error;
       }
     },
-    async submitSignedVote(submissionId, voteType) {
+    async submitSignedVote(submissionId, voteType, dimension = 'originality') {
+      const submission = this.submissions.find((item) => item.submission_id === submissionId);
+      const currentReview = submission?.attestation_requirement === 'public_testnet_v1_required';
       const challengeResponse = await apiClient.post('/auth/wallet/vote-challenge', {
         wallet_address: this.voteWalletAddress,
         submission_id: submissionId,
         vote: voteType,
+        ...(currentReview ? { dimension } : {}),
       });
       const signature = await this.signWalletMessage(challengeResponse.data.message);
       const formData = new FormData();
       formData.append('wallet_address', this.voteWalletAddress);
       formData.append('vote_type', voteType);
+      if (currentReview) formData.append('dimension', dimension);
       formData.append('message', challengeResponse.data.message);
       formData.append('signature', signature);
       return apiClient.post(`/submissions/${submissionId}/vote`, formData, {
@@ -1959,7 +1975,7 @@ export default {
     blockContentAvailability(block) {
       return buildBlockContentAvailability(block);
     },
-    async vote(submissionId, voteType) {
+    async vote(submissionId, voteType, dimension = 'originality') {
       this.voteMessage = '';
       this.voteError = '';
 
@@ -1985,7 +2001,7 @@ export default {
         this.voteError = 'Submission creator cannot vote on their own submission.';
         return;
       }
-      if (this.currentWalletVoteForSubmission(submission)) {
+      if (this.currentWalletVoteForSubmission(submission, dimension)) {
         this.voteError = 'This wallet has already voted on that submission.';
         return;
       }
@@ -1994,14 +2010,14 @@ export default {
         let response;
         let refreshedChallenge = false;
         try {
-          response = await this.submitSignedVote(submissionId, voteType);
+          response = await this.submitSignedVote(submissionId, voteType, dimension);
         } catch (error) {
           const detail = getApiErrorMessage(error, '');
           if (!shouldRetryProtocolAction(detail)) {
             throw error;
           }
           refreshedChallenge = true;
-          response = await this.submitSignedVote(submissionId, voteType);
+          response = await this.submitSignedVote(submissionId, voteType, dimension);
         }
         this.voteMessage = refreshedChallenge
           ? `Vote signing window expired, so the app requested a fresh message and recorded your ${this.formatStatus(voteType)} vote.`

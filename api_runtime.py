@@ -46,6 +46,7 @@ from content import (
 from wallet import Wallet
 from transaction import Transaction
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED
+from milestone5_policy import REVIEW_EPOCH_BLOCKS
 from utils import extract_text
 from media_technical_validation import (
     TechnicalMediaRequestLimitMiddleware,
@@ -279,6 +280,7 @@ CertificateIdValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64,
 BlockHashValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)]
 ContentHashValue = Annotated[str, Field(pattern=HEX_64_PATTERN, min_length=64, max_length=64)]
 VoteTypeValue = Literal["original", "not_original", "unsure"]
+DualVoteTypeValue = Literal["original", "not_original", "admissible", "not_admissible", "unsure"]
 SubmissionStatusValue = Literal["pending", "approved", "rejected", "minted", "queued", "hard_rejected"]
 EthereumWalletAddressValue = Annotated[str, Field(pattern=ETHEREUM_ADDRESS_PATTERN, min_length=42, max_length=42)]
 
@@ -334,6 +336,7 @@ class PeerVotePayload(_StrictBodyModel):
     submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_type: str | None = None
+    dimension: Literal["originality", "admissibility"] | None = None
     vote_value: str | None = None
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     voter_wallet_address: Annotated[str, Field(min_length=1, max_length=128)] | None = None
@@ -479,6 +482,7 @@ class PeerVoteReceive(BaseModel):
     submission_id: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     voter: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     vote_type: str | None = None
+    dimension: Literal["originality", "admissibility"] | None = None
     vote_value: str | None = None
     content_hash: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     voter_wallet_address: Annotated[str, Field(min_length=1, max_length=128)] | None = None
@@ -579,7 +583,8 @@ class WalletSubmissionChallengeRequest(_StrictBodyModel):
 class WalletVoteChallengeRequest(_StrictBodyModel):
     wallet_address: EthereumWalletAddressValue
     submission_id: SubmissionIdValue
-    vote: VoteTypeValue
+    vote: DualVoteTypeValue
+    dimension: Literal["originality", "admissibility"] | None = None
 
 
 class WalletTransferChallengeRequest(_StrictBodyModel):
@@ -1325,16 +1330,33 @@ def _review_policy_http_exception(reason: str, recommended_action: str):
     )
 
 
-def _enforce_review_policy(wallet_address: str, *, scope: str = "review"):
+def _enforce_review_policy(wallet_address: str, *, scope: str = "review", submission_id: str | None = None, dimension: str | None = None):
+    prior_other_votes = [vote for vote in blockchain.votes if submission_id and dimension
+        and vote.get("submission_id") == submission_id
+        and normalize_wallet_address(vote.get("voter")) == normalize_wallet_address(wallet_address)
+        and vote.get("dimension") in {"originality", "admissibility"} - {dimension}]
+    same_day_participation = any(
+        isinstance(vote.get("created_at"), (int, float))
+        and float(vote["created_at"]) >= current_day_window()
+        for vote in prior_other_votes
+    )
+    same_epoch_participation = False
+    if prior_other_votes and ENVIRONMENT != "development":
+        consensus_epoch = blockchain.get_reviewer_vote_decision(wallet_address).review_epoch
+        same_epoch_participation = any(
+            isinstance(vote.get("reviewer_status_effective_height"), int)
+            and vote["reviewer_status_effective_height"] // REVIEW_EPOCH_BLOCKS == consensus_epoch
+            for vote in prior_other_votes
+        )
     _, decision = _review_eligibility_for_wallet(wallet_address, scope=scope)
-    if not decision.eligible:
+    if not decision.eligible and not (same_day_participation and decision.reason == "daily_vote_limit_reached"):
         _review_policy_http_exception(decision.reason, decision.recommended_action)
     # The legacy environment policy is a local service-access gate only.  On a
     # network node it can refuse service, but it cannot grant consensus voting
     # rights that canonical Reviewer Policy v1 does not grant.
     if ENVIRONMENT != "development":
         consensus = blockchain.get_reviewer_vote_decision(wallet_address)
-        if not consensus.eligible:
+        if not consensus.eligible and not (same_epoch_participation and consensus.reason == "review_epoch_vote_limit_reached"):
             _review_policy_http_exception(
                 consensus.reason,
                 "Earn reviewer eligibility through finalized canonical activity or use a network-policy bootstrap wallet.",

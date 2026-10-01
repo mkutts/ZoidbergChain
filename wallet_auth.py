@@ -39,6 +39,7 @@ from protocol_v1_originality import (
     PROTOCOL_V1_VOTE_VERSION,
     build_protocol_v1_vote_message,
 )
+from dual_review import REVIEW_VOTE_VERSION, vote_message as dual_vote_message, validate_choice
 
 
 ETHEREUM_ADDRESS_PATTERN = r"^0x[a-fA-F0-9]{40}$"
@@ -94,6 +95,7 @@ class VoteChallenge:
     vote_version: int | None = None
     network_id: str | None = None
     protocol_version: int | None = None
+    dimension: str | None = None
     used: bool = False
 
 
@@ -529,6 +531,7 @@ class WalletAuthManager:
         submission_id: str,
         content_hash: str,
         vote_type: str,
+        dimension: str | None = None,
     ) -> dict[str, str]:
         self.prune_expired()
         normalized = normalize_wallet_address(wallet_address)
@@ -545,7 +548,14 @@ class WalletAuthManager:
         expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
         nonce = secrets.token_urlsafe(24)
         network_id = resolve_protocol_v1_network_id(network_name=self.network_name)
-        message = build_wallet_vote_message_v1(
+        if dimension is not None:
+            validate_choice(dimension, vote_type)
+        message = dual_vote_message(
+            wallet_address=normalized, network_id=network_id,
+            submission_id=submission_id.strip(), content_hash=content_hash.strip(),
+            dimension=dimension, choice=vote_type.strip(), nonce=nonce,
+            issued_at=_isoformat(issued_at), expires_at=_isoformat(expires_at),
+        ) if dimension is not None else build_wallet_vote_message_v1(
             wallet_address=normalized,
             network_id=network_id,
             submission_id=submission_id.strip(),
@@ -564,9 +574,10 @@ class WalletAuthManager:
             message=message,
             issued_at=issued_at,
             expires_at=expires_at,
-            vote_version=PROTOCOL_V1_VOTE_VERSION,
+            vote_version=REVIEW_VOTE_VERSION if dimension is not None else PROTOCOL_V1_VOTE_VERSION,
             network_id=network_id,
             protocol_version=PROTOCOL_VERSION,
+            dimension=dimension,
         )
         self._vote_challenges_by_message_hash[hash_wallet_message(message)] = challenge
         return {
@@ -575,6 +586,7 @@ class WalletAuthManager:
             "submission_id": challenge.submission_id,
             "content_hash": challenge.content_hash,
             "vote": challenge.vote_type,
+            "dimension": challenge.dimension,
             "vote_version": challenge.vote_version,
             "protocol_version": challenge.protocol_version,
             "network_id": challenge.network_id,
@@ -594,6 +606,7 @@ class WalletAuthManager:
         submission_id: str,
         content_hash: str,
         vote_type: str,
+        dimension: str | None = None,
     ) -> dict[str, str | bool]:
         self.prune_expired()
         normalized = normalize_wallet_address(wallet_address)
@@ -614,7 +627,19 @@ class WalletAuthManager:
             raise ValueError("Vote challenge has expired.")
         normalized_message = canonicalize_wallet_message(message)
         expected_message = challenge.message
-        if challenge.vote_version == PROTOCOL_V1_VOTE_VERSION:
+        if challenge.vote_version == REVIEW_VOTE_VERSION:
+            expected_message = dual_vote_message(
+                wallet_address=challenge.wallet_address,
+                network_id=challenge.network_id or resolve_protocol_v1_network_id(network_name=self.network_name),
+                submission_id=challenge.submission_id,
+                content_hash=challenge.content_hash,
+                dimension=challenge.dimension,
+                choice=challenge.vote_type,
+                nonce=challenge.nonce,
+                issued_at=_isoformat(challenge.issued_at),
+                expires_at=_isoformat(challenge.expires_at),
+            )
+        elif challenge.vote_version == PROTOCOL_V1_VOTE_VERSION:
             expected_message = build_wallet_vote_message_v1(
                 wallet_address=challenge.wallet_address,
                 network_id=challenge.network_id or resolve_protocol_v1_network_id(network_name=self.network_name),
@@ -635,6 +660,8 @@ class WalletAuthManager:
             raise ValueError("Vote content_hash does not match the signed challenge.")
         if vote_type.strip() != challenge.vote_type:
             raise ValueError("Vote type does not match the signed challenge.")
+        if dimension != challenge.dimension:
+            raise ValueError("Review dimension does not match the signed challenge.")
 
         recovered_normalized = recover_signed_wallet_address(normalized_message, signature)
         if recovered_normalized != normalized:
@@ -649,6 +676,7 @@ class WalletAuthManager:
             "submission_id": challenge.submission_id,
             "content_hash": challenge.content_hash,
             "vote": challenge.vote_type,
+            "dimension": challenge.dimension,
             "vote_version": challenge.vote_version,
             "protocol_version": challenge.protocol_version,
             "network_id": challenge.network_id,

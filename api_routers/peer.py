@@ -236,6 +236,7 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
                 "submission_id": receive_request.submission_id,
                 "voter": receive_request.voter,
                 "vote_type": receive_request.vote_type,
+                "dimension": receive_request.dimension,
                 "vote_value": receive_request.vote_value,
                 "content_hash": receive_request.content_hash,
                 "voter_wallet_address": receive_request.voter_wallet_address,

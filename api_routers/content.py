@@ -327,7 +327,8 @@ async def get_submission_certificate(request: Request, submission_id: str):
             status_code=404,
             detail=f"Originality certificate not found for submission: {submission_id}",
         )
-    return {"certificate": _serialize_certificate(certificate)}
+    return {"certificate": _serialize_certificate(certificate),
+            "review_scope": "legacy_originality_only", "fully_review_certified": False}
 
 
 @router.get('/submissions/{submission_id}/voter-rewards')
@@ -350,7 +351,8 @@ async def get_certificate(request: Request, certificate_id: str):
             status_code=404,
             detail=f"Originality certificate not found: {certificate_id}",
         )
-    return {"certificate": _serialize_certificate(certificate)}
+    return {"certificate": _serialize_certificate(certificate),
+            "review_scope": "legacy_originality_only", "fully_review_certified": False}
 
 
 @router.post('/submissions/{submission_id}/vote')
@@ -358,12 +360,13 @@ async def get_certificate(request: Request, certificate_id: str):
 async def vote_on_submission(
     request: Request,
     submission_id: str,
-    vote_type: Annotated[VoteTypeValue, Form(...)],
+    vote_type: Annotated[DualVoteTypeValue, Form(...)],
     authorization: str | None = Header(default=None),
     voter: Annotated[str | None, Form(min_length=1, max_length=128)] = None,
     wallet_address: Annotated[str | None, Form(min_length=42, max_length=42, pattern=ETHEREUM_ADDRESS_PATTERN)] = None,
     message: Annotated[str | None, Form(min_length=1, max_length=4096)] = None,
     signature: Annotated[str | None, Form(min_length=1, max_length=4096)] = None,
+    dimension: Annotated[str | None, Form()] = None,
 ):
     _sync_runtime_globals()
     signed_vote_requested = any(
@@ -393,7 +396,7 @@ async def vote_on_submission(
         if normalized_wallet is None or normalized_wallet != verified_wallet:
             raise HTTPException(status_code=403, detail="wallet_address must match the verified wallet session.")
         _enforce_access_for_feature(verified_wallet, feature="votes")
-        _enforce_review_policy(verified_wallet, scope="voting")
+        _enforce_review_policy(verified_wallet, scope="voting", submission_id=submission_id, dimension=dimension)
 
         try:
             vote = blockchain.cast_signed_submission_vote_operation(
@@ -403,6 +406,7 @@ async def vote_on_submission(
                 message=message,
                 signature=signature,
                 auth_manager=wallet_auth_manager,
+                dimension=dimension,
             )
         except ValueError as e:
             detail = str(e)
@@ -454,7 +458,10 @@ async def vote_on_submission(
 async def get_submission_votes(request: Request, submission_id: str):
     _sync_runtime_globals()
     try:
-        return blockchain.get_submission_votes(submission_id)
+        return {**blockchain.get_submission_votes(submission_id),
+                "admissibility_votes": [vote for vote in blockchain.storage.get_votes_for_submission(submission_id, blockchain.votes)
+                                         if vote.get("dimension") == "admissibility"],
+                "dual_review": blockchain.get_dual_review(submission_id)}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

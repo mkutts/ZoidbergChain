@@ -112,7 +112,7 @@ class PeerBroadcastService:
             "created_at": vote.get("created_at"),
         }
         for key in [
-            "vote_version", "protocol_version", "network_id", "content_hash",
+            "vote_version", "dimension", "protocol_version", "network_id", "content_hash",
             "voter_wallet_address", "signature_scheme", "vote_signature", "vote_message",
             "signed_message_hash", "vote_nonce", "vote_issued_at", "vote_expires_at",
             "signed_at", "identity_source",

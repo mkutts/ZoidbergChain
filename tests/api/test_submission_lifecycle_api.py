@@ -400,6 +400,7 @@ def _request_vote_challenge(client, account, headers, submission_id, vote_type=V
             "wallet_address": account.address,
             "submission_id": submission_id,
             "vote": vote_type,
+            "dimension": "originality",
         },
         headers=headers,
     )
@@ -414,6 +415,7 @@ def _vote_signed_via_api(client, submission_id, account, headers, vote_type=VOTE
         data={
             "wallet_address": account.address,
             "vote_type": vote_type,
+            "dimension": "originality",
             "message": challenge["message"],
             "signature": _sign_message(challenge["message"], account),
         },
@@ -580,6 +582,9 @@ def test_mint_queue_blocks_signed_image_without_extractable_text(blockchain, sub
         content_hash=uploaded["content_hash"],
         content_id=uploaded["content_id"],
     )
+    # Exercise the historical originality-only mint path before dual-review activation.
+    blockchain.get_submission(submission["submission_id"]).attestation_requirement = "legacy_pre_activation"
+    blockchain.save_blockchain()
 
     monkeypatch.setattr("blockchain.extract_text", lambda _path: "")
 
@@ -678,6 +683,8 @@ def test_signed_submission_vote_evaluate_certificate_lookup_and_mint_flow(blockc
         caption="signed full flow",
     )
     submission_id = submission["submission_id"]
+    blockchain.get_submission(submission_id).attestation_requirement = "legacy_pre_activation"
+    blockchain.save_blockchain()
 
     for _ in voters:
         voter_account = _create_metamask_account()
@@ -756,13 +763,14 @@ def test_signed_vote_derives_voter_from_verified_wallet(blockchain):
 
     assert vote["voter"] == voter_account.address.lower()
     assert vote["voter_wallet_address"] == voter_account.address.lower()
-    assert vote["vote_version"] == 1
+    assert vote["vote_version"] == 2
     assert vote["protocol_version"] == 1
     assert vote["network_id"] == PUBLIC_TESTNET_V1_NETWORK_ID
     assert vote["identity_source"] == "metamask_signed"
     assert vote["signature_scheme"] == "personal_sign"
     assert vote["signed_message_hash"]
-    assert '"domain":"zoidbergchain/vote/v1"' in vote["vote_message"]
+    assert '"domain":"zoidbergchain/community-review/v2"' in vote["vote_message"]
+    assert vote["dimension"] == "originality"
 
 
 def test_signed_vote_rejects_duplicate_vote(blockchain):
@@ -790,6 +798,7 @@ def test_signed_vote_rejects_duplicate_vote(blockchain):
             "wallet_address": voter_account.address,
             "submission_id": submission["submission_id"],
             "vote": VOTE_ORIGINAL,
+            "dimension": "originality",
         },
         headers=voter_headers,
     )

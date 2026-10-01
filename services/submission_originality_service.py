@@ -12,6 +12,7 @@ from native_transfer import normalize_wallet_address
 from milestone5_policy import MIN_VALID_VOTES
 from protocol_v1_originality import MILESTONE5_CERTIFICATE_VERSION, MILESTONE5_CERTIFICATE_V3_VERSION
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE
+from dual_review import ORIGINALITY, validate_choice
 
 
 @dataclass
@@ -52,31 +53,39 @@ class SubmissionOriginalityService:
         return submission
 
     @staticmethod
-    def record_vote(state, voter, submission_id=None, created_at=None):
+    def record_vote(state, voter, submission_id=None, created_at=None, dimension=None):
         vote = {"voter": voter, "submission_id": submission_id, "vote_type": None, "created_at": created_at if created_at is not None else time.time()}
+        if dimension is not None:
+            vote["dimension"] = dimension
         state.votes.append(vote)
         return vote
 
     def is_submission_voting_locked(self, state, storage, submission):
         return submission.status in {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED} or self.get_certificate_for_submission(state, storage, submission.submission_id) is not None
 
-    def cast_submission_vote(self, state, storage, submission_id, voter, vote_type, created_at=None):
+    def cast_submission_vote(self, state, storage, submission_id, voter, vote_type, created_at=None, *, dimension=None):
         submission = self.get_submission(state, storage, submission_id)
         if not submission: raise ValueError(f"Submission not found: {submission_id}")
-        if vote_type not in VOTE_TYPES: raise ValueError(f"Invalid vote type: {vote_type}")
+        if dimension is None:
+            if vote_type not in VOTE_TYPES: raise ValueError(f"Invalid vote type: {vote_type}")
+        else:
+            validate_choice(dimension, vote_type)
         normalized_voter = normalize_wallet_address(voter)
         normalized_creator = normalize_wallet_address(submission.submitter)
         if (normalized_voter is not None and normalized_voter == normalized_creator) or voter == submission.submitter:
             raise ValueError("Submission creator cannot vote on their own submission.")
-        if storage.get_vote(submission_id, voter, state.votes): raise ValueError("Wallet has already voted on this submission.")
+        existing = (storage.get_vote(submission_id, voter, state.votes, dimension=dimension)
+                    if dimension is not None else storage.get_vote(submission_id, voter, state.votes))
+        if existing: raise ValueError("Wallet has already voted on this submission dimension.")
         if self.is_submission_voting_locked(state, storage, submission): raise ValueError("Finalized or certified submissions cannot receive votes.")
-        vote = self.record_vote(state, voter, submission_id, created_at)
+        vote = self.record_vote(state, voter, submission_id, created_at, dimension=dimension)
         vote["vote_type"] = vote_type
         return vote
 
     def get_submission_votes(self, state, storage, submission_id):
         if not self.get_submission(state, storage, submission_id): raise ValueError(f"Submission not found: {submission_id}")
-        votes = storage.get_votes_for_submission(submission_id, state.votes)
+        votes = [vote for vote in storage.get_votes_for_submission(submission_id, state.votes)
+                 if vote.get("dimension", ORIGINALITY) == ORIGINALITY]
         original = sum(v.get("vote_type") == VOTE_ORIGINAL for v in votes)
         not_original = sum(v.get("vote_type") == VOTE_NOT_ORIGINAL for v in votes)
         unsure = sum(v.get("vote_type") == VOTE_UNSURE for v in votes)

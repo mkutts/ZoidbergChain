@@ -59,7 +59,7 @@ def _mint_submission_via_api(client, submission_id):
 
 def _submit_signed_text_submission(client, account, headers, *, text):
     uploaded = _upload_text_content_via_api(client, account.address, text=text)
-    return _submit_signed_content_via_api(
+    submission = _submit_signed_content_via_api(
         client,
         account,
         headers,
@@ -67,6 +67,10 @@ def _submit_signed_text_submission(client, account, headers, *, text):
         content_id=uploaded["content_id"],
         caption=text,
     )
+    import api
+    api.blockchain.get_submission(submission["submission_id"]).attestation_requirement = "legacy_pre_activation"
+    api.blockchain.save_blockchain()
+    return submission
 
 
 def _cast_signed_votes(client, submission_id, voters_and_votes):

@@ -83,6 +83,7 @@ from protocol_v1_originality import (
     calculate_signed_vote_identity,
     resolve_protocol_v1_network_id,
 )
+from dual_review import REVIEW_VOTE_VERSION, ORIGINALITY, DIMENSIONS, validate_choice, vote_message as dual_vote_message, vote_identity as dual_vote_identity
 from submission import (
     APPROVED,
     HARD_REJECTED,
@@ -655,6 +656,10 @@ def receive_peer_certificate(
         raise UnauthorizedPeerError("Peer is not registered or active.")
     if peer.get("network_name") != local_network_name:
         raise WrongNetworkError("Registered peer belongs to a different network.")
+    if isinstance(certificate_payload, dict):
+        submission = blockchain.get_submission(certificate_payload.get("submission_id"))
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED:
+            raise MalformedCertificateError("Originality-only certificates cannot certify current dual-review submissions.")
 
     if originality_evidence_payload is not None:
         receive_peer_originality_evidence(
@@ -985,6 +990,11 @@ def receive_peer_vote(
         raise UnknownSubmissionError(f"Submission not found: {normalized_vote['submission_id']}")
     if normalized_vote.get("content_hash") and submission.content_hash != normalized_vote["content_hash"]:
         raise MalformedVoteError("Vote content_hash does not match submission.")
+    if submission.attestation_requirement == ATTESTATION_REQUIRED:
+        try:
+            blockchain.require_valid_submitter_attestation(submission)
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
 
     reviewer_snapshot_present = normalized_vote.get("reviewer_policy_version") is not None
     decision = None
@@ -1013,10 +1023,18 @@ def receive_peer_vote(
         blockchain._persist_reputation_outcome(outcome)
         return outcome
 
+    dimension = normalized_vote.get("dimension", ORIGINALITY)
+    if submission.attestation_requirement == ATTESTATION_REQUIRED and normalized_vote.get("vote_version") != REVIEW_VOTE_VERSION:
+        raise MalformedVoteError("Current submissions require dimension-bound review votes.")
+    if submission.attestation_requirement != ATTESTATION_REQUIRED and normalized_vote.get("vote_version") == REVIEW_VOTE_VERSION:
+        raise MalformedVoteError("Legacy submissions use originality-only review votes.")
+    if normalized_vote.get("vote_version") == REVIEW_VOTE_VERSION and not reviewer_snapshot_present:
+        raise MalformedVoteError("Dimension-bound peer votes require a reviewer snapshot.")
     existing_vote = _find_existing_vote(
         blockchain,
         normalized_vote["submission_id"],
         normalized_vote["voter"],
+        dimension=dimension,
     )
     if existing_vote:
         if existing_vote.get("vote_type") == normalized_vote["vote_type"]:
@@ -1060,7 +1078,15 @@ def receive_peer_vote(
         if any(normalized_vote.get(key) != value for key, value in expected.items()):
             raise MalformedVoteError("Peer reviewer snapshot does not match locally derived canonical state.")
         normalized_vote["reviewer_eligible"] = True
-        if not decision.eligible:
+        same_review_participation = any(
+            item.get("submission_id") == normalized_vote["submission_id"]
+            and normalize_wallet_address(item.get("voter")) == normalize_wallet_address(normalized_vote["voter"])
+            and item.get("dimension") in ({ORIGINALITY, "admissibility"} - {dimension})
+            and isinstance(item.get("reviewer_status_effective_height"), int)
+            and item["reviewer_status_effective_height"] // REVIEW_EPOCH_BLOCKS == decision.review_epoch
+            for item in blockchain.votes
+        ) if normalized_vote.get("vote_version") == REVIEW_VOTE_VERSION else False
+        if not decision.eligible and not (same_review_participation and decision.reason == "review_epoch_vote_limit_reached"):
             if hasattr(blockchain.storage, "record_durable_vote"):
                 blockchain.storage.record_durable_vote(normalized_vote, lifecycle_state="rejected", rejection_reason=decision.reason)
             if decision.reason == "review_epoch_vote_limit_reached":
@@ -1080,9 +1106,11 @@ def receive_peer_vote(
             voter=normalized_vote["voter"],
             vote_type=normalized_vote["vote_type"],
             created_at=normalized_vote["created_at"],
+            dimension=(dimension if normalized_vote.get("vote_version") == REVIEW_VOTE_VERSION else None),
         )
         for key in [
             "vote_version",
+            "dimension",
             "protocol_version",
             "network_id",
             "content_hash",
@@ -1820,6 +1848,10 @@ def _store_peer_certificate(
     save=False,
     validation_chain=None,
 ):
+    if isinstance(certificate_payload, dict):
+        submission = blockchain.get_submission(certificate_payload.get("submission_id"))
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED:
+            raise MalformedCertificateError("Originality-only certificates cannot certify current dual-review submissions.")
     if isinstance(certificate_payload, dict):
         raw_certificate_id = certificate_payload.get("certificate_id")
         if isinstance(raw_certificate_id, str) and raw_certificate_id.strip():
@@ -2658,8 +2690,8 @@ def _mark_related_submission_minted(blockchain, related_submission_id):
     return submission
 
 
-def _find_existing_vote(blockchain, submission_id, voter):
-    return blockchain.storage.get_vote(submission_id, voter, blockchain.votes)
+def _find_existing_vote(blockchain, submission_id, voter, *, dimension=ORIGINALITY):
+    return blockchain.storage.get_vote(submission_id, voter, blockchain.votes, dimension=dimension)
 
 
 def _looks_like_protocol_v1_domain_message(message, *, object_type=None):
@@ -2693,6 +2725,7 @@ def _normalize_vote_payload(vote_payload, local_network_name):
             "submission_id",
             "voter",
             "vote_type",
+            "dimension",
             "vote_value",
             "content_hash",
             "voter_wallet_address",
@@ -2741,7 +2774,16 @@ def _normalize_vote_payload(vote_payload, local_network_name):
     if not isinstance(vote_type, str) or not vote_type.strip():
         raise MalformedVoteError("Vote vote_type is required.")
     vote_type = vote_type.strip()
-    if vote_type not in VOTE_TYPES:
+    dimension = vote_payload.get("dimension")
+    if vote_payload.get("vote_version") == REVIEW_VOTE_VERSION:
+        try:
+            validate_choice(dimension, vote_type)
+        except ValueError as exc:
+            raise MalformedVoteError(str(exc)) from exc
+        normalized["dimension"] = dimension
+    elif dimension is not None:
+        raise MalformedVoteError("Legacy votes cannot declare a review dimension.")
+    elif vote_type not in VOTE_TYPES:
         raise MalformedVoteError(f"Invalid vote type: {vote_type}")
     normalized["vote_type"] = vote_type
 
@@ -2764,7 +2806,7 @@ def _normalize_vote_payload(vote_payload, local_network_name):
 
     vote_version = vote_payload.get("vote_version")
     if vote_version is not None:
-        if isinstance(vote_version, bool) or not isinstance(vote_version, int) or vote_version != PROTOCOL_V1_VOTE_VERSION:
+        if isinstance(vote_version, bool) or not isinstance(vote_version, int) or vote_version not in {PROTOCOL_V1_VOTE_VERSION, REVIEW_VOTE_VERSION}:
             raise MalformedVoteError("Vote vote_version is unsupported.")
         normalized["vote_version"] = vote_version
 
@@ -2856,7 +2898,7 @@ def _normalize_vote_payload(vote_payload, local_network_name):
         except ValueError as exc:
             raise MalformedVoteError(str(exc)) from exc
 
-        if normalized.get("vote_version") == PROTOCOL_V1_VOTE_VERSION:
+        if normalized.get("vote_version") in {PROTOCOL_V1_VOTE_VERSION, REVIEW_VOTE_VERSION}:
             if normalized.get("protocol_version") != PROTOCOL_VERSION:
                 raise MalformedVoteError("Vote protocol_version is required for Protocol v1 votes.")
             if normalized.get("network_id") is None:
@@ -2875,7 +2917,17 @@ def _normalize_vote_payload(vote_payload, local_network_name):
             expected_voter = normalize_wallet_address(normalized["voter"])
             if expected_voter is None:
                 raise MalformedVoteError("Protocol v1 signed votes require an Ethereum-style voter wallet.")
-            expected_message = build_protocol_v1_vote_message(
+            expected_message = dual_vote_message(
+                wallet_address=expected_voter,
+                network_id=normalized["network_id"],
+                submission_id=normalized["submission_id"],
+                content_hash=normalized["content_hash"],
+                dimension=normalized["dimension"],
+                choice=normalized["vote_type"],
+                nonce=normalized["vote_nonce"],
+                issued_at=normalized["vote_issued_at"],
+                expires_at=normalized["vote_expires_at"],
+            ) if normalized.get("vote_version") == REVIEW_VOTE_VERSION else build_protocol_v1_vote_message(
                 wallet_address=expected_voter,
                 network_id=normalized["network_id"],
                 submission_id=normalized["submission_id"],
@@ -2894,9 +2946,22 @@ def _normalize_vote_payload(vote_payload, local_network_name):
                 normalized["voter_wallet_address"] = expected_voter
             elif normalized["voter_wallet_address"] != expected_voter:
                 raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
+            if normalized.get("vote_version") == REVIEW_VOTE_VERSION and normalized.get("signed_message_hash") != hash_wallet_message(expected_message):
+                raise MalformedVoteError("Dimension-bound vote signed_message_hash is required and must match.")
             if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(expected_message):
                 raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
-            calculated_identity = calculate_signed_vote_identity(
+            calculated_identity = dual_vote_identity(
+                wallet_address=expected_voter,
+                submission_id=normalized["submission_id"],
+                content_hash=normalized["content_hash"],
+                dimension=normalized["dimension"],
+                choice=normalized["vote_type"],
+                nonce=normalized["vote_nonce"],
+                issued_at=normalized["vote_issued_at"],
+                expires_at=normalized["vote_expires_at"],
+                network_id=normalized["network_id"],
+                signature=normalized["vote_signature"],
+            ) if normalized.get("vote_version") == REVIEW_VOTE_VERSION else calculate_signed_vote_identity(
                 wallet_address=expected_voter,
                 submission_id=normalized["submission_id"],
                 content_hash=normalized["content_hash"],
@@ -2924,7 +2989,7 @@ def _normalize_vote_payload(vote_payload, local_network_name):
                 raise MalformedVoteError("Vote voter_wallet_address does not match voter.")
             if normalized.get("signed_message_hash") and normalized["signed_message_hash"] != hash_wallet_message(normalized["vote_message"]):
                 raise MalformedVoteError("Vote signed_message_hash does not match vote_message.")
-    elif normalized.get("vote_version") == PROTOCOL_V1_VOTE_VERSION:
+    elif normalized.get("vote_version") in {PROTOCOL_V1_VOTE_VERSION, REVIEW_VOTE_VERSION}:
         raise MalformedVoteError("Protocol v1 votes must include signature metadata.")
 
     return normalized

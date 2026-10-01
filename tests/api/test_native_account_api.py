@@ -53,6 +53,8 @@ def test_native_account_endpoints_return_activity_without_dev_wallet_registratio
         content_id=uploaded["content_id"],
         caption="native account summary submission",
     )
+    blockchain.get_submission(submission["submission_id"]).attestation_requirement = "legacy_pre_activation"
+    blockchain.save_blockchain()
 
     other_submitter = _create_metamask_account()
     other_headers = _verify_wallet_session(client, other_submitter)

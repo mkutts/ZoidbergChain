@@ -464,9 +464,8 @@ def test_public_signed_vote_conflict_retains_rejected_evidence_and_applies_penal
         )
 
     first = _signed_vote(reviewer, submission.submission_id, "original", 201)
-    cast(first)
-    with pytest.raises(ValueError, match="already"):
-        cast(first)
+    accepted = cast(first)
+    assert cast(first)["vote_identity"] == accepted["vote_identity"]
     assert backend.list_reviewer_offenses(reviewer.address) == []
     conflicting = _signed_vote(reviewer, submission.submission_id, "not_original", 202)
     with pytest.raises(ValueError, match="already voted"):

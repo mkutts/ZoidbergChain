@@ -131,7 +131,12 @@ class ReviewerEligibilityService:
     def _accepted_votes(storage, address: str) -> list[dict]:
         if not hasattr(storage, "list_durable_votes"):
             return []
-        return [vote for vote in storage.list_durable_votes() if vote.get("lifecycle_state") == "accepted" and normalize_wallet_address(vote.get("voter_address")) == address]
+        accepted = [vote for vote in storage.list_durable_votes() if vote.get("lifecycle_state") == "accepted" and normalize_wallet_address(vote.get("voter_address")) == address]
+        # Both dimensions of one submission consume one reviewer participation.
+        by_submission = {}
+        for vote in accepted:
+            by_submission.setdefault(vote["submission_id"], vote)
+        return list(by_submission.values())
 
     def reconcile(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION, persist: bool = True) -> tuple[dict, dict]:
         evidence = self.qualification(reviewer_address=reviewer_address, chain=chain, finalized_head=finalized_head, policy_version=policy_version)

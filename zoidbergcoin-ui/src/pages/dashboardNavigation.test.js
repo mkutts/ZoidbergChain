@@ -42,3 +42,13 @@ test('dashboard home and detail pages keep simplified copy and empty states visi
   assert.match(dashboardSource, /Tell us what is broken, confusing, or missing\./i);
   assert.match(dashboardSource, /Test ZOID has no real monetary value/i);
 });
+
+test('current reviewer screen keeps originality and admissibility answers separate', () => {
+  const source = read('./Dashboard.vue');
+  assert.match(source, /Is this submission original under the current originality rules\?/);
+  assert.match(source, /Does this submission satisfy the Public Testnet v1 content-admissibility rules\?/);
+  assert.match(source, /vote\(submission\.submission_id, 'unsure', 'originality'\)/);
+  assert.match(source, /vote\(submission\.submission_id, 'unsure', 'admissibility'\)/);
+  assert.match(source, /formData\.append\('dimension', dimension\)/);
+  assert.doesNotMatch(source, /vote\(submission\.submission_id, 'report', 'admissibility'\)/i);
+});

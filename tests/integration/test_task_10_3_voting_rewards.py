@@ -122,7 +122,7 @@ def _submit_signed_content_via_api(client, account, headers, *, content_hash, co
 
 def _submit_signed_text_submission(client, account, headers, *, text):
     uploaded = _upload_text_content_via_api(client, account.address, text)
-    return _submit_signed_content_via_api(
+    submission = _submit_signed_content_via_api(
         client,
         account,
         headers,
@@ -130,6 +130,10 @@ def _submit_signed_text_submission(client, account, headers, *, text):
         content_id=uploaded["content_id"],
         caption=text,
     )
+    import api
+    api.blockchain.get_submission(submission["submission_id"]).attestation_requirement = "legacy_pre_activation"
+    api.blockchain.save_blockchain()
+    return submission
 
 
 def _request_vote_challenge(client, account, headers, submission_id, *, vote_type):

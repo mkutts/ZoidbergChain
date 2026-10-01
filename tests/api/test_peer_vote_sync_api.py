@@ -7,6 +7,7 @@ import peer_sync
 from peers import PeerStore
 from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
 from protocol_v1_originality import PROTOCOL_V1_VOTE_VERSION, build_protocol_v1_vote_message
+from dual_review import REVIEW_VOTE_VERSION, vote_message as dual_vote_message
 from protocol_v1_peer_message import (
     build_protocol_v1_peer_request_headers,
     clear_protocol_v1_peer_replay_store_cache,
@@ -171,6 +172,28 @@ def test_receiving_valid_peer_vote(blockchain, submission_image, wallets):
             "created_at": 1_000_000.0,
         }
     ]
+
+
+def test_legacy_submission_rejects_dimension_bound_peer_vote(blockchain, submission_image, wallets):
+    client = _client(blockchain)
+    _register_peer()
+    submission = _submission(blockchain, submission_image, wallets["owner"].public_key)
+    reviewer = Account.create()
+    payload = _protocol_v1_signed_vote_payload(submission, reviewer)
+    payload.update(vote_version=REVIEW_VOTE_VERSION, dimension="admissibility",
+                   vote_type="admissible")
+    message = dual_vote_message(
+        wallet_address=reviewer.address.lower(), network_id=PUBLIC_TESTNET_V1_NETWORK_ID,
+        submission_id=submission.submission_id, content_hash=submission.content_hash,
+        dimension="admissibility", choice="admissible", nonce=payload["vote_nonce"],
+        issued_at=payload["vote_issued_at"], expires_at=payload["vote_expires_at"],
+    )
+    payload.update(vote_message=message, vote_signature=_sign_message(message, reviewer),
+                   signed_message_hash=hash_wallet_message(message))
+    response = client.post("/peers/votes/receive", json=payload)
+    assert response.status_code == 400
+    assert "legacy" in str(response.json()).lower()
+    assert blockchain.votes == []
 
 
 def test_receive_peer_vote_rejects_unregistered_peer(blockchain, submission_image, wallets):

@@ -437,13 +437,21 @@ async def create_wallet_vote_challenge(
     submission = blockchain.get_submission(payload.submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {payload.submission_id}")
+    if submission.attestation_requirement == "public_testnet_v1_required":
+        try:
+            blockchain.require_valid_submitter_attestation(submission)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
     if blockchain.is_submission_voting_locked(submission):
         raise HTTPException(status_code=400, detail="Finalized or certified submissions cannot receive votes.")
     if wallet_address == submission.submitter:
         raise HTTPException(status_code=400, detail="Submission creator cannot vote on their own submission.")
-    if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes):
+    dimension = payload.dimension if submission.attestation_requirement == "public_testnet_v1_required" else None
+    if submission.attestation_requirement == "public_testnet_v1_required" and dimension is None:
+        raise HTTPException(status_code=400, detail="Current submissions require an explicit review dimension.")
+    if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes, dimension=dimension or "originality"):
         raise HTTPException(status_code=400, detail="Wallet has already voted on this submission.")
-    _enforce_review_policy(wallet_address, scope="voting")
+    _enforce_review_policy(wallet_address, scope="voting", submission_id=payload.submission_id, dimension=dimension)
 
     try:
         challenge = wallet_auth_manager.issue_vote_challenge(
@@ -451,6 +459,7 @@ async def create_wallet_vote_challenge(
             submission_id=payload.submission_id,
             content_hash=submission.content_hash or "",
             vote_type=payload.vote,
+            dimension=dimension,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

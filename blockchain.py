@@ -98,6 +98,7 @@ from content import (
     verify_content_object_payload,
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from dual_review import ADMISSIBILITY, ORIGINALITY, REVIEW_VOTE_VERSION, combined_review, vote_identity as dual_vote_identity, validate_choice, verify_vote_record
 from native_transfer import (
     NATIVE_TRANSACTION_INITIAL_NONCE,
     NATIVE_TRANSACTION_NONCE_POLICY,
@@ -114,7 +115,7 @@ from protocol_v1_native_transfer import (
     resolve_protocol_v1_network_id,
 )
 from storage import SQLiteStorageBackend, StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
-from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
+from protocol_v1 import PROTOCOL_VERSION, canonical_hash, resolve_network_id
 from milestone5_policy import APPROVAL_THRESHOLD_BPS, ESTABLISHED_MAX_VOTES_PER_EPOCH, MIN_ESTABLISHED_VOTES, MIN_VALID_VOTES, PROBATION_MAX_VOTES_PER_EPOCH, REVIEW_EPOCH_BLOCKS, REVIEWER_POLICY_VERSION, REPUTATION_RULE_VERSION, bootstrap_established_reviewers
 from protocol_v1_genesis import (
     GenesisValidationError,
@@ -453,6 +454,8 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError("Submission not found for certified commit.")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            raise ValueError("Originality-only certificates cannot certify current dual-review submissions.")
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         if certificate is None:
             raise ValueError("Certified commit requires an originality certificate.")
@@ -1275,12 +1278,28 @@ class Blockchain:
         self.save_blockchain()
         return submission
 
-    def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager):
+    def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager, dimension=None):
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
-        verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type)
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            if dimension not in {ORIGINALITY, ADMISSIBILITY}:
+                raise ValueError("Current submissions require an explicit review dimension.")
+            validate_choice(dimension, vote_type)
+            self.require_valid_submitter_attestation(submission)
+        elif dimension == ORIGINALITY:
+            dimension = None  # An explicit API hint does not change the legacy signed domain.
+        elif dimension is not None:
+            raise ValueError("Legacy submissions use originality-only review.")
         voter = normalize_wallet_address(voter) or voter
+        existing_retry = self.storage.get_vote(submission_id, voter, self.votes, dimension=dimension or ORIGINALITY)
+        if (existing_retry is not None and existing_retry.get("vote_type") == vote_type
+            and existing_retry.get("vote_message") == message
+            and str(existing_retry.get("vote_signature") or "").lower() == str(signature).lower()):
+            return existing_retry
+        verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type, dimension=dimension)
+        if submission.attestation_requirement == ATTESTATION_REQUIRED and verification.get("vote_version") != REVIEW_VOTE_VERSION:
+            raise ValueError("Current submissions require dimension-bound review signatures.")
         reviewer_decision = self.get_reviewer_vote_decision(voter) if self.get_finalized_head() is not None or ENVIRONMENT != "development" else None
         durable_vote = {
             "voter": voter, "submission_id": submission_id, "vote_type": vote_type,
@@ -1298,7 +1317,15 @@ class Blockchain:
             "reviewer_status_effective_height": reviewer_decision.snapshot.get("reference_finalized_height") if reviewer_decision else None,
             "reviewer_status_reference_block_hash": reviewer_decision.snapshot.get("reference_finalized_block_hash") if reviewer_decision else None,
         }
-        durable_vote["vote_identity"] = calculate_signed_vote_identity(
+        if dimension is not None:
+            durable_vote["dimension"] = dimension
+        durable_vote["vote_identity"] = (dual_vote_identity(
+            wallet_address=voter, submission_id=submission_id,
+            content_hash=submission.content_hash, dimension=dimension,
+            choice=vote_type, nonce=durable_vote["vote_nonce"],
+            issued_at=durable_vote["vote_issued_at"], expires_at=durable_vote["vote_expires_at"],
+            network_id=durable_vote["network_id"], signature=durable_vote["vote_signature"],
+        ) if dimension is not None else calculate_signed_vote_identity(
             wallet_address=voter,
             submission_id=submission_id,
             content_hash=submission.content_hash,
@@ -1309,7 +1336,7 @@ class Blockchain:
             network_id=durable_vote["network_id"],
             signature=durable_vote["vote_signature"],
             signature_scheme=durable_vote["signature_scheme"],
-        )
+        ))
         if hasattr(self.storage, "list_durable_votes"):
             prior_identity = next((item for item in self.storage.list_durable_votes(submission_id=submission_id) if item.get("vote_identity") == durable_vote["vote_identity"]), None)
             if prior_identity is not None:
@@ -1332,7 +1359,7 @@ class Blockchain:
             self._persist_reputation_outcome(outcome)
             return outcome
 
-        existing = self.storage.get_vote(submission_id, voter, self.votes)
+        existing = self.storage.get_vote(submission_id, voter, self.votes, dimension=dimension or ORIGINALITY)
         if existing is not None:
             if hasattr(self.storage, "record_durable_vote"):
                 self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason="conflicting_counted_vote")
@@ -1353,7 +1380,17 @@ class Blockchain:
                 [durable_vote], active_penalty_id=active["penalty_id"] if active else None,
             )
             raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
-        if reviewer_decision and not reviewer_decision.eligible:
+        prior_other_dimension = any(
+            item.get("submission_id") == submission_id
+            and normalize_wallet_address(item.get("voter")) == voter
+            and item.get("dimension") != dimension
+            and isinstance(item.get("reviewer_status_effective_height"), int)
+            and item["reviewer_status_effective_height"] // REVIEW_EPOCH_BLOCKS == epoch
+            for item in self.votes
+        ) if dimension is not None else False
+        limit_only_same_submission = (reviewer_decision and prior_other_dimension
+            and reviewer_decision.reason == "review_epoch_vote_limit_reached")
+        if reviewer_decision and not reviewer_decision.eligible and not limit_only_same_submission:
             if hasattr(self.storage, "record_durable_vote"):
                 self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason=reviewer_decision.reason)
             if reviewer_decision.reason == "review_epoch_vote_limit_reached" and finalized is not None:
@@ -1364,7 +1401,10 @@ class Blockchain:
                 )
                 self._persist_reputation_outcome(outcome)
             raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
-        vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
+        vote = self.cast_submission_vote(
+            submission_id=submission_id, voter=voter, vote_type=vote_type,
+            **({"dimension": dimension} if dimension is not None else {}),
+        )
         vote.update(durable_vote)
         if reviewer_decision and hasattr(self.storage, "record_durable_vote_with_epoch_limit"):
             epoch_start = int(reviewer_decision.review_epoch) * REVIEW_EPOCH_BLOCKS
@@ -2353,6 +2393,13 @@ class Blockchain:
                 "certificate": None,
                 "validation_error": None,
             }
+        if submission.attestation_requirement == ATTESTATION_REQUIRED and submission.status != MINTED:
+            return {
+                "certificate_status": "invalid",
+                "certificate_id": certificate.certificate_id,
+                "certificate": certificate,
+                "validation_error": "Originality-only certificates cannot certify current dual-review submissions.",
+            }
         try:
             self.validate_originality_certificate(certificate, submission)
         except ValueError as exc:
@@ -3060,13 +3107,65 @@ class Blockchain:
         return self._submission_originality_service.hard_reject_submission(self._submission_originality_state(), self.storage, submission_id, reason)
     def record_vote(self, voter, submission_id=None, created_at=None):
         return self._submission_originality_service.record_vote(self._submission_originality_state(), voter, submission_id, created_at)
-    def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None):
+    def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None, *, dimension=None):
+        submission = self.get_submission(submission_id)
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED and dimension is None:
+            raise ValueError("Current submissions require dimension-bound signed review votes.")
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED:
+            self.require_valid_submitter_attestation(submission)
         evidence = self.ensure_current_originality_evidence(submission_id)
         if evidence["final_prevote_decision"] == HARD_REJECT:
             raise ValueError("Hard rejected submissions cannot receive votes.")
-        return self._submission_originality_service.cast_submission_vote(self._submission_originality_state(), self.storage, submission_id, voter, vote_type, created_at)
+        return self._submission_originality_service.cast_submission_vote(self._submission_originality_state(), self.storage, submission_id, voter, vote_type, created_at, dimension=dimension)
     def get_submission_votes(self, submission_id):
         return self._submission_originality_service.get_submission_votes(self._submission_originality_state(), self.storage, submission_id)
+
+    def get_dual_review(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        valid_votes = [vote for vote in self.storage.get_votes_for_submission(submission_id, self.votes)
+            if verify_vote_record(vote, submission_id=submission_id,
+                content_hash=submission.content_hash,
+                network_id=self.protocol_v1_network_id(),
+                creator_address=submission.submitter,
+                reviewer_status_resolver=self.get_reviewer_status_at_reference)]
+        review = combined_review(valid_votes)
+        review["submission_id"] = submission_id
+        review["content_hash"] = submission.content_hash
+        review["review_mode"] = "dual_v1" if submission.attestation_requirement == ATTESTATION_REQUIRED else "legacy_originality_only"
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            try:
+                attestation_status = self.validate_submission_attestation(submission, allow_legacy=False)
+                review["attestation_valid"] = True
+                review["attestation_message_hash"] = attestation_status["attestation"]["canonical_message_hash"]
+                review["technical_evidence_digest"] = attestation_status["attestation"]["canonical_payload"]["technical_evidence_digest"]
+            except (ValueError, SubmitterAttestationError):
+                review["attestation_valid"] = False
+                review["attestation_message_hash"] = None
+                review["technical_evidence_digest"] = None
+            review["review_qualified"] = review["review_qualified"] and review["attestation_valid"]
+            review["review_state"] = "resolved_dual_review" if review["review_complete"] else "incomplete_dual_review"
+        else:
+            review["review_qualified"] = False
+            review["review_state"] = "legacy_originality_only"
+            review["attestation_valid"] = False
+            review["attestation_message_hash"] = None
+            review["technical_evidence_digest"] = None
+        review["review_evidence_digest"] = canonical_hash(review)
+        return review
+
+    def get_qualified_dual_review_evidence(self, submission_id):
+        review = self.get_dual_review(submission_id)
+        if review["review_mode"] != "dual_v1" or not review["review_qualified"]:
+            raise ValueError("Both review dimensions and submitter attestation must qualify.")
+        return review
+
+    def validate_qualified_dual_review_evidence(self, submission_id, evidence):
+        current = self.get_qualified_dual_review_evidence(submission_id)
+        if not isinstance(evidence, dict) or evidence != current:
+            raise ValueError("Dual-review evidence does not match the current signed vote set and prerequisites.")
+        return current
     def is_submission_voting_locked(self, submission):
         return self._submission_originality_service.is_submission_voting_locked(self._submission_originality_state(), self.storage, submission)
     def get_originality_certificate(self, certificate_id):
@@ -3215,7 +3314,11 @@ class Blockchain:
 
     def count_votes_by_wallet_since(self, wallet_address, since_timestamp):
         wallet = self._normalize_native_wallet_identity(wallet_address)
-        return 0 if wallet is None else sum(1 for vote in self.votes if (_coerce_timestamp(vote.get("created_at")) or 0) >= float(since_timestamp) and self._wallet_matches_vote(vote, wallet))
+        if wallet is None:
+            return 0
+        return len({vote.get("submission_id") or f"legacy:{index}" for index, vote in enumerate(self.votes)
+                    if (_coerce_timestamp(vote.get("created_at")) or 0) >= float(since_timestamp)
+                    and self._wallet_matches_vote(vote, wallet)})
 
     def get_account_activity_summary(self, wallet_address, *, now=None):
         wallet = self._normalize_native_wallet_identity(wallet_address)
@@ -3224,7 +3327,8 @@ class Blockchain:
         submissions = [item for item in self.submissions if self._wallet_matches_submission(item, wallet)]; votes = [item for item in self.votes if self._wallet_matches_vote(item, wallet)]; rewards = self.get_reward_records_for_wallet(wallet); transactions = self.get_native_transactions_for_wallet(wallet)
         timestamps = [_coerce_timestamp(getattr(item, "created_at", None)) for item in submissions] + [_coerce_timestamp(item.get("created_at")) for item in votes] + [_coerce_timestamp(item.get("minted_at")) for item in rewards] + [_coerce_timestamp(item.get("created_at") or item.get("updated_at") or item.get("timestamp")) for item in transactions]
         timestamps = [item for item in timestamps if item is not None]; first = min(timestamps) if timestamps else None; balance = self.get_native_balance_snapshot(wallet)["final_balance"]
-        return {"wallet_address": wallet, "normalized_wallet_address": wallet, "exists": bool(timestamps) or Decimal(balance) > Decimal("0"), "first_activity_at": first, "account_age_seconds": max(0, int(float(now if now is not None else time.time()) - first)) if first is not None else 0, "submission_count": len(submissions), "vote_count": len(votes), "reward_count": len(rewards), "settled_transfer_count": sum(1 for item in transactions if str(item.get("status") or "").strip().lower() == "settled"), "settled_balance_zoid": balance}
+        participation_count = len({vote.get("submission_id") or f"legacy:{index}" for index, vote in enumerate(votes)})
+        return {"wallet_address": wallet, "normalized_wallet_address": wallet, "exists": bool(timestamps) or Decimal(balance) > Decimal("0"), "first_activity_at": first, "account_age_seconds": max(0, int(float(now if now is not None else time.time()) - first)) if first is not None else 0, "submission_count": len(submissions), "vote_count": participation_count, "reward_count": len(rewards), "settled_transfer_count": sum(1 for item in transactions if str(item.get("status") or "").strip().lower() == "settled"), "settled_balance_zoid": balance}
 
     def get_transfer_intents_for_wallet(self, wallet_address): return self._native_ledger_service.get_transfer_intents_for_wallet(self._native_ledger_state(), wallet_address)
     def get_native_transactions_for_wallet(self, wallet_address): return self._native_ledger_service.get_native_transactions_for_wallet(self._native_ledger_state(), wallet_address)
@@ -3316,6 +3420,8 @@ class Blockchain:
     def get_pending_incoming_transfer_amount(self, wallet_address):
         return self.get_native_balance_snapshot(wallet_address)["pending_incoming"]
     def require_valid_certificate_for_submission(self, submission):
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            raise ValueError("Originality-only certificates cannot certify current dual-review submissions.")
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         self.validate_originality_certificate(certificate, submission)
         return certificate
@@ -3349,6 +3455,8 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError(f"Submission not found: {submission_id}")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            raise ValueError("Dual-review certification is not activated; originality-only certificates cannot certify current submissions.")
         # Model A requires canonical bytes.  Promote legacy local content
         # before producing the evidence that the new certificate will bind.
         self._promote_submission_content_for_protocol_v1(submission)
@@ -3405,6 +3513,14 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            review = self.get_dual_review(submission_id)
+            return {
+                "submission_id": submission_id,
+                "status": submission.status,
+                "dual_review": review,
+                "reason": "dual_review_qualified_awaiting_admission_activation" if review["review_qualified"] else "awaiting_dual_review",
+            }
 
         evidence = self.ensure_current_originality_evidence(submission_id)
 

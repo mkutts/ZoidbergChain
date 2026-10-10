@@ -9,7 +9,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Callable
 
-from block import Block, PROTOCOL_V1_BLOCK_VERSION
+from block import ADMISSION_BLOCK_VERSION, Block, PROTOCOL_V1_BLOCK_VERSION
+from admission_certificate import AdmissionMintCertificateView
 from content import TEXT_MIME_TYPE, compute_text_content_hash, guess_mime_type, resolve_declared_payload_hash
 from transaction import Transaction
 from utils import extract_text, hash_image
@@ -170,7 +171,7 @@ class BlockProductionService:
 
         voter_plan = (
             c.select_voter_reward_records_for_block(prioritized_submission_id=certificate.submission_id, reward_pool_balance=candidate_reward_pool)
-            if c.config["voter_rewards_enabled"] and certificate is not None else {"selected": [], "skipped": []}
+            if c.config["voter_rewards_enabled"] and certificate is not None and not isinstance(certificate, AdmissionMintCertificateView) else {"selected": [], "skipped": []}
         )
         voter_total = sum(float(record["reward_amount"]) for record in voter_plan["selected"])
         if candidate_reward_pool < mining_reward + voter_total:
@@ -193,7 +194,8 @@ class BlockProductionService:
             transactions=voter_transactions + [reward_transaction] + valid_transactions,
             meme={"encoded_image": meme_encoded, "text": canonical_text},
             miner=miner,
-            block_version=PROTOCOL_V1_BLOCK_VERSION if certificate is not None else None,
+            block_version=(ADMISSION_BLOCK_VERSION if isinstance(certificate, AdmissionMintCertificateView)
+                           else PROTOCOL_V1_BLOCK_VERSION if certificate is not None else None),
             network_id=c.protocol_v1_network_id() if certificate is not None else None,
             media_hash=protocol_media["content_hash"] if protocol_media is not None else None,
             media_bytes=protocol_media["stored_bytes"] if protocol_media is not None else None,
@@ -204,6 +206,8 @@ class BlockProductionService:
             **(c.certificate_block_metadata(certificate) if certificate else {}),
             **reward_metadata,
             voter_rewards=voter_plan["selected"],
+            admission_certificate=(certificate.admission_certificate
+                                   if isinstance(certificate, AdmissionMintCertificateView) else None),
         )
         if certificate is not None:
             block.reward_type = "meme_mining_reward"; block.reward_recipient = reward_transaction.recipient

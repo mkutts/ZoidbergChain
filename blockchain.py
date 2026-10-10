@@ -12,12 +12,16 @@ from block import Block, PROTOCOL_V1_BLOCK_VERSION
 from transaction import Transaction
 from wallet import Wallet
 from utils import extract_text
-from media_technical_validation import validate_media_bytes
+from media_technical_validation import technical_evidence_identity, validate_media_bytes
+from admission_certificate import AdmissionMintCertificateView, attestation_identity, build_admission_certificate, validate_admission_certificate
+from admission_activation import AdmissionActivationStore
 from protocol_v1_submitter_attestation import (
     ATTESTATION_DEVELOPMENT,
     ATTESTATION_LEGACY,
     ATTESTATION_REQUIRED,
     REASON_MISSING_ATTESTATION,
+    REASON_EVIDENCE_DIGEST_MISMATCH,
+    REASON_POLICY_MISMATCH,
     REASON_NONCE_REPLAYED,
     SubmitterAttestationError,
     validate_submitter_attestation,
@@ -97,7 +101,7 @@ from content import (
     validate_text_content,
     verify_content_object_payload,
 )
-from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, QUARANTINED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from dual_review import ADMISSIBILITY, ORIGINALITY, REVIEW_VOTE_VERSION, combined_review, vote_identity as dual_vote_identity, validate_choice, verify_vote_record
 from native_transfer import (
     NATIVE_TRANSACTION_INITIAL_NONCE,
@@ -279,9 +283,15 @@ class Blockchain:
         self._block_production_service = BlockProductionService()
         self._last_reward_excluded_voters = []
         self._last_canonical_reorg_report = None
+        self._admission_queue_reconciled = False
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
+        self._admission_activation_store = AdmissionActivationStore(
+            self.storage.data_dir, network_id=self.protocol_v1_network_id(),
+            genesis_hash=self.public_testnet_v1_genesis_hash(),
+        )
+        self.admission_activation_record = self._admission_activation_store.read()
         self._certified_commit_lock = _certified_commit_lock_for_storage(self.storage)
         self._submission_attestation_lock = self._certified_commit_lock
         self._reviewer_reputation_service = ReviewerReputationService(self.storage)
@@ -335,6 +345,8 @@ class Blockchain:
             "finality_attestations": self.finality_attestations,
             "finalized_blocks": self.finalized_blocks,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
+            **({"admission_activation": self.admission_activation_record}
+               if self.admission_activation_record is not None else {}),
         }
 
     @staticmethod
@@ -442,6 +454,57 @@ class Blockchain:
             return {"height": None, "hash": None}
         return {"height": self.chain[-1].index, "hash": self.chain[-1].hash}
 
+    @property
+    def admission_activation_height(self):
+        return (self.admission_activation_record or {}).get("activation_height")
+
+    def admission_activation_status(self):
+        tip = self.chain[-1].index if self.chain else None
+        height = self.admission_activation_height
+        try:
+            stored_record = self._admission_activation_store.read()
+            malformed_configuration = False
+        except ValueError:
+            stored_record = None
+            malformed_configuration = True
+        changed_configuration = malformed_configuration or stored_record != self.admission_activation_record
+        state = ("misconfigured" if changed_configuration or (height is None and ENVIRONMENT in {"testnet", "production"})
+                 else "pre_activation" if height is None or tip is None or tip < height
+                 else "active")
+        return {"network_id": self.protocol_v1_network_id(),
+                "activation_height": height, "last_legacy_height": height - 1 if height is not None else None,
+                "canonical_tip_height": tip, "canonical_tip_hash": self.chain[-1].hash if self.chain else None,
+                "state": state}
+
+    def require_admission_activation_for_new_block(self):
+        configured = self._admission_activation_store.read()
+        if configured != self.admission_activation_record:
+            raise ValueError("Admission activation configuration changed or disappeared; restart is required.")
+        if self.admission_activation_height is None and ENVIRONMENT in {"testnet", "production"}:
+            raise ValueError("Public Testnet block acceptance requires a configured admission activation height.")
+
+    def configure_admission_activation(self, height=None):
+        """Fix the network height once; callers distribute that exact value to peers."""
+        with self._certified_commit_lock:
+            durable = self.storage.load_blockchain_state()
+            head = self._current_canonical_head()
+            durable_chain = durable.get("chain", []) if isinstance(durable, dict) else []
+            durable_head = durable_chain[-1] if durable_chain else None
+            if durable_head is None or durable_head.get("index") != head["height"] or durable_head.get("hash") != head["hash"]:
+                raise ValueError("Canonical tip changed; reload before configuring admission activation.")
+            chosen = head["height"] + 1 if height is None else height
+            if type(chosen) is not int or chosen < 1:
+                raise ValueError("Admission activation height must be a positive integer.")
+            if self.admission_activation_record is not None:
+                if chosen != self.admission_activation_height:
+                    raise ValueError("Admission activation height is immutable once configured.")
+                return self.admission_activation_status()
+            if chosen <= head["height"]:
+                raise ValueError("Admission activation must be after the current canonical tip.")
+            self.admission_activation_record = self._admission_activation_store.configure(chosen)
+            self.save_blockchain()
+            return self.admission_activation_status()
+
     @staticmethod
     def certified_commit_identity(certificate):
         """The immutable certificate ID is the certified-commit replay key."""
@@ -454,12 +517,7 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError("Submission not found for certified commit.")
-        if submission.attestation_requirement == ATTESTATION_REQUIRED:
-            raise ValueError("Originality-only certificates cannot certify current dual-review submissions.")
-        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
-        if certificate is None:
-            raise ValueError("Certified commit requires an originality certificate.")
-        self.validate_originality_certificate(certificate, submission)
+        certificate = self.require_valid_certificate_for_submission(submission)
         return {
             "commit_identity": self.certified_commit_identity(certificate),
             "submission_id": str(submission.submission_id),
@@ -512,6 +570,10 @@ class Blockchain:
         deliberately avoids load-time reconciliation because that would add
         unrequested mutations to the commit boundary.
         """
+        tip = (loaded_data.get("chain") or [{}])[-1].get("index")
+        configured = self._admission_activation_store.verify_document(loaded_data, chain_tip=tip)
+        if configured != self.admission_activation_record:
+            raise ValueError("Atomic state has conflicting admission activation configuration.")
         existing_wallets = dict(self.wallets)
         existing_submissions = {item.submission_id: item for item in self.submissions}
         existing_content_objects = {
@@ -664,8 +726,10 @@ class Blockchain:
             calculate_hash_from_dict=self.calculate_hash_from_dict,
             validate_transaction=self.validate_transaction,
             validate_genesis=self.validate_canonical_public_testnet_v1_genesis,
+            reviewer_status_resolver=self.get_reviewer_status_at_reference,
             config={
                 "network_name": NETWORK_NAME,
+                "admission_activation_height": self.admission_activation_height,
                 "meme_block_reward": MEME_BLOCK_REWARD,
                 "voter_reward_approval_side": VOTER_REWARD_APPROVAL_SIDE,
                 "voter_reward_rejection_side": VOTER_REWARD_REJECTION_SIDE,
@@ -1193,7 +1257,10 @@ class Blockchain:
         minted = self.mint_submission(submission_id, miner=miner, validate_meme=False)
         self.save_blockchain()
         latest_block = self.get_latest_block()
-        certificate = self.get_originality_certificate(latest_block.certificate_id) if latest_block.certificate_id else None
+        certificate = (AdmissionMintCertificateView(latest_block.admission_certificate)
+                       if latest_block.block_version == 2 and latest_block.admission_certificate
+                       else self.get_originality_certificate(latest_block.certificate_id)
+                       if latest_block.certificate_id else None)
         return minted, self.get_submission(submission_id) or submission, latest_block, certificate
 
     def get_mint_queue_operation(self, *, include_blocked=True, mintable_only=False):
@@ -1220,17 +1287,17 @@ class Blockchain:
             raise ValueError("Only pending submissions can be evaluated.")
         evaluation = self.evaluate_submission(submission_id, automated_originality_passed=automated_originality_passed)
         queued_submission = None
-        certificate = self.get_originality_certificate_for_submission(submission_id)
+        certificate = self.require_valid_certificate_for_submission(submission) if submission.status == APPROVED else None
         if submission.status == APPROVED:
             if not certificate:
-                raise ValueError("Approved submission is missing an originality certificate and cannot enter the mint queue.")
+                raise ValueError("Approved submission is missing a valid admission certificate.")
             queued_submission = self.add_to_mint_queue(submission_id)
-            certificate = self.get_originality_certificate_for_submission(submission_id)
+            certificate = self.require_valid_certificate_for_submission(submission)
         self.save_blockchain()
         if submission.status in {APPROVED, QUEUED}:
-            certificate = self.get_originality_certificate_for_submission(submission_id)
+            certificate = self.require_valid_certificate_for_submission(submission)
             if not certificate:
-                raise ValueError("Originality certificate creation failed: certificate could not be retrieved after approval.")
+                raise ValueError("Admission certificate could not be retrieved after approval.")
             submission.certificate_id = certificate.certificate_id
         return evaluation, queued_submission or submission, certificate
 
@@ -1250,6 +1317,54 @@ class Blockchain:
                 attestation_requirement=ATTESTATION_REQUIRED,
                 submitter_attestation=dict(verification["submitter_attestation"]),
             )
+            submission.creator_wallet_address = wallet_address
+            submission.signature_scheme = str(verification["signature_scheme"])
+            submission.submission_signature = str(verification["submission_signature"])
+            submission.submission_message = str(verification["submission_message"])
+            submission.signed_message_hash = str(verification["signed_message_hash"])
+            submission.submission_nonce = str(verification["nonce"])
+            submission.signed_at = str(verification["signed_at"])
+            submission.identity_source = str(verification["identity_source"])
+            self.save_blockchain()
+            return submission
+
+    def attach_current_admission_attestation_operation(self, *, submission_id, wallet_address,
+                                                       message, signature, auth_manager):
+        """Signed transition of an unminted legacy record into current review."""
+        with self._submission_attestation_lock:
+            self.load_blockchain()
+            submission = self.get_submission(submission_id)
+            if (submission is None or submission.status not in {PENDING, APPROVED, QUEUED}
+                or submission.attestation_requirement == ATTESTATION_REQUIRED):
+                raise ValueError("Only an unminted legacy submission can enter current admission review.")
+            if normalize_wallet_address(submission.submitter) != normalize_wallet_address(wallet_address):
+                raise ValueError("Attestation wallet does not own this submission.")
+            verification = auth_manager.verify_submission_signature(
+                wallet_address=wallet_address, message=message, signature=signature,
+                content_hash=submission.content_hash, content_id=submission.content_id)
+            if verification["submission_id"] != submission_id:
+                raise ValueError("Signed attestation targets a different submission.")
+            self.ensure_submitter_attestation_not_replayed(verification["submitter_attestation"],
+                                                          exclude_submission_id=submission_id)
+            _content, raw, evidence = self._submitter_attestation_context(submission)
+            validate_submitter_attestation(
+                verification["submitter_attestation"],
+                expected_wallet_address=submission.submitter,
+                expected_submission_id=submission_id,
+                expected_raw_media_sha256=submission.content_hash,
+                expected_technical_evidence=evidence, raw_media_bytes=raw,
+                expected_network_id=self.protocol_v1_network_id(),
+            )
+            submission.status = PENDING
+            self.mint_queue[:] = [item for item in self.mint_queue if item != submission_id]
+            submission.certificate_id = None
+            submission.admission_certificate = None
+            submission.admission_state = "awaiting_review"
+            submission.quarantine_reason = None
+            submission.decision_reason = None
+            submission.decision_finalized_at = None
+            submission.attestation_requirement = ATTESTATION_REQUIRED
+            submission.submitter_attestation = dict(verification["submitter_attestation"])
             submission.creator_wallet_address = wallet_address
             submission.signature_scheme = str(verification["signature_scheme"])
             submission.submission_signature = str(verification["submission_signature"])
@@ -1623,6 +1738,10 @@ class Blockchain:
         try:
             loaded_data = self.storage.load_blockchain_state()
 
+            tip = (loaded_data.get("chain") or [{}])[-1].get("index") if isinstance(loaded_data, dict) else None
+            self.admission_activation_record = self._admission_activation_store.verify_document(
+                loaded_data, chain_tip=tip)
+
             if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
                 self.chain = [Block.from_dict(block_data) for block_data in loaded_data["chain"]]
 
@@ -1669,8 +1788,29 @@ class Blockchain:
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
                 self.reconcile_submission_canonical_state()
+                admission_queue_changed = False
+                if not self._admission_queue_reconciled:
+                    for queued_id in tuple(self.mint_queue):
+                        pending = self.get_submission(queued_id)
+                        if pending is None:
+                            continue
+                        if pending.attestation_requirement != ATTESTATION_REQUIRED:
+                            if (self.admission_activation_height is not None and self.chain
+                                and self.chain[-1].index + 1 >= self.admission_activation_height):
+                                self.mint_queue.remove(queued_id)
+                                if pending.status == QUEUED:
+                                    pending.status = APPROVED
+                                    pending.admission_state = "awaiting_attestation"
+                                admission_queue_changed = True
+                            continue
+                        try:
+                            self.validate_current_admission(pending)
+                        except (ValueError, SubmitterAttestationError):
+                            self._quarantine_current_submission(pending, "invalid_admission_on_restart")
+                            admission_queue_changed = True
+                    self._admission_queue_reconciled = True
                 mempool_report = self.revalidate_mempool_transactions(save=False)
-                if native_state["changed"] or mempool_report["removed"] > 0:
+                if native_state["changed"] or mempool_report["removed"] > 0 or admission_queue_changed:
                     self.save_blockchain()
                 if native_state["removed"] > 0:
                     print(
@@ -2009,7 +2149,7 @@ class Blockchain:
 
     @staticmethod
     def is_protocol_v1_block_payload(block) -> bool:
-        return Blockchain._block_field(block, "block_version") == PROTOCOL_V1_BLOCK_VERSION
+        return Blockchain._block_field(block, "block_version") in {PROTOCOL_V1_BLOCK_VERSION, 2}
 
     @staticmethod
     def protocol_v1_network_id() -> str:
@@ -2385,6 +2525,17 @@ class Blockchain:
         )
 
     def get_submission_certificate_state(self, submission) -> dict[str, object]:
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            if submission.admission_certificate is None:
+                return {"certificate_status": "missing", "certificate_id": None,
+                        "certificate": None, "validation_error": None}
+            try:
+                certificate = AdmissionMintCertificateView(self.validate_current_admission(submission))
+            except (ValueError, SubmitterAttestationError) as exc:
+                return {"certificate_status": "invalid", "certificate_id": None,
+                        "certificate": None, "validation_error": str(exc)}
+            return {"certificate_status": "valid", "certificate_id": certificate.certificate_id,
+                    "certificate": certificate, "validation_error": None}
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         if certificate is None:
             return {
@@ -2425,7 +2576,7 @@ class Blockchain:
         certificate = certificate_state["certificate"]
         block = self.get_protocol_v1_block_for_submission(submission.submission_id)
         block_state = self.get_block_chain_state(block) if block is not None else self.get_block_chain_state(None)
-        rejected = submission.status in {REJECTED, HARD_REJECTED}
+        rejected = submission.status in {REJECTED, HARD_REJECTED, QUARANTINED}
         voting = submission.status == PENDING and not rejected and not self.is_submission_voting_locked(submission)
         certified = certificate_state["certificate_status"] == "valid"
         mint_eligible = False
@@ -3067,6 +3218,13 @@ class Blockchain:
     def validate_originality_certificate(
         self, certificate, submission, *, allowed_submission_statuses=None, chain=None
     ):
+        if isinstance(certificate, AdmissionMintCertificateView):
+            if submission.attestation_requirement != ATTESTATION_REQUIRED:
+                raise ValueError("Admission certificate cannot certify a legacy submission.")
+            validated = self.validate_current_admission(submission)
+            if validated != certificate.admission_certificate:
+                raise ValueError("Admission certificate differs from durable submission state.")
+            return certificate
         validation_chain = self.chain if chain is None else chain
         kwargs = {}
         if certificate is not None and certificate.is_milestone5_certificate():
@@ -3160,6 +3318,88 @@ class Blockchain:
         if review["review_mode"] != "dual_v1" or not review["review_qualified"]:
             raise ValueError("Both review dimensions and submitter attestation must qualify.")
         return review
+
+    def _quarantine_current_submission(self, submission, reason):
+        if submission.status == MINTED:
+            raise ValueError("Finalized media cannot be quarantined as pending content.")
+        if submission.status != QUARANTINED:
+            submission.transition_to(QUARANTINED)
+        submission.admission_state = "quarantined"
+        submission.quarantine_reason = reason
+        self.mint_queue[:] = [item for item in self.mint_queue if item != submission.submission_id]
+        return submission
+
+    def _quarantine_stale_current_queue_record(self, submission_id, reason):
+        """Persist removal without changing the canonical head or CAS commit rules."""
+        def mutate(document):
+            for item in document.get("submissions", []):
+                if item.get("submission_id") == submission_id and item.get("attestation_requirement") == ATTESTATION_REQUIRED and item.get("status") != MINTED:
+                    item["status"] = QUARANTINED
+                    item["admission_state"] = "quarantined"
+                    item["quarantine_reason"] = reason
+                    document["mint_queue"] = [value for value in document.get("mint_queue", []) if value != submission_id]
+                    break
+            return document
+        document = self.storage.atomic_update_blockchain_document(mutate)
+        self._restore_blockchain_state_document(document)
+
+    def validate_current_admission(self, submission):
+        if submission.attestation_requirement != ATTESTATION_REQUIRED:
+            raise ValueError("Current admission requires a Public Testnet attested submission.")
+        certificate = submission.admission_certificate
+        if certificate is None:
+            raise ValueError("Originality-only certificates cannot certify current submissions; frozen admission certificate is missing.")
+        _content, media_bytes, evidence = self._submitter_attestation_context(submission)
+        if certificate.get("technical_evidence") != technical_evidence_identity(evidence):
+            raise ValueError("Frozen technical evidence differs from stored evidence.")
+        if certificate.get("attestation") != attestation_identity(submission.submitter_attestation):
+            raise ValueError("Frozen attestation differs from stored attestation.")
+        validate_admission_certificate(certificate, media_bytes=media_bytes,
+                                       reviewer_status_resolver=self.get_reviewer_status_at_reference)
+        if certificate["submission_id"] != submission.submission_id or certificate["content_hash"] != submission.content_hash:
+            raise ValueError("Frozen admission certificate submission binding differs.")
+        return certificate
+
+    def admission_status(self, submission):
+        if submission.attestation_requirement != ATTESTATION_REQUIRED:
+            if (submission.status != MINTED and self.admission_activation_height is not None
+                and self.chain and self.chain[-1].index + 1 >= self.admission_activation_height):
+                return {"state": "awaiting_attestation", "reason": "legacy_pending_requires_current_admission",
+                        "certificate_digest": None}
+            return {"state": "legacy_pre_activation", "reason": None, "certificate_digest": None}
+        if submission.status == MINTED:
+            return {"state": "minted", "reason": None,
+                    "certificate_digest": (submission.admission_certificate or {}).get("certificate_digest")}
+        if submission.status == QUARANTINED:
+            return {"state": "quarantined", "reason": submission.quarantine_reason,
+                    "certificate_digest": (submission.admission_certificate or {}).get("certificate_digest")}
+        if submission.admission_certificate is not None:
+            try:
+                certificate = self.validate_current_admission(submission)
+            except (ValueError, SubmitterAttestationError) as exc:
+                return {"state": "quarantined", "reason": str(exc), "certificate_digest": None}
+            return {"state": "mintable" if submission.status == QUEUED else "admission_qualified",
+                    "reason": None, "certificate_digest": certificate["certificate_digest"]}
+        try:
+            self.require_valid_submitter_attestation(submission)
+        except (ValueError, SubmitterAttestationError) as exc:
+            code = getattr(exc, "reason_code", None)
+            state = ("technical_rejected" if code == REASON_EVIDENCE_DIGEST_MISMATCH
+                     else "policy_mismatch" if code == REASON_POLICY_MISMATCH
+                     else "awaiting_attestation" if code == REASON_MISSING_ATTESTATION
+                     else "invalid_attestation")
+            return {"state": state, "reason": code or str(exc), "certificate_digest": None}
+        review = self.get_dual_review(submission.submission_id)
+        if review["originality"]["outcome"] == "not_original":
+            return {"state": "review_rejected_originality", "reason": "not_original", "certificate_digest": None}
+        if review["admissibility"]["outcome"] == "not_admissible":
+            return {"state": "review_rejected_admissibility", "reason": "not_admissible", "certificate_digest": None}
+        if review["review_qualified"]:
+            return {"state": "review_qualified", "reason": None, "certificate_digest": None}
+        if (review["originality"]["eligible_valid_votes"] == 0
+            and review["admissibility"]["eligible_valid_votes"] == 0):
+            return {"state": "awaiting_review", "reason": None, "certificate_digest": None}
+        return {"state": "review_unresolved", "reason": None, "certificate_digest": None}
 
     def validate_qualified_dual_review_evidence(self, submission_id, evidence):
         current = self.get_qualified_dual_review_evidence(submission_id)
@@ -3420,8 +3660,13 @@ class Blockchain:
     def get_pending_incoming_transfer_amount(self, wallet_address):
         return self.get_native_balance_snapshot(wallet_address)["pending_incoming"]
     def require_valid_certificate_for_submission(self, submission):
+        self.require_admission_activation_for_new_block()
+        if (self.admission_activation_height is not None and self.chain
+            and self.chain[-1].index + 1 >= self.admission_activation_height
+            and submission.attestation_requirement != ATTESTATION_REQUIRED):
+            raise ValueError("Post-activation minting requires current frozen admission evidence, including for pending legacy submissions.")
         if submission.attestation_requirement == ATTESTATION_REQUIRED:
-            raise ValueError("Originality-only certificates cannot certify current dual-review submissions.")
+            return AdmissionMintCertificateView(self.validate_current_admission(submission))
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         self.validate_originality_certificate(certificate, submission)
         return certificate
@@ -3514,12 +3759,47 @@ class Blockchain:
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
         if submission.attestation_requirement == ATTESTATION_REQUIRED:
-            review = self.get_dual_review(submission_id)
+            status = self.admission_status(submission)
+            if status["state"] == "quarantined":
+                if submission.status != QUARANTINED:
+                    self._quarantine_current_submission(submission, "invalid_frozen_admission_evidence")
+                return {"submission_id": submission_id, "status": submission.status,
+                        "admission": self.admission_status(submission),
+                        "reason": submission.quarantine_reason}
+            if status["state"] in {"technical_rejected", "policy_mismatch", "awaiting_attestation", "invalid_attestation", "review_rejected_originality", "review_rejected_admissibility"}:
+                self._quarantine_current_submission(submission, status["state"])
+                return {"submission_id": submission_id, "status": submission.status,
+                        "admission": self.admission_status(submission), "reason": status["state"]}
+            if status["state"] in {"awaiting_review", "review_unresolved"}:
+                return {"submission_id": submission_id, "status": submission.status,
+                        "dual_review": self.get_dual_review(submission_id), "admission": status,
+                        "reason": "awaiting_dual_review"}
+            if submission.admission_certificate is None:
+                _content, media_bytes, technical_evidence = self._submitter_attestation_context(submission)
+                votes = [vote for vote in self.storage.get_votes_for_submission(submission_id, self.votes)
+                         if verify_vote_record(vote, submission_id=submission_id,
+                             content_hash=submission.content_hash,
+                             network_id=self.protocol_v1_network_id(),
+                             creator_address=submission.submitter,
+                             reviewer_status_resolver=self.get_reviewer_status_at_reference)]
+                try:
+                    submission.admission_certificate = build_admission_certificate(
+                        submission_id=submission_id, content_hash=submission.content_hash,
+                        creator_wallet=submission.submitter, media_bytes=media_bytes,
+                        technical_evidence=technical_evidence,
+                        attestation=submission.submitter_attestation, votes=votes,
+                        reviewer_status_resolver=self.get_reviewer_status_at_reference)
+                except (ValueError, SubmitterAttestationError) as exc:
+                    self._quarantine_current_submission(submission, "invalid_frozen_admission_evidence")
+                    return {"submission_id": submission_id, "status": submission.status,
+                            "admission": self.admission_status(submission), "reason": str(exc)}
+                submission.transition_to(APPROVED)
+                submission.admission_state = "admission_qualified"
             return {
                 "submission_id": submission_id,
                 "status": submission.status,
-                "dual_review": review,
-                "reason": "dual_review_qualified_awaiting_admission_activation" if review["review_qualified"] else "awaiting_dual_review",
+                "admission": self.admission_status(submission),
+                "reason": "admission_qualified",
             }
 
         evidence = self.ensure_current_originality_evidence(submission_id)
@@ -3664,16 +3944,21 @@ class Blockchain:
         self.lifecycle_timing.mark(submission_id, "ready_for_mint")
         return submission
     def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
-        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
+        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text, certificate_validator=self._validate_queue_certificate)
+    def _validate_queue_certificate(self, certificate, submission):
+        validated = self.require_valid_certificate_for_submission(submission)
+        if validated.certificate_id != certificate.certificate_id:
+            raise ValueError("Queued certificate differs from current admission eligibility.")
+        return validated
     def _evaluate_mint_queue_item(self, submission_id):
-        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text, self.validate_originality_certificate)
+        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text, self._validate_queue_certificate)
     def get_mint_queue(self, include_blocked=True, mintable_only=False):
-        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
+        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text, certificate_validator=self._validate_queue_certificate)
     def _first_mintable_queue_record(self):
         return self._mint_queue_service.first_mintable(
             self._mint_queue_state(), self.storage, network_name=NETWORK_NAME,
             extract_text_func=extract_text,
-            certificate_validator=self.validate_originality_certificate,
+            certificate_validator=self._validate_queue_certificate,
         )
     def _apply_certified_candidate_in_commit(self, candidate, submission):
         """Apply all durable effects of one already-validated certified block.
@@ -3733,7 +4018,13 @@ class Blockchain:
         acquired its transaction/lock.  A stale caller receives
         ``StaleCanonicalHeadError`` and must explicitly prepare again.
         """
-        request = self._prepare_certified_commit_request(submission_id, miner)
+        try:
+            request = self._prepare_certified_commit_request(submission_id, miner)
+        except (ValueError, SubmitterAttestationError) as exc:
+            submission = self.get_submission(submission_id)
+            if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED and submission.status == QUEUED:
+                self._quarantine_stale_current_queue_record(submission_id, "invalid_admission_before_commit")
+            raise
         expected_head = dict(expected_head or self._current_canonical_head())
         memory_snapshot = json.loads(json.dumps(self._serialize_blockchain_state()))
         # Native mempool records and the configurable reward-pool test value
@@ -3743,6 +4034,7 @@ class Blockchain:
         local_native_transactions = json.loads(json.dumps(self.native_transactions))
         local_reward_pool = self.reward_pool
         replayed = False
+        stale_admission = False
 
         def replay(document):
             nonlocal replayed
@@ -3757,6 +4049,7 @@ class Blockchain:
             return True
 
         def mutate(document):
+            nonlocal stale_admission
             # The backend has already locked and reread this document.  Restore
             # it so every service observes transaction-bound balances, nonces,
             # mempool records, rewards, and canonical chain state.
@@ -3777,7 +4070,11 @@ class Blockchain:
             submission = self.get_submission(submission_id)
             if submission is None:
                 raise ValueError("Submission not found for atomic certified commit.")
-            current_request = self._prepare_certified_commit_request(submission_id, miner)
+            try:
+                current_request = self._prepare_certified_commit_request(submission_id, miner)
+            except (ValueError, SubmitterAttestationError):
+                stale_admission = submission.attestation_requirement == ATTESTATION_REQUIRED
+                raise
             if current_request != request:
                 raise ValueError("Conflicting certified commit: durable submission or certificate changed before commit.")
             if submission.status != QUEUED:
@@ -3833,6 +4130,8 @@ class Blockchain:
         except Exception:
             if not committed:
                 self._restore_blockchain_state_document(memory_snapshot)
+                if stale_admission:
+                    self._quarantine_stale_current_queue_record(submission_id, "invalid_admission_during_commit")
             raise
         finally:
             self.__dict__.pop("_atomic_commit_native_overlay", None)
@@ -4035,7 +4334,7 @@ class Blockchain:
                         max_block_size_kb=max_block_size_kb,
                         validate_meme=validate_meme,
                     )
-            raise ValueError(record.get("mint_block_reason") or "Submission is not mintable.")
+            raise ValueError(record.get("validation_error") or record.get("mint_block_reason") or "Submission is not mintable.")
 
         certificate = self.require_valid_certificate_for_submission(submission)
         return self._mint_submission_record(
@@ -4154,6 +4453,7 @@ class Blockchain:
         return removed_entries
 
     def validate_candidate_block_for_local_acceptance(self, block, *, current_chain=None):
+        self.require_admission_activation_for_new_block()
         working_chain = current_chain or self.chain
         self._ensure_validated_chain_prefix(working_chain)
         accepted = self._block_validation_service.validate_candidate(
@@ -4390,6 +4690,13 @@ class Blockchain:
         )
     def is_chain_valid(self, chain):
         """Validate a given chain."""
+        candidate_hashes = tuple(str(item.get("hash") or "") for item in self.chain_to_dicts(chain))
+        local_hashes = tuple(block.hash for block in self.chain)
+        if candidate_hashes != local_hashes:
+            try:
+                self.require_admission_activation_for_new_block()
+            except ValueError:
+                return False
         valid = self._block_validation_service.validate_chain(
             chain, self._block_validation_collaborators()
         )

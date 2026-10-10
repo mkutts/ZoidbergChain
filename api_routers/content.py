@@ -321,6 +321,15 @@ async def get_submission_certificate(request: Request, submission_id: str):
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {submission_id}")
 
+    if submission.attestation_requirement == "public_testnet_v1_required":
+        certificate_state = blockchain.get_submission_certificate_state(submission)
+        if certificate_state["certificate_status"] != "valid":
+            raise HTTPException(
+                status_code=404,
+                detail="Valid frozen admission certificate not found for current submission.",
+            )
+        return {"certificate": certificate_state["certificate"].to_dict(),
+                "review_scope": "dual_admission_v1", "fully_review_certified": True}
     certificate = blockchain.get_originality_certificate_for_submission(submission_id)
     if not certificate:
         raise HTTPException(
@@ -329,6 +338,28 @@ async def get_submission_certificate(request: Request, submission_id: str):
         )
     return {"certificate": _serialize_certificate(certificate),
             "review_scope": "legacy_originality_only", "fully_review_certified": False}
+
+
+@router.post('/submissions/{submission_id}/admission-attestation')
+@api_limit("submission_create")
+async def attach_current_admission_attestation(
+    request: Request, submission_id: str, payload: AdmissionAttestationRequest,
+    authorization: str | None = Header(default=None),
+):
+    _sync_runtime_globals()
+    verified_wallet = resolve_verified_wallet_from_authorization(
+        authorization, manager=wallet_auth_manager)
+    if normalize_wallet_address(payload.wallet_address) != verified_wallet:
+        raise HTTPException(status_code=403, detail="Attestation wallet must match the verified session.")
+    try:
+        submission = blockchain.attach_current_admission_attestation_operation(
+            submission_id=submission_id, wallet_address=verified_wallet,
+            message=payload.message, signature=payload.signature,
+            auth_manager=wallet_auth_manager,
+        )
+    except (ValueError, SubmitterAttestationError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"submission": _serialize_submission(submission)}
 
 
 @router.get('/submissions/{submission_id}/voter-rewards')
@@ -499,7 +530,7 @@ async def evaluate_submission(
                 network_name=NETWORK_NAME,
                 blockchain=blockchain,
             )
-            if certificate
+            if certificate and not hasattr(certificate, "admission_certificate")
             else {"attempted": 0, "succeeded": 0, "failed": 0, "results": []}
         )
     except ValueError as e:
@@ -569,7 +600,7 @@ async def mint_queued_submission(
             origin_node_id=NODE_ID,
             network_name=NETWORK_NAME,
             related_submission_id=submission_id,
-            certificate=certificate,
+            certificate=None if latest_block.block_version == 2 else certificate,
             blockchain=blockchain,
         )
         if minted
@@ -666,6 +697,7 @@ _ROUTE_ORDER = {
         ('GET', '/submissions/{submission_id}', 'get_submission'): 87,
         ('GET', '/submissions/{submission_id}/originality-evidence', 'get_submission_originality_evidence'): 129,
     ('GET', '/submissions/{submission_id}/certificate', 'get_submission_certificate'): 88,
+    ('POST', '/submissions/{submission_id}/admission-attestation', 'attach_current_admission_attestation'): 130,
     ('GET', '/submissions/{submission_id}/voter-rewards', 'get_submission_voter_rewards'): 89,
     ('GET', '/certificates/{certificate_id}', 'get_certificate'): 90,
     ('POST', '/submissions/{submission_id}/vote', 'vote_on_submission'): 94,

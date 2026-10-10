@@ -327,6 +327,9 @@ class PeerSubmissionPayload(_StrictBodyModel):
     identity_source: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     attestation_requirement: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     submitter_attestation: dict[str, Any] | None = None
+    admission_certificate: dict[str, Any] | None = None
+    admission_state: str | None = None
+    quarantine_reason: str | None = None
 
 
 class PeerVotePayload(_StrictBodyModel):
@@ -434,6 +437,7 @@ class PeerBlockPayload(_StrictBodyModel):
     minimum_votes_required: Annotated[int, Field(ge=0)] | None = None
     approved_at: Annotated[float, Field(ge=0)] | None = None
     originality_score: Annotated[float, Field(ge=0)] | None = None
+    admission_certificate: dict[str, Any] | None = None
     reward_type: Annotated[str, Field(min_length=1, max_length=64)] | None = None
     reward_recipient: Annotated[str, Field(min_length=1, max_length=128)] | None = None
     reward_amount: Annotated[float, Field(ge=0)] | None = None
@@ -522,6 +526,7 @@ class PeerBlockReceive(BaseModel):
     block: PeerBlockPayload
     related_submission_id: SubmissionIdValue | None = None
     certificate: PeerCertificatePayload | None = None
+    admission_activation_height: Annotated[int, Field(ge=1)] | None = None
 
 
 class PeerCertificateReceive(BaseModel):
@@ -578,6 +583,13 @@ class WalletSubmissionChallengeRequest(_StrictBodyModel):
     content_hash: ContentHashValue
     content_id: Annotated[str | None, Field(min_length=32, max_length=32, pattern=HEX_32_PATTERN)] = None
     caption: Annotated[str | None, Field(max_length=MAX_CAPTION_LENGTH)] = None
+    submission_id: SubmissionIdValue | None = None
+
+
+class AdmissionAttestationRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    message: Annotated[str, Field(min_length=1, max_length=4096)]
+    signature: Annotated[str, Field(min_length=1, max_length=4096)]
 
 
 class WalletVoteChallengeRequest(_StrictBodyModel):
@@ -807,6 +819,7 @@ def _serialize_submission(submission):
         "attestation_status": blockchain.submission_attestation_status(submission),
         "submitter_attestation": getattr(submission, "submitter_attestation", None),
         "status": submission.status,
+        "admission": blockchain.admission_status(submission),
         "created_at": submission.created_at,
         "hard_reject_reason": submission.hard_reject_reason,
         "content_hash": submission.content_hash,
@@ -1535,6 +1548,7 @@ def _status_payload():
     payload = _health_payload()
     payload.update({
         "latest_block": safe_latest_block_summary(blockchain),
+        "admission_activation": blockchain.admission_activation_status(),
         "environment_validation": {
             "healthy": safe_environment_validation()["healthy"],
             "error_count": safe_environment_validation()["error_count"],
@@ -3690,6 +3704,7 @@ def _chain_summary_payload() -> dict:
     payload.update({
         "protocol_version": 1,
         "network_id": blockchain.protocol_v1_network_id(),
+        "admission_activation_height": blockchain.admission_activation_height,
         "genesis_hash": blockchain.chain[0].hash,
         "canonical_genesis_hash": blockchain.public_testnet_v1_genesis_hash(),
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),

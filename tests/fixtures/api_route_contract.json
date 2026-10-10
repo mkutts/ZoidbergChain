@@ -1490,6 +1490,18 @@
   },
   {
     "method": "POST",
+    "path": "/submissions/{submission_id}/admission-attestation",
+    "name": "attach_current_admission_attestation",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "AdmissionAttestationRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
     "path": "/submissions/{submission_id}/block-minting",
     "name": "block_submission_minting",
     "classification": "public",

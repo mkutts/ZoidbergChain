@@ -8,7 +8,8 @@ from dataclasses import dataclass
 
 from content import CONTENT_TYPE_TEXT, STORAGE_STATUS_LOCAL, STORAGE_STATUS_MISSING, STORAGE_STATUS_REMOTE, STORAGE_STATUS_VERIFIED, TEXT_MIME_TYPE, resolve_local_path, verify_content_object_payload
 from originality_certificate import validate_certificate_for_submission
-from submission import APPROVED, HARD_REJECTED, MINTED, QUEUED
+from submission import APPROVED, HARD_REJECTED, MINTED, QUEUED, QUARANTINED, ATTESTATION_REQUIRED
+from admission_certificate import AdmissionMintCertificateView
 from utils import extract_text
 
 
@@ -53,6 +54,10 @@ class MintQueueService:
 
     @staticmethod
     def _certificate(state, storage, submission_id):
+        submission = storage.get_submission(submission_id, state.submissions)
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED:
+            return (AdmissionMintCertificateView(submission.admission_certificate)
+                    if submission.admission_certificate is not None else None)
         return storage.get_certificate_for_submission(submission_id, state.originality_certificates)
 
     def add(self, state, storage, submission_id, require_certificate):
@@ -92,7 +97,7 @@ class MintQueueService:
         verification = verify_content_object_payload(content_object, data_dir=storage.data_dir)
         if not verification["verified"]:
             error = str(verification.get("error") or "").lower()
-            if error == "legacy_unverifiable": record.update(mintable=True, mint_block_reason=None); return record
+            if error == "legacy_unverifiable" and submission.attestation_requirement != ATTESTATION_REQUIRED: record.update(mintable=True, mint_block_reason=None); return record
             record["mint_block_reason"] = "content_payload_missing" if error == "missing_file" else "content_hash_mismatch" if error in {"hash_mismatch", "file_size_mismatch"} else "content_not_verified"; record["missing_fields"].append("content_payload"); record["verification_error"] = verification.get("error"); return record
         record.update(mintable=True, mint_block_reason=None, missing_fields=[], certificate_status="valid")
         if not (content_object.mime_type == TEXT_MIME_TYPE or content_object.content_type == CONTENT_TYPE_TEXT) and not str(submission.text_content or "").strip():
@@ -190,7 +195,13 @@ class MintQueueService:
             except ValueError: ready = False
             if ready: valid.append(submission_id)
             else:
-                if submission and submission.status == QUEUED: submission.status = APPROVED
+                if submission and submission.status == QUEUED:
+                    if submission.attestation_requirement == ATTESTATION_REQUIRED:
+                        submission.status = QUARANTINED
+                        submission.admission_state = "quarantined"
+                        submission.quarantine_reason = "invalid_admission_queue_entry"
+                    else:
+                        submission.status = APPROVED
                 if submission and not self._certificate(state, storage, submission.submission_id): submission.certificate_id = None
                 removed.append(submission_id)
         state.mint_queue[:] = valid

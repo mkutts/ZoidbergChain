@@ -193,6 +193,7 @@ class PeerBroadcastService:
         self, block, peer_store, origin_node_id, network_name,
         related_submission_id, certificate, timeout_seconds,
         originality_evidence=None,
+        admission_activation_height=None,
     ):
         payload = {
             "origin_node_id": origin_node_id,
@@ -200,6 +201,7 @@ class PeerBroadcastService:
             "block": block.to_dict(),
             "related_submission_id": related_submission_id,
             "certificate": certificate.to_dict() if certificate else None,
+            "admission_activation_height": admission_activation_height,
         }
         results = []
         for peer in peer_store.list_active_peers(network_name=network_name):

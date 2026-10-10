@@ -377,6 +377,7 @@ class WalletAuthManager:
         content_id: str | None = None,
         caption: str | None = None,
         technical_validation: dict | None = None,
+        submission_id: str | None = None,
     ) -> dict[str, Any]:
         with self._lock:
             self.prune_expired()
@@ -396,7 +397,9 @@ class WalletAuthManager:
             issued_at = _utc_now()
             expires_at = issued_at + timedelta(seconds=self.challenge_ttl_seconds)
             nonce = secrets.token_urlsafe(24)
-            submission_id = secrets.token_hex(16)
+            if submission_id is not None and (not isinstance(submission_id, str) or not submission_id.strip()):
+                raise ValueError("Existing submission ID is invalid.")
+            submission_id = submission_id.strip() if submission_id is not None else secrets.token_hex(16)
             network_id = resolve_protocol_v1_network_id(network_name=self.network_name)
             payload = build_submitter_attestation_payload(
                 wallet_address=normalized,

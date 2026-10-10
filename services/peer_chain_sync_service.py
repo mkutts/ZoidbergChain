@@ -17,6 +17,7 @@ class ChainSyncState:
     local_genesis_hash: str
     local_score: float
     local_network_id: str
+    admission_activation_height: int | None = None
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,9 @@ class PeerChainSyncService:
             raise ChainSyncError("Peer chain summary latest_block_hash is required.")
         if not isinstance(summary["genesis_hash"], str) or not summary["genesis_hash"].strip():
             raise ChainSyncError("Peer chain summary genesis_hash is required.")
+        activation_height = summary.get("admission_activation_height")
+        if activation_height is not None and (type(activation_height) is not int or activation_height < 1):
+            raise ChainSyncError("Peer admission activation height is invalid.")
         try:
             cumulative_score = float(summary.get("cumulative_originality_score", 0))
         except (TypeError, ValueError):
@@ -80,6 +84,7 @@ class PeerChainSyncService:
             "latest_block_hash": summary["latest_block_hash"].strip(),
             "genesis_hash": summary["genesis_hash"].strip(),
             "cumulative_originality_score": round(cumulative_score, 8),
+            "admission_activation_height": activation_height,
         }
 
     def fetch_summary(self, peer, *, origin_node_id, network_name, timeout_seconds):
@@ -185,6 +190,8 @@ class PeerChainSyncService:
             return self.result(peer, "skipped", "wrong_network", decision="invalid_candidate", **common)
         if summary["genesis_hash"] != state.local_genesis_hash:
             return self.result(peer, "skipped", "different_genesis_hash", decision="invalid_candidate", **common)
+        if summary["admission_activation_height"] != state.admission_activation_height:
+            return self.result(peer, "skipped", "conflicting_admission_activation", decision="invalid_candidate", **common)
 
         preliminary = collaborators.compare_summaries(
             local_score=state.local_score, candidate_score=peer_score,

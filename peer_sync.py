@@ -540,9 +540,12 @@ def receive_peer_block(
     related_submission_id,
     local_network_name,
     certificate_payload=None,
+    peer_activation_height=None,
 ):
     if network_name != local_network_name:
         raise WrongNetworkError("Peer block belongs to a different network.")
+    if peer_activation_height != blockchain.admission_activation_height:
+        raise WrongNetworkError("Peer admission activation height conflicts with local network rules.")
 
     peer = peer_store.get_active_peer(origin_node_id)
     if not peer:
@@ -1390,6 +1393,7 @@ def broadcast_block_to_peers(
     return _peer_broadcast_service().broadcast_block(
         block, peer_store, origin_node_id, network_name,
         related_submission_id, certificate, timeout_seconds, transfer,
+        admission_activation_height=(blockchain.admission_activation_height if blockchain is not None else None),
     )
 
 
@@ -1704,6 +1708,7 @@ def _sync_chain_from_peer(blockchain, peer_store, peer, origin_node_id, network_
         local_genesis_hash=blockchain.public_testnet_v1_genesis_hash(),
         local_score=blockchain.get_cumulative_originality_score(),
         local_network_id=blockchain.protocol_v1_network_id(),
+        admission_activation_height=blockchain.admission_activation_height,
     )
     collaborators = ChainSyncCollaborators(
         compare_summaries=blockchain.compare_chain_summaries,
@@ -2326,7 +2331,7 @@ def _validate_candidate_chain(
     for block in candidate_chain:
         metadata = block.certificate_metadata()
         certificate_id = metadata.get("certificate_id")
-        if certificate_id and not blockchain.get_originality_certificate(certificate_id):
+        if certificate_id and block.block_version != 2 and not blockchain.get_originality_certificate(certificate_id):
             raise ChainSyncError(f"Missing originality certificate: {certificate_id}")
 
     working_chain = []
@@ -2433,6 +2438,7 @@ def _normalize_block_payload(block_payload):
             "minimum_votes_required",
             "approved_at",
             "originality_score",
+            "admission_certificate",
             "reward_type",
             "reward_recipient",
             "reward_amount",
@@ -3029,6 +3035,9 @@ def _normalize_submission_payload(submission_payload):
             "identity_source",
             "attestation_requirement",
             "submitter_attestation",
+            "admission_certificate",
+            "admission_state",
+            "quarantine_reason",
         ],
         MalformedSubmissionError,
         "Submission payload",
@@ -3124,6 +3133,8 @@ def _normalize_submission_payload(submission_payload):
     normalized["identity_source"] = submission_payload.get("identity_source")
     normalized["attestation_requirement"] = submission_payload.get("attestation_requirement") or ATTESTATION_LEGACY
     normalized["submitter_attestation"] = submission_payload.get("submitter_attestation")
+    if submission_payload.get("admission_certificate") is not None:
+        raise MalformedSubmissionError("Peer submission admission evidence must be verified through a block, not trusted as status.")
 
     creator_wallet_address = normalized["creator_wallet_address"]
     creator_wallet_normalized = normalize_wallet_address(creator_wallet_address) if isinstance(creator_wallet_address, str) else None

@@ -17,6 +17,15 @@ import {
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
+test('current admission states have distinct submission labels', () => {
+  const label = (state) => buildSubmissionLifecycleDisplay({ admission: { state } }).label;
+  assert.equal(label('review_unresolved'), 'Review Pending');
+  assert.equal(label('quarantined'), 'Quarantined');
+  assert.equal(label('admission_qualified'), 'Admission Qualified');
+  assert.equal(label('mintable'), 'Mint Pending');
+  assert.equal(label('minted'), 'Minted');
+});
+
 test('network identity prefers the frozen Public Testnet v1 label', () => {
   const identity = buildProtocolNetworkIdentity({
     protocol_version: 1,

@@ -435,6 +435,7 @@ async def receive_block_from_peer(request: Request, receive_request: PeerBlockRe
             ),
             related_submission_id=receive_request.related_submission_id,
             local_network_name=NETWORK_NAME,
+            peer_activation_height=receive_request.admission_activation_height,
             certificate_payload=(
                 raw_payload.get("certificate")
                 if receive_request.certificate
@@ -749,7 +750,7 @@ _ROUTE_ORDER = {
     ('GET', '/peers/mempool/summary', 'get_peer_mempool_summary'): 61,
     ('POST', '/peers/submissions/receive', 'receive_submission_from_peer'): 62,
     ('POST', '/peers/votes/receive', 'receive_vote_from_peer'): 63,
-    ('POST', '/peers/reviewer-offenses/receive', 'receive_reviewer_offense_from_peer'): 134,
+    ('POST', '/peers/reviewer-offenses/receive', 'receive_reviewer_offense_from_peer'): 135,
     ('POST', '/peers/certificates/receive', 'receive_certificate_from_peer'): 64,
     ('POST', '/peers/blocks/receive', 'receive_block_from_peer'): 65,
     ('GET', '/peers/chain/summary', 'peer_chain_summary'): 68,
@@ -763,8 +764,8 @@ _ROUTE_ORDER = {
     ('POST', '/submissions/{submission_id}/broadcast', 'broadcast_submission'): 93,
     ('POST', '/submissions/{submission_id}/votes/broadcast', 'broadcast_submission_votes'): 96,
     ('POST', '/transactions/{tx_id}/broadcast', 'broadcast_native_transaction'): 116,
-    ('POST', '/peers/originality-evidence/receive', 'receive_originality_evidence_from_peer'): 130,
-    ('GET', '/peers/originality-evidence/{evidence_digest}', 'get_peer_originality_evidence'): 131,
+    ('POST', '/peers/originality-evidence/receive', 'receive_originality_evidence_from_peer'): 131,
+    ('GET', '/peers/originality-evidence/{evidence_digest}', 'get_peer_originality_evidence'): 132,
 }
 
 for _route in router.routes:

@@ -2676,6 +2676,11 @@ class SQLiteStorageBackend(StorageBackend):
                         strict=strict,
                         label=f"SQLite section {section_name}",
                     )
+                elif section_name == "admission_activation":
+                    defaults[section_name] = _json_loads_or_default(
+                        json_data_value, None, strict=strict,
+                        label="SQLite section admission_activation",
+                    )
 
             missing_sections = [
                 section
@@ -2700,6 +2705,11 @@ class SQLiteStorageBackend(StorageBackend):
                 defaults[section_name] = _json_loads_or_default(
                     json_data_value, _default_section_value(section_name), strict=strict,
                     label=f"SQLite section {section_name}",
+                )
+            elif section_name == "admission_activation":
+                defaults[section_name] = _json_loads_or_default(
+                    json_data_value, None, strict=strict,
+                    label="SQLite section admission_activation",
                 )
         missing_sections = [section for section in _STORAGE_SECTIONS if section not in seen_sections and section not in _OPTIONAL_SQLITE_SECTIONS]
         if missing_sections and strict:
@@ -2933,6 +2943,15 @@ class SQLiteStorageBackend(StorageBackend):
                 """,
                 (section_name, json.dumps(payload), _utc_now_iso()),
             )
+        if "admission_activation" in sections:
+            connection.execute(
+                """INSERT INTO storage_sections (section_name, json_data, updated_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(section_name) DO UPDATE SET
+                       json_data = excluded.json_data,
+                       updated_at = excluded.updated_at""",
+                ("admission_activation", json.dumps(sections["admission_activation"]), _utc_now_iso()),
+            )
 
     @staticmethod
     def _synchronize_canonical_claims(connection, document: dict[str, Any]) -> None:
@@ -2979,7 +2998,7 @@ class SQLiteStorageBackend(StorageBackend):
         if not os.path.exists(self.sqlite_db_path):
             return None
         sections = self._load_sections()
-        return {
+        document = {
             "chain": sections["chain"],
             "wallets": sections["wallets"],
             "submissions": sections["submissions"],
@@ -3001,6 +3020,9 @@ class SQLiteStorageBackend(StorageBackend):
             "finalized_blocks": sections["finalized_blocks"],
             "peers": sections["peers"],
         }
+        if "admission_activation" in sections:
+            document["admission_activation"] = sections["admission_activation"]
+        return document
 
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
         current_document = self._load_sections()
@@ -3010,6 +3032,10 @@ class SQLiteStorageBackend(StorageBackend):
             )
             for section_name in _STORAGE_SECTIONS
         }
+        if "admission_activation" in document:
+            merged_document["admission_activation"] = deepcopy(document["admission_activation"])
+        elif "admission_activation" in current_document:
+            merged_document["admission_activation"] = deepcopy(current_document["admission_activation"])
         self._save_sections(merged_document)
 
     def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate, replay=None):
@@ -3019,6 +3045,8 @@ class SQLiteStorageBackend(StorageBackend):
             connection.execute("BEGIN IMMEDIATE")
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
+            if "admission_activation" in sections:
+                document["admission_activation"] = sections["admission_activation"]
             if replay is not None and replay(deepcopy(document)):
                 return document
             _verify_expected_canonical_head(document, expected_head)
@@ -3053,6 +3081,8 @@ class SQLiteStorageBackend(StorageBackend):
                 )
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
+            if "admission_activation" in sections:
+                document["admission_activation"] = sections["admission_activation"]
             previous_transactions = sections.get("native_transactions", [])
             if copy_document:
                 replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))

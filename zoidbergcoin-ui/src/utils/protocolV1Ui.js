@@ -154,6 +154,22 @@ export function buildSubmissionLifecycleDisplay(submission = {}) {
   if (lifecycle.finalized || lifecycle.confirmed || lifecycle.canonical) {
     return finality;
   }
+  const admission = normalizeToken(submission?.admission?.state);
+  if (admission === 'minted') {
+    return { label: 'Minted', tone: 'ready', detail: 'Admitted media is in a blockchain block.' };
+  }
+  if (admission === 'quarantined' || admission.startsWith('review_rejected') || admission === 'technical_rejected' || admission === 'invalid_attestation') {
+    return { label: 'Quarantined', tone: 'warning-chip', detail: `This submission cannot mint: ${submission?.admission?.reason || admission}.` };
+  }
+  if (admission === 'mintable') {
+    return { label: 'Mint Pending', tone: 'ready', detail: 'Frozen admission evidence is valid and the submission is queued for minting.' };
+  }
+  if (admission === 'admission_qualified') {
+    return { label: 'Admission Qualified', tone: 'ready', detail: 'Both reviews passed and the frozen admission certificate is valid.' };
+  }
+  if (admission === 'awaiting_review' || admission === 'review_unresolved' || admission === 'review_qualified') {
+    return { label: 'Review Pending', tone: 'pending', detail: 'Waiting for the admission decision and mint queue transition.' };
+  }
   if (lifecycle.block_accepted) {
     return {
       label: 'Block Accepted',

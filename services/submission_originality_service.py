@@ -11,7 +11,7 @@ from originality_certificate import OriginalityCertificate, validate_certificate
 from native_transfer import normalize_wallet_address
 from milestone5_policy import MIN_VALID_VOTES
 from protocol_v1_originality import MILESTONE5_CERTIFICATE_VERSION, MILESTONE5_CERTIFICATE_V3_VERSION
-from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE
+from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, QUARANTINED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE
 from dual_review import ORIGINALITY, validate_choice
 
 
@@ -61,7 +61,7 @@ class SubmissionOriginalityService:
         return vote
 
     def is_submission_voting_locked(self, state, storage, submission):
-        return submission.status in {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED} or self.get_certificate_for_submission(state, storage, submission.submission_id) is not None
+        return submission.status in {APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED, QUARANTINED} or self.get_certificate_for_submission(state, storage, submission.submission_id) is not None
 
     def cast_submission_vote(self, state, storage, submission_id, voter, vote_type, created_at=None, *, dimension=None):
         submission = self.get_submission(state, storage, submission_id)

@@ -103,6 +103,10 @@ from content import (
 )
 from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, QUARANTINED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
 from dual_review import ADMISSIBILITY, ORIGINALITY, REVIEW_VOTE_VERSION, combined_review, vote_identity as dual_vote_identity, validate_choice, verify_vote_record
+from community_report import (ELIGIBLE_STATUSES, canonical_report_record, report_identity, report_policy_digest,
+                              report_tally, verify_report)
+from services.report_reviewer_index import (qualification_entry_digest, qualification_snapshot,
+                                            reference_key, validate_snapshot)
 from native_transfer import (
     NATIVE_TRANSACTION_INITIAL_NONCE,
     NATIVE_TRANSACTION_NONCE_POLICY,
@@ -259,6 +263,8 @@ class Blockchain:
         self.audit_logs = []  # Persistent admin audit trail
         self.finality_attestations = []  # Valid canonical validator attestations
         self.finalized_blocks = []  # Immutable validator-quorum finality evidence
+        self._report_reviewer_index = {}
+        self._report_finalized_head = None
         self.lifecycle_timing = lifecycle_timing or LifecycleTimingRecorder()
         self.validator_set = normalize_validator_set(
             PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES if validator_set is None else validator_set
@@ -344,6 +350,7 @@ class Blockchain:
             "audit_logs": self.audit_logs,
             "finality_attestations": self.finality_attestations,
             "finalized_blocks": self.finalized_blocks,
+            "report_reviewer_index": self._report_reviewer_index,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
             **({"admission_activation": self.admission_activation_record}
                if self.admission_activation_record is not None else {}),
@@ -446,7 +453,33 @@ class Blockchain:
         return self._native_ledger_service.restore_native_transaction_state(raw_transactions, raw_transfer_intents)
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
-        self.storage.save_blockchain_state(self._serialize_blockchain_state())
+        local_state = self._serialize_blockchain_state()
+        def reject_stale_reports(durable):
+            # Legacy callers replace a whole state snapshot. Under the same
+            # storage lock used by report admission and mint, refuse a snapshot
+            # that differs from committed report or report-quarantine state.
+            local_by_id = {item["submission_id"]: item for item in local_state["submissions"]}
+            durable_by_id = {item["submission_id"]: item for item in durable.get("submissions", [])}
+            for submission_id in local_by_id.keys() | durable_by_id.keys():
+                local = local_by_id.get(submission_id) or {}
+                committed = durable_by_id.get(submission_id) or {}
+                if not (local.get("community_reports") or committed.get("community_reports")
+                        or local.get("quarantine_reason") == "community_report_threshold"
+                        or committed.get("quarantine_reason") == "community_report_threshold"):
+                    continue
+                if (local.get("community_reports") != committed.get("community_reports")
+                    or local.get("report_quarantine_evidence") != committed.get("report_quarantine_evidence")
+                    or (committed.get("quarantine_reason") == "community_report_threshold" and (
+                        local.get("status") != committed.get("status")
+                        or local.get("quarantine_reason") != committed.get("quarantine_reason")
+                        or submission_id in local_state["mint_queue"]
+                    ))):
+                    raise ValueError("Stale community reporting state; reload before saving.")
+            # The facade does not serialize peer records or future storage
+            # sections. Keep those locked durable sections in the replacement.
+            return {**durable, **local_state}
+
+        self.storage.atomic_update_blockchain_document(reject_stale_reports)
         print("Debug: Blockchain and wallets saved successfully.")
 
     def _current_canonical_head(self):
@@ -517,6 +550,8 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError("Submission not found for certified commit.")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED and self.report_status(submission_id)["threshold_met"]:
+            raise ValueError("Community report threshold quarantines this submission.")
         certificate = self.require_valid_certificate_for_submission(submission)
         return {
             "commit_identity": self.certified_commit_identity(certificate),
@@ -634,6 +669,7 @@ class Blockchain:
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
         self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
         self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+        self._set_report_reviewer_index(loaded_data.get("report_reviewer_index"), rebuild=False)
         self._validate_persisted_finality_state()
         self.recompute_reward_pool_balance(chain=self.chain)
 
@@ -1393,6 +1429,113 @@ class Blockchain:
         self.save_blockchain()
         return submission
 
+    def report_status(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        for record in submission.community_reports:
+            if not verify_report(record, submission_id=submission_id,
+                                 content_hash=submission.content_hash,
+                                 status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Stored community report evidence is invalid.")
+        tally = report_tally(submission.community_reports, submission_id=submission_id,
+                             content_hash=submission.content_hash)
+        if tally["threshold_met"] and submission.status != MINTED:
+            if submission.status != QUARANTINED or submission.quarantine_reason != "community_report_threshold":
+                raise ValueError("Report threshold and submission quarantine state differ.")
+            evidence = submission.report_quarantine_evidence
+            required = (
+                "policy_id", "policy_version", "policy_digest", "submission_id",
+                "content_hash", "report_set", "report_set_digest",
+                "observed_report_count", "observed_report_digest",
+                "accepted_report_count", "established_reporter_count",
+                "minimum_valid_reports", "minimum_established_reporters",
+                "threshold_met", "quarantine_trigger_identity",
+                "canonical_trigger_report_set", "canonical_trigger_report_set_digest",
+            )
+            if not isinstance(evidence, dict) or any(evidence.get(key) != tally[key] for key in required):
+                raise ValueError("Stored report quarantine evidence does not match accepted reports.")
+        return {**tally, "protocol_state": "post_mint_dispute_flow_required" if submission.status == MINTED
+                else "quarantined" if submission.status == QUARANTINED else "pre_mint_review",
+                "quarantine_state": submission.status == QUARANTINED,
+                "quarantine_reason": submission.quarantine_reason,
+                "quarantine_evidence": submission.report_quarantine_evidence}
+
+    def record_community_report_operation(self, record):
+        """Serialize a report with mint commit using the durable document lock."""
+        record = canonical_report_record(record)
+        payload = record.get("payload") if isinstance(record, dict) else None
+        if not isinstance(payload, dict):
+            raise ValueError("Signed report payload is required.")
+        submission_id = payload.get("submission_id")
+        outcome = {}
+
+        def mutate(document):
+            self._restore_blockchain_state_document(document)
+            submission = self.get_submission(submission_id)
+            if submission is None:
+                raise ValueError(f"Submission not found: {submission_id}")
+            if submission.status == MINTED or any(block.submission_id == submission_id for block in self.chain):
+                raise ValueError("Post-mint dispute flow required; finalized submissions cannot be pre-mint reported.")
+            if submission.attestation_requirement != ATTESTATION_REQUIRED:
+                raise ValueError("Community reporting requires a current attested submission.")
+            if submission.status in {REJECTED, HARD_REJECTED}:
+                raise ValueError("Submission is no longer in current pre-mint review.")
+            if submission.status == QUARANTINED and submission.quarantine_reason != "community_report_threshold":
+                raise ValueError("Submission is already quarantined for a different reason.")
+            wallet = normalize_wallet_address(payload.get("wallet_address"))
+            if wallet == normalize_wallet_address(submission.submitter):
+                raise ValueError("Submission creator cannot report their own submission.")
+            if payload.get("content_hash") != submission.content_hash:
+                raise ValueError("Report media hash differs from submission.")
+            if payload.get("policy_digest") != report_policy_digest():
+                raise ValueError("Unknown report policy digest.")
+            if not verify_report(record, submission_id=submission_id,
+                                 content_hash=submission.content_hash,
+                                 status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Invalid signed report or reporter eligibility reference.")
+            for existing in submission.community_reports:
+                if existing == record:
+                    outcome["action"] = "duplicate"
+                    outcome["record"] = existing
+                    outcome["status"] = self.report_status(submission_id)
+                    return document
+                if existing.get("identity") == record.get("identity") and existing["payload"]["wallet_address"] != wallet:
+                    raise ValueError("Report identity already used by another wallet.")
+            conflicting = any(existing["payload"]["wallet_address"] == wallet
+                              for existing in submission.community_reports)
+            submission.community_reports.append(deepcopy(record))
+            submission.community_reports.sort(key=lambda item: (
+                item["payload"]["wallet_address"], item["identity"], canonical_hash(item),
+            ))
+            tally = report_tally(submission.community_reports, submission_id=submission_id,
+                                 content_hash=submission.content_hash)
+            if tally["threshold_met"]:
+                self._quarantine_current_submission(submission, "community_report_threshold")
+                submission.report_quarantine_evidence = {
+                    key: deepcopy(tally[key]) for key in (
+                        "policy_id", "policy_version", "policy_digest", "submission_id",
+                        "content_hash", "report_set", "report_set_digest",
+                        "observed_report_count", "observed_report_digest",
+                        "accepted_report_count", "established_reporter_count",
+                        "minimum_valid_reports", "minimum_established_reporters",
+                        "threshold_met", "quarantine_trigger_identity",
+                        "canonical_trigger_report_set", "canonical_trigger_report_set_digest",
+                    )
+                }
+            outcome["action"] = "conflict_recorded" if conflicting else "accepted"
+            outcome["record"] = record
+            outcome["status"] = self.report_status(submission_id)
+            return self._serialize_blockchain_state()
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except Exception:
+            self.load_blockchain()
+            raise
+        self._restore_blockchain_state_document(document)
+        return outcome
+
     def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager, dimension=None):
         submission = self.get_submission(submission_id)
         if not submission:
@@ -1824,6 +1967,8 @@ class Blockchain:
                             "invalid_chain_state",
                             "Persisted blockchain state failed chain validation.",
                         )
+                if self._set_report_reviewer_index(loaded_data.get("report_reviewer_index"), rebuild=True):
+                    self.save_blockchain()
                 print(f"Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"Debug: Wallets loaded: {len(self.wallets)} wallets")
                 return True
@@ -1855,6 +2000,8 @@ class Blockchain:
             self.audit_logs = []
             self.finality_attestations = []
             self.finalized_blocks = []
+            self._report_reviewer_index = {}
+            self._report_finalized_head = None
         except json.JSONDecodeError as exc:
             raise GenesisValidationError(
                 "invalid_chain_state",
@@ -2322,6 +2469,75 @@ class Blockchain:
             for record in self.finalized_blocks if isinstance(record, dict)
         )
 
+    def _set_report_reviewer_index(self, raw, *, rebuild):
+        """Load the durable projection; rebuild missing/corrupt snapshots at startup."""
+        index = dict(raw) if isinstance(raw, dict) else {}
+        changed = False
+        if rebuild:
+            ordered_finality = sorted(self.finalized_blocks,
+                                      key=lambda item: (int(item["block_height"]), str(item["block_hash"])))
+            if ordered_finality != self.finalized_blocks:
+                self.finalized_blocks = ordered_finality
+                changed = True
+        finalized = {
+            (int(item["block_height"]), str(item["block_hash"]).lower())
+            for item in self.finalized_blocks if isinstance(item, dict)
+        }
+        changed = changed or (not isinstance(raw, dict) and bool(finalized))
+        if rebuild:
+            for key in list(index):
+                if not validate_snapshot(index[key], self.chain, finalized) or key != reference_key(index[key]["height"], index[key]["block_hash"]):
+                    index.pop(key)
+                    changed = True
+            for height, block_hash in sorted(finalized):
+                key = reference_key(height, block_hash)
+                if key not in index:
+                    index[key] = qualification_snapshot(self.chain, height, block_hash)
+                    changed = True
+        self._report_reviewer_index = index
+        if self.finalized_blocks:
+            latest = self.finalized_blocks[-1]
+            self._report_finalized_head = {
+                "block_height": int(latest["block_height"]),
+                "block_hash": str(latest["block_hash"]).lower(),
+            }
+        else:
+            self._report_finalized_head = None
+        return changed
+
+    def get_report_reviewer_status_at_reference(self, reviewer_address, height, block_hash):
+        """Resolve qualification by finalized reference without ancestry traversal."""
+        if isinstance(height, bool) or not isinstance(height, int) or height < 0 or height >= len(self.chain):
+            raise ValueError("Reviewer reference is not a finalized canonical block.")
+        normalized_hash = str(block_hash or "").strip().lower()
+        key = reference_key(height, normalized_hash)
+        snapshot = self._report_reviewer_index.get(key)
+        if (snapshot is None or self.chain[height].hash.lower() != normalized_hash
+            or snapshot.get("height") != height or snapshot.get("block_hash") != normalized_hash):
+            raise ValueError("Finalized reviewer qualification index is missing or stale.")
+        wallet = normalize_wallet_address(reviewer_address)
+        if wallet is None:
+            raise ValueError("Reporter wallet is invalid.")
+        qualification_height = snapshot["qualification_heights"].get(wallet)
+        if qualification_height is not None and snapshot.get("qualification_entry_digests", {}).get(wallet) != qualification_entry_digest(
+            height, normalized_hash, wallet, qualification_height
+        ):
+            raise ValueError("Finalized reviewer qualification index entry is corrupt.")
+        return self._reviewer_eligibility_service.status_at_reference(
+            reviewer_address=wallet, chain=None,
+            finalized_head={"block_height": height, "block_hash": normalized_hash},
+            storage=self.storage, indexed_qualification_height=qualification_height,
+        )["status"]
+
+    def get_report_reviewer_decision(self, reviewer_address):
+        reference = self._report_finalized_head
+        if reference is None:
+            return {"status": "NEW", "reference_finalized_height": None,
+                    "reference_finalized_block_hash": None}
+        height, block_hash = reference["block_height"], reference["block_hash"]
+        return {"status": self.get_report_reviewer_status_at_reference(reviewer_address, height, block_hash),
+                "reference_finalized_height": height, "reference_finalized_block_hash": block_hash}
+
     def get_reviewer_status_at_reference(self, reviewer_address, height, block_hash, *, policy_version=REVIEWER_POLICY_VERSION, reputation_rule_version=REPUTATION_RULE_VERSION):
         if not self.is_finalized_canonical_reference(height, block_hash):
             raise ValueError("Reviewer reference is not a finalized canonical block.")
@@ -2495,6 +2711,7 @@ class Blockchain:
                 updated_finalized_blocks,
                 key=lambda value: (value["block_height"], value["block_hash"]),
             )
+            self._set_report_reviewer_index(self._report_reviewer_index, rebuild=True)
             self.save_blockchain()
         for result, canonical in results:
             if result.get("finalization") is not None:

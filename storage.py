@@ -54,16 +54,17 @@ _STORAGE_SECTIONS = (
     "audit_logs",
     "finality_attestations",
     "finalized_blocks",
+    "report_reviewer_index",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence"}
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence", "report_reviewer_index"}
 )
 # Native records are authoritative in ``native_transaction_records`` for the
 # SQLite backend.  Keeping a second, whole-mempool JSON copy in
 # ``storage_sections`` was legacy compatibility residue: it was never read
 # (the relational records replace it on load), yet every admission rewrote it.
-_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence"}
+_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence", "report_reviewer_index"}
 
 # These are deliberately storage-level names rather than public API statuses.
 # A transaction's finality remains derived from its canonical block and the
@@ -150,6 +151,8 @@ def _default_section_value(section_name):
         return []
     if section_name == "finalized_blocks":
         return []
+    if section_name == "report_reviewer_index":
+        return {}
     if section_name == "peers":
         return []
     return None
@@ -3018,6 +3021,7 @@ class SQLiteStorageBackend(StorageBackend):
             "audit_logs": sections["audit_logs"],
             "finality_attestations": sections["finality_attestations"],
             "finalized_blocks": sections["finalized_blocks"],
+            "report_reviewer_index": sections["report_reviewer_index"],
             "peers": sections["peers"],
         }
         if "admission_activation" in sections:

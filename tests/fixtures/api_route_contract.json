@@ -1336,6 +1336,20 @@
   },
   {
     "method": "POST",
+    "path": "/peers/reports/receive",
+    "name": "receive_community_report_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerCommunityReportReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
     "path": "/peers/reviewer-offenses/receive",
     "name": "receive_reviewer_offense_from_peer",
     "classification": "peer",
@@ -1401,6 +1415,18 @@
       "require_peer_secret"
     ],
     "request_model": "PeerVoteReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/reports/policy",
+    "name": "get_community_report_policy",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
     "response_model": null,
     "declared_status_code": null
   },
@@ -1554,6 +1580,54 @@
     "method": "GET",
     "path": "/submissions/{submission_id}/originality-evidence",
     "name": "get_submission_originality_evidence",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/reports",
+    "name": "submit_community_report",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "SignedCommunityReportRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/reports/broadcast",
+    "name": "broadcast_community_reports",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/reports/challenge",
+    "name": "create_community_report_challenge",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "WalletReportChallengeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submission_id}/reports/status",
+    "name": "get_community_report_status",
     "classification": "public",
     "authentication_expected": false,
     "authorization_expected": false,

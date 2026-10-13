@@ -29,6 +29,7 @@ from reviewer_reputation import ReviewerReputationService
 
 
 PATH_ORDER = ("creator", "zoid_activity", "mixed")
+_UNSET_QUALIFICATION = object()
 
 
 @dataclass(frozen=True)
@@ -259,7 +260,7 @@ class ReviewerEligibilityService:
         used = sum(1 for vote in votes if epoch is not None and vote.get("reviewer_status_effective_height") is not None and review_epoch(int(vote["reviewer_status_effective_height"])) == epoch)
         return {"address": evidence["reviewer_address"], "status": status, "underlying_reviewer_status": state.get("underlying_reviewer_status", status), "reviewer_policy_version": REVIEWER_POLICY_VERSION, "reputation_rule_version": REPUTATION_RULE_VERSION, "current_review_epoch": epoch, "wallet_age_epochs": evidence["wallet_age_epochs"], "qualification_paths": evidence["qualifying_paths"], "probation_started_epoch": started, "probation_valid_vote_count": probation_votes, "votes_used_this_epoch": used, "votes_remaining_this_epoch": max(0, limit - used), "promotion_requirements": {"minimum_duration_epochs": PROBATION_MIN_DURATION_EPOCHS, "minimum_valid_votes": PROBATION_MIN_VALID_VOTES_FOR_PROMOTION}, "bootstrap_established": bool(state.get("bootstrap_established"))}
 
-    def status_at_reference(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION, reputation_rule_version: int = REPUTATION_RULE_VERSION) -> dict[str, Any]:
+    def status_at_reference(self, *, reviewer_address: str, chain, finalized_head, storage, policy_version: int = REVIEWER_POLICY_VERSION, reputation_rule_version: int = REPUTATION_RULE_VERSION, indexed_qualification_height: int | None | object = _UNSET_QUALIFICATION) -> dict[str, Any]:
         """Reconstruct policy status at an explicit finalized canonical reference.
 
         Earned status is derived from canonical ancestry and durable accepted
@@ -270,7 +271,12 @@ class ReviewerEligibilityService:
         address = normalize_wallet_address(reviewer_address)
         if address is None:
             raise ValueError("reviewer_address must be a valid Ethereum-style 0x address.")
-        height, block_hash, blocks = self.finalized_context(chain, finalized_head)
+        if indexed_qualification_height is _UNSET_QUALIFICATION:
+            height, block_hash, blocks = self.finalized_context(chain, finalized_head)
+        else:
+            height = int(finalized_head["block_height"])
+            block_hash = str(finalized_head["block_hash"]).strip().lower()
+            blocks = None
         if height is None:
             return {"status": "NEW", "bootstrap_established": False, "qualification_effective_height": None}
         reputation_rules(reputation_rule_version)
@@ -289,30 +295,35 @@ class ReviewerEligibilityService:
             underlying = "ESTABLISHED_REVIEWER"
             active = ReviewerReputationService(storage).effective_penalty(address, review_epoch(height, policy_version), reputation_rule_version=reputation_rule_version)
             return {"status": active["effective_status"] if active else underlying, "underlying_status": underlying, "bootstrap_established": True, "qualification_effective_height": 0}
-        evidence = self.qualification(
-            reviewer_address=address, chain=blocks, finalized_head=finalized_head,
-            policy_version=policy_version,
-        )
-        if not evidence["overall_qualified"]:
+        if indexed_qualification_height is _UNSET_QUALIFICATION:
+            evidence = self.qualification(
+                reviewer_address=address, chain=blocks, finalized_head=finalized_head,
+                policy_version=policy_version,
+            )
+        if indexed_qualification_height is None or (
+            indexed_qualification_height is _UNSET_QUALIFICATION and not evidence["overall_qualified"]
+        ):
             underlying = "NEW"
             active = ReviewerReputationService(storage).effective_penalty(address, review_epoch(height, policy_version), reputation_rule_version=reputation_rule_version)
             return {"status": active["effective_status"] if active else underlying, "underlying_status": underlying, "bootstrap_established": False, "qualification_effective_height": None}
-        qualification_height = None
-        for candidate_height in range(height + 1):
-            candidate_block = next(
-                block for block in blocks if int(self._block_value(block, "index")) == candidate_height
-            )
-            candidate_head = {
-                "block_height": candidate_height,
-                "block_hash": str(self._block_value(candidate_block, "hash")).strip().lower(),
-            }
-            candidate = self.qualification(
-                reviewer_address=address, chain=blocks,
-                finalized_head=candidate_head, policy_version=policy_version,
-            )
-            if candidate["overall_qualified"]:
-                qualification_height = candidate_height
-                break
+        qualification_height = indexed_qualification_height
+        if indexed_qualification_height is _UNSET_QUALIFICATION:
+            qualification_height = None
+            for candidate_height in range(height + 1):
+                candidate_block = next(
+                    block for block in blocks if int(self._block_value(block, "index")) == candidate_height
+                )
+                candidate_head = {
+                    "block_height": candidate_height,
+                    "block_hash": str(self._block_value(candidate_block, "hash")).strip().lower(),
+                }
+                candidate = self.qualification(
+                    reviewer_address=address, chain=blocks,
+                    finalized_head=candidate_head, policy_version=policy_version,
+                )
+                if candidate["overall_qualified"]:
+                    qualification_height = candidate_height
+                    break
         accepted = [
             vote for vote in self._accepted_votes(storage, address)
             if vote.get("reviewer_policy_version") == policy_version

@@ -1,6 +1,10 @@
 """Content API HTTP adapters."""
 
 from fastapi import APIRouter
+from community_report import (ELIGIBLE_STATUSES, REPORT_REASONS, report_identity,
+                              report_policy, report_policy_digest)
+from submission import ATTESTATION_REQUIRED
+from peer_sync import broadcast_report_to_peers
 
 import api_runtime as _runtime
 from api_runtime import *  # noqa: F401,F403 - shared API wiring and schemas
@@ -386,6 +390,113 @@ async def get_certificate(request: Request, certificate_id: str):
             "review_scope": "legacy_originality_only", "fully_review_certified": False}
 
 
+@router.get('/reports/policy')
+@api_limit("public_read")
+async def get_community_report_policy(request: Request):
+    return {"policy": report_policy(), "policy_digest": report_policy_digest()}
+
+
+@router.get('/submissions/{submission_id}/reports/status')
+@api_limit("public_read")
+async def get_community_report_status(request: Request, submission_id: str):
+    _sync_runtime_globals()
+    try:
+        status = blockchain.report_status(submission_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    status.pop("report_set", None)
+    return status
+
+
+@router.post('/submissions/{submission_id}/reports/challenge')
+@api_limit("submission_create")
+async def create_community_report_challenge(
+    request: Request, submission_id: str, payload: WalletReportChallengeRequest,
+    authorization: str | None = Header(default=None),
+):
+    _sync_runtime_globals()
+    wallet = resolve_verified_wallet_from_authorization(authorization, manager=wallet_auth_manager)
+    if normalize_wallet_address(payload.wallet_address) != wallet or payload.submission_id != submission_id:
+        raise HTTPException(status_code=403, detail="Report wallet and submission must match the verified request.")
+    _enforce_access_for_feature(wallet, feature="votes")
+    _enforce_review_policy(wallet, scope="voting")
+    submission = blockchain.get_submission(submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    if submission.status == MINTED:
+        raise HTTPException(status_code=409, detail="Post-mint dispute flow required for finalized media.")
+    if submission.attestation_requirement != ATTESTATION_REQUIRED:
+        raise HTTPException(status_code=400, detail="Current attested submission required.")
+    if submission.status in {REJECTED, HARD_REJECTED}:
+        raise HTTPException(status_code=409, detail="Submission is no longer in current pre-mint review.")
+    if submission.status == "quarantined" and submission.quarantine_reason != "community_report_threshold":
+        raise HTTPException(status_code=409, detail="Submission is already quarantined for a different reason.")
+    if wallet == normalize_wallet_address(submission.submitter):
+        raise HTTPException(status_code=400, detail="Submission creator cannot report their own submission.")
+    if payload.reason not in REPORT_REASONS:
+        raise HTTPException(status_code=400, detail="Unknown report reason.")
+    try:
+        decision = blockchain.get_report_reviewer_decision(wallet)
+        if decision["status"] not in ELIGIBLE_STATUSES:
+            raise ValueError("Reporter is not eligible under finalized reviewer status.")
+        return wallet_auth_manager.issue_report_challenge(
+            wallet_address=wallet, submission_id=submission_id,
+            content_hash=submission.content_hash, reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post('/submissions/{submission_id}/reports')
+@api_limit("vote")
+async def submit_community_report(
+    request: Request, submission_id: str, payload: SignedCommunityReportRequest,
+    authorization: str | None = Header(default=None),
+):
+    _sync_runtime_globals()
+    wallet = resolve_verified_wallet_from_authorization(authorization, manager=wallet_auth_manager)
+    if normalize_wallet_address(payload.wallet_address) != wallet:
+        raise HTTPException(status_code=403, detail="Report wallet must match verified session.")
+    _enforce_access_for_feature(wallet, feature="votes")
+    submission = blockchain.get_submission(submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    if submission.status == MINTED:
+        raise HTTPException(status_code=409, detail="Post-mint dispute flow required for finalized media.")
+    for existing in submission.community_reports:
+        if (existing["payload"]["wallet_address"] == wallet
+            and existing["message"] == payload.message
+            and existing["signature"].lower().removeprefix("0x") == payload.signature.lower().removeprefix("0x")):
+            return {"action": "duplicate", "report": existing,
+                    "status": blockchain.report_status(submission_id)}
+    try:
+        signed = wallet_auth_manager.verify_report_challenge(
+            wallet_address=wallet, message=payload.message, signature=payload.signature,
+        )
+        if signed["submission_id"] != submission_id or signed["content_hash"] != submission.content_hash:
+            raise ValueError("Report submission or media hash differs from signed challenge.")
+        decision = blockchain.get_report_reviewer_decision(wallet)
+        if decision["status"] not in ELIGIBLE_STATUSES:
+            raise ValueError("Reporter is not eligible under finalized reviewer status.")
+        reference = {"height": decision["reference_finalized_height"],
+                     "block_hash": decision["reference_finalized_block_hash"],
+                     "status": decision["status"]}
+        record = {"payload": signed, "message": payload.message,
+                  "signature": payload.signature, "identity": report_identity(signed, payload.signature),
+                  "reviewer_reference": reference}
+        result = blockchain.record_community_report_operation(record)
+    except ValueError as exc:
+        status = 409 if "Post-mint" in str(exc) or "already has" in str(exc) else 400
+        logging.warning("community_report_rejected submission=%s wallet=%s reason=%s",
+                        submission_id, wallet, str(exc))
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    broadcast = broadcast_report_to_peers(
+        result["record"], peer_store, NODE_ID, NETWORK_NAME
+    ) if result["action"] in {"accepted", "conflict_recorded"} else None
+    return {"action": result["action"], "report": result["record"],
+            "status": result["status"], "broadcast": broadcast}
+
+
 @router.post('/submissions/{submission_id}/vote')
 @api_limit("vote")
 async def vote_on_submission(
@@ -710,6 +821,10 @@ _ROUTE_ORDER = {
     ('POST', '/mint/{submission_id}', 'mint_queued_submission'): 125,
     ('POST', '/submissions/{submission_id}/block-minting', 'block_submission_minting'): 126,
     ('POST', '/submissions/{submission_id}/unblock-minting', 'unblock_submission_minting'): 127,
+    ('GET', '/reports/policy', 'get_community_report_policy'): 140,
+    ('GET', '/submissions/{submission_id}/reports/status', 'get_community_report_status'): 141,
+    ('POST', '/submissions/{submission_id}/reports/challenge', 'create_community_report_challenge'): 142,
+    ('POST', '/submissions/{submission_id}/reports', 'submit_community_report'): 143,
 }
 
 for _route in router.routes:

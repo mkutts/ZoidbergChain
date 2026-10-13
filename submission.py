@@ -90,6 +90,8 @@ class Submission:
     admission_certificate: dict | None = None
     admission_state: str | None = None
     quarantine_reason: str | None = None
+    community_reports: list[dict] = field(default_factory=list)
+    report_quarantine_evidence: dict | None = None
     decision_reason: str | None = None
     decision_finalized_at: float | None = None
 
@@ -150,6 +152,8 @@ class Submission:
             "admission_certificate": self.admission_certificate,
             "admission_state": self.admission_state,
             "quarantine_reason": self.quarantine_reason,
+            "community_reports": self.community_reports,
+            "report_quarantine_evidence": self.report_quarantine_evidence,
         }
         if self.decision_reason is not None:
             payload["decision_reason"] = self.decision_reason
@@ -188,6 +192,8 @@ class Submission:
             admission_certificate=data.get("admission_certificate"),
             admission_state=data.get("admission_state"),
             quarantine_reason=data.get("quarantine_reason"),
+            community_reports=list(data.get("community_reports") or []),
+            report_quarantine_evidence=data.get("report_quarantine_evidence"),
             decision_reason=data.get("decision_reason"),
             decision_finalized_at=data.get("decision_finalized_at"),
         )

@@ -1327,6 +1327,13 @@ def broadcast_vote_to_peers(
     )
 
 
+def broadcast_report_to_peers(report, peer_store, origin_node_id, network_name,
+                              timeout_seconds=3):
+    return _peer_broadcast_service().broadcast_report(
+        report, peer_store, origin_node_id, network_name, timeout_seconds
+    )
+
+
 def broadcast_reviewer_offense_to_peers(
     offense, peer_store, origin_node_id, network_name, timeout_seconds=3,
 ):
@@ -3038,6 +3045,8 @@ def _normalize_submission_payload(submission_payload):
             "admission_certificate",
             "admission_state",
             "quarantine_reason",
+            "community_reports",
+            "report_quarantine_evidence",
         ],
         MalformedSubmissionError,
         "Submission payload",

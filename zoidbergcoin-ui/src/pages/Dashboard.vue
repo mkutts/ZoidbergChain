@@ -554,6 +554,21 @@
                   <button @click="vote(submission.submission_id, 'unsure', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Unsure</button>
                 </div>
               </template>
+              <div v-if="submission.attestation_requirement === 'public_testnet_v1_required'" class="review-policy-panel">
+                <p class="section-label">Report this submission</p>
+                <p class="hint">A report flags content for additional safety review. It is not an admissibility vote.</p>
+                <p v-if="reportStatuses[submission.submission_id]" class="meta">
+                  {{ reportStatuses[submission.submission_id].accepted_report_count }} / 3 reports;
+                  {{ reportStatuses[submission.submission_id].established_reporter_count }} established.
+                  {{ reportStatuses[submission.submission_id].quarantine_state ? 'Quarantined before mint.' : '' }}
+                </p>
+                <select v-model="reportReasons[submission.submission_id]" class="input-field" aria-label="Report reason">
+                  <option value="">Choose a reason</option>
+                  <option v-for="reason in reportReasonChoices" :key="reason.value" :value="reason.value">{{ reason.label }}</option>
+                </select>
+                <button @click="reportSubmission(submission.submission_id)" class="btn vote"
+                  :disabled="!reportReasons[submission.submission_id] || reportDisabled(submission)">Report</button>
+              </div>
             </div>
           </article>
         </div>
@@ -728,6 +743,21 @@
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
             <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
+
+            <div v-if="submission.attestation_requirement === 'public_testnet_v1_required'" class="review-policy-panel">
+              <p class="section-label">Report before mint</p>
+              <p class="hint">A report flags content for additional safety review. It is not an admissibility vote.</p>
+              <p v-if="reportStatuses[submission.submission_id]" class="meta">
+                {{ reportStatuses[submission.submission_id].accepted_report_count }} / 3 reports;
+                {{ reportStatuses[submission.submission_id].established_reporter_count }} established.
+              </p>
+              <select v-model="reportReasons[submission.submission_id]" class="input-field" aria-label="Report reason before mint">
+                <option value="">Choose a reason</option>
+                <option v-for="reason in reportReasonChoices" :key="reason.value" :value="reason.value">{{ reason.label }}</option>
+              </select>
+              <button @click="reportSubmission(submission.submission_id)" class="btn vote"
+                :disabled="!reportReasons[submission.submission_id] || reportDisabled(submission)">Report</button>
+            </div>
 
             <div class="detail-grid">
               <div>
@@ -1010,6 +1040,7 @@ import { isPublicDemoMode } from '../utils/runtimeConfig';
 import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.js';
 import { getEligibilityRuleChecks } from '../utils/eligibilityChecklist.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
+import { assertCommunityReportChallenge } from '../utils/communityReport.js';
 import {
   SUBMITTER_ATTESTATION_STATEMENT,
   prepareSubmitterAttestationChallenge,
@@ -1061,6 +1092,16 @@ export default {
       errorMessage: '',
       voteMessage: '',
       voteError: '',
+      reportReasons: {},
+      reportStatuses: {},
+      reportReasonChoices: [
+        { value: 'potentially_illegal_content', label: 'Potentially illegal content' },
+        { value: 'nonconsensual_or_private_content', label: 'Non-consensual or private content' },
+        { value: 'exploitation_or_abuse_concern', label: 'Exploitation or abuse concern' },
+        { value: 'dangerous_or_harmful_content', label: 'Dangerous or harmful content' },
+        { value: 'impersonation_or_deceptive_manipulation', label: 'Impersonation or deceptive manipulation' },
+        { value: 'other_policy_concern', label: 'Other policy concern' },
+      ],
       reviewPolicy: null,
       reviewPolicyError: '',
       mintError: '',
@@ -1718,6 +1759,14 @@ export default {
           params: { include_blocked: true },
         });
         this.mintQueue = response.data.mint_queue || [];
+        await Promise.all(this.mintQueue.map(async (submission) => {
+          try {
+            const status = await apiClient.get(`/submissions/${submission.submission_id}/reports/status`);
+            this.reportStatuses = { ...this.reportStatuses, [submission.submission_id]: status.data };
+          } catch (error) {
+            this.reportStatuses = { ...this.reportStatuses, [submission.submission_id]: null };
+          }
+        }));
         if (loadCertificates) {
           await this.loadVisibleCertificates(true);
         }
@@ -1773,6 +1822,14 @@ export default {
       }));
 
       this.votesBySubmission = nextVotesBySubmission;
+      await Promise.all(pendingIds.map(async (submissionId) => {
+        try {
+          const response = await apiClient.get(`/submissions/${submissionId}/reports/status`);
+          this.reportStatuses = { ...this.reportStatuses, [submissionId]: response.data };
+        } catch (error) {
+          this.reportStatuses = { ...this.reportStatuses, [submissionId]: null };
+        }
+      }));
     },
     async loadVisibleCertificates(force = false) {
       this.certificateError = '';
@@ -1816,6 +1873,12 @@ export default {
         return true;
       }
       return Boolean(this.currentWalletVoteForSubmission(submission, dimension));
+    },
+    reportDisabled(submission) {
+      return !this.walletManager.state.isConnected || !this.hasVerifiedWalletIdentity
+        || !this.voteWalletAddress || this.reviewPolicy?.eligibility?.eligible === false
+        || submission?.submitter === this.voteWalletAddress
+        || this.reportStatuses[submission?.submission_id]?.quarantine_state;
     },
     certificateLookupComplete(submission) {
       return Boolean(
@@ -1965,6 +2028,35 @@ export default {
       return apiClient.post(`/submissions/${submissionId}/vote`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+    },
+    async reportSubmission(submissionId) {
+      this.voteMessage = '';
+      this.voteError = '';
+      const reason = this.reportReasons[submissionId];
+      const submission = this.submissions.find((item) => item.submission_id === submissionId);
+      if (!submission || !reason || this.reportDisabled(submission)) {
+        this.voteError = 'Choose a reason and verify an eligible wallet to report.';
+        return;
+      }
+      if (!window.confirm('Report this submission for additional safety review? This is not an admissibility vote.')) return;
+      try {
+        const challenge = await apiClient.post(`/submissions/${submissionId}/reports/challenge`, {
+          wallet_address: this.voteWalletAddress, submission_id: submissionId, reason,
+        });
+        const message = assertCommunityReportChallenge(challenge.data, {
+          walletAddress: this.voteWalletAddress, submissionId, contentHash: submission.content_hash,
+          reason,
+        });
+        const signature = await this.signWalletMessage(message);
+        const response = await apiClient.post(`/submissions/${submissionId}/reports`, {
+          wallet_address: this.voteWalletAddress, message, signature,
+        });
+        this.reportStatuses = { ...this.reportStatuses, [submissionId]: response.data.status };
+        this.voteMessage = 'Report recorded for additional safety review.';
+        await this.fetchSubmissions();
+      } catch (error) {
+        this.voteError = getApiErrorMessage(error, 'Failed to record report.');
+      }
     },
     submissionLifecycleDisplay(submission) {
       return buildSubmissionLifecycleDisplay(submission);

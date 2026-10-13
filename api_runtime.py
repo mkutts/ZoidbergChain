@@ -330,6 +330,8 @@ class PeerSubmissionPayload(_StrictBodyModel):
     admission_certificate: dict[str, Any] | None = None
     admission_state: str | None = None
     quarantine_reason: str | None = None
+    community_reports: list[dict[str, Any]] | None = None
+    report_quarantine_evidence: dict[str, Any] | None = None
 
 
 class PeerVotePayload(_StrictBodyModel):
@@ -597,6 +599,24 @@ class WalletVoteChallengeRequest(_StrictBodyModel):
     submission_id: SubmissionIdValue
     vote: DualVoteTypeValue
     dimension: Literal["originality", "admissibility"] | None = None
+
+
+class WalletReportChallengeRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    submission_id: SubmissionIdValue
+    reason: str
+
+
+class SignedCommunityReportRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    message: Annotated[str, Field(min_length=1, max_length=4096)]
+    signature: Annotated[str, Field(min_length=1, max_length=4096)]
+
+
+class PeerCommunityReportReceive(_StrictBodyModel):
+    origin_node_id: str
+    network_name: str
+    report: dict[str, Any]
 
 
 class WalletTransferChallengeRequest(_StrictBodyModel):

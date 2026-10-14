@@ -15,6 +15,7 @@ from utils import extract_text
 from media_technical_validation import technical_evidence_identity, validate_media_bytes
 from admission_certificate import AdmissionMintCertificateView, attestation_identity, build_admission_certificate, validate_admission_certificate
 from admission_activation import AdmissionActivationStore
+from media_integrity import reconstruct_media_bytes, verify_media_block
 from protocol_v1_submitter_attestation import (
     ATTESTATION_DEVELOPMENT,
     ATTESTATION_LEGACY,
@@ -3021,6 +3022,50 @@ class Blockchain:
 
     def recover_block_media_bytes(self, block_or_hash):
         return self._content_coordination_service.recover_block_media_bytes(self.storage, block_or_hash, self.get_block_by_hash)
+    def resolve_immutable_media_block(self, *, block_hash=None, block_height=None, submission_id=None):
+        selectors = [block_hash is not None, block_height is not None, submission_id is not None]
+        if sum(selectors) != 1:
+            raise ValueError("Exactly one of block_hash, block_height, or submission_id is required.")
+        if block_hash is not None:
+            block = self.get_block_by_hash(block_hash)
+        elif block_height is not None:
+            block = self.get_block_by_height(block_height)
+        else:
+            block = self.get_protocol_v1_block_for_submission(submission_id)
+        if block is None:
+            raise ValueError("Immutable media block not found.")
+        return block
+    def verify_block_media_integrity(self, block_or_hash, *, require_finalized=False):
+        block = self.get_block_by_hash(block_or_hash) if isinstance(block_or_hash, str) else block_or_hash
+        if block is None:
+            raise ValueError("Immutable media block not found.")
+        chain_state = self.get_block_chain_state(block)
+        if not chain_state["canonical"]:
+            raise ValueError("Media block is not canonical.")
+        if require_finalized and not chain_state["finalized"]:
+            raise ValueError("Media block is not finalized.")
+        report = verify_media_block(
+            block,
+            reviewer_status_resolver=self.get_reviewer_status_at_reference,
+            expected_block_hash=block.hash,
+            expected_block_height=block.index,
+        )
+        return {
+            **report,
+            "canonical": chain_state["canonical"],
+            "finalized": chain_state["finalized"],
+            "block_status": chain_state["phase"],
+            "download_path": f"/blocks/{block.hash}/media",
+        }
+    def reconstruct_immutable_media(self, *, block_hash=None, block_height=None,
+                                    submission_id=None, require_finalized=False):
+        block = self.resolve_immutable_media_block(
+            block_hash=block_hash,
+            block_height=block_height,
+            submission_id=submission_id,
+        )
+        self.verify_block_media_integrity(block, require_finalized=require_finalized)
+        return reconstruct_media_bytes(block)
     def _resolve_protocol_v1_block_media(self, block):
         return self._content_coordination_service.resolve_protocol_v1_block_media(self.storage, block, self.get_block_by_hash)
     def cache_protocol_v1_block_content(self, block, *, submission_id=None):

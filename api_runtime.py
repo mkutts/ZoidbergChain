@@ -943,6 +943,10 @@ def _serialize_block(block, *, include_media_bytes=False):
     if not include_media_bytes and getattr(block, "media_bytes", None) is not None:
         body["media_embedded"] = True
         body["media_size_bytes"] = len(block.media_bytes)
+        body["media_length"] = len(block.media_bytes)
+        body["media_integrity_contract_version"] = 1
+        body["media_hash_algorithm"] = "sha256"
+        body["media_integrity_status"] = "computed_on_exact_download"
         body["storage_status"] = body.get("storage_status") or "embedded"
         download_url = _block_media_download_url(block)
         if download_url:

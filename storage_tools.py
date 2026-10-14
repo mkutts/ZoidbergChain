@@ -13,6 +13,7 @@ from typing import Any
 import config
 from content import ContentObject, verify_content_object_payload
 from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from media_integrity import MediaIntegrityError, validate_current_media_chain_records
 from protocol_v1_genesis import (
     GenesisValidationError,
     canonical_public_testnet_v1_genesis_hash,
@@ -203,8 +204,10 @@ def _validate_importable_public_testnet_v1_state(state: dict[str, Any], *, label
     chain = state.get("chain", [])
     if chain:
         try:
-            return require_public_testnet_v1_genesis_chain(chain, label=label)
-        except GenesisValidationError as exc:
+            genesis_hash = require_public_testnet_v1_genesis_chain(chain, label=label)
+            validate_current_media_chain_records(chain)
+            return genesis_hash
+        except (GenesisValidationError, MediaIntegrityError) as exc:
             raise ValueError(str(exc)) from exc
     if _has_persisted_data(state):
         raise ValueError(f"{label} contains persisted state but no genesis block.")
@@ -343,6 +346,10 @@ def build_export_snapshot(
         )
 
     state = _load_state(backend)
+    try:
+        validate_current_media_chain_records(state.get("chain", []))
+    except MediaIntegrityError as exc:
+        raise ValueError(f"Storage contains invalid immutable media: {exc}") from exc
     sanitized_state = _sanitize_value(state, include_private_keys=include_private_keys)
     chain = sanitized_state.get("chain", [])
     metadata = {

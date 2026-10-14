@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from protocol_v1 import PROTOCOL_VERSION, PUBLIC_TESTNET_V1_NETWORK_ID
+from media_integrity import MediaIntegrityError, validate_current_media_chain_records
 from protocol_v1_genesis import (
     GenesisValidationError,
     canonical_public_testnet_v1_genesis_hash,
@@ -199,8 +200,10 @@ def _validate_source_public_testnet_v1_state(snapshot: dict[str, Any], *, label:
     chain = snapshot.get("chain", [])
     if chain:
         try:
-            return require_public_testnet_v1_genesis_chain(chain, label=label)
-        except GenesisValidationError as exc:
+            genesis_hash = require_public_testnet_v1_genesis_chain(chain, label=label)
+            validate_current_media_chain_records(chain)
+            return genesis_hash
+        except (GenesisValidationError, MediaIntegrityError) as exc:
             raise MigrationError(str(exc)) from exc
     if _has_persisted_data(snapshot):
         raise MigrationError(f"{label} contains persisted state but no genesis block.")
@@ -239,6 +242,10 @@ def _validate_migration(source_snapshot: dict[str, Any], sqlite_db_path: Path) -
     backend = SQLiteStorageBackend(sqlite_db_path=str(sqlite_db_path))
     migrated_snapshot = backend.load_blockchain_state() or {}
     _validate_snapshot_shape(migrated_snapshot, label="Migrated snapshot")
+    try:
+        validate_current_media_chain_records(migrated_snapshot.get("chain", []))
+    except MediaIntegrityError as exc:
+        raise MigrationError(f"Migrated immutable media failed verification: {exc}") from exc
 
     source_summary = _source_summary(source_snapshot)
     migrated_summary = _source_summary(migrated_snapshot)

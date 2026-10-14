@@ -347,6 +347,15 @@ The Public Testnet v1 genesis object is special and is not an accepted-media blo
 
 Legacy pre-v1 blocks do not satisfy MODEL A.
 
+Task 6.9 formalizes this behavior as media-integrity contract version 1. The
+direct integrity digest is SHA-256 over the exact embedded `media_bytes` value;
+`media_hash` and `content_hash` must both equal it. The exact media length is
+derived from that hash-committed byte value, so no historical block field or
+hash changes are required. Admission block version 2 also embeds the Task 6.6
+certificate and Task 6.3 technical evidence that bind the identical bytes.
+Strict reconstruction never consults the auxiliary content cache. See
+`docs/milestone-6-task-6.9-media-integrity.md`.
+
 ## 21. Remaining limitations
 
 Genesis semantics and reset policy are now frozen separately in [docs/protocol-v1-genesis-reset.md](/C:/Users/mattk/ZoidbergChain/docs/protocol-v1-genesis-reset.md).

@@ -1,5 +1,11 @@
 # Content Object Model
 
+For current Model A media blocks, content objects and local content files are
+cache/index/presentation aids only. **THE BLOCKCHAIN STORED MEDIA BYTES ARE
+GROUND TRUTH.** Task 6.9 reconstruction reads and verifies the embedded block
+bytes without consulting this object or its `local_path`. Two byte sequences
+that render identically are still different media when even one byte differs.
+
 Task 6.1 introduces a first-class content object so meme payloads can be tracked separately from submission records.
 
 ## Core Fields

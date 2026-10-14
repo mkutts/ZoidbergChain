@@ -169,8 +169,18 @@ class BlockValidationService:
         except ValueError as exc: self._raise("invalid_content_metadata", str(exc), block_index=block_dict.get("index"))
         try: resolved = c.resolve_protocol_v1_block_media(block_dict)
         except (UnicodeDecodeError, ValueError) as exc: self._raise("invalid_embedded_media", str(exc), block_index=block_dict.get("index"))
-        if media_hash != resolved["content_hash"]: self._raise("media_hash_mismatch", "Protocol v1 block media_hash does not match embedded media bytes.", block_index=block_dict.get("index"), media_hash=media_hash, actual_media_hash=resolved["content_hash"])
-        if content_hash != resolved["content_hash"]: self._raise("content_hash_mismatch", "Protocol v1 block content_hash does not match embedded media bytes.", block_index=block_dict.get("index"), content_hash=content_hash, actual_content_hash=resolved["content_hash"])
+        raw_media = bytes(resolved["stored_bytes"])
+        embedded_media = block_dict.get("media_bytes")
+        try:
+            from block import Block
+            embedded_media = Block._coerce_media_bytes(embedded_media)
+        except (TypeError, ValueError) as exc:
+            self._raise("invalid_embedded_media", str(exc), block_index=block_dict.get("index"))
+        if raw_media != embedded_media:
+            self._raise("noncanonical_media_bytes", "Protocol v1 media_bytes must already be the canonical accepted byte sequence.", block_index=block_dict.get("index"))
+        actual_hash = resolved["content_hash"]
+        if media_hash != actual_hash: self._raise("media_hash_mismatch", "Protocol v1 block media_hash does not match embedded media bytes.", block_index=block_dict.get("index"), media_hash=media_hash, actual_media_hash=actual_hash)
+        if content_hash != actual_hash: self._raise("content_hash_mismatch", "Protocol v1 block content_hash does not match embedded media bytes.", block_index=block_dict.get("index"), content_hash=content_hash, actual_content_hash=actual_hash)
         if resolved["mime_type"] == TEXT_MIME_TYPE and content_type != CONTENT_TYPE_TEXT: self._raise("content_type_mismatch", "Protocol v1 text blocks must declare content_type='text'.", block_index=block_dict.get("index"))
         if resolved["mime_type"] != TEXT_MIME_TYPE and content_type not in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}: self._raise("content_type_mismatch", "Protocol v1 binary blocks must declare content_type='image' or 'mixed'.", block_index=block_dict.get("index"))
         return True

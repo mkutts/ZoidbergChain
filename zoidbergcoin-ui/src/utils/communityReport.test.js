@@ -7,6 +7,7 @@ const payload = {
   policy_id: REPORT_POLICY_ID, policy_version: 1,
   policy_digest: 'a'.repeat(64), wallet_address: `0x${'b'.repeat(40)}`,
   submission_id: 'submission', content_hash: 'c'.repeat(64), reason: 'other_policy_concern',
+  nonce: 'nonce', issued_at: '2099-10-10T00:00:00+00:00', expires_at: '2099-10-10T00:05:00+00:00',
 };
 const message = JSON.stringify(Object.fromEntries(Object.keys(payload).sort().map((key) => [key, payload[key]])));
 const expected = {
@@ -20,4 +21,5 @@ test('report challenge binds the selected action and canonical message', () => {
   assert.throws(() => assertCommunityReportChallenge({ payload: { ...payload, domain: 'zoidbergchain/community-review/v2' }, message }, expected));
   assert.throws(() => assertCommunityReportChallenge({ payload: { ...payload, network_id: 'another-network' }, message }, expected));
   assert.throws(() => assertCommunityReportChallenge({ payload, message: `${message} ` }, expected));
+  assert.throws(() => assertCommunityReportChallenge({ payload, message }, expected, Date.parse('2100-01-01T00:00:00Z')), /expired/i);
 });

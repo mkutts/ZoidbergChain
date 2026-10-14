@@ -52,3 +52,22 @@ test('current reviewer screen keeps originality and admissibility answers separa
   assert.match(source, /formData\.append\('dimension', dimension\)/);
   assert.doesNotMatch(source, /vote\(submission\.submission_id, 'report', 'admissibility'\)/i);
 });
+
+test('Task 6.10 copy separates staging, quarantine, reports, disputes, and integrity', () => {
+  const source = read('./Dashboard.vue');
+  assert.match(source, /Staged media is not submitted, admitted, minted, or finalized/i);
+  assert.match(source, /Report Pre-Mint Submission/);
+  assert.match(source, /Dispute Finalized Media/);
+  assert.match(source, /Quarantined · Not Deleted/);
+  assert.match(source, /Verify Exact Bytes/);
+  assert.match(source, /Download Exact Immutable Bytes/);
+  assert.match(source, /Admission Enforcement/);
+});
+
+test('lifecycle details remain mobile-safe and do not rely on color alone', () => {
+  const source = read('./Dashboard.vue');
+  assert.match(source, /@media \(max-width: 620px\)[\s\S]*\.detail-grid[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
+  assert.match(source, /\.detail-grid strong[\s\S]*overflow-wrap: anywhere/);
+  assert.match(source, /Media Integrity/);
+  assert.match(source, /Quarantined · Not Deleted/);
+});

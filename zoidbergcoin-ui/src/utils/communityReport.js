@@ -10,7 +10,7 @@ function canonical(value) {
   return value;
 }
 
-export function assertCommunityReportChallenge(challenge, expected) {
+export function assertCommunityReportChallenge(challenge, expected, now = Date.now()) {
   const payload = challenge?.payload;
   if (!payload || typeof payload !== 'object') throw new Error('Report challenge is missing.');
   if (payload.domain !== REPORT_DOMAIN || payload.network_id !== REPORT_NETWORK_ID
@@ -23,6 +23,10 @@ export function assertCommunityReportChallenge(challenge, expected) {
       || payload.content_hash !== expected.contentHash
       || payload.reason !== expected.reason) {
     throw new Error('Report challenge does not match the selected submission and reason.');
+  }
+  const expiresAt = Date.parse(payload.expires_at || '');
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
+    throw new Error('Report challenge has expired. Request a fresh challenge.');
   }
   if (JSON.stringify(canonical(payload)) !== challenge.message) {
     throw new Error('Report challenge message is not canonical.');

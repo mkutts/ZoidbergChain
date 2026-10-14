@@ -33,7 +33,12 @@ export function canonicalAttestationMessage(payload) {
   }));
 }
 
-export function prepareSubmitterAttestationChallenge(challenge, { acknowledged = false } = {}) {
+export function prepareSubmitterAttestationChallenge(challenge, {
+  acknowledged = false,
+  expectedWalletAddress = null,
+  expectedContentHash = null,
+  now = Date.now(),
+} = {}) {
   if (!acknowledged) {
     throw new Error('You must acknowledge the submitter attestation before signing.');
   }
@@ -72,6 +77,16 @@ export function prepareSubmitterAttestationChallenge(challenge, { acknowledged =
     )
   ) {
     throw new Error('The server returned inconsistent submitter attestation bindings.');
+  }
+  if (
+    (expectedWalletAddress && payload.wallet_address !== expectedWalletAddress.toLowerCase())
+    || (expectedContentHash && payload.raw_media_sha256 !== expectedContentHash)
+  ) {
+    throw new Error('The server attestation does not match the selected wallet and media hash.');
+  }
+  const expiresAt = Date.parse(payload.expires_at || '');
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
+    throw new Error('The submitter attestation challenge has expired. Request a fresh challenge.');
   }
   const message = canonicalAttestationMessage(payload);
   if (challenge.message !== message) {

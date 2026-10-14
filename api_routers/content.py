@@ -303,6 +303,27 @@ async def get_submission(request: Request, submission_id: str):
     return {"submission": _serialize_submission(submission)}
 
 
+@router.get('/submissions/{submission_id}/lifecycle')
+@api_limit("public_read")
+async def get_submission_lifecycle(
+    request: Request,
+    submission_id: str,
+    verify_integrity: bool = Query(True),
+):
+    """Return the derived Milestone 6 lifecycle without mutating protocol state."""
+    _sync_runtime_globals()
+    submission = blockchain.get_submission(submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    return {
+        "submission_id": submission.submission_id,
+        "lifecycle": _public_submission_lifecycle(
+            submission,
+            verify_integrity=verify_integrity,
+        ),
+    }
+
+
 @router.get('/submissions/{submission_id}/originality-evidence')
 @api_limit("public_read")
 async def get_submission_originality_evidence(request: Request, submission_id: str):
@@ -920,6 +941,7 @@ _ROUTE_ORDER = {
     ('GET', '/submissions/{submission_id}/disputes/status', 'get_post_mint_dispute_status'): 147,
     ('POST', '/submissions/{submission_id}/disputes/challenge', 'create_post_mint_dispute_challenge'): 148,
     ('POST', '/submissions/{submission_id}/disputes', 'submit_post_mint_dispute'): 149,
+    ('GET', '/submissions/{submission_id}/lifecycle', 'get_submission_lifecycle'): 152,
 }
 
 for _route in router.routes:

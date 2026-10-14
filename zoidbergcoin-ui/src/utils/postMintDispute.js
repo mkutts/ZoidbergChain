@@ -10,7 +10,7 @@ function canonical(value) {
   return value;
 }
 
-export function assertPostMintDisputeChallenge(challenge, expected) {
+export function assertPostMintDisputeChallenge(challenge, expected, now = Date.now()) {
   const payload = challenge?.payload;
   if (!payload || payload.domain !== DISPUTE_DOMAIN || payload.network_id !== DISPUTE_NETWORK_ID
       || payload.policy_id !== DISPUTE_POLICY_ID || payload.policy_version !== 1
@@ -24,6 +24,10 @@ export function assertPostMintDisputeChallenge(challenge, expected) {
       || payload.media_hash !== expected.mediaHash
       || payload.reason !== expected.reason) {
     throw new Error('Dispute challenge does not match the finalized media and reason.');
+  }
+  const expiresAt = Date.parse(payload.expires_at || '');
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
+    throw new Error('Dispute challenge has expired. Request a fresh challenge.');
   }
   if (JSON.stringify(canonical(payload)) !== challenge.message) {
     throw new Error('Dispute challenge message is not canonical.');

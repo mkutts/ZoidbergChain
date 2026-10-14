@@ -45,7 +45,8 @@ from content import (
 )
 from wallet import Wallet
 from transaction import Transaction
-from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED
+from submission import (APPROVED, ATTESTATION_REQUIRED, HARD_REJECTED, MINTED,
+                        PENDING, QUEUED, REJECTED)
 from milestone5_policy import REVIEW_EPOCH_BLOCKS
 from utils import extract_text
 from media_technical_validation import (
@@ -825,6 +826,291 @@ def _block_media_download_url(block):
     return f"/blocks/{block_hash}/media"
 
 
+def _quarantine_category(reason):
+    value = str(reason or "").strip().lower()
+    if value == "review_rejected_originality":
+        return "originality_rejection"
+    if value == "review_rejected_admissibility":
+        return "admissibility_rejection"
+    if value == "community_report_threshold":
+        return "community_report_threshold"
+    if any(token in value for token in ("attestation", "technical", "evidence", "policy", "tamper", "invalid_admission")):
+        return "invalid_or_tampered_prerequisite"
+    return "other_protocol_reason" if value else None
+
+
+def _certificate_public_summary(submission, certificate_state):
+    certificate = certificate_state.get("certificate")
+    if certificate is None:
+        return {
+            "status": certificate_state.get("certificate_status", "missing"),
+            "scope": (
+                "current_dual_admission"
+                if submission.attestation_requirement == ATTESTATION_REQUIRED
+                else "legacy_originality_only"
+            ),
+            "certificate_id": certificate_state.get("certificate_id"),
+            "certificate_version": None,
+            "certificate_digest": None,
+        }
+    body = certificate.to_dict() if hasattr(certificate, "to_dict") else dict(certificate)
+    current = submission.attestation_requirement == ATTESTATION_REQUIRED
+    technical = body.get("technical_evidence") if isinstance(body.get("technical_evidence"), dict) else {}
+    attestation = body.get("attestation") if isinstance(body.get("attestation"), dict) else {}
+    return {
+        "status": certificate_state.get("certificate_status"),
+        "scope": "current_dual_admission" if current else "legacy_originality_only",
+        "certificate_id": body.get("certificate_digest") or body.get("certificate_id"),
+        "certificate_version": body.get("certificate_version"),
+        "certificate_digest": body.get("certificate_digest"),
+        "media_hash": body.get("content_hash"),
+        "policy": {
+            "id": body.get("policy_id"),
+            "version": body.get("policy_version"),
+            "digest": body.get("policy_digest"),
+        } if current else None,
+        "technical_evidence_binding": {
+            "version": body.get("technical_evidence_version"),
+            "digest": technical.get("evidence_digest"),
+        } if current else None,
+        "attestation_binding": {
+            "version": body.get("attestation_version"),
+            "message_hash": attestation.get("canonical_message_hash"),
+        } if current else None,
+        "originality": body.get("originality") if current else {
+            "outcome": "original" if certificate_state.get("certificate_status") == "valid" else "unavailable",
+            "approval_percentage": body.get("approval_percentage"),
+            "decisive_vote_total": body.get("decisive_vote_total"),
+            "vote_hash": body.get("vote_hash"),
+            "originality_score": body.get("originality_score"),
+        },
+        "admissibility": body.get("admissibility") if current else None,
+    }
+
+
+def _public_submission_lifecycle(submission, *, verify_integrity=False):
+    """Build the additive Task 6.10 read model from durable protocol state."""
+    content_object = blockchain.get_content_object_by_hash(submission.content_hash) if submission.content_hash else None
+    evidence = (
+        dict(content_object.metadata or {}).get("technical_validation")
+        if content_object is not None else None
+    )
+    technical_status = "unavailable"
+    if isinstance(evidence, dict):
+        outcome = str(evidence.get("outcome") or "").strip().lower()
+        technical_status = "accepted" if outcome == "accept" else "rejected" if outcome == "reject" else "unavailable"
+    technical = {
+        "status": technical_status,
+        "outcome": evidence.get("outcome") if isinstance(evidence, dict) else None,
+        "reason_codes": list(evidence.get("reason_codes") or []) if isinstance(evidence, dict) else [],
+        "evidence_version": evidence.get("evidence_version") if isinstance(evidence, dict) else None,
+        "evidence_digest": evidence.get("evidence_digest") if isinstance(evidence, dict) else None,
+        "media_hash": evidence.get("raw_media_sha256") if isinstance(evidence, dict) else submission.content_hash,
+        "byte_length": evidence.get("raw_media_byte_length") if isinstance(evidence, dict) else None,
+        "detected_mime_type": evidence.get("detected_mime_type") if isinstance(evidence, dict) else None,
+    }
+
+    attestation_result = blockchain.submission_attestation_status(submission)
+    reason_code = attestation_result.get("reason_code")
+    raw_attestation_status = attestation_result.get("status")
+    if attestation_result.get("valid"):
+        attestation_status = "valid"
+    elif raw_attestation_status == "legacy_pre_activation":
+        attestation_status = "legacy_pre_activation"
+    elif raw_attestation_status == "development_only_unsigned":
+        attestation_status = "development_only_unsigned"
+    elif reason_code == "missing_attestation":
+        attestation_status = "missing"
+    else:
+        attestation_status = "invalid"
+    attestation = {
+        "requirement": submission.attestation_requirement,
+        "status": attestation_status,
+        "valid": bool(attestation_result.get("valid")),
+        "reason_code": reason_code,
+        "statement_id": (submission.submitter_attestation or {}).get("statement_id"),
+        "statement_version": (submission.submitter_attestation or {}).get("statement_version"),
+        "message_hash": (submission.submitter_attestation or {}).get("canonical_message_hash"),
+    }
+
+    review = blockchain.get_dual_review(submission.submission_id)
+    report = {
+        "status": "not_applicable",
+        "protocol_state": "legacy_pre_activation",
+        "count": 0,
+        "established_count": 0,
+        "threshold": None,
+        "established_threshold": None,
+        "threshold_met": False,
+        "reason_counts": {},
+    }
+    if submission.attestation_requirement == ATTESTATION_REQUIRED:
+        try:
+            report_status = blockchain.report_status(submission.submission_id)
+            report = {
+                "status": "threshold_met" if report_status.get("threshold_met") else "below_threshold",
+                "protocol_state": report_status.get("protocol_state"),
+                "count": report_status.get("accepted_report_count", 0),
+                "established_count": report_status.get("established_reporter_count", 0),
+                "threshold": report_status.get("minimum_valid_reports"),
+                "established_threshold": report_status.get("minimum_established_reporters"),
+                "threshold_met": bool(report_status.get("threshold_met")),
+                "reason_counts": dict(report_status.get("reason_counts") or {}),
+            }
+        except ValueError:
+            report = {**report, "status": "unavailable", "protocol_state": "unavailable"}
+
+    admission_state = blockchain.admission_status(submission)
+    if admission_state.get("state") == "technical_rejected":
+        technical["status"] = "rejected"
+        if admission_state.get("reason") and admission_state["reason"] not in technical["reason_codes"]:
+            technical["reason_codes"].append(admission_state["reason"])
+    certificate_state = blockchain.get_submission_certificate_state(submission)
+    certificate = _certificate_public_summary(submission, certificate_state)
+    activation = dict(blockchain.admission_activation_status())
+    activation["first_enforced_height"] = activation.get("activation_height")
+    activation["enforced_for_next_block"] = (
+        activation.get("state") == "active"
+        or (
+            activation.get("activation_height") is not None
+            and activation.get("canonical_tip_height") is not None
+            and activation["canonical_tip_height"] + 1 >= activation["activation_height"]
+        )
+    )
+
+    protocol_lifecycle = blockchain.get_submission_protocol_v1_lifecycle(submission.submission_id)
+    block = blockchain.get_protocol_v1_block_for_submission(submission.submission_id)
+    finality = {
+        "state": protocol_lifecycle.get("block_status"),
+        "block_height": protocol_lifecycle.get("block_height"),
+        "block_hash": protocol_lifecycle.get("block_hash"),
+        "canonical": bool(protocol_lifecycle.get("canonical")),
+        "confirmations": protocol_lifecycle.get("confirmations"),
+        "confirmed": bool(protocol_lifecycle.get("confirmed")),
+        "finalized": bool(protocol_lifecycle.get("finalized")),
+    }
+
+    dispute = {
+        "status": "not_applicable" if block is None else "not_finalized",
+        "count": 0,
+        "established_count": 0,
+        "threshold": None,
+        "established_threshold": None,
+        "threshold_met": False,
+        "block_remains_finalized": bool(finality["finalized"]),
+    }
+    if block is not None and finality["finalized"]:
+        try:
+            dispute_status = blockchain.dispute_status(submission.submission_id)
+            dispute = {
+                "status": dispute_status.get("post_mint_status", "disputed" if dispute_status.get("threshold_met") else "finalized"),
+                "count": dispute_status.get("counted_dispute_count", 0),
+                "established_count": dispute_status.get("established_disputer_count", 0),
+                "threshold": dispute_status.get("minimum_valid_disputes"),
+                "established_threshold": dispute_status.get("minimum_established_disputers"),
+                "threshold_met": bool(dispute_status.get("threshold_met")),
+                "reason_counts": dict(dispute_status.get("reason_counts") or {}),
+                "block_remains_finalized": True,
+            }
+        except ValueError:
+            dispute = {**dispute, "status": "unavailable", "block_remains_finalized": True}
+
+    integrity = {
+        "status": "unavailable",
+        "meaning": "Exact bytes match the immutable block commitments only; this is not a safety, legality, originality, admissibility, or dispute verdict.",
+        "algorithm": "sha256",
+        "sha256": getattr(block, "media_hash", None) if block is not None else None,
+        "byte_length": len(block.media_bytes) if block is not None and getattr(block, "media_bytes", None) is not None else None,
+        "contract_version": 1 if block is not None and getattr(block, "media_bytes", None) is not None else None,
+        "block_height": getattr(block, "index", None) if block is not None else None,
+        "block_hash": getattr(block, "hash", None) if block is not None else None,
+        "download_url": _block_media_download_url(block) if block is not None else None,
+    }
+    if block is not None and verify_integrity:
+        try:
+            integrity_report = blockchain.verify_block_media_integrity(block)
+            integrity.update({
+                "status": "verified",
+                "sha256": integrity_report.get("media_hash"),
+                "byte_length": integrity_report.get("media_length"),
+                "contract_version": integrity_report.get("integrity_contract_version"),
+            })
+        except ValueError:
+            integrity["status"] = "failed"
+
+    admission = {
+        "state": admission_state.get("state"),
+        "qualified": admission_state.get("state") in {"admission_qualified", "mintable", "minted"},
+        "reason": admission_state.get("reason"),
+        "certificate": certificate,
+    }
+    mint = {
+        "state": protocol_lifecycle.get("mint_status"),
+        "eligible": bool(protocol_lifecycle.get("mint_eligible")),
+        "queue_present": bool(protocol_lifecycle.get("queue_present")),
+        "minted": protocol_lifecycle.get("mint_status") == "minted",
+    }
+    quarantine = {
+        "quarantined": submission.status == "quarantined" or admission_state.get("state") == "quarantined",
+        "reason": submission.quarantine_reason or admission_state.get("reason"),
+        "category": _quarantine_category(submission.quarantine_reason or admission_state.get("reason")),
+        "deletion": False,
+        "can_mint_current_round": False if submission.status == "quarantined" else None,
+    }
+
+    stage = admission_state.get("state") or "submitted"
+    if finality["finalized"]:
+        stage = "post_mint_disputed" if dispute.get("threshold_met") else "finalized"
+    elif protocol_lifecycle.get("mint_status") == "minted":
+        stage = "minted"
+    elif submission.attestation_requirement != ATTESTATION_REQUIRED and stage == "legacy_pre_activation":
+        stage = "legacy_pre_activation"
+    blocking_stage = None
+    if stage == "technical_rejected":
+        blocking_stage = "technical_validation"
+    elif stage in {"awaiting_attestation", "invalid_attestation", "policy_mismatch"}:
+        blocking_stage = "attestation"
+    elif stage in {"awaiting_review", "review_unresolved", "review_rejected_originality", "review_rejected_admissibility"}:
+        blocking_stage = "community_review"
+    elif quarantine["quarantined"]:
+        blocking_stage = "quarantine"
+    elif activation.get("state") == "misconfigured" and not mint["minted"]:
+        blocking_stage = "activation"
+
+    return {
+        "schema_version": 1,
+        "stage": stage,
+        "blocking_stage": blocking_stage,
+        "technical_validation": technical,
+        "attestation": attestation,
+        "review": {
+            "mode": review.get("review_mode"),
+            "state": review.get("review_state"),
+            "complete": bool(review.get("review_complete")),
+            "qualified": bool(review.get("review_qualified")),
+            "originality": review.get("originality"),
+            "admissibility": (
+                review.get("admissibility")
+                if submission.attestation_requirement == ATTESTATION_REQUIRED
+                else None
+            ),
+        },
+        "reporting": report,
+        "quarantine": quarantine,
+        "admission": admission,
+        "activation": activation,
+        "mint": mint,
+        "finality": finality,
+        "post_mint_dispute": dispute,
+        "media_integrity": integrity,
+        "legacy": {
+            "pre_activation": submission.attestation_requirement == "legacy_pre_activation",
+            "certificate_scope": certificate.get("scope"),
+            "missing_fields_are_not_inferred": True,
+        },
+    }
+
+
 def _validate_uploaded_image_payload(image: UploadFile, file_bytes: bytes) -> tuple[str, str]:
     declared_mime_type = (image.content_type or "").strip().lower() or None
     try:
@@ -844,6 +1130,7 @@ def _serialize_submission(submission):
     content_object = blockchain.get_content_object_by_hash(submission.content_hash) if submission.content_hash else None
     originality_evidence = blockchain.get_originality_evidence(submission.submission_id)
     lifecycle = blockchain.get_submission_protocol_v1_lifecycle(submission.submission_id)
+    public_lifecycle = _public_submission_lifecycle(submission, verify_integrity=False)
     body = {
         "submission_id": submission.submission_id,
         "text_content": submission.text_content,
@@ -873,6 +1160,7 @@ def _serialize_submission(submission):
         "confirmed": lifecycle["confirmed"],
         "finalized": lifecycle["finalized"],
         "protocol_v1_lifecycle": lifecycle,
+        "lifecycle": public_lifecycle,
         "pre_vote_originality": (
             {
                 "decision": originality_evidence["final_prevote_decision"],
@@ -951,6 +1239,28 @@ def _serialize_block(block, *, include_media_bytes=False):
         download_url = _block_media_download_url(block)
         if download_url:
             body["download_url"] = download_url
+        body["media_integrity"] = {
+            "status": "unavailable",
+            "verification": "verified_on_exact_download",
+            "algorithm": "sha256",
+            "sha256": getattr(block, "media_hash", None),
+            "byte_length": len(block.media_bytes),
+            "contract_version": 1,
+            "block_height": getattr(block, "index", None),
+            "block_hash": getattr(block, "hash", None),
+            "download_url": download_url,
+            "meaning": "Exact bytes match immutable block commitments only; this is not a safety or admission verdict.",
+        }
+    if not body["is_genesis"]:
+        body["certificate_scope"] = (
+            "current_dual_admission" if getattr(block, "block_version", None) == 2
+            else "legacy_originality_only"
+        )
+        if body.get("finalized") and body.get("submission_id"):
+            try:
+                body["post_mint_dispute"] = blockchain.dispute_status(body["submission_id"])
+            except ValueError:
+                body["post_mint_dispute"] = {"post_mint_status": "unavailable", "threshold_met": False}
     content_hash = body.get("content_hash")
     content_object = blockchain.get_content_object_by_hash(content_hash) if content_hash else None
     if content_object is not None:
@@ -3747,6 +4057,7 @@ def _chain_summary_payload() -> dict:
         "protocol_version": 1,
         "network_id": blockchain.protocol_v1_network_id(),
         "admission_activation_height": blockchain.admission_activation_height,
+        "admission_activation": blockchain.admission_activation_status(),
         "genesis_hash": blockchain.chain[0].hash,
         "canonical_genesis_hash": blockchain.public_testnet_v1_genesis_hash(),
         "cumulative_originality_score": blockchain.get_cumulative_originality_score(),

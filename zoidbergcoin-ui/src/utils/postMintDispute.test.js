@@ -11,7 +11,7 @@ test('finalized dispute challenge binds the exact block, media and reason', () =
     reputation_rule_version: 1, wallet_address: `0x${'1'.repeat(40)}`,
     submission_id: 'submission', block_height: 8, block_hash: 'b'.repeat(64),
     media_hash: 'c'.repeat(64), reason: 'other_policy_concern', nonce: 'nonce',
-    issued_at: '2026-10-10T00:00:00+00:00', expires_at: '2026-10-10T00:05:00+00:00',
+    issued_at: '2099-10-10T00:00:00+00:00', expires_at: '2099-10-10T00:05:00+00:00',
   };
   const message = JSON.stringify(Object.fromEntries(Object.entries(payload).sort(([a], [b]) => a.localeCompare(b))));
   const challenge = { payload, message };
@@ -22,4 +22,5 @@ test('finalized dispute challenge binds the exact block, media and reason', () =
   assert.throws(() => assertPostMintDisputeChallenge(challenge, { ...expected, blockHash: 'd'.repeat(64) }));
   assert.throws(() => assertPostMintDisputeChallenge(challenge, { ...expected, reason: 'potentially_illegal_content' }));
   assert.throws(() => assertPostMintDisputeChallenge({ ...challenge, payload: { ...payload, domain: 'zoidbergchain/community-report/v1' } }, expected));
+  assert.throws(() => assertPostMintDisputeChallenge(challenge, expected, Date.parse('2100-01-01T00:00:00Z')), /expired/i);
 });

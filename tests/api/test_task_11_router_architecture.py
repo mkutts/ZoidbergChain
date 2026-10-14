@@ -13,11 +13,11 @@ from fastapi.routing import APIRoute
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-APPLICATION_ROUTE_COUNT = 152
+APPLICATION_ROUTE_COUNT = 153
 EXPECTED_ROUTER_COUNTS = {
     "api_routers.access": 22,
     "api_routers.admin": 29,
-    "api_routers.content": 30,
+    "api_routers.content": 31,
     "api_routers.native": 23,
     "api_routers.operations": 16,
     "api_routers.peer": 27,

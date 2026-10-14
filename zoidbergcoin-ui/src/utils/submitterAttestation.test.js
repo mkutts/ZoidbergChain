@@ -23,8 +23,8 @@ function challenge() {
     policy_digest: 'c'.repeat(64),
     nonce: 'fresh-nonce',
     network_id: 'zoidberg-public-testnet-v1',
-    issued_at: '2026-09-18T20:00:00+00:00',
-    expires_at: '2026-09-18T20:05:00+00:00',
+    issued_at: '2099-09-18T20:00:00+00:00',
+    expires_at: '2099-09-18T20:05:00+00:00',
     attestation_version: 1,
   };
   return {
@@ -84,6 +84,24 @@ test('wrong public-testnet policy, network, and binding summaries are rejected',
     () => prepareSubmitterAttestationChallenge(inconsistent, { acknowledged: true }),
     /inconsistent/i,
   );
+});
+
+test('wallet, media hash, and expiry are checked before signing', () => {
+  const value = challenge();
+  assert.throws(() => prepareSubmitterAttestationChallenge(value, {
+    acknowledged: true,
+    expectedWalletAddress: `0x${'2'.repeat(40)}`,
+    expectedContentHash: value.canonical_payload.raw_media_sha256,
+  }), /wallet and media hash/i);
+  assert.throws(() => prepareSubmitterAttestationChallenge(value, {
+    acknowledged: true,
+    expectedWalletAddress: value.canonical_payload.wallet_address,
+    expectedContentHash: 'f'.repeat(64),
+  }), /wallet and media hash/i);
+  assert.throws(() => prepareSubmitterAttestationChallenge(value, {
+    acknowledged: true,
+    now: Date.parse('2100-01-01T00:00:00Z'),
+  }), /expired/i);
 });
 
 test('statement communicates permanence without claiming proof of ownership', () => {

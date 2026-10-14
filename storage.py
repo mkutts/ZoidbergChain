@@ -55,16 +55,17 @@ _STORAGE_SECTIONS = (
     "finality_attestations",
     "finalized_blocks",
     "report_reviewer_index",
+    "post_mint_disputes",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence", "report_reviewer_index"}
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence", "report_reviewer_index", "post_mint_disputes"}
 )
 # Native records are authoritative in ``native_transaction_records`` for the
 # SQLite backend.  Keeping a second, whole-mempool JSON copy in
 # ``storage_sections`` was legacy compatibility residue: it was never read
 # (the relational records replace it on load), yet every admission rewrote it.
-_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence", "report_reviewer_index"}
+_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence", "report_reviewer_index", "post_mint_disputes"}
 
 # These are deliberately storage-level names rather than public API statuses.
 # A transaction's finality remains derived from its canonical block and the
@@ -152,6 +153,8 @@ def _default_section_value(section_name):
     if section_name == "finalized_blocks":
         return []
     if section_name == "report_reviewer_index":
+        return {}
+    if section_name == "post_mint_disputes":
         return {}
     if section_name == "peers":
         return []
@@ -1520,7 +1523,8 @@ class SQLiteStorageBackend(StorageBackend):
                 return self._insert_durable_vote_record(connection, record, lifecycle_state="rejected")
             return self._insert_durable_vote_record(connection, record, lifecycle_state="accepted")
 
-    def list_durable_votes(self, *, submission_id: str | None = None) -> list[dict[str, Any]]:
+    def list_durable_votes(self, *, submission_id: str | None = None,
+                           voter_address: str | None = None) -> list[dict[str, Any]]:
         columns = (
             "evidence_id", "vote_identity", "identity_status", "submission_id", "content_hash",
             "voter_address", "vote_choice", "dimension", "lifecycle_state", "rejection_reason",
@@ -1530,18 +1534,31 @@ class SQLiteStorageBackend(StorageBackend):
             "reviewer_eligible",
             "reviewer_status_effective_height", "reviewer_status_reference_block_hash", "observed_at",
         )
-        where = " WHERE submission_id = ?" if submission_id is not None else ""
-        parameters = (str(submission_id).strip(),) if submission_id is not None else ()
+        clauses = []
+        parameters = []
+        if submission_id is not None:
+            clauses.append("submission_id = ?")
+            parameters.append(str(submission_id).strip())
+        if voter_address is not None:
+            wallet = normalize_wallet_address(voter_address)
+            if wallet is None:
+                raise ValueError("Invalid reviewer wallet for durable vote lookup.")
+            clauses.append("voter_address = ?")
+            parameters.append(wallet)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
         with self._connect() as connection:
             rows = connection.execute(
                 f"SELECT {', '.join(columns)} FROM durable_vote_records{where} ORDER BY observed_at, evidence_id",
-                parameters,
+                tuple(parameters),
             ).fetchall()
         results = [dict(zip(columns, row)) for row in rows]
         for result in results:
             if result.get("reviewer_eligible") is not None:
                 result["reviewer_eligible"] = bool(result["reviewer_eligible"])
         return results
+
+    def list_durable_votes_for_reviewer(self, reviewer_address: str) -> list[dict[str, Any]]:
+        return self.list_durable_votes(voter_address=reviewer_address)
 
     def record_reviewer_offense(self, offense: dict[str, Any]) -> dict[str, Any]:
         required = {
@@ -2230,6 +2247,10 @@ class SQLiteStorageBackend(StorageBackend):
                 ON durable_vote_records(submission_id, voter_address, dimension)
                 WHERE lifecycle_state = 'accepted'
                 """
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS reviewer_durable_votes_lookup
+                   ON durable_vote_records(voter_address, lifecycle_state, reviewer_status_effective_height)"""
             )
             connection.execute(
                 """
@@ -3022,6 +3043,7 @@ class SQLiteStorageBackend(StorageBackend):
             "finality_attestations": sections["finality_attestations"],
             "finalized_blocks": sections["finalized_blocks"],
             "report_reviewer_index": sections["report_reviewer_index"],
+            "post_mint_disputes": sections["post_mint_disputes"],
             "peers": sections["peers"],
         }
         if "admission_activation" in sections:

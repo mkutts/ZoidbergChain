@@ -139,8 +139,10 @@ submission's observed set, and unrelated block validation does not scan reports.
 
 **POLICY TODO — OWNER DECISION REQUIRED:** final prohibited-content definitions
 and jurisdiction; appeals; recusal; reviewer welfare; false-report adjudication
-and penalties; unquarantine and re-review workflow; Task 6.8 post-mint dispute
-rules. No automatic penalty is imposed for an unsubstantiated report.
+and penalties; unquarantine and re-review workflow; post-mint dispute
+adjudication. Task 6.8's separate finalized-media dispute protocol is described
+in `milestone-6-task-6.8-post-mint-disputes.md`. No automatic penalty is imposed
+for an unsubstantiated report.
 
 The threshold protects the mint path after its committed transition. As with
 the existing Milestone 5 reviewer model, wallet status depends on finalized

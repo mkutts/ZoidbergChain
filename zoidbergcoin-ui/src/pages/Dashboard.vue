@@ -962,6 +962,21 @@
             <p v-if="Array.isArray(block.voter_rewards) && block.voter_rewards.length" class="hint">
               {{ describeBlockVoterRewards(block) }}
             </p>
+            <div v-if="block.finalized && block.submission_id && block.media_hash" class="review-policy-panel">
+              <p class="section-label">Dispute finalized media</p>
+              <p class="hint">This media and its block are finalized and immutable. A dispute flags it for caution or review; it does not delete media or reverse the block.</p>
+              <p v-if="disputeStatuses[block.submission_id]" class="meta">
+                {{ disputeStatuses[block.submission_id].counted_dispute_count }} / 3 disputes;
+                {{ disputeStatuses[block.submission_id].established_disputer_count }} established.
+                {{ disputeStatuses[block.submission_id].threshold_met ? 'Dispute threshold met.' : 'Threshold not met.' }}
+              </p>
+              <select v-model="disputeReasons[block.submission_id]" class="input-field" aria-label="Dispute reason">
+                <option value="">Choose a reason</option>
+                <option v-for="reason in disputeReasonChoices" :key="reason.value" :value="reason.value">{{ reason.label }}</option>
+              </select>
+              <button @click="disputeFinalizedBlock(block)" class="btn vote"
+                :disabled="!disputeReasons[block.submission_id] || reportDisabled({ submitter: block.creator_wallet })">Dispute</button>
+            </div>
           </article>
         </div>
       </section>
@@ -1041,6 +1056,7 @@ import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.j
 import { getEligibilityRuleChecks } from '../utils/eligibilityChecklist.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
 import { assertCommunityReportChallenge } from '../utils/communityReport.js';
+import { assertPostMintDisputeChallenge } from '../utils/postMintDispute.js';
 import {
   SUBMITTER_ATTESTATION_STATEMENT,
   prepareSubmitterAttestationChallenge,
@@ -1094,6 +1110,17 @@ export default {
       voteError: '',
       reportReasons: {},
       reportStatuses: {},
+      disputeReasons: {},
+      disputeStatuses: {},
+      disputeReasonChoices: [
+        { value: 'potentially_illegal_content', label: 'Potentially illegal content' },
+        { value: 'nonconsensual_or_private_content', label: 'Non-consensual or private content' },
+        { value: 'exploitation_or_abuse_concern', label: 'Exploitation or abuse concern' },
+        { value: 'dangerous_or_harmful_content', label: 'Dangerous or harmful content' },
+        { value: 'impersonation_or_deceptive_manipulation', label: 'Impersonation or deceptive manipulation' },
+        { value: 'post_mint_provenance_or_originality_challenge', label: 'Post-mint provenance or originality challenge' },
+        { value: 'other_policy_concern', label: 'Other policy concern' },
+      ],
       reportReasonChoices: [
         { value: 'potentially_illegal_content', label: 'Potentially illegal content' },
         { value: 'nonconsensual_or_private_content', label: 'Non-consensual or private content' },
@@ -1783,6 +1810,14 @@ export default {
       try {
         const response = await apiClient.get('/chain');
         this.recentBlocks = [...(response.data.chain || [])].reverse().slice(0, 6);
+        await Promise.all(this.recentBlocks.filter((block) => block.finalized && block.submission_id).map(async (block) => {
+          try {
+            const status = await apiClient.get(`/submissions/${block.submission_id}/disputes/status`);
+            this.disputeStatuses = { ...this.disputeStatuses, [block.submission_id]: status.data };
+          } catch (error) {
+            this.disputeStatuses = { ...this.disputeStatuses, [block.submission_id]: null };
+          }
+        }));
       } catch (error) {
         console.error('Error fetching recent blocks:', error);
         this.blocksError = getApiErrorMessage(error, 'Failed to load recent blocks.');
@@ -2056,6 +2091,34 @@ export default {
         await this.fetchSubmissions();
       } catch (error) {
         this.voteError = getApiErrorMessage(error, 'Failed to record report.');
+      }
+    },
+    async disputeFinalizedBlock(block) {
+      this.voteMessage = '';
+      this.voteError = '';
+      const submissionId = block.submission_id;
+      const reason = this.disputeReasons[submissionId];
+      if (!block.finalized || !reason || this.reportDisabled({ submitter: block.creator_wallet })) {
+        this.voteError = 'Choose a reason and verify an eligible wallet to dispute.';
+        return;
+      }
+      if (!window.confirm('File a dispute for finalized, immutable media? This flags the media but does not remove or reverse its block.')) return;
+      try {
+        const challenge = await apiClient.post(`/submissions/${submissionId}/disputes/challenge`, {
+          wallet_address: this.voteWalletAddress, submission_id: submissionId, reason,
+        });
+        const message = assertPostMintDisputeChallenge(challenge.data, {
+          walletAddress: this.voteWalletAddress, submissionId,
+          blockHeight: block.index, blockHash: block.hash, mediaHash: block.media_hash, reason,
+        });
+        const signature = await this.signWalletMessage(message);
+        const response = await apiClient.post(`/submissions/${submissionId}/disputes`, {
+          wallet_address: this.voteWalletAddress, message, signature,
+        });
+        this.disputeStatuses = { ...this.disputeStatuses, [submissionId]: response.data.status };
+        this.voteMessage = 'Dispute recorded for finalized media. The block remains immutable.';
+      } catch (error) {
+        this.voteError = getApiErrorMessage(error, 'Failed to record dispute.');
       }
     },
     submissionLifecycleDisplay(submission) {

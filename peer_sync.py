@@ -1334,6 +1334,13 @@ def broadcast_report_to_peers(report, peer_store, origin_node_id, network_name,
     )
 
 
+def broadcast_dispute_to_peers(dispute, peer_store, origin_node_id, network_name,
+                               timeout_seconds=3):
+    return _peer_broadcast_service().broadcast_dispute(
+        dispute, peer_store, origin_node_id, network_name, timeout_seconds
+    )
+
+
 def broadcast_reviewer_offense_to_peers(
     offense, peer_store, origin_node_id, network_name, timeout_seconds=3,
 ):

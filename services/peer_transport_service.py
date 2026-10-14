@@ -143,6 +143,16 @@ class PeerBroadcastService:
             object_kind="report", object_id=report.get("payload", {}).get("submission_id"),
         )
 
+    def broadcast_dispute(self, dispute, peer_store, origin_node_id, network_name, timeout_seconds):
+        payload = {"origin_node_id": origin_node_id, "network_name": network_name,
+                   "dispute": dispute}
+        return self._broadcast_standard(
+            peer_store=peer_store, network_name=network_name,
+            origin_node_id=origin_node_id, timeout_seconds=timeout_seconds,
+            path="/peers/disputes/receive", payload=payload,
+            object_kind="dispute", object_id=dispute.get("payload", {}).get("submission_id"),
+        )
+
     def broadcast_reviewer_offense(self, offense, peer_store, origin_node_id, network_name, timeout_seconds):
         payload = {
             "origin_node_id": origin_node_id,

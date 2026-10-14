@@ -980,6 +980,18 @@
   },
   {
     "method": "GET",
+    "path": "/disputes/policy",
+    "name": "get_post_mint_dispute_policy",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
     "path": "/download_whitepaper",
     "name": "download_whitepaper",
     "classification": "public",
@@ -1279,6 +1291,20 @@
     "declared_status_code": null
   },
   {
+    "method": "POST",
+    "path": "/peers/disputes/receive",
+    "name": "receive_post_mint_dispute_from_peer",
+    "classification": "peer",
+    "authentication_expected": true,
+    "authorization_expected": true,
+    "security_dependencies": [
+      "require_peer_secret"
+    ],
+    "request_model": "PeerPostMintDisputeReceive",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
     "method": "GET",
     "path": "/peers/mempool/summary",
     "name": "get_peer_mempool_summary",
@@ -1556,6 +1582,54 @@
     "method": "GET",
     "path": "/submissions/{submission_id}/certificate",
     "name": "get_submission_certificate",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/disputes",
+    "name": "submit_post_mint_dispute",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "SignedPostMintDisputeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/disputes/broadcast",
+    "name": "broadcast_post_mint_disputes",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": null,
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "POST",
+    "path": "/submissions/{submission_id}/disputes/challenge",
+    "name": "create_post_mint_dispute_challenge",
+    "classification": "public",
+    "authentication_expected": false,
+    "authorization_expected": false,
+    "security_dependencies": [],
+    "request_model": "WalletDisputeChallengeRequest",
+    "response_model": null,
+    "declared_status_code": null
+  },
+  {
+    "method": "GET",
+    "path": "/submissions/{submission_id}/disputes/status",
+    "name": "get_post_mint_dispute_status",
     "classification": "public",
     "authentication_expected": false,
     "authorization_expected": false,

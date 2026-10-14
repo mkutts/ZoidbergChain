@@ -105,6 +105,7 @@ from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, QUARANT
 from dual_review import ADMISSIBILITY, ORIGINALITY, REVIEW_VOTE_VERSION, combined_review, vote_identity as dual_vote_identity, validate_choice, verify_vote_record
 from community_report import (ELIGIBLE_STATUSES, canonical_report_record, report_identity, report_policy_digest,
                               report_tally, verify_report)
+from post_mint_dispute import canonical_dispute_record, dispute_tally, verify_dispute
 from services.report_reviewer_index import (qualification_entry_digest, qualification_snapshot,
                                             reference_key, validate_snapshot)
 from native_transfer import (
@@ -263,6 +264,7 @@ class Blockchain:
         self.audit_logs = []  # Persistent admin audit trail
         self.finality_attestations = []  # Valid canonical validator attestations
         self.finalized_blocks = []  # Immutable validator-quorum finality evidence
+        self.post_mint_disputes = {}  # Additive observations, never block hash input
         self._report_reviewer_index = {}
         self._report_finalized_head = None
         self.lifecycle_timing = lifecycle_timing or LifecycleTimingRecorder()
@@ -324,6 +326,23 @@ class Blockchain:
         if self.Contributor_two and self.Contributor_two.public_key not in self.wallets:
             self.wallets[self.Contributor_two.public_key] = self.Contributor_two
 
+        # Build the finalized-media lookup once at startup. Normal status and
+        # dispute calls only extend it for newly appended blocks.
+        self._dispute_block_index = {
+            block.submission_id: block.index for block in self.chain
+            if block.submission_id and block.media_bytes is not None
+        }
+        self._dispute_index_length = len(self.chain)
+        self._dispute_index_last_hash = self.chain[-1].hash if self.chain else None
+        self._dispute_finality_index = {
+            (item["block_height"], str(item["block_hash"]).lower())
+            for item in self.finalized_blocks if isinstance(item, dict)
+        }
+        self._dispute_finality_length = len(self.finalized_blocks)
+        self._dispute_finality_last = ((self.finalized_blocks[-1].get("block_height"),
+                                       self.finalized_blocks[-1].get("block_hash"))
+                                      if self.finalized_blocks else None)
+
         # Ã¢Å“â€¦ Debugging - Print wallet storage
         print("Debug: Registered Wallets -", [_short_public_key(key) for key in self.wallets.keys()])
 
@@ -350,6 +369,7 @@ class Blockchain:
             "audit_logs": self.audit_logs,
             "finality_attestations": self.finality_attestations,
             "finalized_blocks": self.finalized_blocks,
+            "post_mint_disputes": deepcopy(self.post_mint_disputes),
             "report_reviewer_index": self._report_reviewer_index,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
             **({"admission_activation": self.admission_activation_record}
@@ -477,7 +497,11 @@ class Blockchain:
                     raise ValueError("Stale community reporting state; reload before saving.")
             # The facade does not serialize peer records or future storage
             # sections. Keep those locked durable sections in the replacement.
-            return {**durable, **local_state}
+            # Disputes are an independent finalized-content overlay. A stale
+            # facade saving other state must carry forward the durable set,
+            # never erase it or block an otherwise valid chain update.
+            return {**durable, **local_state,
+                    "post_mint_disputes": deepcopy(durable.get("post_mint_disputes", {}) or {})}
 
         self.storage.atomic_update_blockchain_document(reject_stale_reports)
         print("Debug: Blockchain and wallets saved successfully.")
@@ -669,6 +693,7 @@ class Blockchain:
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
         self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
         self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+        self.post_mint_disputes = deepcopy(loaded_data.get("post_mint_disputes", {}) or {})
         self._set_report_reviewer_index(loaded_data.get("report_reviewer_index"), rebuild=False)
         self._validate_persisted_finality_state()
         self.recompute_reward_pool_balance(chain=self.chain)
@@ -1536,6 +1561,112 @@ class Blockchain:
         self._restore_blockchain_state_document(document)
         return outcome
 
+    def _finalized_dispute_block(self, submission_id):
+        """Resolve a media block by an incremental canonical submission index."""
+        indexed = getattr(self, "_dispute_block_index", {})
+        indexed_length = getattr(self, "_dispute_index_length", 0)
+        indexed_hash = getattr(self, "_dispute_index_last_hash", None)
+        if indexed_length > len(self.chain) or (indexed_length and
+            self.chain[indexed_length - 1].hash != indexed_hash):
+            indexed, indexed_length = {}, 0
+        for block in self.chain[indexed_length:]:
+            if block.submission_id and block.media_bytes is not None:
+                indexed[block.submission_id] = block.index
+        self._dispute_block_index = indexed
+        self._dispute_index_length = len(self.chain)
+        self._dispute_index_last_hash = self.chain[-1].hash if self.chain else None
+        height = indexed.get(submission_id)
+        if height is None:
+            raise ValueError("Finalized media block not found for submission.")
+        block = self.chain[height]
+        if not self.is_protocol_v1_block_payload(block) or block.network_id != self.protocol_v1_network_id():
+            raise ValueError("Dispute requires a Public Testnet v1 media block.")
+        if not self._is_finalized_dispute_reference(height, block.hash):
+            raise ValueError("Media block is not finalized and canonical.")
+        if (not block.media_bytes or block.media_hash != hashlib.sha256(block.media_bytes).hexdigest()
+            or block.content_hash != block.media_hash):
+            raise ValueError("Finalized block media hash does not match immutable bytes.")
+        return block
+
+    def _is_finalized_dispute_reference(self, height, block_hash):
+        """Maintain an append-only finality membership projection for disputes."""
+        records = self.finalized_blocks
+        known = getattr(self, "_dispute_finality_index", set())
+        length = getattr(self, "_dispute_finality_length", 0)
+        last = getattr(self, "_dispute_finality_last", None)
+        if length > len(records) or (length and
+            (records[length - 1].get("block_height"), records[length - 1].get("block_hash")) != last):
+            known, length = set(), 0
+        for item in records[length:]:
+            if isinstance(item, dict):
+                known.add((item.get("block_height"), str(item.get("block_hash") or "").lower()))
+        self._dispute_finality_index = known
+        self._dispute_finality_length = len(records)
+        self._dispute_finality_last = ((records[-1].get("block_height"), records[-1].get("block_hash"))
+                                      if records else None)
+        return height < len(self.chain) and self.chain[height].hash.lower() == block_hash.lower() \
+            and (height, block_hash.lower()) in known
+
+    def dispute_status(self, submission_id):
+        block = self._finalized_dispute_block(submission_id)
+        observations = self.post_mint_disputes.get(submission_id, [])
+        for record in observations:
+            if not verify_dispute(record, submission_id=submission_id, block_height=block.index,
+                                  block_hash=block.hash, media_hash=block.media_hash,
+                                  status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Stored post-mint dispute evidence is invalid.")
+        return dispute_tally(observations, submission_id=submission_id,
+                             block_height=block.index, block_hash=block.hash,
+                             media_hash=block.media_hash)
+
+    def record_post_mint_dispute_operation(self, record):
+        """Atomically add signed observations without touching finalized history."""
+        record = canonical_dispute_record(record)
+        payload = record.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError("Signed dispute payload is required.")
+        submission_id = payload.get("submission_id")
+        outcome = {}
+
+        def mutate(document):
+            self._restore_blockchain_state_document(document)
+            block = self._finalized_dispute_block(submission_id)
+            if (payload.get("block_height") != block.index or
+                payload.get("block_hash") != block.hash or
+                payload.get("media_hash") != block.media_hash):
+                raise ValueError("Dispute does not bind the exact finalized media block.")
+            if normalize_wallet_address(payload.get("wallet_address")) == normalize_wallet_address(block.creator_wallet):
+                raise ValueError("Submission creator cannot dispute their own finalized media.")
+            if not verify_dispute(record, submission_id=submission_id, block_height=block.index,
+                                  block_hash=block.hash, media_hash=block.media_hash,
+                                  status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Invalid signed dispute or disputer eligibility reference.")
+            observations = self.post_mint_disputes.setdefault(submission_id, [])
+            for existing in observations:
+                if existing == record:
+                    outcome.update(action="duplicate", record=existing,
+                                   status=self.dispute_status(submission_id))
+                    return document
+                if existing["identity"] == record["identity"] and existing != record:
+                    raise ValueError("Dispute identity conflicts with existing evidence.")
+            conflict = any(item["payload"]["wallet_address"] == payload["wallet_address"]
+                           for item in observations)
+            observations.append(deepcopy(record))
+            observations.sort(key=lambda item: (item["payload"]["wallet_address"],
+                                                item["identity"], canonical_hash(item)))
+            outcome.update(action="conflict_recorded" if conflict else "accepted", record=record,
+                           status=self.dispute_status(submission_id))
+            document["post_mint_disputes"] = self.post_mint_disputes
+            return document
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except Exception:
+            self.load_blockchain()
+            raise
+        self._restore_blockchain_state_document(document)
+        return outcome
+
     def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager, dimension=None):
         submission = self.get_submission(submission_id)
         if not submission:
@@ -1925,6 +2056,7 @@ class Blockchain:
                 self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
                 self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
                 self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+                self.post_mint_disputes = deepcopy(loaded_data.get("post_mint_disputes", {}) or {})
                 self._validate_persisted_finality_state()
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
@@ -2000,6 +2132,7 @@ class Blockchain:
             self.audit_logs = []
             self.finality_attestations = []
             self.finalized_blocks = []
+            self.post_mint_disputes = {}
             self._report_reviewer_index = {}
             self._report_finalized_head = None
         except json.JSONDecodeError as exc:

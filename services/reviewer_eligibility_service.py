@@ -132,7 +132,11 @@ class ReviewerEligibilityService:
     def _accepted_votes(storage, address: str) -> list[dict]:
         if not hasattr(storage, "list_durable_votes"):
             return []
-        accepted = [vote for vote in storage.list_durable_votes() if vote.get("lifecycle_state") == "accepted" and normalize_wallet_address(vote.get("voter_address")) == address]
+        observations = (storage.list_durable_votes_for_reviewer(address)
+                        if hasattr(storage, "list_durable_votes_for_reviewer")
+                        else storage.list_durable_votes())
+        accepted = [vote for vote in observations if vote.get("lifecycle_state") == "accepted"
+                    and normalize_wallet_address(vote.get("voter_address")) == address]
         # Both dimensions of one submission consume one reviewer participation.
         by_submission = {}
         for vote in accepted:

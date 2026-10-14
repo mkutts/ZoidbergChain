@@ -57,6 +57,7 @@ def test_sqlite_storage_backend_initializes_database(isolated_data_dir):
             "finality_attestations",
             "finalized_blocks",
             "report_reviewer_index",
+            "post_mint_disputes",
     }
 
 
@@ -359,6 +360,7 @@ def test_sqlite_storage_backend_preserves_logical_data_shape(isolated_data_dir):
             "finality_attestations": [],
             "finalized_blocks": [],
             "report_reviewer_index": {},
+            "post_mint_disputes": {},
         }
 
 

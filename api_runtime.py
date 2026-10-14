@@ -619,6 +619,24 @@ class PeerCommunityReportReceive(_StrictBodyModel):
     report: dict[str, Any]
 
 
+class WalletDisputeChallengeRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    submission_id: SubmissionIdValue
+    reason: str
+
+
+class SignedPostMintDisputeRequest(_StrictBodyModel):
+    wallet_address: EthereumWalletAddressValue
+    message: Annotated[str, Field(min_length=1, max_length=4096)]
+    signature: Annotated[str, Field(min_length=1, max_length=4096)]
+
+
+class PeerPostMintDisputeReceive(_StrictBodyModel):
+    origin_node_id: str
+    network_name: str
+    dispute: dict[str, Any]
+
+
 class WalletTransferChallengeRequest(_StrictBodyModel):
     from_address: EthereumWalletAddressValue
     to_address: EthereumWalletAddressValue

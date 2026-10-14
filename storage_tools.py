@@ -42,6 +42,7 @@ _SECTION_TYPES = {
     "originality_evidence": list,
     "finality_attestations": list,
     "finalized_blocks": list,
+    "post_mint_disputes": dict,
     "reviewer_states": list,
     "reviewer_state_history": list,
     "reviewer_offenses": list,
@@ -129,6 +130,7 @@ def _load_state(backend: StorageBackend) -> dict[str, Any]:
         "originality_evidence": deepcopy(blockchain_state.get("originality_evidence", [])),
         "finality_attestations": deepcopy(blockchain_state.get("finality_attestations", [])),
         "finalized_blocks": deepcopy(blockchain_state.get("finalized_blocks", [])),
+        "post_mint_disputes": deepcopy(blockchain_state.get("post_mint_disputes", {})),
         "reviewer_states": deepcopy(backend.list_reviewer_states()) if hasattr(backend, "list_reviewer_states") else [],
         "reviewer_state_history": deepcopy([
             transition
@@ -310,6 +312,9 @@ def _validate_state_shape(state: dict[str, Any], *, label: str) -> None:
         raise ValueError(f"{label} must be an object.")
     for section_name, expected_type in _SECTION_TYPES.items():
         if section_name not in state:
+            if section_name == "post_mint_disputes":
+                state[section_name] = {}
+                continue
             if section_name in _OPTIONAL_REPUTATION_SECTIONS:
                 state[section_name] = []
                 continue
@@ -384,6 +389,7 @@ def _write_state_to_backend(backend: StorageBackend, state: dict[str, Any]) -> N
         "originality_evidence": deepcopy(state.get("originality_evidence", [])),
         "finality_attestations": deepcopy(state.get("finality_attestations", [])),
         "finalized_blocks": deepcopy(state.get("finalized_blocks", [])),
+        "post_mint_disputes": deepcopy(state.get("post_mint_disputes", {})),
     }
     backend.save_blockchain_state(blockchain_state)
     backend.save_peers(deepcopy(state.get("peers", [])))
@@ -646,6 +652,7 @@ def import_storage(
         "originality_evidence": deepcopy(state.get("originality_evidence", [])),
         "finality_attestations": deepcopy(state.get("finality_attestations", [])),
         "finalized_blocks": deepcopy(state.get("finalized_blocks", [])),
+        "post_mint_disputes": deepcopy(state.get("post_mint_disputes", {})),
         "reviewer_states": deepcopy(state.get("reviewer_states", [])),
         "reviewer_state_history": deepcopy(state.get("reviewer_state_history", [])),
         "reviewer_offenses": deepcopy(state.get("reviewer_offenses", [])),

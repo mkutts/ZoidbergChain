@@ -26,6 +26,7 @@ _SECTION_DEFAULTS = {
     "votes": [],
     "originality_certificates": [],
     "originality_evidence": [],
+    "post_mint_disputes": {},
     "peers": [],
 }
 _SECTION_TYPES = {
@@ -37,6 +38,7 @@ _SECTION_TYPES = {
     "votes": list,
     "originality_certificates": list,
     "originality_evidence": list,
+    "post_mint_disputes": dict,
     "peers": list,
 }
 
@@ -262,6 +264,8 @@ def _validate_migration(source_snapshot: dict[str, Any], sqlite_db_path: Path) -
             "Migration validation failed for latest_block_hash: "
             f"source={source_summary['latest_block_hash']} migrated={migrated_summary['latest_block_hash']}"
         )
+    if source_snapshot.get("post_mint_disputes", {}) != migrated_snapshot.get("post_mint_disputes", {}):
+        raise MigrationError("Migration validation failed for post-mint dispute observations.")
 
 
 def migrate_json_to_sqlite(

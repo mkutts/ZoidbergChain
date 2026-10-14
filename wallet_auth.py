@@ -41,6 +41,8 @@ from protocol_v1_originality import (
 )
 from dual_review import REVIEW_VOTE_VERSION, vote_message as dual_vote_message, validate_choice
 from community_report import report_message, report_payload
+from post_mint_dispute import dispute_payload
+from protocol_v1 import canonical_json_text
 
 
 ETHEREUM_ADDRESS_PATTERN = r"^0x[a-fA-F0-9]{40}$"
@@ -255,6 +257,7 @@ class WalletAuthManager:
         self._submission_challenges_by_message_hash: dict[str, SubmissionChallenge] = {}
         self._vote_challenges_by_message_hash: dict[str, VoteChallenge] = {}
         self._report_challenges_by_message_hash: dict[str, dict] = {}
+        self._dispute_challenges_by_message_hash: dict[str, dict] = {}
         self._transfer_challenges_by_message_hash: dict[str, TransferChallenge] = {}
         self._lock = threading.RLock()
 
@@ -264,6 +267,7 @@ class WalletAuthManager:
         self._submission_challenges_by_message_hash.clear()
         self._vote_challenges_by_message_hash.clear()
         self._report_challenges_by_message_hash.clear()
+        self._dispute_challenges_by_message_hash.clear()
         self._transfer_challenges_by_message_hash.clear()
 
     def prune_expired(self) -> None:
@@ -290,6 +294,10 @@ class WalletAuthManager:
         }
         self._report_challenges_by_message_hash = {
             key: challenge for key, challenge in self._report_challenges_by_message_hash.items()
+            if challenge["expires_at"] > now
+        }
+        self._dispute_challenges_by_message_hash = {
+            key: challenge for key, challenge in self._dispute_challenges_by_message_hash.items()
             if challenge["expires_at"] > now
         }
         self._transfer_challenges_by_message_hash = {
@@ -533,6 +541,47 @@ class WalletAuthManager:
                 "submitter_attestation": attestation,
                 "message": "Submission signature verified",
             }
+
+    def issue_dispute_challenge(self, *, wallet_address: str, submission_id: str,
+                                block_height: int, block_hash: str, media_hash: str,
+                                reason: str) -> dict:
+        with self._lock:
+            self.prune_expired()
+            issued = _utc_now()
+            expires = issued + timedelta(seconds=self.challenge_ttl_seconds)
+            payload = dispute_payload(
+                wallet_address=wallet_address, submission_id=submission_id,
+                block_height=block_height, block_hash=block_hash, media_hash=media_hash,
+                reason=reason, nonce=secrets.token_urlsafe(24),
+                issued_at=_isoformat(issued), expires_at=_isoformat(expires),
+                network_id=resolve_protocol_v1_network_id(network_name=self.network_name),
+            )
+            message = canonical_json_text(payload)
+            self._dispute_challenges_by_message_hash[hash_wallet_message(message)] = {
+                "payload": payload, "message": message, "expires_at": expires, "used": False,
+            }
+            return {"payload": payload, "message": message,
+                    "signed_message_hash": hash_wallet_message(message)}
+
+    def verify_dispute_challenge(self, *, wallet_address: str, message: str,
+                                  signature: str) -> dict:
+        with self._lock:
+            challenge = self._dispute_challenges_by_message_hash.get(hash_wallet_message(message))
+            if challenge is None:
+                raise ValueError("No active dispute challenge found for this message.")
+            if challenge["used"]:
+                raise ValueError("Dispute challenge has already been used.")
+            if challenge["expires_at"] <= _utc_now():
+                raise ValueError("Dispute challenge has expired.")
+            if message != challenge["message"]:
+                raise ValueError("Dispute message is not canonical.")
+            wallet = normalize_wallet_address(wallet_address)
+            if wallet != challenge["payload"]["wallet_address"]:
+                raise ValueError("Dispute wallet differs from challenge wallet.")
+            if recover_signed_wallet_address(message, signature) != wallet:
+                raise ValueError("Dispute signature does not match wallet.")
+            challenge["used"] = True
+            return dict(challenge["payload"])
 
     def issue_report_challenge(self, *, wallet_address: str, submission_id: str,
                                content_hash: str, reason: str) -> dict[str, str]:

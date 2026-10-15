@@ -4821,31 +4821,6 @@ class Blockchain:
 
     def remove_invalid_mint_queue_entries(self):
         return self._mint_queue_service.remove_invalid(self._mint_queue_state(), self.storage, self.require_valid_certificate_for_submission)
-    def remove_invalid_mint_queue_entries(self):
-        valid_queue = []
-        removed_entries = []
-        for submission_id in self.mint_queue:
-            submission = self.get_submission(submission_id)
-            try:
-                certificate_ready = (
-                    submission
-                    and submission.status == QUEUED
-                    and self.require_valid_certificate_for_submission(submission)
-                )
-            except ValueError:
-                certificate_ready = False
-
-            if certificate_ready:
-                valid_queue.append(submission_id)
-            else:
-                if submission and submission.status == QUEUED:
-                    submission.status = APPROVED
-                if submission and not self.get_originality_certificate_for_submission(submission.submission_id):
-                    submission.certificate_id = None
-                removed_entries.append(submission_id)
-
-        self.mint_queue = valid_queue
-        return removed_entries
 
     def validate_candidate_block_for_local_acceptance(self, block, *, current_chain=None):
         self.require_admission_activation_for_new_block()

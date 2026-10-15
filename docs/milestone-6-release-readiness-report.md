@@ -2,11 +2,14 @@
 
 Date: 2026-10-15
 
-Scope: Milestone 6 Task 6.11 only — final adversarial audit and narrowly scoped remediation for Immutable Media Safety and Admission. No Milestone 7 work, commit, or push was performed.
+Scope: Milestone 6 Tasks 6.11 and 6.11A only — final adversarial audit,
+narrowly scoped remediation, and authorized Python dependency-advisory closure
+for Immutable Media Safety and Admission. No Milestone 7 work, Task 6.11A
+commit, or push was performed.
 
 ## Release decision
 
-**CONDITIONAL PASS**
+**PASS**
 
 All Milestone 6 implementation acceptance criteria and all final code, protocol,
 frontend, build, integrity, storage, peer, and dependency gates passed. The two
@@ -16,12 +19,20 @@ release-readiness defects found by Task 6.11 were fixed:
    silently overridden the hardened fail-closed implementation; and
 2. the frontend dependency graph contained four HIGH npm findings.
 
-The only release condition is external and operational: an authoritative Python
-advisory scan was not run because the available `pip-audit` service would send
-the installed package inventory to an external vulnerability service and that
-disclosure was not authorized. `pip check` is clean. This limitation is not a
-known exploitable protocol or implementation defect, but the Python advisory
-status must be verified through an approved process before a public release.
+The previously outstanding Python advisory condition is closed. External
+advisory querying was explicitly authorized on 2026-10-15. Authoritative
+`pip-audit==2.9.0` scans of both the complete production requirements and the
+complete test/development superset succeeded and reported **no known
+vulnerabilities**. `pip check` remains clean.
+
+The existing workspace `.venv` is not a lock-equivalent release environment: it
+contains stale versions of four declared packages and unrelated/tooling
+packages. Its inventory audit reported 21 advisories in eight packages. These
+are not findings in either resolved project requirement set, and code inspection
+confirmed that the CRITICAL/HIGH affected APIs are not used by ZoidbergChain.
+The drifted `.venv` must not be reused as a deployment artifact; deployments
+must install from the audited requirements. This is an environment-hygiene
+warning, not a release-blocking project dependency finding.
 
 The npm release target is fully met: **0 HIGH, 0 CRITICAL, 0 total known npm
 vulnerabilities** in the final live audit.
@@ -31,13 +42,14 @@ vulnerabilities** in the final live audit.
 | Item | Verified value |
 | --- | --- |
 | Branch | `Immutable-Media-Safety-and-Admission` |
-| HEAD | `35fe2d023d81431668a8c8e8ee7d3bb6eb0cb31f` — `Milestone 6 Task 6.10: integrate media safety lifecycle UI and API` |
+| HEAD before Task 6.11A | `ffc24932a15a4470f7316eb9b65fa2eb71d88167` — `Milestone 6 Task 6.11: complete adversarial release readiness` |
 | Upstream | `origin/Immutable-Media-Safety-and-Admission` |
 | Worktree before Task 6.11 | clean |
-| Worktree at continuation | dirty only with the intended uncommitted Task 6.11 changes |
+| Worktree before Task 6.11A | clean |
 | Tasks 6.1–6.10 | separate commits `6225499`, `454f962`, `160a02e`, `b4ae98f`, `a321d4e`, `a92ffb5`, `63f1549`, `f2fae23`, `d34da34`, `35fe2d0` |
 | Pre-edit mismatch | none |
-| Commit/push | none |
+| Task 6.11 commit | separate commit `ffc2493` |
+| Task 6.11A commit/push | none |
 
 Final Task 6.11 paths are:
 
@@ -325,7 +337,9 @@ All pytest commands used workspace-local base temporary directories.
 | Frontend production build | **passed; 122 modules transformed** |
 | Python compileall | **passed** for root modules, routers, services, scripts, and tests |
 | `pip check` | **passed — no broken requirements** |
-| Python vulnerability advisory scan | **unverified; external inventory disclosure not authorized** |
+| Production Python audit | `.\.venv\Scripts\python.exe -m pip_audit -r requirements.txt --strict` — **no known vulnerabilities found** |
+| Test/development Python audit | `.\.venv\Scripts\python.exe -m pip_audit -r requirements-test.txt --strict` — **no known vulnerabilities found** |
+| Installed `.venv` inventory audit | `.\.venv\Scripts\python.exe -m pip_audit --strict` — **21 advisories in 8 drifted/extraneous packages; not a release dependency resolution** |
 | Live `npm audit` | **0 total, 0 HIGH, 0 CRITICAL** |
 | `git diff --check` | **passed**; informational working-copy line-ending notice only |
 
@@ -334,6 +348,58 @@ wallet, reviewer/reputation, queue/mint/block, chain/reorg/finality, peer sync,
 storage/migration/export/import/backup, API/access/router, and media-integrity
 coverage. Additional focused category sweeps were run as Task 6.11 evidence and
 remained green.
+
+### Task 6.11A Python advisory closure
+
+The audit inspected `pyproject.toml`, `requirements.txt`,
+`requirements-core.txt`, `requirements-originality.txt`,
+`requirements-test.txt`, and `requirements-dev.txt`. `pyproject.toml` contains
+test and coverage configuration but no dependency declarations.
+`requirements.txt` is the complete production composition of the core and
+originality files. `requirements-test.txt` adds the complete test set, and
+`requirements-dev.txt` is only an alias that includes `requirements-test.txt`;
+therefore auditing the production and test files covers every declared
+dependency without double-counting the component and alias files.
+
+The exact authoritative commands, using the repository `.venv` interpreter,
+were:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip_audit --strict
+.\.venv\Scripts\python.exe -m pip_audit -r requirements.txt --strict
+.\.venv\Scripts\python.exe -m pip_audit -r requirements-test.txt --strict
+```
+
+The first sandboxed attempts could not reach PyPI or resolve the temporary audit
+environment. After applying the user's explicit authorization for external
+advisory queries, all three commands reached the services and completed. The
+production and test/development requirement audits each reported exactly zero
+known vulnerabilities. No dependency declaration or installed package was
+changed.
+
+The installed inventory result is retained for environment hygiene and is not
+substituted for the clean requirement audits:
+
+| Installed package | Installed version | Classification | Advisories and published severity | Fixed version(s) / disposition |
+| --- | ---: | --- | --- | --- |
+| `anyio` | 4.14.0 | transitive production through Starlette; stale versus clean resolution | PYSEC-2026-4025 (CRITICAL), PYSEC-2026-4023 (HIGH), PYSEC-2026-4024 (MEDIUM) | 4.14.2; production resolution audited at 4.15.1 |
+| `cryptography` | 49.0.0 | direct production; stale versus exact pin | PYSEC-2026-3552 (HIGH) | exact project pin 50.0.0 |
+| `ecdsa` | 0.19.0 | extraneous; not in either resolved requirement set | PYSEC-2026-1325 (HIGH), PYSEC-2026-2467 (MEDIUM) | 0.19.2 fixes PYSEC-2026-2467; exclude by clean install |
+| `httpcore2` | 2.5.0 | extraneous transitive of extraneous `httpx2` | PYSEC-2026-3844 (HIGH) | 2.10.0; exclude by clean install |
+| `httpx2` | 2.5.0 | extraneous; project uses `httpx`, not `httpx2` | PYSEC-2026-3849 (MEDIUM), PYSEC-2026-3847 (MEDIUM), PYSEC-2026-3848 (MEDIUM), PYSEC-2026-3846 (HIGH) | 2.12.0 covers all listed fixes; exclude by clean install |
+| `pip` | 25.1.1 | environment tooling; not a project dependency | PYSEC-2026-196 (MEDIUM), PYSEC-2026-1795 (MEDIUM), PYSEC-2026-1796 (LOW), PYSEC-2026-2875 (MEDIUM), PYSEC-2026-2876 (MEDIUM), PYSEC-2026-3721 (MEDIUM) | 26.2 covers all listed fixes; use current installer tooling |
+| `pytest` | 8.4.1 | direct test-only; stale versus exact pin | PYSEC-2026-1845 (MEDIUM) | exact project pin 9.0.3 |
+| `urllib3` | 2.7.0 | transitive production through Requests; stale versus clean resolution | PYSEC-2026-4177 (HIGH), PYSEC-2026-4176 (MEDIUM), PYSEC-2026-4175 (HIGH) | 2.8.0; production resolution audited at 2.8.0 |
+
+Published severity labels were retrieved from the GitHub Advisory records linked
+by `pip-audit`; `pip-audit` itself does not print severity. The installed
+CRITICAL/HIGH paths are narrowly non-reachable in this repository: there is no
+use of AnyIO `connect_tcp`, `TLSStream`, or process APIs; no cryptography PKCS#7
+decrypt API; no `ecdsa` or `httpx2` dependency/import; and no urllib3/Requests
+streaming or HTTPS-forwarding-proxy configuration. More importantly, the
+release manifests resolve those declared transitive/direct packages to audited
+versions with no findings. A fresh environment built from the manifests is the
+required deployment input.
 
 ## Deployment procedure
 
@@ -380,8 +446,11 @@ lockfile and must not mix activation heights or weaker binaries.
 
 ### Security
 
-- Python advisory status is externally unverified. This is the sole release
-  condition. There are no known HIGH or CRITICAL npm findings.
+- The audited production and test/development Python requirement resolutions
+  have no known findings. The workspace `.venv` is drifted and must be rebuilt
+  from the manifests rather than deployed or treated as release evidence.
+  There are no known HIGH or CRITICAL findings in the audited Python release
+  dependency sets, and no known HIGH or CRITICAL npm findings.
 - Immutable media can remain harmful even when technically valid; integrity is
   not safety or legality. Browser/reviewer exposure still requires operational
   content-handling controls.
@@ -423,9 +492,7 @@ owner/legal/operations decisions before broader deployment:
   attestation;
 - final network activation height and coordinated rollout window;
 - operational response/presentation policy for quarantined or disputed harmful
-  content that preserves Model A immutability; and
-- approval for an authoritative Python advisory scan and resolution of any
-  finding it reports.
+  content that preserves Model A immutability.
 
 ## Explicit final answers
 
@@ -439,15 +506,19 @@ owner/legal/operations decisions before broader deployment:
 | Can a post-mint dispute alter block validity or finality? | **NO** |
 | Are any HIGH npm dependency findings left? | **NO** |
 | Are any CRITICAL npm dependency findings left? | **NO** |
+| Are any known HIGH Python dependency findings left in the audited release requirement sets? | **NO** |
+| Are any known CRITICAL Python dependency findings left in the audited release requirement sets? | **NO** |
+| Is the previous Milestone 6 implementation verification still valid? | **YES** — Task 6.11A changed documentation only; no code or dependency version changed. |
 | Did every Milestone 6 implementation acceptance criterion pass? | **YES** |
 
 ## Final recommendation
 
-**CONDITIONAL PASS**: the implementation and tested protocol are ready, the two
-Task 6.11 defects are remediated, all final suites/builds/checks are green, no
-tested mint or activation bypass remains, exact media integrity and deterministic
-overlay convergence hold, and npm is clean. Authorize and complete an
-authoritative Python vulnerability advisory scan before public release. If that
-scan reports no unmitigated reachable HIGH/CRITICAL issue, this decision becomes
-**PASS** without further protocol change.
+**PASS**: the implementation and tested protocol are ready, the two Task 6.11
+defects are remediated, all final suites/builds/checks are green, no tested mint
+or activation bypass remains, exact media integrity and deterministic overlay
+convergence hold, npm is clean, and the explicitly authorized authoritative
+Python audits report no known vulnerabilities in either the production
+requirements or the complete test/development superset. The stale mixed
+workspace `.venv` is not a release artifact and must be rebuilt from those
+audited manifests before operational use.
 

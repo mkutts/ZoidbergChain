@@ -1,10 +1,10 @@
 # Milestone 7 Task 7.2 — Canonical Media Compression Protocol Specification
 
-Status: proposed protocol contract, ready for design review; not implemented or activated. Codec/profile selection and launch freeze remain gated by Task 7.4 benchmarks. No performance results are claimed.
+Status: proposed protocol contract, ready for design review; not implemented or activated. Task 7.5 selects identity/1 plus zstd/1 in the [Baseline Compression Codec and Security Contract](milestone-7-codec-security-contract.md), which governs exact framing, decoder requirements and remaining activation gates. Launch limits and complete-block overhead remain unresolved. No performance results are claimed by this document.
 
 Date: 2026-10-18. Baseline: branch `Compression-State-Bloat-and-Node-Economics`, HEAD `727a993eb81005a0b81d5079f2c7d70d93ae3ac6` (`Milestone 7 Task 7.1A: revise canonical media compression architecture`), clean worktree before this task. Task 7.1A is committed; no repository-state mismatch was found.
 
-This document specifies the next development-network contract. It does not amend the running v1 protocol or authorize a reset. MUST, MUST NOT, SHOULD, and MAY describe requirements for the future implementation. Decisions marked **benchmark gate** are deliberately incomplete for compressed-mode activation; they are not implementation defaults.
+This document specifies the next development-network contract. It does not amend the running v1 protocol or authorize a reset. MUST, MUST NOT, SHOULD, and MAY describe requirements for the future implementation. Task 7.5 supersedes historical codec-selection **benchmark gates** and the provisional size/state conclusions below; unresolved release gates are not implementation defaults. A, B and C denote respectively the future original-media, encoded-media and complete-canonical-record caps; their numeric values must be frozen in launch policy before activation.
 
 ## 1. Protocol contract and decisions
 
@@ -17,7 +17,7 @@ The decisions are:
 1. Introduce protocol version **2**, non-genesis media block version **3**, and media encoding version **1**. These are separate discriminators: today's admission block version 2 still uses protocol version 1.
 2. Replace the old media fields with one `media` object containing E and its complete descriptor. Extend the remaining admission block schema rather than replace transaction, reward, originality, or finality semantics.
 3. Hash the actual chosen E and every descriptor field in the block commitment. Original-media identity remains H, independent of MIME, codec, frame, compression level, or block identity.
-4. Require the `identity/1` profile. Admit compressed profiles only through the fixed launch registry described below. The intended compressed launch has at most one additional lossless profile; identity-only is a valid outcome if measurements do not justify a codec.
+4. Require the `identity/1` profile and select `zstd/1` as the sole initial compressed profile under the Task 7.5 security contract. Admission requires the fixed launch registry and closure of all activation gates; selection does not activate either new protocol path in production.
 5. Allow a producer to choose E once. Validators MUST decode and verify it, and MUST NOT recompress to decide validity. There is no global unique compressed representation of M.
 6. Make “compress only when smaller” a producer policy. Absolute size, frame, output, and profile restrictions remain consensus rules.
 7. Preserve exact E through storage, synchronization, exports, backups, and reorganization. Optional local physical compression must recover E exactly, not merely another encoding of M.
@@ -52,8 +52,8 @@ Every non-genesis v3 media block MUST contain exactly one `media` object with th
 | `encoding_version` | integer | Exactly `1`; boolean, string, float, and null are invalid. |
 | `codec_id` | string | Exact case-sensitive identifier in the network registry; `identity` is mandatory. No aliases or auto-detection. |
 | `codec_version` | integer | Positive registry profile version; exactly `1` for identity. This is a protocol decoding profile, not a package release or producer's compression level. |
-| `original_size` | integer | `1..262144`, byte length of M. |
-| `stored_size` | integer | `1..262144`, byte length of E, before base64 serialization. |
+| `original_size` | integer | `1..A`, byte length of M; 262,144 is a provisional candidate, not a frozen launch cap. |
+| `stored_size` | integer | `1..B`, byte length of E before base64; B is independently selected. |
 | `mime_type` | string | Exactly `text/plain`, `image/jpeg`, `image/png`, `image/gif`, or `image/webp`, subject to the launch admission policy. Lowercase ASCII, no parameters, spaces, or alternate spellings. |
 | `original_sha256` | string | Exactly 64 lowercase hexadecimal characters, H; no `0x` prefix. |
 | `payload` | string | Strict standard padded base64 of E, as specified below. It is never a URL, raw text, hex object, or decoded image. |
@@ -72,7 +72,7 @@ This is an illustrative identity serialization, not a valid block, admission cer
 
 ### 3.1 Byte encoding and decoding
 
-`payload` uses the alphabet `A-Z a-z 0-9 + /` with the required terminal `=` padding, no whitespace/newlines, no URL alphabet, and no data-URI prefix. Its ASCII character count MUST equal `4 * ceil(stored_size / 3)` and MUST be at most **349,528** before allocation/decoding. Padding MUST be minimal and unused pad bits zero. Strict decode followed by exact base64 re-encode equality is required; permissive library decoding alone is insufficient. The decoded length MUST equal `stored_size`.
+`payload` uses the alphabet `A-Z a-z 0-9 + /` with the required terminal `=` padding, no whitespace/newlines, no URL alphabet, and no data-URI prefix. Its ASCII character count MUST equal `4 * ceil(stored_size / 3)` and MUST be at most `4 * ceil(B / 3)` before allocation/decoding (349,528 for the provisional 256 KiB B). Padding MUST be minimal and unused pad bits zero. Strict decode followed by exact base64 re-encode equality is required; permissive library decoding alone is insufficient. The decoded length MUST equal `stored_size`.
 
 The schema itself declares the string's meaning, so a tagged bytes object adds no information here. Base64 is selected over today's hexadecimal to limit wire expansion and leave room under the existing block budget. That arithmetic is not a measured compression gain. Original and stored sizes are intentionally distinct: each bounds a different processing stage.
 
@@ -186,7 +186,7 @@ The launch manifest, committed by the genesis policy/registry digest, maps exact
 | Profile | Contract/status |
 | --- | --- |
 | `identity`, version `1` | E = M; no frame, header, dictionary, or decompression step. Complete now as a specification. |
-| One possible compressed profile | **Benchmark gate, Task 7.4.** No compressed ID is assigned/allowed by this document. Measurements must select the algorithm and freeze its bitstream specification, exact framing, checksums, flags, parameters, deterministic rejection rules, and resource accounting before activation. No algorithm/library is provisionally accepted on live blocks. |
+| `zstd`, version `1` | Selected by Task 7.5; the linked security contract is authoritative for the pinned grammar, one frame, required checksum/content size, no dictionaries, 256 KiB window, 64-data-block ceiling and exact consumption. Not activated; work/state, adapter, conformance and launch-policy gates remain. Level 3 is producer guidance, not a validity rule. |
 
 A future compressed profile MUST define exactly one independently decodable frame per media object, exact end-of-frame/input consumption, and bounded header/window/table/block parsing. Concatenated frames, skippable frames, hidden trailing bytes, archive members, recursion/nested compression wrappers, external dictionaries, cross-block references, and dictionary-fetch hooks MUST be rejected. A profile may use a fixed algorithm constant/table, but cannot require producer-supplied external bytes. If its framing has a content-size field, it must be present and equal `original_size`; if the chosen format has none, exact output counting is mandatory instead. The profile must define whether its in-frame checksum is required, its exact verification, and forbid optional ambiguous variants. H is always checked regardless of checksum.
 
@@ -194,26 +194,26 @@ Valid bitstreams need not be what the default encoder would emit. Decoder accept
 
 ### 6.2 Consensus bounds
 
-The following numeric ceilings are proposed for the launch. Accepted-media and block caps carry forward the current admission policy; codec working-state ceilings are conservative design budgets, **not measured safe performance claims**. Task 7.4 must validate feasibility before launch freeze. Until then identity mode is the only completely specified profile.
+The following table distinguishes mandatory kinds of bounds from unresolved numbers. Task 7.5 governs the size scenarios and exact-block-overhead gate. Existing production limits remain unchanged; the new launch must not treat the earlier 256 KiB / 256 KiB / 512 KiB proposal as permanent policy. Codec working-state budgets are **not measured safe performance claims**.
 
 | Quantity | Proposed consensus maximum/rule |
 | --- | --- |
-| Original accepted image or canonical UTF-8 text M | 262,144 bytes, nonempty, independently of E's size. |
-| Stored E | 262,144 bytes, nonempty; reject descriptor/input above cap before codec invocation. |
-| Serialized base64 string | 349,528 ASCII characters, plus exact length/padding rules in section 3.1. |
-| Decompression output | Exactly `original_size`, at most 262,144 bytes. Abort before producing byte `original_size + 1`, including when the library would buffer beyond it. |
-| Complete non-genesis canonical record | 524,288 UTF-8 bytes, counted exactly after constructing C(record); enforce on production, block reception, sync, import, and restore. |
+| Original accepted image or canonical UTF-8 text M | A bytes, nonempty, independently of E. Candidate baseline 262,144; evaluate up to 2,097,152 for images before freeze. |
+| Stored E | B bytes, nonempty; reject above cap before codec invocation. Baseline 262,144; evaluate B >= A for identity fallback. |
+| Serialized base64 string | `4 * ceil(B / 3)` ASCII characters, plus exact length/padding rules in section 3.1. |
+| Decompression output | Exactly `original_size`, at most A. Abort before producing byte `original_size + 1`, including hidden buffered output. |
+| Complete non-genesis canonical record | Cap C is unresolved pending measured/bounded mandatory overhead; 524,288 is only the earlier candidate. Count exact canonical record bytes and enforce on every acceptance path once frozen. |
 | Codec history window | At most 262,144 bytes, checked from the frame before allocating it; not a substitute for total decoder-state bounds. |
-| Codec algorithm working state | At most 1,048,576 bytes of profile-defined tables/window/scratch, excluding bounded E/M and host-runtime overhead. The profile must specify the accounting; RSS/library heap is not a deterministic consensus counter. |
-| Frames per media object | One for a compressed profile; identity has zero codec frames. |
+| Codec algorithm working state | 1,048,576 bytes remains a candidate audit target, not an enforceable portable counter established here. Profile accounting and safe decoder implementation are activation gates; RSS/library heap cannot determine validity. |
+| Frames per media object | One for zstd/1 with at most 64 data blocks; identity has zero codec frames. |
 | Canonical JSON nesting | At most 32 object/array containers on any root-to-leaf path, including envelope and record wrappers. |
 | Encoded chain page | At most 64 blocks **and** 16,777,216 application-response bytes including wrapper and proofs; stop at whichever limit is reached first. These are interoperability/transport limits, not alternate per-block validity rules. |
 
-Identity at the maximum original size occupies 349,528 base64 characters, leaving **174,760 bytes before descriptor/envelope/certificate/transaction overhead** under the complete block cap. Thus a maximum-size M is eligible by media size but not guaranteed to fit every certificate/transaction combination. A producer can omit optional transactions or decline/queue the candidate; it MUST NOT truncate M or evidence, raise a local consensus cap, or claim all accepted uploads necessarily fit. Compressed profiles may fit different transaction counts, but cannot expand the original-media allowance.
+With the earlier 256 KiB media / 512 KiB record candidates, identity occupies 349,528 base64 characters, leaving **174,760 bytes before descriptor/envelope/certificate/transaction overhead**. This does not establish block fit. Task 7.5 requires bounded mandatory overhead and either B >= A with sufficient complete-record capacity, or a deterministic admission fit check before certification. Optional transactions may be omitted; mandatory media/evidence cannot be truncated and local caps cannot be raised. Larger A/B require reevaluating C; no final complete-block cap is selected here.
 
-There is **no expansion-ratio consensus test**. Small compressed text can legitimately have a high ratio. Absolute input/output/window/state limits prevent unbounded allocation, while the profile's grammar and work bounds prevent bounded-output CPU attacks. A compressed frame with `stored_size >= original_size` remains valid if it satisfies every absolute restriction. E may never exceed the stored-size ceiling, even if a codec normally adds framing overhead; identity is the fallback.
+There is **no expansion-ratio consensus test**. Small compressed text can legitimately have a high ratio. Absolute input/output/window limits and safe state accounting must prevent unbounded allocation; complete defenses against bounded-output CPU attacks remain gated by the unresolved work bound. A compressed frame with `stored_size >= original_size` remains valid if it satisfies every absolute restriction. E may never exceed B, even if a codec normally adds framing overhead; identity is the fallback when it fits.
 
-**Benchmark gate: deterministic work bound.** Each compressed profile MUST publish finite bounds for all frame/header/table/block/sequence counts and a deterministic work-accounting formula and maximum, validated against adversarial cases. Input/output/window caps alone are insufficient. Identity has work bounded by a single copy/hash pass over the bounded input. No unresolved `auto` profile, unspecified work counter, or unbounded decoder may be activated. Selecting the precise compressed-profile counters/budget requires the actual codec; this specification does not invent a codec-neutral instruction count or claim a library timeout defines consensus validity.
+**Activation gate: deterministic work bound.** Task 7.5 defines structural Zstd limits but leaves a complete work bound unresolved. Before activation, publish either consistent semantic counters/maxima or a reviewed finite algorithmic bound for every accepted and rejection path, verified independently. Input/output/window caps alone are insufficient. Identity has bounded copy/hash work. No unspecified counter or unbounded decoder may be activated; wall-clock time and machine instructions do not define consensus validity.
 
 ### 6.3 Existing media safety and local defenses
 
@@ -337,9 +337,11 @@ New compressed golden vectors must specify accepted frames, not mandate one enco
 
 ## 13. Remaining benchmark and release gates
 
-Task 7.4 must select identity-only or one lossless codec profile using measured full-block/wire/database/snapshot costs, encode/decode latency, peak resource use and adversarial behavior across the accepted MIME/size distribution. It must separate codec gains from replacing hex/duplicate copies or changing database layout. This document creates no corpus or harness and asserts no ratios, latency, savings or preferred algorithm.
+Task 7.5 update: codec selection and framing are now specified in the [security contract](milestone-7-codec-security-contract.md). Complete-record overhead, final A/B/C, safe decoder state/work, independent conformance and launch integration remain open; the security contract enumerates their current requirements.
 
-Compressed-profile gates: exact bitstream/codec ID/profile version; legal frame/header/checksum flags; deterministic work counters/maximums; window/table/state accounting and safe implementation; independent decoder agreement; justification or revision of the proposed numeric ceilings. No compressed activation with placeholders. Producer savings thresholds and optional physical compression are local decisions informed by measurements, never validity rules.
+Tasks 7.4/7.4A supplied corpus measurements supporting the initial identity plus Zstd strategy. They did not measure complete-block/wire/database/snapshot costs, native peak resource use or adversarial behavior. Those gates remain; distinguish codec gains from replacing hex/duplicate copies or changing database layout, and do not generalize synthetic-image results to real-world uploads.
+
+Compressed-profile gates remaining after Task 7.5: deterministic work proof/counters; table/state accounting and safe adapter implementation; independent decoder/platform agreement and adversarial vectors; final media/block ceilings with admission fit guarantees. Exact codec/profile IDs and frame/header/checksum restrictions are now defined, but not activated. No compressed activation with placeholders. Producer savings thresholds and optional physical compression are local decisions informed by measurements, never validity rules.
 
 Release gates independent of compression speed: exact N/genesis/allocations/manifest and snapshot schema freeze; text trim-table conformance vectors; new-context signed-object vectors and policy versions; safety-policy activation choices carried from Milestone 6; complete implementation plus the tests above. Codec-profile limits must be genesis/policy-bound before signing new admission evidence. Fee/storage economics and any future admission pricing remain separate decisions; this task changes no fees.
 

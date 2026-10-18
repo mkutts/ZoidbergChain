@@ -1,0 +1,3 @@
+# Milestone 7.6 investigation only; never a production decoder dependency set.
+-r requirements-benchmark.txt
+cffi==2.0.0

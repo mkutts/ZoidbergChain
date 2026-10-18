@@ -1,4 +1,121 @@
-# Milestone 7 Task 7.6 — Strict codec decoder conformance and security validation
+# Milestone 7 Tasks 7.6 / 7.6A — Decoder conformance and security validation
+
+## Task 7.6A current result — 2026-10-18
+
+**Prototype remediation complete and ready for review; production security approval is not granted.** A bounded sequence verifier now checks actual match distances before native reconstruction. Both Task 7.6 withheld vectors have definitive outcomes, and all 36 restricted corpus streams pass the public adapter. The new verifier is security-sensitive code requiring independent review/fuzzing; complete native-work/state proof, independent decoder/platform agreement and worker isolation remain gates.
+
+### Repository, scope and changed files
+
+Starting/final branch: `Compression-State-Bloat-and-Node-Economics`. HEAD remains `545b395283e0421e04894dadfd2bc2981b643de2`, separately committed Task 7.6. Initial worktree clean. The earlier request's “115 vectors” is a count typo: the frozen manifest has 117 = 21 accepted + 94 rejected + 2 withheld.
+
+Modified: [`strict_decoder.py`](../codec_prototype/strict_decoder.py), its [existing tests](../tests/test_milestone_7_task_7_6_decoder.py), this report, and [security-contract section 3.3](milestone-7-codec-security-contract.md). Added: [`sequence_verifier.py`](../codec_prototype/sequence_verifier.py), [sequence tests](../tests/test_milestone_7_task_7_6a_sequences.py), [v2 fixture generator](../scripts/milestone_7_task_7_6a_vectors.py), [v2 fixtures/manifest](../tests/fixtures/milestone_7_codec_v2/manifest.json), [measurement runner](../scripts/milestone_7_task_7_6a_conformance.py) and [results](../benchmarks/milestone_7_task_7_6a_results.json). The v1 fixture bytes/manifest, Task 7.6 measurement artifact, production modules and dependencies are unchanged. No staging, commit, push, merge, deployment, admission/block-format change, chain reset or subsequent task work occurs.
+
+### Root cause and exact security implications
+
+Window advertisement is header metadata, not an execution trace of resolved match offsets. `ZSTD_DCtx_setMaxWindowSize` controls streaming allocation; it is not an exported per-sequence validation callback. In this prototype, bufferless reconstruction retains the whole contiguous output (up to A). Release libzstd validates that a match can reference its available prefix/external-history buffers, which can contain more than W bytes. Its extra offset-versus-W assertions are guarded by fuzz/debug build macros. Neither checksum nor SHA-256 detects this format violation when the reconstructed bytes and attacker-supplied hash agree. [Pinned sequence implementation](https://github.com/facebook/zstd/blob/v1.5.7/lib/decompress/zstd_decompress_block.c).
+
+The native APIs inspected expose requested input counts, terminal status and decoded sizes, but do not expose each decoded sequence. `ZSTD_generateSequences` and `ZSTD_compressSequences` are encoder-side APIs; generating a new parse of M cannot verify the committed E and would violate decoder independence from the producer's compressor. Switching to another libzstd Python wrapper does not close the gap.
+
+The two v1 withheld vectors now resolve as follows:
+
+| Vector | Exact uncertainty in Task 7.6 | Task 7.6A result |
+| --- | --- | --- |
+| `offset-exceeds-declared-window` | Eight 1,024-byte raw blocks precede a repeat requiring distance 8,192, while W=1,024. Native available history masks the forbidden distance. | Deterministic `decode:window_offset` rejection before native context/output allocation. The unmodified library still reconstructs it. |
+| `valid-cross-window-compressed` | 524,288 raw bytes precede one compressed 1,024-byte repeat; the conservative guard withheld any compressed output after W. | Accept: exactly one match, actual distance 1,024, W=262,144, total output 525,312. Exact bytes/hash/counts verified. |
+
+Previously withheld corpus cases also resolve: JPEG gradient has 42,207 sequences with maximum distance 260,700 <=262,144; GIF noise has **zero sequences** and 802,666 literal bytes across 39 Huffman-compressed blocks. The former is compliant cross-block history; the latter never needed back-references. The old guard could not distinguish them.
+
+### Alternatives and selected remediation
+
+| Approach | Security/determinism | Complexity, compatibility and resources | Disposition |
+| --- | --- | --- | --- |
+| A: native guarantees/APIs alone | Bound output, allocation and frame structure; release APIs do not establish every distance <=W. | Lowest implementation/maintenance cost; broad native support, but demonstrated invalid acceptance. A checked native build needs reproducible builds and all sequence execution paths instrumented. | Existing release binding alone is insufficient. Checked native verification is a useful production architecture. |
+| B: sequence verifier plus vetted native reconstruction | Explicit distance/history checks, repeat-state transitions and deterministic sequence/table bounds; native decoder still validates actual literals/checksum/output. | Additional FSE/reverse-bit parser to audit; bounded tables/state; portable Python implementation has substantial CPU overhead. | **Selected for the isolated prototype.** No full custom decompressor. |
+| C: narrower independently verifiable profile | For example, original_size<=W or raw/RLE-only blocks eliminates this distance uncertainty. | Simple validation but rejects compliant large/cross-window producer frames or removes useful compression. Profile/version review and new interoperability vectors would be needed. | Not silently imposed on zstd/1. Identity remains the safe existing fallback where a verifier is unavailable. |
+| D: redefine validity around weaker decoder guarantees | A/B and a fixed arena can bound memory even if W is only an allocation hint, but do not enforce the intended history restriction. | Simpler adapter, larger accepted stream set; risks decoder-dependent validity. Requires explicit protocol upgrade/review. | Not selected; protections are not relaxed to pass tests. |
+
+The new verifier reads literal-section **sizes** to locate sequence metadata, builds bounded LL/OF/ML FSE tables, reads each sequence's scalar values, resolves the initial `{1,4,8}` and subsequent repeat-offset state, and checks actual distance against W and history at match start. It does not Huffman-decode literals, copy matches, reconstruct M, calculate Zstd checksums, or encode anything. Byte reconstruction remains in vetted libzstd 1.5.7. The format's extra-bit/state order and nonminimal encodings remain supported. [Pinned grammar](https://github.com/facebook/zstd/blob/v1.5.7/doc/zstd_compression_format.md).
+
+The public adapter executes descriptor/frame preflight, sequence verification, bounded native reconstruction with per-block output agreement, checksum/terminal/consumption checks and original SHA-256. Proof results include per-block output sizes; a disagreement with native output counts produces **local unavailability**, never an invented consensus-invalid verdict. Known invalid sequence streams reject deterministically. No evidence is trusted merely because native decode succeeded, and no recompression is used.
+
+### Deterministic work accounting and bounded adversarial evidence
+
+Existing A=B=2 MiB **candidate** caps, W<=256 KiB, 64-block limit and exact one-frame restrictions remain. Derived checks apply before sequence loops or dependent table allocations:
+
+| Quantity | Enforced bound and justification |
+| --- | --- |
+| Sequence count per block | `literal_count + 3*S <= min(W,131072,remaining_output)`; each match emits at least three bytes. Maximum S=43,690 per block. |
+| Frame sequences | At most `floor(original_size/3)`; maximum 699,050 at A=2 MiB. Header counts cannot authorize larger loops even in a truncated/forged stream. |
+| Sequence table states | LL/ML log<=9, OF log<=8; at most 512+256+512=1,280 live selected cells. Three selections/rebuilds per compressed block, at most 192 and 81,920 cells across 64 blocks. Repeat mode reuses existing state. |
+| Table parsing/building | Normalized probabilities/symbol indices are bounded (LL 36, OF 32, ML 53). Zero runs cannot exceed those alphabets. The spread walk is a bounded permutation and rejects overflow; invalid distributions/logs reject before table allocation. |
+| Sequence bit operations | At most six field/state reads per sequence plus initial states; each read consumes <=31 bits from a bounded view. No frame-sized Python integer or per-sequence list is allocated. All sequence bits must be consumed exactly. Zero-bit RLE tables still obey the sequence/output bound. |
+| Output/history | Exact predicted per-block/frame output; 1<=distance<=W and distance<=available history. Original/output/native capacities remain bounded independently of compression ratio. |
+
+The 64-block rule remains practical (corpus maximum 52) and useful against fragmentation but does not control short-match count by itself. No new arbitrary numeric consensus cap is introduced: sequence/table checks derive from the pinned grammar and original output limits. These diagnostic counters are not descriptor/block fields and do not finalize launch A/B/C.
+
+New tests construct known scalar sequences rather than asking an encoder to reproduce E: sequence-count boundaries 127/128 and 32,511/32,512, nonminimal count=1, 43,690 short matches in one block, one over that block bound, exactly 699,050 matches at A, all sequence table modes including repeat across raw blocks, maximum FSE logs/cells and one-over logs, repeat-offset reordering and repeat1-minus-one/zero, exact/one-over W at 1 KiB and 256 KiB, malformed tables/zero runs/stop bits/truncated counts, and every raw/RLE literal-header width. Bounded single-bit mutations and a 20-case encoder-level/history matrix supplement the frozen vectors.
+
+This is meaningful deterministic **sequence** work accounting, not a completed portable CPU theorem for the entire native decoder. Huffman construction/weight streams, native malformed-table paths, architecture-specific loops and stack/state bounds still need reviewed proof/instrumentation and sanitizers. A wall-clock timeout, process memory limit or queue cap is an operational control: exhaustion means unvalidated/defer, not consensus-invalid.
+
+### Measurements and memory implications
+
+Current toolchain remains Windows 11 / AMD64, CPython 3.13.5, zstandard 0.25.0, CFFI 2.0.0, libzstd 1.5.7. No package/compiler installation was performed. The result records source/manifest hashes and raw `perf_counter_ns`/`process_time_ns` samples. Corpus timings use one warmup/five repetitions; resources one warmup/three repetitions; malformed probes 31 repetitions. p95 is nearest rank. Imports, corpus generation and report writes are excluded.
+
+| Bounded probe | Median elapsed | Native-only median* | Additional evidence |
+| --- | ---: | ---: | --- |
+| 64 bytes / one raw block | 0.0196 ms | 0.0083 ms | One block |
+| Same 64 bytes / 64 tiny blocks | 0.1474 ms | 0.0996 ms | About 7.52x full-boundary elapsed amplification |
+| One byte / mostly empty 64 blocks | 0.1002 ms | 0.0477 ms | Output alone does not bound framing overhead |
+| 2 MiB repeated byte / 87-byte E | 1.9178 ms | 2.0599 ms | ~24,105x expansion; one sequence, bounded output |
+| 43,690 short matches | 110.8371 ms | 0.4880 ms | 109.375 ms median process CPU |
+| 699,050 short matches / exactly A | 1,821.2429 ms | 8.7563 ms | 1,765.625 ms median process CPU; 18 blocks, E=174,975 bytes |
+| Maximum sequence FSE logs | 0.2688 ms | 0.0112 ms | Three tables / 1,280 cells |
+
+\*Native-only excludes descriptor/sequence verification and is **not an acceptance path**; tiny timing differences/noise are not performance guarantees. The pure-Python worst-count verifier adds about 208x elapsed cost over native reconstruction here. This is an explicit optimization/deployment blocker, not a reason to skip verification. Across all 36 corpus samples the complete public boundary measures 32.65 MB/s; the JPEG gradient's many sequences dominate its cost. Groups and code differ from historical Task 7.6 aggregates, so they are not an apples-to-apples throughput comparison.
+
+Invalid FSE log, excessive zero run, impossible sequence count and over-window offset reject at local medians 8.9, 12.9, 7.4 and 19.4 microseconds. Finite input/output/table/sequence bounds control amplification in the prototype, but these observations do not prove a native worst-case CPU bound.
+
+Native context remains an explicit 95,968-byte static arena; native output capacity is at most 2,097,152 bytes, with at most 4,194,304 decoded-storage bytes temporarily during the immutable-result copy. The verifier stores up to 1,280 live selected table cells plus a bounded replacement table/build scratch, three states/repeat offsets, at most 64 block-size results and scalar counters; it stores **no sequence array or second original**. Views refer to bounded E. Python traced peaks are 2,099,070 bytes for the high-ratio probe and 37,257 bytes for the maximum-table probe; reused Python memory and native buffers/stack are not comprehensively represented. The longest sequence loops were not run under tracemalloc. No portable native/RSS/state guarantee is inferred from those numbers.
+
+### Vectors, corpus and verification commands
+
+The unchanged v1 manifest binds all 117 historical fixtures; its two historical unvalidated expectations now use their already-frozen `profile_expected` values. New suite `zoidbergchain-codec-sequence-conformance` v2.0.0 adds 35 fixtures with exact descriptor/M/E lengths and digests, expected stages, selected scalar counts, baseline-manifest digest and generation provenance. V2 manifest SHA-256:
+
+```text
+3d4dcd6e29b29c7751523731e5de9d7966a50be9828cff9772c21a3561250677
+```
+
+**152 vectors total: 42 accept, 110 reject, zero unvalidated**, with deterministic repeated results. Every accepted original is byte-for-byte equal with matching SHA-256 and full E consumption. All **36/36 identity and 36/36 restricted Zstd corpus** representations pass, including the five oversized samples, without changing original bytes, producer settings or policy caps. Maximum corpus distance is 260,700; maximum data-block count remains 52. The public adapter's earlier 34/36 limitation is resolved.
+
+Run from the repository root in the existing environment:
+
+```powershell
+# Replays both frozen suites, verifies corpus, measures work/memory/CPU:
+.\.venv\Scripts\python.exe scripts/milestone_7_task_7_6a_conformance.py > temp/task76a-measurements.txt 2>&1
+
+# Exact focused + adjacent regression command:
+.\.venv\Scripts\python.exe -m pytest tests/test_milestone_7_task_7_6_decoder.py tests/test_milestone_7_task_7_6a_sequences.py tests/test_milestone_7_task_7_3_corpus.py tests/test_milestone_7_task_7_4_benchmark.py tests/test_milestone_7_task_7_4a_image_evaluation.py tests/test_protocol_v1.py::test_bytes_are_deterministic_and_round_trip tests/test_protocol_v1.py::test_domain_separation_changes_bytes_and_hashes tests/test_protocol_v1_golden_vectors.py::test_canonical_serialization_vectors_match_runtime tests/test_protocol_v1_golden_vectors.py::test_block_vectors_match_runtime -q --tb=short > temp/task76a-regression.txt 2>&1
+
+# Intentional v2 fixture regeneration only; replay needs no encoder:
+.\.venv\Scripts\python.exe scripts/milestone_7_task_7_6a_vectors.py
+git diff --check
+```
+
+Final focused + adjacent regression result: **199 passed in 26.69 seconds**. The measurement runner also completed successfully with 152 deterministic vector outcomes and 36/36 strict corpus accepts. Historical Task 7.6 commands/results in the retained section refer to its original committed implementation; use the Task 7.6A runner for current expectations. Test logs stay in ignored `temp/`; machine-readable evidence is provided as the new report, not over the Task 7.6 measurements.
+
+### Contract amendments, independence and remaining gates
+
+Security-contract section 3.3 now unambiguously spells out resolved offsets/history, repeat/table handling and derived sequence/table ceilings, supported by exact-boundary tests. It preserves the existing zstd/1 grammar and all numeric window/block/candidate-size protections. It expressly leaves native-work/state proof and operational safeguards unresolved. No live consensus rule, encoding version or active pathway is changed.
+
+Unmodified libzstd reconstruction agrees with the bytes of all positive vectors, including the hand-constructed sequence fixtures. This validates parser/native agreement but is **not independent full-decoder verification**. No independent Go/Rust/Zstd toolchain was available locally, and native compilers were not available on the checked paths; no untrusted package was installed. Official Go FSE source was inspected as reference only and was not executed or ported as a full decoder. No second OS/architecture run is claimed.
+
+Before production: independently audit/fuzz this new verifier (FSE distributions, reverse bits, repeat offsets, all literal modes and malformed paths); verify against an independent complete decoder and Windows/Linux architectures; prefer an audited efficient native sequence-checking implementation with equivalent frozen semantics; complete the native Huffman/table/error-path work and portable state/stack analysis; add restricted workers without credentials/network/write access, native fault handling, process memory/concurrency/queue controls and cancellation/backpressure. Full launch-policy, block/admission/storage/sync/import/reorg integration and media-worker isolation remain separate gates. A compromised/unreviewed verifier could otherwise disagree with native interpretation, and an in-process native fault can still terminate this offline tool.
+
+**Task 7.6A is complete as a bounded isolated prototype and is ready for review and a later authorized commit. It is not production security approval.** Nothing has been committed or integrated.
+
+---
+
+## Historical Task 7.6 implementation and evidence
 
 Date: 2026-10-18. **Isolated prototype and evidence ready for review; full strict Zstd conformance and production activation remain blocked.** In particular, release libzstd does not establish the strict per-sequence window rule. The public adapter fails closed as **unvalidated** where it cannot prove that rule. Successful reconstruction is not conformance approval.
 

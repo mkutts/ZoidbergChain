@@ -1,7 +1,8 @@
 """Task 7.6 codec boundary, NOT a block/media/admission validator.
 
 Frozen profile: Task 7.5, zstd format 0.4.3 / libzstd 1.5.7.
-Only the private, statically linked CFFI bridge in zstandard 0.25.0 is used.
+Reconstruction uses the statically linked CFFI bridge in zstandard 0.25.0;
+Task 7.6A verifies sequences independently before native reconstruction.
 No encoder, dictionary, dynamic plugin, fallback, or production imports.
 """
 from __future__ import annotations
@@ -12,6 +13,8 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass
+
+from .sequence_verifier import VerificationReject, WorkStats, verify_sequences
 
 MAX_SIZE = 2 * 1024 * 1024  # Candidate A/B, NOT an activated policy.
 MAX_WINDOW = 262144
@@ -57,6 +60,7 @@ class DecodeResult:
     native_arena_bytes: int
     native_reported_bytes: int
     native_calls: int
+    work: WorkStats | None = None
 
 
 def parse_descriptor(raw: bytes) -> dict:
@@ -218,7 +222,7 @@ def _backend():
     return ffi, lib
 
 
-def _decode_native(encoded: bytes, info: FrameInfo):
+def _decode_native(encoded: bytes, info: FrameInfo, expected_work: WorkStats | None = None):
     """Bufferless streaming: exact next input, per-block destination capacity.
 
     Full contiguous output retains history. Static context cannot malloc/realloc.
@@ -255,6 +259,7 @@ def _decode_native(encoded: bytes, info: FrameInfo):
     consumed = produced = calls = 0
     compressed_history_unproven = False
     current_kind = None
+    current_block = -1
     # Every successful nonterminal call consumes >= 1 byte; progress is explicit.
     while True:
         needed = int(lib.ZSTD_nextSrcSizeToDecompress(context))
@@ -267,6 +272,7 @@ def _decode_native(encoded: bytes, info: FrameInfo):
         input_type = int(lib.ZSTD_nextInputType(context))
         if input_type == int(lib.ZSTDnit_blockHeader):
             current_kind = (encoded[consumed] >> 1) & 3
+            current_block += 1
         count = checked(lib.ZSTD_decompressContinue(
             context, output + produced, capacity, source + consumed, needed))
         if count > capacity:
@@ -274,6 +280,8 @@ def _decode_native(encoded: bytes, info: FrameInfo):
         consumed += needed
         produced += count
         if input_type in (int(lib.ZSTDnit_block), int(lib.ZSTDnit_lastBlock)):
+            if expected_work is not None and count != expected_work.block_output_sizes[current_block]:
+                raise DecoderUnavailable("sequence/native block-size disagreement")
             if current_kind == 2 and produced > info.window:
                 compressed_history_unproven = True
         calls += 1
@@ -303,16 +311,17 @@ def decode(descriptor: dict) -> DecodeResult:
                 reject("identity_size", "frame")
             original, digest = encoded, hashlib.sha256(encoded).hexdigest()
             info = None
+            work = None
             arena = reported = calls = 0
         else:
             info = inspect_frame(encoded, size)
-            original, digest, arena, reported, calls, unproven = _decode_native(encoded, info)
-            if unproven:
-                # libzstd release builds don't check every offset against W.
-                # Do not invent a narrower consensus profile or expose output.
-                raise DecoderUnavailable("strict offset/window conformance unproven")
+            try:
+                work = verify_sequences(encoded, info)
+            except VerificationReject as exc:
+                reject(str(exc), "decode")
+            original, digest, arena, reported, calls, _history_beyond_window = _decode_native(encoded, info, work)
         if digest != descriptor["original_sha256"]:
             reject("original_hash", "integrity")
-        return DecodeResult(original, len(encoded), len(original), info, size, arena, reported, calls)
+        return DecodeResult(original, len(encoded), len(original), info, size, arena, reported, calls, work)
     except MemoryError as exc:
         raise DecoderUnavailable("local allocation failure; input remains unvalidated") from exc

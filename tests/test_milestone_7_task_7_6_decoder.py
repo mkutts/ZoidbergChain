@@ -41,8 +41,13 @@ def test_versioned_golden_vectors(vector):
                 codec.decode(desc)
             assert (caught.value.code, caught.value.stage) == (vector["code"], vector["stage"])
         elif vector["expected"] == "unvalidated":
-            with pytest.raises(codec.DecoderUnavailable, match="offset/window"):
-                codec.decode(desc)
+            # Preserve v1 fixture bytes/outcomes as historical evidence. Task 7.6A
+            # now resolves both cases according to their frozen profile expectation.
+            if vector["profile_expected"] == "reject":
+                with pytest.raises(codec.CodecReject, match="window_offset"):
+                    codec.decode(desc)
+            else:
+                assert codec.decode(desc).original == (DEST / vector["original_path"]).read_bytes()
         else:
             result = codec.decode(desc)
             assert result.original == (DEST / vector["original_path"]).read_bytes()

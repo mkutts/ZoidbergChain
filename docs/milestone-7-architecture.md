@@ -1,6 +1,8 @@
 # Milestone 7 Tasks 7.1 / 7.1A — Repository Audit and Compression Architecture
 
-Status: Task 7.1A reevaluation complete; architecture proposal, pending the Task 7.2 protocol contract and later measurements. No compression implementation, corpus, reset, or production-code change.
+Status: Task 7.1A reevaluation complete; Task 7.2 protocol contract specified in [Canonical Media Compression Protocol Specification](milestone-7-compression-protocol.md), pending review and later measurements. No compression implementation, corpus, reset, or production-code change.
+
+Task 7.2 follow-up (2026-10-18, baseline `727a993`): the linked specification defines protocol v2 / media block v3, one media descriptor and strict base64 payload, original-byte identity, encoded-representation block commitments, bounded validation without recompression, and a fresh-network reset plan. `media_hash` / `content_hash` become derived views of `media.original_sha256` in the new block schema; signed evidence retains its original-byte bindings. “Compress only when smaller” is producer policy. Codec/profile/resource freeze remains gated by **Task 7.4 benchmarks**, as directed by the Task 7.2 request; that instruction supersedes the tentative 7.3/7.4 sequencing below. Other sections retain the Task 7.1A audit/proposal history; the linked contract resolves its media-format decisions without claiming implementation or launch readiness.
 
 Audit / reevaluation date: 2026-10-18.
 

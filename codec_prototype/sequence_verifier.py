@@ -106,12 +106,22 @@ class ReverseBits:
         self.bit = (len(data) - 1) * 8 + data[-1].bit_length() - 1
 
     def read(self, width):
+        # Most RLE sequence-table state updates consume zero bits. Preserve the
+        # width/remaining-input checks, but avoid slicing/conversion for them.
         if not 0 <= width <= 31 or width > self.bit:
             invalid()
+        if width == 0:
+            return 0
         self.bit -= width
         start = self.bit // 8
+        shift = self.bit % 8
+        if width <= 8:
+            value = self.data[start]
+            if width + shift > 8:
+                value |= self.data[start + 1] << 8
+            return (value >> shift) & ((1 << width) - 1)
         # At most five bytes / 31 bits per operation. Never build a frame-sized int.
-        return (int.from_bytes(self.data[start:start + 5], "little") >> (self.bit % 8)) & ((1 << width) - 1)
+        return (int.from_bytes(self.data[start:start + 5], "little") >> shift) & ((1 << width) - 1)
 
 
 def read_table(data, offset, max_symbol, max_log):
@@ -207,7 +217,10 @@ def verify_sequences(encoded, info):
             and 1 <= info.window <= 262144 and 1 <= info.block_count <= 64):
         invalid()
     tables = [None, None, None]
-    repeats = [1, 4, 8]
+    repeat0, repeat1, repeat2 = 1, 4, 8
+    window = info.window
+    ll_base, ll_bits = LL_BASE, LL_BITS
+    ml_base, ml_bits = ML_BASE, ML_BITS
     offset = info.header_size
     produced = sequences = literals = raw_rle = compressed_blocks = table_count = cells = max_offset = sequence_bits = 0
     block_outputs = []
@@ -275,36 +288,46 @@ def verify_sequences(encoded, info):
                 cells += len(tables[i].rows)
         bits = ReverseBits(body[cursor:])
         initial_bits = bits.bit
-        states = [bits.read(table.log) for table in tables]
+        read = bits.read
+        ll_rows, of_rows, ml_rows = tables[0].rows, tables[1].rows, tables[2].rows
+        ll_state, of_state, ml_state = read(tables[0].log), read(tables[1].log), read(tables[2].log)
         block_output = used_literals = 0
         for index in range(count):
-            ll, of, ml = [table.rows[state] for table, state in zip(tables, states)]
-            value = (1 << of[0]) + bits.read(of[0])
-            match = ML_BASE[ml[0]] + bits.read(ML_BITS[ml[0]])
-            literal = LL_BASE[ll[0]] + bits.read(LL_BITS[ll[0]])
+            ll, of, ml = ll_rows[ll_state], of_rows[of_state], ml_rows[ml_state]
+            value = (1 << of[0]) + read(of[0])
+            match = ml_base[ml[0]] + read(ml_bits[ml[0]])
+            literal = ll_base[ll[0]] + read(ll_bits[ll[0]])
             if value > 3:
                 distance = value - 3
-                repeats = [distance, repeats[0], repeats[1]]
+                repeat0, repeat1, repeat2 = distance, repeat0, repeat1
             elif literal == 0 and value == 3:
-                distance = repeats[0] - 1
-                repeats = [distance, repeats[0], repeats[1]]
+                distance = repeat0 - 1
+                repeat0, repeat1, repeat2 = distance, repeat0, repeat1
             else:
                 rep = value - 1 + (literal == 0)
-                distance = repeats[rep]
-                repeats = [distance] + repeats[:rep] + repeats[rep + 1:]
+                if rep == 0:
+                    distance = repeat0
+                elif rep == 1:
+                    distance = repeat1
+                    repeat0, repeat1 = repeat1, repeat0
+                else:
+                    distance = repeat2
+                    repeat0, repeat1, repeat2 = repeat2, repeat0, repeat1
             used_literals += literal
             if used_literals > literal_count or block_output + literal + match > block_max:
                 invalid()
             if distance <= 0 or distance > produced + block_output + literal:
                 invalid()
-            if distance > info.window:
+            if distance > window:
                 invalid("window_offset")
-            max_offset = max(max_offset, distance)
+            if distance > max_offset:
+                max_offset = distance
             block_output += literal + match
             if index + 1 < count:
                 # Update LL, ML, OF after reading extras OF, ML, LL.
-                for i, row in ((0, ll), (2, ml), (1, of)):
-                    states[i] = row[2] + bits.read(row[1])
+                ll_state = ll[2] + read(ll[1])
+                ml_state = ml[2] + read(ml[1])
+                of_state = of[2] + read(of[1])
         if bits.bit != 0:
             invalid()
         sequence_bits += initial_bits
@@ -313,6 +336,9 @@ def verify_sequences(encoded, info):
             invalid()
         produced += block_output
         block_outputs.append(block_output)
+        # Do not retain a previous block's cached rows while its successor
+        # replaces tables. Keep peak table lifetime bounded as in the reference.
+        del ll_rows, of_rows, ml_rows
     if produced != info.content_size or offset + 4 != len(encoded):
         invalid()
     return WorkStats(info.block_count, compressed_blocks, sequences, literals, raw_rle,

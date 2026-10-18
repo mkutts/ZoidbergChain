@@ -17,25 +17,27 @@ QUEUED = "queued"
 REJECTED = "rejected"
 HARD_REJECTED = "hard_rejected"
 MINTED = "minted"
+QUARANTINED = "quarantined"
 
 VOTE_ORIGINAL = "original"
 VOTE_NOT_ORIGINAL = "not_original"
 VOTE_UNSURE = "unsure"
 VOTE_TYPES = {VOTE_ORIGINAL, VOTE_NOT_ORIGINAL, VOTE_UNSURE}
 
-SUBMISSION_STATUSES = {PENDING, APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED}
+SUBMISSION_STATUSES = {PENDING, APPROVED, QUEUED, REJECTED, HARD_REJECTED, MINTED, QUARANTINED}
 ATTESTATION_REQUIREMENTS = {
     ATTESTATION_REQUIRED,
     ATTESTATION_LEGACY,
     ATTESTATION_DEVELOPMENT,
 }
 VALID_STATUS_TRANSITIONS = {
-    PENDING: {APPROVED, REJECTED, HARD_REJECTED},
-    APPROVED: {QUEUED, HARD_REJECTED},
-    QUEUED: {MINTED, HARD_REJECTED},
+    PENDING: {APPROVED, REJECTED, HARD_REJECTED, QUARANTINED},
+    APPROVED: {QUEUED, HARD_REJECTED, QUARANTINED},
+    QUEUED: {MINTED, HARD_REJECTED, QUARANTINED},
     REJECTED: set(),
     HARD_REJECTED: set(),
     MINTED: set(),
+    QUARANTINED: set(),
 }
 
 
@@ -85,6 +87,11 @@ class Submission:
     # deserialization explicitly supplies the legacy default in from_dict().
     attestation_requirement: str = ATTESTATION_DEVELOPMENT
     submitter_attestation: dict | None = None
+    admission_certificate: dict | None = None
+    admission_state: str | None = None
+    quarantine_reason: str | None = None
+    community_reports: list[dict] = field(default_factory=list)
+    report_quarantine_evidence: dict | None = None
     decision_reason: str | None = None
     decision_finalized_at: float | None = None
 
@@ -142,6 +149,11 @@ class Submission:
             "identity_source": self.identity_source,
             "attestation_requirement": self.attestation_requirement,
             "submitter_attestation": self.submitter_attestation,
+            "admission_certificate": self.admission_certificate,
+            "admission_state": self.admission_state,
+            "quarantine_reason": self.quarantine_reason,
+            "community_reports": self.community_reports,
+            "report_quarantine_evidence": self.report_quarantine_evidence,
         }
         if self.decision_reason is not None:
             payload["decision_reason"] = self.decision_reason
@@ -177,6 +189,11 @@ class Submission:
             identity_source=data.get("identity_source"),
             attestation_requirement=data.get("attestation_requirement", ATTESTATION_LEGACY),
             submitter_attestation=data.get("submitter_attestation"),
+            admission_certificate=data.get("admission_certificate"),
+            admission_state=data.get("admission_state"),
+            quarantine_reason=data.get("quarantine_reason"),
+            community_reports=list(data.get("community_reports") or []),
+            report_quarantine_evidence=data.get("report_quarantine_evidence"),
             decision_reason=data.get("decision_reason"),
             decision_finalized_at=data.get("decision_finalized_at"),
         )

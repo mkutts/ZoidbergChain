@@ -77,24 +77,29 @@ async def download_block_media(request: Request, block_hash: str):
     if block is None:
         raise HTTPException(status_code=404, detail=f"Block not found: {block_hash}")
 
-    try:
+    if block.index == 0:
         media_bytes = blockchain.recover_block_media_bytes(block)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=f"Block does not contain recoverable media bytes: {block_hash}") from exc
-
-    media_hash = str(getattr(block, "media_hash", "") or "").strip().lower()
-    actual_media_hash = hashlib.sha256(media_bytes).hexdigest()
-    if media_hash and media_hash != actual_media_hash:
-        raise HTTPException(status_code=409, detail="Block media bytes failed integrity verification.")
-
-    mime_type = str(getattr(block, "mime_type", "") or "").strip().lower() or "application/octet-stream"
-    if mime_type == TEXT_MIME_TYPE:
+        media_hash = hashlib.sha256(media_bytes).hexdigest()
+        if media_hash != block.media_hash:
+            raise HTTPException(status_code=409, detail="Genesis media bytes failed integrity verification.")
+        integrity = {"media_hash": media_hash, "integrity_status": "verified"}
+    else:
         try:
-            return PlainTextResponse(content=media_bytes.decode("utf-8"), media_type=TEXT_MIME_TYPE)
-        except UnicodeDecodeError as exc:
-            raise HTTPException(status_code=409, detail="Block text media could not be decoded safely.") from exc
-
-    return Response(content=media_bytes, media_type=mime_type)
+            integrity = blockchain.verify_block_media_integrity(block)
+            media_bytes = bytes(block.media_bytes)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail="Block media bytes failed integrity verification.") from exc
+    mime_type = str(getattr(block, "mime_type", "") or "").strip().lower() or "application/octet-stream"
+    return Response(
+        content=media_bytes,
+        media_type=mime_type,
+        headers={
+            "Cache-Control": "public, immutable",
+            "X-Zoidberg-Block-Hash": block.hash,
+            "X-Zoidberg-Media-SHA256": integrity["media_hash"],
+            "X-Zoidberg-Media-Integrity": integrity["integrity_status"],
+        },
+    )
 
 
 EXPLICIT_ROUTER = True

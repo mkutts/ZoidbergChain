@@ -11,7 +11,7 @@ import re
 import time
 from dataclasses import dataclass
 
-from block import Block, PROTOCOL_V1_BLOCK_VERSION
+from block import ADMISSION_BLOCK_VERSION, Block, PROTOCOL_V1_BLOCK_VERSION
 from content import (
     CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED, CONTENT_TYPE_TEXT, HASH_SCHEME_LEGACY,
     HASH_SCHEME_SHA256_BYTES,
@@ -49,7 +49,10 @@ class ContentCoordinationService:
 
     @classmethod
     def is_protocol_v1_block_payload(cls, block):
-        return cls._block_field(block, "block_version") == PROTOCOL_V1_BLOCK_VERSION
+        return cls._block_field(block, "block_version") in {
+            PROTOCOL_V1_BLOCK_VERSION,
+            ADMISSION_BLOCK_VERSION,
+        }
 
     @staticmethod
     def get_content_object(state, storage, content_id):

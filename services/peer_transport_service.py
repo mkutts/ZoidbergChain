@@ -112,7 +112,7 @@ class PeerBroadcastService:
             "created_at": vote.get("created_at"),
         }
         for key in [
-            "vote_version", "protocol_version", "network_id", "content_hash",
+            "vote_version", "dimension", "protocol_version", "network_id", "content_hash",
             "voter_wallet_address", "signature_scheme", "vote_signature", "vote_message",
             "signed_message_hash", "vote_nonce", "vote_issued_at", "vote_expires_at",
             "signed_at", "identity_source",
@@ -131,6 +131,26 @@ class PeerBroadcastService:
             payload=payload,
             object_kind="vote",
             object_id=vote.get("submission_id"),
+        )
+
+    def broadcast_report(self, report, peer_store, origin_node_id, network_name, timeout_seconds):
+        payload = {"origin_node_id": origin_node_id, "network_name": network_name,
+                   "report": report}
+        return self._broadcast_standard(
+            peer_store=peer_store, network_name=network_name,
+            origin_node_id=origin_node_id, timeout_seconds=timeout_seconds,
+            path="/peers/reports/receive", payload=payload,
+            object_kind="report", object_id=report.get("payload", {}).get("submission_id"),
+        )
+
+    def broadcast_dispute(self, dispute, peer_store, origin_node_id, network_name, timeout_seconds):
+        payload = {"origin_node_id": origin_node_id, "network_name": network_name,
+                   "dispute": dispute}
+        return self._broadcast_standard(
+            peer_store=peer_store, network_name=network_name,
+            origin_node_id=origin_node_id, timeout_seconds=timeout_seconds,
+            path="/peers/disputes/receive", payload=payload,
+            object_kind="dispute", object_id=dispute.get("payload", {}).get("submission_id"),
         )
 
     def broadcast_reviewer_offense(self, offense, peer_store, origin_node_id, network_name, timeout_seconds):
@@ -193,6 +213,7 @@ class PeerBroadcastService:
         self, block, peer_store, origin_node_id, network_name,
         related_submission_id, certificate, timeout_seconds,
         originality_evidence=None,
+        admission_activation_height=None,
     ):
         payload = {
             "origin_node_id": origin_node_id,
@@ -200,6 +221,7 @@ class PeerBroadcastService:
             "block": block.to_dict(),
             "related_submission_id": related_submission_id,
             "certificate": certificate.to_dict() if certificate else None,
+            "admission_activation_height": admission_activation_height,
         }
         results = []
         for peer in peer_store.list_active_peers(network_name=network_name):

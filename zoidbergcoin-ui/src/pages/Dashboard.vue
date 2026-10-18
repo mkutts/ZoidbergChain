@@ -120,7 +120,7 @@
             <strong>{{ pendingSubmissions.length }}</strong>
           </div>
           <div class="metric-card">
-            <span>Certified Or Later</span>
+            <span>Admission / Legacy Records</span>
             <strong>{{ approvedCertificateSubmissions.length }}</strong>
           </div>
         </div>
@@ -146,6 +146,16 @@
         <div v-else-if="!summaryError" class="empty-state">
           Loading the current beta activity summary...
         </div>
+        <div v-if="chainSummary" class="review-policy-panel activation-status-panel">
+          <p class="section-label">Admission Enforcement</p>
+          <span class="status-pill" :class="activationDisplay.tone">{{ activationDisplay.label }}</span>
+          <p class="hint">{{ activationDisplay.detail }}</p>
+          <p class="meta">
+            Canonical tip {{ chainSummary.admission_activation?.canonical_tip_height ?? 'unavailable' }} ·
+            first enforced height {{ chainSummary.admission_activation?.activation_height ?? 'not configured' }} ·
+            last legacy height {{ chainSummary.admission_activation?.last_legacy_height ?? 'not configured' }}
+          </p>
+        </div>
       </section>
 
       <section v-if="isSubmitPage" class="section-panel content-panel">
@@ -154,11 +164,11 @@
             <p class="section-label">Step 1</p>
             <h2>Prepare Your Content</h2>
           </div>
-          <span class="workflow-chip">Upload First</span>
+          <span class="workflow-chip">Stage And Validate</span>
         </div>
 
         <p class="section-note">
-          Upload an image or text post first. The app can carry it into the submission step for you.
+          Stage an image or text post for technical validation. Staged media is not submitted, admitted, minted, or finalized.
         </p>
 
         <div class="form-stack">
@@ -197,7 +207,7 @@
 
         <div class="card-actions">
           <button @click="uploadContent" class="btn primary" :disabled="isContentUploading">
-            {{ isContentUploading ? 'Uploading...' : 'Upload Content' }}
+            {{ isContentUploading ? 'Validating...' : 'Stage And Technically Validate' }}
           </button>
           <button v-if="uploadedContent" @click="useUploadedContentForSubmission" class="btn secondary">
             Use In Submission
@@ -213,6 +223,7 @@
         </div>
 
         <div v-if="uploadedContent" class="content-preview-card">
+          <p class="status-message success">Technical validation accepted this file into the review pipeline. It is still only staged.</p>
           <p v-if="uploadedContentPreviewError" class="status-message error">{{ uploadedContentPreviewError }}</p>
           <div class="submission-header">
             <span class="status-pill" :class="contentStatusClass(uploadedContent)">{{ contentStatusLabel(uploadedContent) }}</span>
@@ -256,6 +267,15 @@
           </div>
           <span class="workflow-chip">Needs Verified Wallet</span>
         </div>
+
+        <ol class="lifecycle-steps" aria-label="Submission lifecycle">
+          <li><strong>Media staged:</strong> the selected bytes are technically validated.</li>
+          <li><strong>Submitter attestation:</strong> sign the exact rights and permanence statement.</li>
+          <li><strong>Community review:</strong> originality and admissibility are decided independently.</li>
+          <li><strong>Reports and quarantine:</strong> reports may quarantine a pre-mint item; quarantine is not deletion.</li>
+          <li><strong>Admission qualification:</strong> qualifying evidence is frozen in the admission certificate.</li>
+          <li><strong>Minting and finality:</strong> admitted media may enter an immutable block and later finalize.</li>
+        </ol>
 
         <div class="form-stack">
           <div class="field-group">
@@ -516,6 +536,19 @@
             <p class="submission-text">{{ submission.text_content }}</p>
             <p class="meta">Submitted by {{ shortenKey(submission.submitter) }}</p>
             <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
+            <div class="detail-grid lifecycle-detail-grid">
+              <div><span>Technical Validation</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).technicalValidation.status) }}</strong></div>
+              <div><span>Submitter Attestation</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).attestation.status) }}</strong></div>
+              <div><span>Originality Review</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).review.originality?.outcome || 'pending') }}</strong></div>
+              <div><span>Admissibility Review</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).review.admissibility?.outcome || 'pending') }}</strong></div>
+              <div><span>Pre-Mint Reports</span><strong>{{ mediaLifecycle(submission).reporting.count ?? 0 }} / {{ mediaLifecycle(submission).reporting.threshold ?? '—' }}</strong></div>
+              <div><span>Admission</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).admission.state) }}</strong></div>
+            </div>
+            <div v-if="mediaLifecycle(submission).quarantine.quarantined" class="review-policy-panel quarantine-panel">
+              <p class="section-label">Quarantined · Not Deleted</p>
+              <p class="hint">This pre-mint submission cannot mint in its current review round.</p>
+              <p class="meta">Reason: {{ formatLifecycleOutcome(mediaLifecycle(submission).quarantine.category || mediaLifecycle(submission).quarantine.reason) }}</p>
+            </div>
             <div class="content-state-line">
               <span class="status-pill" :class="contentStatusClass(submission)">{{ contentStatusLabel(submission) }}</span>
               <a v-if="submission.download_url" :href="contentUrl(submission.download_url)" target="_blank" rel="noreferrer" class="meta-link">
@@ -524,23 +557,51 @@
             </div>
 
             <div class="submission-actions">
-              <p v-if="currentWalletVoteForSubmission(submission)" class="meta">
-                Your vote: {{ formatStatus(currentWalletVoteForSubmission(submission).vote_type) }}
+              <p v-if="currentWalletVoteForSubmission(submission, 'originality')" class="meta">
+                Your originality vote: {{ formatStatus(currentWalletVoteForSubmission(submission, 'originality').vote_type) }}
+              </p>
+              <p v-if="currentWalletVoteForSubmission(submission, 'admissibility')" class="meta">
+                Your content admissibility vote: {{ formatStatus(currentWalletVoteForSubmission(submission, 'admissibility').vote_type) }}
               </p>
               <div class="reward-summary-panel">
                 <p class="section-label">Voter Reward</p>
                 <strong>{{ describeSubmissionReward(submission) }}</strong>
               </div>
+              <p class="section-label">Is this submission original under the current originality rules?</p>
               <div class="vote-actions">
-                <button @click="vote(submission.submission_id, 'original')" class="btn vote" :disabled="voteDisabled(submission)">
+                <button type="button" @click="vote(submission.submission_id, 'original', 'originality')" class="btn vote" :disabled="voteDisabled(submission, 'originality')">
                   Original
                 </button>
-                <button @click="vote(submission.submission_id, 'not_original')" class="btn vote" :disabled="voteDisabled(submission)">
+                <button type="button" @click="vote(submission.submission_id, 'not_original', 'originality')" class="btn vote" :disabled="voteDisabled(submission, 'originality')">
                   Not Original
                 </button>
-                <button @click="vote(submission.submission_id, 'unsure')" class="btn vote" :disabled="voteDisabled(submission)">
+                <button type="button" @click="vote(submission.submission_id, 'unsure', 'originality')" class="btn vote" :disabled="voteDisabled(submission, 'originality')">
                   Unsure
                 </button>
+              </div>
+              <template v-if="submission.attestation_requirement === 'public_testnet_v1_required'">
+                <p class="section-label">Does this submission satisfy the Public Testnet v1 content-admissibility rules?</p>
+                <div class="vote-actions">
+                  <button type="button" @click="vote(submission.submission_id, 'admissible', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Admissible</button>
+                  <button type="button" @click="vote(submission.submission_id, 'not_admissible', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Not Admissible</button>
+                  <button type="button" @click="vote(submission.submission_id, 'unsure', 'admissibility')" class="btn vote" :disabled="voteDisabled(submission, 'admissibility')">Unsure</button>
+                </div>
+              </template>
+              <div v-if="submission.attestation_requirement === 'public_testnet_v1_required'" class="review-policy-panel">
+                <p class="section-label">Report this submission</p>
+                <p class="hint">A report flags content for additional safety review. It is not an admissibility vote.</p>
+                <p v-if="reportStatuses[submission.submission_id]" class="meta">
+                  {{ reportStatuses[submission.submission_id].count ?? reportStatuses[submission.submission_id].accepted_report_count ?? 0 }} /
+                  {{ reportStatuses[submission.submission_id].threshold ?? reportStatuses[submission.submission_id].minimum_valid_reports ?? '—' }} reports;
+                  {{ reportStatuses[submission.submission_id].established_count ?? reportStatuses[submission.submission_id].established_reporter_count ?? 0 }} established.
+                  {{ (reportStatuses[submission.submission_id].quarantine_state || reportStatuses[submission.submission_id].threshold_met) ? 'Quarantined before mint; not deleted.' : '' }}
+                </p>
+                <select v-model="reportReasons[submission.submission_id]" class="input-field" aria-label="Report reason">
+                  <option value="">Choose a reason</option>
+                  <option v-for="reason in reportReasonChoices" :key="reason.value" :value="reason.value">{{ reason.label }}</option>
+                </select>
+                <button type="button" @click="reportSubmission(submission.submission_id)" class="btn vote"
+                  :disabled="!reportReasons[submission.submission_id] || reportDisabled(submission)">Report Pre-Mint Submission</button>
               </div>
             </div>
           </article>
@@ -550,16 +611,16 @@
       <section v-if="isActivityPage" class="section-panel approved-panel">
         <div class="card-heading">
           <div>
-            <p class="section-label">Certified Results</p>
-            <h2>Certified Memes</h2>
+            <p class="section-label">Certificate Results</p>
+            <h2>Admission And Legacy Certificates</h2>
           </div>
-          <span class="workflow-chip">Community Approved</span>
+          <span class="workflow-chip">Scope Shown Explicitly</span>
         </div>
 
         <p v-if="certificateError" class="status-message error">{{ certificateError }}</p>
 
         <div v-if="approvedCertificateSubmissions.length === 0" class="empty-state">
-          No certified memes yet. Once a submission passes voting, it will show up here.
+          No admission-qualified or legacy-certified submissions yet.
         </div>
 
         <div v-else class="submission-list">
@@ -581,8 +642,8 @@
                 <strong>{{ submissionLifecycleDisplay(submission).label }}</strong>
               </div>
               <div>
-                <span>Certificate Status</span>
-                <strong class="text-success">exists</strong>
+                <span>Certificate Scope</span>
+                <strong>{{ certificateScope(submission) }}</strong>
               </div>
               <div>
                 <span>Certificate ID</span>
@@ -592,6 +653,14 @@
                 <span>Content ID</span>
                 <strong>{{ shortenHash(submission.content_id || getCertificate(submission)?.content_id) }}</strong>
               </div>
+              <template v-if="mediaLifecycle(submission).admission.certificate?.scope === 'current_dual_admission'">
+                <div><span>Certificate Version</span><strong>{{ mediaLifecycle(submission).admission.certificate.certificate_version }}</strong></div>
+                <div><span>Certificate Digest</span><strong>{{ shortenHash(mediaLifecycle(submission).admission.certificate.certificate_digest) }}</strong></div>
+                <div><span>Technical Evidence</span><strong>{{ shortenHash(mediaLifecycle(submission).admission.certificate.technical_evidence_binding?.digest) }}</strong></div>
+                <div><span>Attestation Binding</span><strong>{{ shortenHash(mediaLifecycle(submission).admission.certificate.attestation_binding?.message_hash) }}</strong></div>
+                <div><span>Originality Result</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).admission.certificate.originality?.outcome) }}</strong></div>
+                <div><span>Admissibility Result</span><strong>{{ formatLifecycleOutcome(mediaLifecycle(submission).admission.certificate.admissibility?.outcome) }}</strong></div>
+              </template>
               <div>
                 <span>Approval</span>
                 <strong>{{ formatPercent(getCertificate(submission)?.approval_percentage) }}</strong>
@@ -687,7 +756,7 @@
         <div class="card-heading">
           <div>
             <p class="section-label">Mint Queue</p>
-            <h2>Certified Queue</h2>
+            <h2>Admission-Qualified Queue</h2>
           </div>
           <button @click="fetchMintQueue" class="btn ghost" :disabled="isQueueLoading">
             {{ isQueueLoading ? 'Refreshing...' : 'Refresh Queue' }}
@@ -699,7 +768,7 @@
         </div>
 
         <div v-if="mintQueue.length === 0" class="empty-state">
-          No certified submissions are waiting to mint.
+          No admission-qualified submissions are waiting to mint.
         </div>
 
         <div v-else class="queue-list">
@@ -716,6 +785,22 @@
             </div>
             <p class="submission-text">{{ submission.text_content }}</p>
             <p class="hint">{{ submissionLifecycleDisplay(submission).detail }}</p>
+
+            <div v-if="submission.attestation_requirement === 'public_testnet_v1_required'" class="review-policy-panel">
+              <p class="section-label">Report before mint</p>
+              <p class="hint">A report flags content for additional safety review. It is not an admissibility vote.</p>
+              <p v-if="reportStatuses[submission.submission_id]" class="meta">
+                {{ reportStatuses[submission.submission_id].count ?? reportStatuses[submission.submission_id].accepted_report_count ?? 0 }} /
+                {{ reportStatuses[submission.submission_id].threshold ?? reportStatuses[submission.submission_id].minimum_valid_reports ?? '—' }} reports;
+                {{ reportStatuses[submission.submission_id].established_count ?? reportStatuses[submission.submission_id].established_reporter_count ?? 0 }} established.
+              </p>
+              <select v-model="reportReasons[submission.submission_id]" class="input-field" aria-label="Report reason before mint">
+                <option value="">Choose a reason</option>
+                <option v-for="reason in reportReasonChoices" :key="reason.value" :value="reason.value">{{ reason.label }}</option>
+              </select>
+              <button @click="reportSubmission(submission.submission_id)" class="btn vote"
+                :disabled="!reportReasons[submission.submission_id] || reportDisabled(submission)">Report</button>
+            </div>
 
             <div class="detail-grid">
               <div>
@@ -788,7 +873,7 @@
         <div class="card-heading">
           <div>
             <p class="section-label">Recent Activity</p>
-            <h2>Certified Meme Blocks</h2>
+            <h2>Admission-Certified And Legacy Blocks</h2>
           </div>
           <button @click="fetchRecentBlocks" class="btn ghost" :disabled="isBlocksLoading">
             {{ isBlocksLoading ? 'Refreshing...' : 'Refresh Blocks' }}
@@ -798,7 +883,7 @@
         <p v-if="blocksError" class="status-message error">{{ blocksError }}</p>
 
         <div v-if="recentBlocks.length === 0" class="empty-state">
-          No certified blocks to show yet. Once submissions clear voting and mint, they will appear here.
+          No admission-certified or legacy blocks to show yet. Once current submissions clear both review dimensions and mint, they will appear here.
         </div>
 
         <div v-else class="block-list">
@@ -865,6 +950,22 @@
                 <strong>{{ shortenHash(block.content_hash) }}</strong>
               </div>
               <div v-if="!blockDisplay(block).isGenesis">
+                <span>Media SHA-256</span>
+                <strong>{{ shortenHash(block.media_integrity?.sha256 || block.media_hash) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Media Byte Length</span>
+                <strong>{{ block.media_integrity?.byte_length ?? block.media_length ?? 'Unavailable' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Integrity Contract Version</span>
+                <strong>{{ block.media_integrity?.contract_version ?? 'Unavailable' }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
+                <span>Certificate Scope</span>
+                <strong>{{ certificateScopeLabel(block.certificate_scope) }}</strong>
+              </div>
+              <div v-if="!blockDisplay(block).isGenesis">
                 <span>Content ID</span>
                 <strong>{{ shortenHash(block.content_id) }}</strong>
               </div>
@@ -917,9 +1018,38 @@
               </a>
             </div>
             <p class="hint">{{ blockContentAvailability(block).detail }}</p>
+            <div v-if="!blockDisplay(block).isGenesis" class="review-policy-panel integrity-panel">
+              <p class="section-label">Media Integrity (Exact Bytes)</p>
+              <span class="status-pill" :class="integrityDisplay(block).tone">{{ integrityDisplay(block).label }}</span>
+              <p class="hint">{{ integrityDisplay(block).detail }}</p>
+              <p v-if="integrityCheckErrors[block.submission_id]" class="status-message error">{{ integrityCheckErrors[block.submission_id] }}</p>
+              <button type="button" class="btn vote" @click="verifyMediaIntegrity(block)"
+                :disabled="!block.submission_id || integrityChecksInProgress[block.submission_id]">
+                {{ integrityChecksInProgress[block.submission_id] ? 'Verifying Exact Bytes...' : 'Verify Exact Bytes' }}
+              </button>
+              <a v-if="integrityRecord(block).download_url || block.download_url"
+                :href="contentUrl(integrityRecord(block).download_url || block.download_url)"
+                class="btn ghost" target="_blank" rel="noreferrer">Download Exact Immutable Bytes</a>
+            </div>
             <p v-if="Array.isArray(block.voter_rewards) && block.voter_rewards.length" class="hint">
               {{ describeBlockVoterRewards(block) }}
             </p>
+            <div v-if="block.finalized && block.submission_id && block.media_hash" class="review-policy-panel">
+              <p class="section-label">Dispute finalized media</p>
+              <p class="hint">This media and its block are finalized and immutable. A dispute flags it for caution or review; it does not delete media or reverse the block.</p>
+              <p v-if="disputeStatuses[block.submission_id]" class="meta">
+                {{ disputeStatuses[block.submission_id].counted_dispute_count ?? disputeStatuses[block.submission_id].count ?? 0 }} /
+                {{ disputeStatuses[block.submission_id].minimum_valid_disputes ?? disputeStatuses[block.submission_id].threshold ?? '—' }} disputes;
+                {{ disputeStatuses[block.submission_id].established_disputer_count ?? disputeStatuses[block.submission_id].established_count ?? 0 }} established.
+                {{ disputeStatuses[block.submission_id].threshold_met ? 'Dispute threshold met.' : 'Threshold not met.' }}
+              </p>
+              <select v-model="disputeReasons[block.submission_id]" class="input-field" aria-label="Dispute reason">
+                <option value="">Choose a reason</option>
+                <option v-for="reason in disputeReasonChoices" :key="reason.value" :value="reason.value">{{ reason.label }}</option>
+              </select>
+                <button type="button" @click="disputeFinalizedBlock(block)" class="btn vote"
+                  :disabled="!disputeReasons[block.submission_id] || reportDisabled({ submitter: block.creator_wallet })">Dispute Finalized Media</button>
+            </div>
           </article>
         </div>
       </section>
@@ -998,6 +1128,15 @@ import { isPublicDemoMode } from '../utils/runtimeConfig';
 import { buildSubmissionEligibilityView } from '../utils/submissionEligibility.js';
 import { getEligibilityRuleChecks } from '../utils/eligibilityChecklist.js';
 import { requestFeedbackPanelOpen } from '../utils/feedbackPanel.js';
+import { assertCommunityReportChallenge } from '../utils/communityReport.js';
+import { assertPostMintDisputeChallenge } from '../utils/postMintDispute.js';
+import { assertCommunityReviewChallenge } from '../utils/communityReview.js';
+import {
+  buildActivationDisplay,
+  buildIntegrityDisplay,
+  certificateScopeLabel as formatCertificateScopeLabel,
+  normalizeMediaLifecycle,
+} from '../utils/mediaLifecycle.js';
 import {
   SUBMITTER_ATTESTATION_STATEMENT,
   prepareSubmitterAttestationChallenge,
@@ -1049,6 +1188,30 @@ export default {
       errorMessage: '',
       voteMessage: '',
       voteError: '',
+      reportReasons: {},
+      reportStatuses: {},
+      disputeReasons: {},
+      disputeStatuses: {},
+      integrityChecks: {},
+      integrityChecksInProgress: {},
+      integrityCheckErrors: {},
+      disputeReasonChoices: [
+        { value: 'potentially_illegal_content', label: 'Potentially illegal content' },
+        { value: 'nonconsensual_or_private_content', label: 'Non-consensual or private content' },
+        { value: 'exploitation_or_abuse_concern', label: 'Exploitation or abuse concern' },
+        { value: 'dangerous_or_harmful_content', label: 'Dangerous or harmful content' },
+        { value: 'impersonation_or_deceptive_manipulation', label: 'Impersonation or deceptive manipulation' },
+        { value: 'post_mint_provenance_or_originality_challenge', label: 'Post-mint provenance or originality challenge' },
+        { value: 'other_policy_concern', label: 'Other policy concern' },
+      ],
+      reportReasonChoices: [
+        { value: 'potentially_illegal_content', label: 'Potentially illegal content' },
+        { value: 'nonconsensual_or_private_content', label: 'Non-consensual or private content' },
+        { value: 'exploitation_or_abuse_concern', label: 'Exploitation or abuse concern' },
+        { value: 'dangerous_or_harmful_content', label: 'Dangerous or harmful content' },
+        { value: 'impersonation_or_deceptive_manipulation', label: 'Impersonation or deceptive manipulation' },
+        { value: 'other_policy_concern', label: 'Other policy concern' },
+      ],
       reviewPolicy: null,
       reviewPolicyError: '',
       mintError: '',
@@ -1073,6 +1236,9 @@ export default {
   computed: {
     networkIdentity() {
       return buildProtocolNetworkIdentity(this.chainSummary || {});
+    },
+    activationDisplay() {
+      return buildActivationDisplay(this.chainSummary?.admission_activation || {});
     },
     appSection() {
       return this.$route.meta?.appSection || 'home';
@@ -1117,7 +1283,7 @@ export default {
       const labels = {
         home: 'What should you do next?',
         submit: 'Prepare and submit a meme',
-        vote: 'Review originality and cast votes',
+        vote: 'Review originality and admissibility separately',
         rewards: 'Track rewards, wallet state, and test ZOID',
         activity: 'Follow recent submissions and chain activity',
         help: 'Use this guide if you get stuck',
@@ -1128,8 +1294,8 @@ export default {
     pageSubtitle() {
       const labels = {
         home: 'Home keeps the beta simple: check your status, see the next recommended action, and jump into the right tool.',
-        submit: 'Upload content, check submission eligibility, and send new memes into originality review.',
-        vote: 'Review the current queue, confirm voting eligibility, and help decide what becomes certified.',
+        submit: 'Stage content, pass technical validation, sign the permanence attestation, and enter independent community review.',
+        vote: 'Answer originality and admissibility as separate questions; Unsure and Report remain distinct actions.',
         rewards: 'See your balance, reward history, transfer tools, and wallet verification details in one place.',
         activity: 'Keep the more technical submission, certificate, and recent block details off the main dashboard but easy to reach.',
         help: 'Find setup reminders, MetaMask guidance, beta rules, feedback entry points, and safety warnings.',
@@ -1196,7 +1362,7 @@ export default {
         return this.submissionEligibilityView.detail || 'Submission eligibility is currently blocked. Open Submit to see the rule checks and next steps.';
       }
       if (this.pendingSubmissions.length > 0) {
-        return 'There are submissions waiting for originality review right now. Voting helps decide what becomes certified.';
+        return 'There are submissions waiting for separate originality and admissibility review right now.';
       }
       return 'Nothing is waiting on you yet, so the easiest next step is to submit content and start a fresh review.';
     },
@@ -1229,12 +1395,12 @@ export default {
         {
           kicker: 'Main Action',
           title: 'Submit a meme',
-          copy: 'Upload content, check submission eligibility, and send a new meme into originality review.',
+          copy: 'Stage content, pass technical validation, sign the permanence attestation, and enter community review.',
           to: '/submit',
         },
         {
           kicker: 'Main Action',
-          title: 'Vote on originality',
+          title: 'Review two questions',
           copy: this.pendingSubmissions.length > 0
             ? `${this.pendingSubmissions.length} submission${this.pendingSubmissions.length === 1 ? '' : 's'} waiting for review right now.`
             : 'Nothing to vote on right now. Check back after someone submits content.',
@@ -1426,14 +1592,13 @@ export default {
     async refreshWorkflow() {
       this.isRefreshing = true;
       try {
+        await this.fetchSubmissions();
         await Promise.all([
           this.fetchChainSummary(),
-          this.fetchSubmissions(false),
-          this.fetchMintQueue(false),
+          this.fetchMintQueue(),
           this.fetchRecentBlocks(),
           this.fetchReviewPolicy(),
         ]);
-        await this.loadVisibleCertificates(true);
       } finally {
         this.isRefreshing = false;
       }
@@ -1496,7 +1661,11 @@ export default {
 
         const preparedAttestation = prepareSubmitterAttestationChallenge(
           challengeResponse.data,
-          { acknowledged: this.attestationAcknowledged },
+          {
+            acknowledged: this.attestationAcknowledged,
+            expectedWalletAddress: this.submissionWalletAddress,
+            expectedContentHash: finalContentHash,
+          },
         );
         const signature = await this.signWalletMessage(preparedAttestation.message);
 
@@ -1543,12 +1712,12 @@ export default {
       this.contentUploadError = '';
 
       if (!this.walletManager.state.isConnected) {
-        this.contentUploadError = 'Connect MetaMask before uploading content.';
+        this.contentUploadError = 'Connect MetaMask before staging content.';
         return;
       }
 
       if (!this.hasVerifiedWalletIdentity || !this.submissionWalletAddress) {
-        this.contentUploadError = 'Verify wallet before uploading content.';
+        this.contentUploadError = 'Verify wallet before staging content.';
         return;
       }
 
@@ -1564,10 +1733,10 @@ export default {
       this.submissionContentHash = response.content_hash || '';
       this.submissionContentId = response.content_id || '';
       this.resetUploadedPreviewState(this.uploadedContent);
-      this.contentUploadMessage = `Content uploaded successfully. Storage status: ${this.formatContentStatus(response.storage_status)}.`;
+      this.contentUploadMessage = `Technical validation accepted and staged the content. It is not submitted or admitted. Storage status: ${this.formatContentStatus(response.storage_status)}.`;
       } catch (error) {
         console.error('Error uploading content:', error);
-        this.contentUploadError = getApiErrorMessage(error, 'Failed to upload content.');
+        this.contentUploadError = getApiErrorMessage(error, 'Technical validation or staging failed.');
       } finally {
         this.isContentUploading = false;
       }
@@ -1586,7 +1755,7 @@ export default {
       if (!this.textContent && this.uploadedContent.caption) {
         this.textContent = this.uploadedContent.caption;
       }
-      this.submitMessage = 'Uploaded content is ready to submit.';
+      this.submitMessage = 'Staged content is ready for the signed submitter attestation. It is not admitted or minted.';
     },
     clearUploadedContent() {
       this.uploadedContent = null;
@@ -1681,16 +1850,21 @@ export default {
         this.showReviewOverrideForm = false;
       }
     },
-    async fetchSubmissions(loadCertificates = true) {
+    async fetchSubmissions() {
       this.isLoading = true;
       this.voteError = '';
       try {
         const response = await apiClient.get('/submissions');
         this.submissions = response.data.submissions || [];
+        this.reportStatuses = Object.fromEntries(this.submissions.map((submission) => [
+          submission.submission_id,
+          submission.lifecycle?.reporting || null,
+        ]));
+        this.certificatesBySubmission = Object.fromEntries(this.submissions.map((submission) => [
+          submission.submission_id,
+          this.lifecycleCertificate(submission),
+        ]));
         await this.loadVisibleVotes();
-        if (loadCertificates) {
-          await this.loadVisibleCertificates(true);
-        }
       } catch (error) {
         console.error('Error fetching submissions:', error);
         this.voteError = getApiErrorMessage(error, 'Failed to load submissions.');
@@ -1698,17 +1872,17 @@ export default {
         this.isLoading = false;
       }
     },
-    async fetchMintQueue(loadCertificates = true) {
+    async fetchMintQueue() {
       this.isQueueLoading = true;
       this.mintError = '';
       try {
         const response = await apiClient.get('/mint-queue', {
           params: { include_blocked: true },
         });
-        this.mintQueue = response.data.mint_queue || [];
-        if (loadCertificates) {
-          await this.loadVisibleCertificates(true);
-        }
+        this.mintQueue = (response.data.mint_queue || []).map((item) => {
+          const summary = this.submissions.find((submission) => submission.submission_id === item.submission_id);
+          return summary ? { ...item, lifecycle: summary.lifecycle } : item;
+        });
       } catch (error) {
         console.error('Error fetching mint queue:', error);
         this.mintError = getApiErrorMessage(error, 'Failed to load mint queue.');
@@ -1722,6 +1896,9 @@ export default {
       try {
         const response = await apiClient.get('/chain');
         this.recentBlocks = [...(response.data.chain || [])].reverse().slice(0, 6);
+        this.disputeStatuses = Object.fromEntries(this.recentBlocks
+          .filter((block) => block.submission_id)
+          .map((block) => [block.submission_id, block.post_mint_dispute || null]));
       } catch (error) {
         console.error('Error fetching recent blocks:', error);
         this.blocksError = getApiErrorMessage(error, 'Failed to load recent blocks.');
@@ -1744,7 +1921,7 @@ export default {
     async fetchVotesForSubmission(submissionId) {
       try {
         const response = await apiClient.get(`/submissions/${submissionId}/votes`);
-        return response.data?.votes || [];
+        return [...(response.data?.votes || []), ...(response.data?.admissibility_votes || [])];
       } catch (error) {
         if (error?.response?.status === 404) {
           return [];
@@ -1784,16 +1961,29 @@ export default {
       if (!submission?.submission_id) {
         return null;
       }
-      return this.certificatesBySubmission[submission.submission_id] || null;
+      return this.certificatesBySubmission[submission.submission_id] || this.lifecycleCertificate(submission);
     },
-    currentWalletVoteForSubmission(submission) {
+    lifecycleCertificate(submission) {
+      const certificate = submission?.lifecycle?.admission?.certificate;
+      if (!certificate || certificate.status !== 'valid') return null;
+      return {
+        ...certificate,
+        certificate_id: certificate.certificate_id || certificate.certificate_digest,
+        content_hash: certificate.media_hash || submission.content_hash,
+        approval_percentage: certificate.originality?.approval_percentage,
+        decisive_vote_total: certificate.originality?.decisive_vote_total,
+        vote_hash: certificate.originality?.vote_hash,
+        originality_score: certificate.originality?.originality_score,
+      };
+    },
+    currentWalletVoteForSubmission(submission, dimension = 'originality') {
       if (!submission?.submission_id || !this.voteWalletAddress) {
         return null;
       }
       const votes = this.votesBySubmission[submission.submission_id] || [];
-      return votes.find((vote) => vote.voter === this.voteWalletAddress) || null;
+      return votes.find((vote) => vote.voter === this.voteWalletAddress && (vote.dimension || 'originality') === dimension) || null;
     },
-    voteDisabled(submission) {
+    voteDisabled(submission, dimension = 'originality') {
       if (!this.walletManager.state.isConnected || !this.hasVerifiedWalletIdentity || !this.voteWalletAddress) {
         return true;
       }
@@ -1803,7 +1993,14 @@ export default {
       if (submission?.submitter === this.voteWalletAddress) {
         return true;
       }
-      return Boolean(this.currentWalletVoteForSubmission(submission));
+      return Boolean(this.currentWalletVoteForSubmission(submission, dimension));
+    },
+    reportDisabled(submission) {
+      return !this.walletManager.state.isConnected || !this.hasVerifiedWalletIdentity
+        || !this.voteWalletAddress || this.reviewPolicy?.eligibility?.eligible === false
+        || submission?.submitter === this.voteWalletAddress
+        || this.reportStatuses[submission?.submission_id]?.quarantine_state
+        || this.mediaLifecycle(submission).quarantine.quarantined;
     },
     certificateLookupComplete(submission) {
       return Boolean(
@@ -1890,7 +2087,7 @@ export default {
       const normalized = String(reason || '').toLowerCase();
       const labels = {
         submission_not_found: 'Submission not found.',
-        submission_not_approved: 'Submission is not approved for minting.',
+        submission_not_approved: 'Submission is not admission-qualified for minting.',
         certificate_missing: 'Certificate missing.',
         certificate_content_hash_mismatch: 'Certificate content hash mismatch.',
         content_metadata_missing: 'Content metadata missing.',
@@ -1934,24 +2131,135 @@ export default {
         throw error;
       }
     },
-    async submitSignedVote(submissionId, voteType) {
+    async submitSignedVote(submissionId, voteType, dimension = 'originality') {
+      const submission = this.submissions.find((item) => item.submission_id === submissionId);
+      const currentReview = submission?.attestation_requirement === 'public_testnet_v1_required';
       const challengeResponse = await apiClient.post('/auth/wallet/vote-challenge', {
         wallet_address: this.voteWalletAddress,
         submission_id: submissionId,
         vote: voteType,
+        ...(currentReview ? { dimension } : {}),
       });
-      const signature = await this.signWalletMessage(challengeResponse.data.message);
+      const messageToSign = currentReview
+        ? assertCommunityReviewChallenge(challengeResponse.data, {
+          walletAddress: this.voteWalletAddress,
+          submissionId,
+          contentHash: submission.content_hash,
+          dimension,
+          choice: voteType,
+        })
+        : challengeResponse.data.message;
+      const signature = await this.signWalletMessage(messageToSign);
       const formData = new FormData();
       formData.append('wallet_address', this.voteWalletAddress);
       formData.append('vote_type', voteType);
-      formData.append('message', challengeResponse.data.message);
+      if (currentReview) formData.append('dimension', dimension);
+      formData.append('message', messageToSign);
       formData.append('signature', signature);
       return apiClient.post(`/submissions/${submissionId}/vote`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
     },
+    async reportSubmission(submissionId) {
+      this.voteMessage = '';
+      this.voteError = '';
+      const reason = this.reportReasons[submissionId];
+      const submission = this.submissions.find((item) => item.submission_id === submissionId);
+      if (!submission || !reason || this.reportDisabled(submission)) {
+        this.voteError = 'Choose a reason and verify an eligible wallet to report.';
+        return;
+      }
+      if (!window.confirm('Report this submission for additional safety review? This is not an admissibility vote.')) return;
+      try {
+        const challenge = await apiClient.post(`/submissions/${submissionId}/reports/challenge`, {
+          wallet_address: this.voteWalletAddress, submission_id: submissionId, reason,
+        });
+        const message = assertCommunityReportChallenge(challenge.data, {
+          walletAddress: this.voteWalletAddress, submissionId, contentHash: submission.content_hash,
+          reason,
+        });
+        const signature = await this.signWalletMessage(message);
+        const response = await apiClient.post(`/submissions/${submissionId}/reports`, {
+          wallet_address: this.voteWalletAddress, message, signature,
+        });
+        this.reportStatuses = { ...this.reportStatuses, [submissionId]: response.data.status };
+        this.voteMessage = 'Report recorded for additional safety review.';
+        await this.fetchSubmissions();
+      } catch (error) {
+        this.voteError = humanizeProtocolActionError(
+          getApiErrorMessage(error, 'Failed to record report.'),
+          { action: 'report' },
+        );
+      }
+    },
+    async disputeFinalizedBlock(block) {
+      this.voteMessage = '';
+      this.voteError = '';
+      const submissionId = block.submission_id;
+      const reason = this.disputeReasons[submissionId];
+      if (!block.finalized || !reason || this.reportDisabled({ submitter: block.creator_wallet })) {
+        this.voteError = 'Choose a reason and verify an eligible wallet to dispute.';
+        return;
+      }
+      if (!window.confirm('File a dispute for finalized, immutable media? This flags the media but does not remove or reverse its block.')) return;
+      try {
+        const challenge = await apiClient.post(`/submissions/${submissionId}/disputes/challenge`, {
+          wallet_address: this.voteWalletAddress, submission_id: submissionId, reason,
+        });
+        const message = assertPostMintDisputeChallenge(challenge.data, {
+          walletAddress: this.voteWalletAddress, submissionId,
+          blockHeight: block.index, blockHash: block.hash, mediaHash: block.media_hash, reason,
+        });
+        const signature = await this.signWalletMessage(message);
+        const response = await apiClient.post(`/submissions/${submissionId}/disputes`, {
+          wallet_address: this.voteWalletAddress, message, signature,
+        });
+        this.disputeStatuses = { ...this.disputeStatuses, [submissionId]: response.data.status };
+        this.voteMessage = 'Dispute recorded for finalized media. The block remains immutable.';
+      } catch (error) {
+        this.voteError = humanizeProtocolActionError(
+          getApiErrorMessage(error, 'Failed to record dispute.'),
+          { action: 'dispute' },
+        );
+      }
+    },
     submissionLifecycleDisplay(submission) {
       return buildSubmissionLifecycleDisplay(submission);
+    },
+    mediaLifecycle(submission) {
+      return normalizeMediaLifecycle(submission);
+    },
+    formatLifecycleOutcome(value) {
+      const text = String(value || 'unavailable').replaceAll('_', ' ');
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    },
+    certificateScope(submission) {
+      return formatCertificateScopeLabel(this.mediaLifecycle(submission).admission.certificate?.scope);
+    },
+    certificateScopeLabel(scope) {
+      return formatCertificateScopeLabel(scope);
+    },
+    integrityDisplay(block) {
+      return buildIntegrityDisplay({ ...block, media_integrity: this.integrityRecord(block) });
+    },
+    integrityRecord(block) {
+      return this.integrityChecks[block?.submission_id] || block?.media_integrity || {};
+    },
+    async verifyMediaIntegrity(block) {
+      const submissionId = block?.submission_id;
+      if (!submissionId) return;
+      this.integrityChecksInProgress[submissionId] = true;
+      this.integrityCheckErrors[submissionId] = '';
+      try {
+        const response = await apiClient.get(`/submissions/${submissionId}/lifecycle`, {
+          params: { verify_integrity: true },
+        });
+        this.integrityChecks[submissionId] = response.data?.lifecycle?.media_integrity || { status: 'unavailable' };
+      } catch (error) {
+        this.integrityCheckErrors[submissionId] = getApiErrorMessage(error, 'Exact-byte integrity verification is temporarily unavailable.');
+      } finally {
+        this.integrityChecksInProgress[submissionId] = false;
+      }
     },
     blockDisplay(block) {
       return buildBlockDisplay(block);
@@ -1959,7 +2267,7 @@ export default {
     blockContentAvailability(block) {
       return buildBlockContentAvailability(block);
     },
-    async vote(submissionId, voteType) {
+    async vote(submissionId, voteType, dimension = 'originality') {
       this.voteMessage = '';
       this.voteError = '';
 
@@ -1985,7 +2293,7 @@ export default {
         this.voteError = 'Submission creator cannot vote on their own submission.';
         return;
       }
-      if (this.currentWalletVoteForSubmission(submission)) {
+      if (this.currentWalletVoteForSubmission(submission, dimension)) {
         this.voteError = 'This wallet has already voted on that submission.';
         return;
       }
@@ -1994,14 +2302,14 @@ export default {
         let response;
         let refreshedChallenge = false;
         try {
-          response = await this.submitSignedVote(submissionId, voteType);
+          response = await this.submitSignedVote(submissionId, voteType, dimension);
         } catch (error) {
           const detail = getApiErrorMessage(error, '');
           if (!shouldRetryProtocolAction(detail)) {
             throw error;
           }
           refreshedChallenge = true;
-          response = await this.submitSignedVote(submissionId, voteType);
+          response = await this.submitSignedVote(submissionId, voteType, dimension);
         }
         this.voteMessage = refreshedChallenge
           ? `Vote signing window expired, so the app requested a fresh message and recorded your ${this.formatStatus(voteType)} vote.`
@@ -2604,6 +2912,26 @@ h3 {
 
 .wallet-flow-hint {
   margin-top: 14px;
+}
+
+.lifecycle-steps {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding-left: 22px;
+  color: #d7dbe0;
+  line-height: 1.45;
+}
+
+.lifecycle-detail-grid,
+.activation-status-panel,
+.quarantine-panel,
+.integrity-panel {
+  min-width: 0;
+}
+
+.integrity-panel .btn {
+  margin-top: 8px;
 }
 
 .detail-grid {

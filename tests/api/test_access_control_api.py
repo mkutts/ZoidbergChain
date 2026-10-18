@@ -114,6 +114,7 @@ def _vote_signed_via_api(client, submission_id, account, headers, vote_type="ori
             "wallet_address": account.address,
             "submission_id": submission_id,
             "vote": vote_type,
+            "dimension": "originality",
         },
         headers=headers,
     )
@@ -123,6 +124,7 @@ def _vote_signed_via_api(client, submission_id, account, headers, vote_type="ori
         data={
             "wallet_address": account.address,
             "vote_type": vote_type,
+            "dimension": "originality",
             "message": challenge.json()["message"],
             "signature": _sign_message(challenge.json()["message"], account),
         },
@@ -1109,6 +1111,9 @@ def test_access_required_rewards_only_pay_bound_active_wallets(blockchain, monke
     )
     assert submission_response.status_code == 200
     submission_id = submission_response.json()["submission"]["submission_id"]
+    # Preserve the pre-activation reward path while current submissions wait for dual review.
+    blockchain.get_submission(submission_id).attestation_requirement = "legacy_pre_activation"
+    blockchain.save_blockchain()
 
     bound_majority = _create_account()
     bound_headers = _verify_wallet_session(client, bound_majority)

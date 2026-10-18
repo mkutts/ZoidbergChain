@@ -1,8 +1,11 @@
 from fastapi.testclient import TestClient
 from eth_account import Account
 from eth_account.messages import encode_defunct
+import pytest
 
 from wallet_auth import WalletAuthManager
+from milestone5_policy import REPUTATION_RULE_VERSION
+from peer_sync import MalformedCertificateError, _store_peer_certificate
 
 
 def _client(blockchain):
@@ -54,7 +57,7 @@ def _upload_text_content_via_api(client, submitter, text="review policy text con
             "caption": text,
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.json()
     return response.json()
 
 
@@ -98,26 +101,28 @@ def _submit_signed_content_via_api(client, account, headers, content_hash, conte
     return response.json()["submission"]
 
 
-def _request_vote_challenge(client, account, headers, submission_id, vote_type="original"):
+def _request_vote_challenge(client, account, headers, submission_id, vote_type="original", dimension="originality"):
     return client.post(
         "/auth/wallet/vote-challenge",
         json={
             "wallet_address": account.address,
             "submission_id": submission_id,
             "vote": vote_type,
+            "dimension": dimension,
         },
         headers=headers,
     )
 
 
-def _vote_signed_via_api(client, submission_id, account, headers, vote_type="original"):
-    challenge = _request_vote_challenge(client, account, headers, submission_id, vote_type=vote_type)
+def _vote_signed_via_api(client, submission_id, account, headers, vote_type="original", dimension="originality"):
+    challenge = _request_vote_challenge(client, account, headers, submission_id, vote_type=vote_type, dimension=dimension)
     assert challenge.status_code == 200
     response = client.post(
         f"/submissions/{submission_id}/vote",
         data={
             "wallet_address": account.address,
             "vote_type": vote_type,
+            "dimension": dimension,
             "message": challenge.json()["message"],
             "signature": _sign_message(challenge.json()["message"], account),
         },
@@ -168,7 +173,7 @@ def test_open_mode_allows_otherwise_valid_signed_voters(blockchain, monkeypatch)
     voter_headers = _verify_wallet_session(client, voter)
     response = _vote_signed_via_api(client, submission["submission_id"], voter, voter_headers, vote_type="unsure")
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.json()
     assert response.json()["vote"]["voter"] == voter.address.lower()
 
 
@@ -316,3 +321,146 @@ def test_review_policy_endpoint_does_not_expose_secrets(blockchain, monkeypatch)
     assert "PEER_SHARED_SECRET" not in body
     assert "peer_shared_secret" not in body
     assert "super-secret-value" not in str(body)
+
+
+def test_current_submission_records_independent_answers(blockchain, monkeypatch):
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "open")
+    client = _client(blockchain)
+    _, _, submission = _signed_submission(client)
+    voter = _create_metamask_account()
+    headers = _verify_wallet_session(client, voter)
+
+    original = _vote_signed_via_api(client, submission["submission_id"], voter, headers,
+                                    vote_type="original", dimension="originality")
+    assert original.status_code == 200, original.json()
+    admissible = _vote_signed_via_api(client, submission["submission_id"], voter, headers,
+                                      vote_type="not_admissible", dimension="admissibility")
+    assert admissible.status_code == 200, admissible.json()
+    assert original.json()["vote"]["vote_identity"] != admissible.json()["vote"]["vote_identity"]
+    votes = client.get(f"/submissions/{submission['submission_id']}/votes")
+    assert votes.status_code == 200, votes.json()
+    assert votes.json()["counts"]["original"] == 1
+    assert votes.json()["admissibility_votes"][0]["vote_type"] == "not_admissible"
+    review = votes.json()["dual_review"]
+    assert review["review_mode"] == "dual_v1"
+    assert review["attestation_valid"] is True
+    assert review["review_qualified"] is False
+    evaluation = client.post(f"/submissions/{submission['submission_id']}/evaluate")
+    assert evaluation.status_code == 200
+    assert evaluation.json()["evaluation"]["status"] == "pending"
+    assert client.get(f"/submissions/{submission['submission_id']}/certificate").status_code == 404
+
+
+def test_identical_signed_retry_is_idempotent(blockchain, monkeypatch):
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "open")
+    client = _client(blockchain)
+    _, _, submission = _signed_submission(client)
+    voter = _create_metamask_account()
+    headers = _verify_wallet_session(client, voter)
+    challenge = _request_vote_challenge(client, voter, headers, submission["submission_id"],
+                                        dimension="admissibility", vote_type="admissible")
+    assert challenge.status_code == 200
+    data = {
+        "wallet_address": voter.address,
+        "vote_type": "admissible",
+        "dimension": "admissibility",
+        "message": challenge.json()["message"],
+        "signature": _sign_message(challenge.json()["message"], voter),
+    }
+    first = client.post(f"/submissions/{submission['submission_id']}/vote", data=data, headers=headers)
+    second = client.post(f"/submissions/{submission['submission_id']}/vote", data=data, headers=headers)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["vote"]["vote_identity"] == second.json()["vote"]["vote_identity"]
+    assert len(client.get(f"/submissions/{submission['submission_id']}/votes").json()["admissibility_votes"]) == 1
+
+
+def test_signed_unsure_cannot_replay_into_other_dimension(blockchain, monkeypatch):
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "open")
+    client = _client(blockchain)
+    _, _, submission = _signed_submission(client)
+    voter = _create_metamask_account()
+    headers = _verify_wallet_session(client, voter)
+    challenge = _request_vote_challenge(client, voter, headers, submission["submission_id"],
+                                        vote_type="unsure", dimension="originality")
+    assert challenge.status_code == 200
+    data = {
+        "wallet_address": voter.address,
+        "vote_type": "unsure",
+        "dimension": "admissibility",
+        "message": challenge.json()["message"],
+        "signature": _sign_message(challenge.json()["message"], voter),
+    }
+    replay = client.post(f"/submissions/{submission['submission_id']}/vote", data=data, headers=headers)
+    assert replay.status_code == 400
+    assert "dimension" in replay.json()["detail"].lower()
+    assert client.get(f"/submissions/{submission['submission_id']}/votes").json()["admissibility_votes"] == []
+
+
+def test_qualified_review_evidence_binds_both_vote_sets_and_attestation(blockchain, monkeypatch):
+    _clear_review_policy_env(monkeypatch)
+    monkeypatch.setenv("REVIEW_ELIGIBILITY_MODE", "open")
+    client = _client(blockchain)
+    _, _, submission = _signed_submission(client)
+    submission_id = submission["submission_id"]
+    reviewers = [_create_metamask_account() for _ in range(5)]
+    for reviewer in reviewers:
+        headers = _verify_wallet_session(client, reviewer)
+        for dimension, choice in (("originality", "original"), ("admissibility", "admissible")):
+            response = _vote_signed_via_api(client, submission_id, reviewer, headers,
+                                            vote_type=choice, dimension=dimension)
+            assert response.status_code == 200, response.json()
+
+    established = reviewers[0].address.lower()
+    for vote in blockchain.votes:
+        if vote.get("submission_id") == submission_id:
+            vote.update(reviewer_eligible=True, reviewer_policy_version=1,
+                        reputation_rule_version=REPUTATION_RULE_VERSION,
+                        reviewer_status=("ESTABLISHED_REVIEWER" if vote["voter"] == established
+                                         else "PROBATIONARY_REVIEWER"),
+                        reviewer_status_effective_height=1,
+                        reviewer_status_reference_block_hash="c" * 64)
+    monkeypatch.setattr(blockchain, "get_reviewer_status_at_reference",
+                        lambda wallet, _height, _block_hash:
+                        "ESTABLISHED_REVIEWER" if wallet == established else "PROBATIONARY_REVIEWER")
+
+    evidence = blockchain.get_qualified_dual_review_evidence(submission_id)
+    assert evidence["review_complete"] is True
+    assert evidence["originality"]["outcome"] == "original"
+    assert evidence["admissibility"]["outcome"] == "admissible"
+    assert evidence["technical_evidence_digest"]
+    assert evidence["attestation_message_hash"]
+    assert blockchain.validate_qualified_dual_review_evidence(submission_id, evidence) == evidence
+    with pytest.raises(ValueError, match="originality-only"):
+        blockchain.create_originality_certificate(submission_id)
+    with pytest.raises(ValueError, match="Originality-only"):
+        blockchain.require_valid_certificate_for_submission(blockchain.get_submission(submission_id))
+    with pytest.raises(ValueError, match="Originality-only"):
+        blockchain._prepare_certified_commit_request(submission_id, blockchain.get_submission(submission_id).submitter)
+    with pytest.raises(MalformedCertificateError, match="Originality-only"):
+        _store_peer_certificate(blockchain, {"submission_id": submission_id}, "zoidberg-testnet")
+    assert blockchain.originality_certificates == []
+
+    for dimension in ("originality", "admissibility"):
+        vote = next(v for v in blockchain.votes if v.get("submission_id") == submission_id
+                    and v.get("dimension") == dimension)
+        original_choice = vote["vote_type"]
+        vote["vote_type"] = "unsure"
+        assert blockchain.get_dual_review(submission_id)["review_evidence_digest"] != evidence["review_evidence_digest"]
+        with pytest.raises(ValueError, match="qualify"):
+            blockchain.validate_qualified_dual_review_evidence(submission_id, evidence)
+        vote["vote_type"] = original_choice
+
+    vote = next(v for v in blockchain.votes if v.get("submission_id") == submission_id)
+    original_message_hash = vote["signed_message_hash"]
+    vote["signed_message_hash"] = "0" * 64
+    with pytest.raises(ValueError, match="qualify"):
+        blockchain.validate_qualified_dual_review_evidence(submission_id, evidence)
+    vote["signed_message_hash"] = original_message_hash
+
+    stored_submission = blockchain.get_submission(submission_id)
+    stored_submission.submitter_attestation["signature"] = "0x" + "00" * 65
+    with pytest.raises(ValueError, match="qualify"):
+        blockchain.get_qualified_dual_review_evidence(submission_id)

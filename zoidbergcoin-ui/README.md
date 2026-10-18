@@ -2,6 +2,20 @@
 
 This frontend presents native ZOID activity for MetaMask-backed ZoidbergChain accounts.
 
+## Milestone 6 media lifecycle
+
+The Dashboard consumes the additive `lifecycle` object returned by submission
+read APIs. It presents technical validation, submitter attestation, originality,
+admissibility, pre-mint reporting/quarantine, admission certification,
+activation, mint/finality, byte integrity, post-mint disputes, and legacy scope
+as separate states. See
+`../docs/milestone-6-task-6.10-api-frontend-integration.md` for the schema and
+terminology contract.
+
+Staging is not submission or admission. “Media Integrity Verified” means only
+that exact bytes match immutable block commitments; it is not a safety,
+legality, originality, admissibility, or dispute verdict.
+
 For the Stage 1 public deployment, the UI should visibly say:
 
 - ZoidbergChain controlled testnet

@@ -403,6 +403,14 @@ async def create_wallet_submission_challenge(
 
     content_object = _require_content_reference(payload.content_hash, payload.content_id)
     safe_caption = validate_caption(payload.caption)
+    if payload.submission_id is not None:
+        existing = blockchain.get_submission(payload.submission_id)
+        if (existing is None or existing.status not in {"pending", "approved", "queued"}
+            or existing.attestation_requirement == "public_testnet_v1_required"
+            or normalize_wallet_address(existing.submitter) != wallet_address
+            or existing.content_hash != content_object.content_hash
+            or existing.content_id != content_object.content_id):
+            raise HTTPException(status_code=400, detail="Existing pending submission is not eligible for signed admission transition.")
 
     try:
         technical_validation = blockchain.technical_validation_evidence_for_content(content_object)
@@ -412,6 +420,7 @@ async def create_wallet_submission_challenge(
             content_id=content_object.content_id,
             caption=safe_caption,
             technical_validation=technical_validation,
+            submission_id=payload.submission_id,
         )
     except SubmitterAttestationError as exc:
         return _public_error(str(exc), status_code=400, code=exc.reason_code)
@@ -437,13 +446,21 @@ async def create_wallet_vote_challenge(
     submission = blockchain.get_submission(payload.submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail=f"Submission not found: {payload.submission_id}")
+    if submission.attestation_requirement == "public_testnet_v1_required":
+        try:
+            blockchain.require_valid_submitter_attestation(submission)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
     if blockchain.is_submission_voting_locked(submission):
         raise HTTPException(status_code=400, detail="Finalized or certified submissions cannot receive votes.")
     if wallet_address == submission.submitter:
         raise HTTPException(status_code=400, detail="Submission creator cannot vote on their own submission.")
-    if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes):
+    dimension = payload.dimension if submission.attestation_requirement == "public_testnet_v1_required" else None
+    if submission.attestation_requirement == "public_testnet_v1_required" and dimension is None:
+        raise HTTPException(status_code=400, detail="Current submissions require an explicit review dimension.")
+    if blockchain.storage.get_vote(payload.submission_id, wallet_address, blockchain.votes, dimension=dimension or "originality"):
         raise HTTPException(status_code=400, detail="Wallet has already voted on this submission.")
-    _enforce_review_policy(wallet_address, scope="voting")
+    _enforce_review_policy(wallet_address, scope="voting", submission_id=payload.submission_id, dimension=dimension)
 
     try:
         challenge = wallet_auth_manager.issue_vote_challenge(
@@ -451,6 +468,7 @@ async def create_wallet_vote_challenge(
             submission_id=payload.submission_id,
             content_hash=submission.content_hash or "",
             vote_type=payload.vote,
+            dimension=dimension,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -656,12 +674,12 @@ _ROUTE_ORDER = {
     ('POST', '/auth/wallet/submission-challenge', 'create_wallet_submission_challenge'): 50,
     ('POST', '/auth/wallet/vote-challenge', 'create_wallet_vote_challenge'): 51,
     ('GET', '/review/policy', 'get_review_policy'): 52,
-    ('GET', '/reviewers/{wallet_address}/reputation', 'get_reviewer_reputation'): 132,
-    ('GET', '/reviewers/{wallet_address}/offenses', 'get_reviewer_offenses'): 133,
-    ('GET', '/analytics/collusion/alerts', 'get_collusion_alerts'): 135,
-    ('GET', '/analytics/collusion/reviewers/{wallet_address}', 'get_reviewer_collusion_alerts'): 136,
-    ('GET', '/analytics/collusion/submissions/{submission_id}', 'get_submission_collusion_alerts'): 137,
-    ('GET', '/analytics/collusion/creators/{wallet_address}', 'get_creator_collusion_alerts'): 138,
+    ('GET', '/reviewers/{wallet_address}/reputation', 'get_reviewer_reputation'): 133,
+    ('GET', '/reviewers/{wallet_address}/offenses', 'get_reviewer_offenses'): 134,
+    ('GET', '/analytics/collusion/alerts', 'get_collusion_alerts'): 136,
+    ('GET', '/analytics/collusion/reviewers/{wallet_address}', 'get_reviewer_collusion_alerts'): 137,
+    ('GET', '/analytics/collusion/submissions/{submission_id}', 'get_submission_collusion_alerts'): 138,
+    ('GET', '/analytics/collusion/creators/{wallet_address}', 'get_creator_collusion_alerts'): 139,
     ('POST', '/auth/wallet/transfer-challenge', 'create_wallet_transfer_challenge'): 53,
     ('GET', '/auth/wallet/session', 'get_wallet_session'): 54,
     ('POST', '/auth/wallet/logout', 'logout_wallet_session'): 55,

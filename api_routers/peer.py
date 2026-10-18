@@ -1,6 +1,7 @@
 """Peer API HTTP adapters."""
 
 from fastapi import APIRouter
+from peer_sync import broadcast_report_to_peers, broadcast_dispute_to_peers
 
 import api_runtime as _runtime
 from api_runtime import *  # noqa: F401,F403 - shared API wiring and schemas
@@ -207,6 +208,95 @@ async def receive_submission_from_peer(request: Request, receive_request: PeerSu
         raise HTTPException(status_code=409, detail=str(e))
 
 
+@router.post('/peers/disputes/receive')
+@api_limit("peer_receive")
+async def receive_post_mint_dispute_from_peer(
+    request: Request, receive_request: PeerPostMintDisputeReceive,
+    _: None = Depends(require_peer_secret),
+):
+    _sync_runtime_globals()
+    try:
+        authenticated = _require_protocol_v1_peer_claims_match_auth(
+            request, claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name)
+        node_id = authenticated.sender_node_id if authenticated else receive_request.origin_node_id
+        peer = peer_store.get_active_peer(node_id)
+        if not peer:
+            raise ValueError("Peer is not registered or active.")
+        if receive_request.network_name != NETWORK_NAME or peer.get("network_name") != NETWORK_NAME:
+            raise ValueError("Dispute belongs to a different network.")
+        outcome = blockchain.record_post_mint_dispute_operation(receive_request.dispute)
+        return {"accepted": True, "action": outcome["action"], "status": outcome["status"]}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post('/submissions/{submission_id}/disputes/broadcast')
+@api_limit("vote")
+async def broadcast_post_mint_disputes(
+    request: Request, submission_id: str,
+    authorization: str | None = Header(default=None),
+):
+    _sync_runtime_globals()
+    wallet = resolve_verified_wallet_from_authorization(authorization, manager=wallet_auth_manager)
+    _enforce_access_for_feature(wallet, feature="votes")
+    try:
+        blockchain._finalized_dispute_block(submission_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    records = blockchain.post_mint_disputes.get(submission_id, [])
+    results = [broadcast_dispute_to_peers(record, peer_store, NODE_ID, NETWORK_NAME)
+               for record in records]
+    return {"dispute_count": len(results), "attempted": sum(item["attempted"] for item in results),
+            "succeeded": sum(item["succeeded"] for item in results),
+            "failed": sum(item["failed"] for item in results), "results": results}
+
+
+@router.post('/peers/reports/receive')
+@api_limit("peer_receive")
+async def receive_community_report_from_peer(
+    request: Request, receive_request: PeerCommunityReportReceive,
+    _: None = Depends(require_peer_secret),
+):
+    _sync_runtime_globals()
+    try:
+        authenticated = _require_protocol_v1_peer_claims_match_auth(
+            request, claimed_node_id=receive_request.origin_node_id,
+            claimed_network_name=receive_request.network_name,
+        )
+        node_id = authenticated.sender_node_id if authenticated else receive_request.origin_node_id
+        peer = peer_store.get_active_peer(node_id)
+        if not peer:
+            raise ValueError("Peer is not registered or active.")
+        if receive_request.network_name != NETWORK_NAME or peer.get("network_name") != NETWORK_NAME:
+            raise ValueError("Report belongs to a different network.")
+        outcome = blockchain.record_community_report_operation(receive_request.report)
+        return {"accepted": True, "action": outcome["action"], "status": outcome["status"]}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post('/submissions/{submission_id}/reports/broadcast')
+@api_limit("vote")
+async def broadcast_community_reports(
+    request: Request, submission_id: str,
+    authorization: str | None = Header(default=None),
+):
+    _sync_runtime_globals()
+    wallet = resolve_verified_wallet_from_authorization(authorization, manager=wallet_auth_manager)
+    _enforce_access_for_feature(wallet, feature="votes")
+    submission = blockchain.get_submission(submission_id)
+    if submission is None:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    results = [broadcast_report_to_peers(record, peer_store, NODE_ID, NETWORK_NAME)
+               for record in submission.community_reports]
+    return {"report_count": len(results),
+            "attempted": sum(item["attempted"] for item in results),
+            "succeeded": sum(item["succeeded"] for item in results),
+            "failed": sum(item["failed"] for item in results),
+            "results": results}
+
+
 @router.post('/peers/votes/receive')
 @api_limit("peer_receive")
 async def receive_vote_from_peer(request: Request, receive_request: PeerVoteReceive, _: None = Depends(require_peer_secret)):
@@ -236,6 +326,7 @@ async def receive_vote_from_peer(request: Request, receive_request: PeerVoteRece
                 "submission_id": receive_request.submission_id,
                 "voter": receive_request.voter,
                 "vote_type": receive_request.vote_type,
+                "dimension": receive_request.dimension,
                 "vote_value": receive_request.vote_value,
                 "content_hash": receive_request.content_hash,
                 "voter_wallet_address": receive_request.voter_wallet_address,
@@ -434,6 +525,7 @@ async def receive_block_from_peer(request: Request, receive_request: PeerBlockRe
             ),
             related_submission_id=receive_request.related_submission_id,
             local_network_name=NETWORK_NAME,
+            peer_activation_height=receive_request.admission_activation_height,
             certificate_payload=(
                 raw_payload.get("certificate")
                 if receive_request.certificate
@@ -748,7 +840,11 @@ _ROUTE_ORDER = {
     ('GET', '/peers/mempool/summary', 'get_peer_mempool_summary'): 61,
     ('POST', '/peers/submissions/receive', 'receive_submission_from_peer'): 62,
     ('POST', '/peers/votes/receive', 'receive_vote_from_peer'): 63,
-    ('POST', '/peers/reviewer-offenses/receive', 'receive_reviewer_offense_from_peer'): 134,
+    ('POST', '/peers/reports/receive', 'receive_community_report_from_peer'): 144,
+    ('POST', '/submissions/{submission_id}/reports/broadcast', 'broadcast_community_reports'): 145,
+    ('POST', '/peers/disputes/receive', 'receive_post_mint_dispute_from_peer'): 150,
+    ('POST', '/submissions/{submission_id}/disputes/broadcast', 'broadcast_post_mint_disputes'): 151,
+    ('POST', '/peers/reviewer-offenses/receive', 'receive_reviewer_offense_from_peer'): 135,
     ('POST', '/peers/certificates/receive', 'receive_certificate_from_peer'): 64,
     ('POST', '/peers/blocks/receive', 'receive_block_from_peer'): 65,
     ('GET', '/peers/chain/summary', 'peer_chain_summary'): 68,
@@ -762,8 +858,8 @@ _ROUTE_ORDER = {
     ('POST', '/submissions/{submission_id}/broadcast', 'broadcast_submission'): 93,
     ('POST', '/submissions/{submission_id}/votes/broadcast', 'broadcast_submission_votes'): 96,
     ('POST', '/transactions/{tx_id}/broadcast', 'broadcast_native_transaction'): 116,
-    ('POST', '/peers/originality-evidence/receive', 'receive_originality_evidence_from_peer'): 130,
-    ('GET', '/peers/originality-evidence/{evidence_digest}', 'get_peer_originality_evidence'): 131,
+    ('POST', '/peers/originality-evidence/receive', 'receive_originality_evidence_from_peer'): 131,
+    ('GET', '/peers/originality-evidence/{evidence_digest}', 'get_peer_originality_evidence'): 132,
 }
 
 for _route in router.routes:

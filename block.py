@@ -20,6 +20,7 @@ from transaction import Transaction
 
 
 PROTOCOL_V1_BLOCK_VERSION = PROTOCOL_VERSION
+ADMISSION_BLOCK_VERSION = 2
 
 
 def _hash_number(value):
@@ -98,6 +99,7 @@ class Block:
         transactions_hash=None,
         total_supply=None,
         initial_reward_pool=None,
+        admission_certificate=None,
     ):
         self.index = index
         self.previous_hash = previous_hash
@@ -143,6 +145,7 @@ class Block:
         self.transactions_hash = transactions_hash
         self.total_supply = total_supply
         self.initial_reward_pool = initial_reward_pool
+        self.admission_certificate = admission_certificate
         self.hash = hash or self.calculate_hash()
 
     @staticmethod
@@ -209,10 +212,11 @@ class Block:
             transactions_hash=block_data.get("transactions_hash"),
             total_supply=block_data.get("total_supply"),
             initial_reward_pool=block_data.get("initial_reward_pool"),
+            admission_certificate=block_data.get("admission_certificate"),
         )
 
     def is_protocol_v1_block(self) -> bool:
-        return self.block_version == PROTOCOL_V1_BLOCK_VERSION
+        return self.block_version in {PROTOCOL_V1_BLOCK_VERSION, ADMISSION_BLOCK_VERSION}
 
     def is_protocol_v1_genesis_block(self) -> bool:
         return self.genesis_version == PUBLIC_TESTNET_V1_GENESIS_VERSION
@@ -274,6 +278,7 @@ class Block:
             "transaction_ids": self.transaction_ids or None,
             "transaction_count": self.transaction_count if self.native_transactions else None,
             "transactions_hash": self.transactions_hash,
+            "admission_certificate": self.admission_certificate,
         }
         return {
             key: value
@@ -365,7 +370,7 @@ class Block:
         if self.media_bytes is None:
             raise ValueError("Protocol v1 blocks must include media_bytes.")
         payload = {
-            "block_version": PROTOCOL_V1_BLOCK_VERSION,
+            "block_version": self.block_version,
             "index": self._required_non_negative_int(self.index, field_name="index"),
             "previous_hash": self._required_string(self.previous_hash, field_name="previous_hash"),
             "timestamp": self.timestamp,
@@ -402,6 +407,10 @@ class Block:
         }
         if self.content_id is not None:
             payload["content_id"] = self._required_string(self.content_id, field_name="content_id")
+        if self.block_version == ADMISSION_BLOCK_VERSION:
+            if not isinstance(self.admission_certificate, dict):
+                raise ValueError("Admission block must embed its frozen certificate.")
+            payload["admission_certificate"] = self.admission_certificate
         if isinstance(self.meme, dict):
             meme_text = self.meme.get("text")
             if meme_text not in (None, ""):
@@ -468,6 +477,8 @@ class Block:
                 for reward_entry in (block_dict.get("voter_rewards", []) or [])
             ],
         }
+        if block_dict.get("block_version") == ADMISSION_BLOCK_VERSION:
+            payload["admission_certificate"] = block_dict.get("admission_certificate")
         meme = block_dict.get("meme")
         if isinstance(meme, dict):
             meme_text = meme.get("text")

@@ -12,12 +12,17 @@ from block import Block, PROTOCOL_V1_BLOCK_VERSION
 from transaction import Transaction
 from wallet import Wallet
 from utils import extract_text
-from media_technical_validation import validate_media_bytes
+from media_technical_validation import technical_evidence_identity, validate_media_bytes
+from admission_certificate import AdmissionMintCertificateView, attestation_identity, build_admission_certificate, validate_admission_certificate
+from admission_activation import AdmissionActivationStore
+from media_integrity import reconstruct_media_bytes, verify_media_block
 from protocol_v1_submitter_attestation import (
     ATTESTATION_DEVELOPMENT,
     ATTESTATION_LEGACY,
     ATTESTATION_REQUIRED,
     REASON_MISSING_ATTESTATION,
+    REASON_EVIDENCE_DIGEST_MISMATCH,
+    REASON_POLICY_MISMATCH,
     REASON_NONCE_REPLAYED,
     SubmitterAttestationError,
     validate_submitter_attestation,
@@ -97,7 +102,13 @@ from content import (
     validate_text_content,
     verify_content_object_payload,
 )
-from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from submission import APPROVED, HARD_REJECTED, MINTED, PENDING, QUEUED, QUARANTINED, REJECTED, VOTE_NOT_ORIGINAL, VOTE_ORIGINAL, VOTE_TYPES, VOTE_UNSURE, Submission
+from dual_review import ADMISSIBILITY, ORIGINALITY, REVIEW_VOTE_VERSION, combined_review, vote_identity as dual_vote_identity, validate_choice, verify_vote_record
+from community_report import (ELIGIBLE_STATUSES, canonical_report_record, report_identity, report_policy_digest,
+                              report_tally, verify_report)
+from post_mint_dispute import canonical_dispute_record, dispute_tally, verify_dispute
+from services.report_reviewer_index import (qualification_entry_digest, qualification_snapshot,
+                                            reference_key, validate_snapshot)
 from native_transfer import (
     NATIVE_TRANSACTION_INITIAL_NONCE,
     NATIVE_TRANSACTION_NONCE_POLICY,
@@ -114,7 +125,7 @@ from protocol_v1_native_transfer import (
     resolve_protocol_v1_network_id,
 )
 from storage import SQLiteStorageBackend, StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
-from protocol_v1 import PROTOCOL_VERSION, resolve_network_id
+from protocol_v1 import PROTOCOL_VERSION, canonical_hash, resolve_network_id
 from milestone5_policy import APPROVAL_THRESHOLD_BPS, ESTABLISHED_MAX_VOTES_PER_EPOCH, MIN_ESTABLISHED_VOTES, MIN_VALID_VOTES, PROBATION_MAX_VOTES_PER_EPOCH, REVIEW_EPOCH_BLOCKS, REVIEWER_POLICY_VERSION, REPUTATION_RULE_VERSION, bootstrap_established_reviewers
 from protocol_v1_genesis import (
     GenesisValidationError,
@@ -254,6 +265,9 @@ class Blockchain:
         self.audit_logs = []  # Persistent admin audit trail
         self.finality_attestations = []  # Valid canonical validator attestations
         self.finalized_blocks = []  # Immutable validator-quorum finality evidence
+        self.post_mint_disputes = {}  # Additive observations, never block hash input
+        self._report_reviewer_index = {}
+        self._report_finalized_head = None
         self.lifecycle_timing = lifecycle_timing or LifecycleTimingRecorder()
         self.validator_set = normalize_validator_set(
             PUBLIC_TESTNET_V1_VALIDATOR_ADDRESSES if validator_set is None else validator_set
@@ -278,9 +292,15 @@ class Blockchain:
         self._block_production_service = BlockProductionService()
         self._last_reward_excluded_voters = []
         self._last_canonical_reorg_report = None
+        self._admission_queue_reconciled = False
         self.reward_pool = REWARD_POOL_SUPPLY  # Initial reward pool
         self.initial_reward_pool = self.reward_pool  # Set the initial reward pool value
         self.storage = storage_backend or create_storage_backend()
+        self._admission_activation_store = AdmissionActivationStore(
+            self.storage.data_dir, network_id=self.protocol_v1_network_id(),
+            genesis_hash=self.public_testnet_v1_genesis_hash(),
+        )
+        self.admission_activation_record = self._admission_activation_store.read()
         self._certified_commit_lock = _certified_commit_lock_for_storage(self.storage)
         self._submission_attestation_lock = self._certified_commit_lock
         self._reviewer_reputation_service = ReviewerReputationService(self.storage)
@@ -306,6 +326,23 @@ class Blockchain:
             self.wallets[self.Contributor_one.public_key] = self.Contributor_one
         if self.Contributor_two and self.Contributor_two.public_key not in self.wallets:
             self.wallets[self.Contributor_two.public_key] = self.Contributor_two
+
+        # Build the finalized-media lookup once at startup. Normal status and
+        # dispute calls only extend it for newly appended blocks.
+        self._dispute_block_index = {
+            block.submission_id: block.index for block in self.chain
+            if block.submission_id and block.media_bytes is not None
+        }
+        self._dispute_index_length = len(self.chain)
+        self._dispute_index_last_hash = self.chain[-1].hash if self.chain else None
+        self._dispute_finality_index = {
+            (item["block_height"], str(item["block_hash"]).lower())
+            for item in self.finalized_blocks if isinstance(item, dict)
+        }
+        self._dispute_finality_length = len(self.finalized_blocks)
+        self._dispute_finality_last = ((self.finalized_blocks[-1].get("block_height"),
+                                       self.finalized_blocks[-1].get("block_hash"))
+                                      if self.finalized_blocks else None)
 
         # Ã¢Å“â€¦ Debugging - Print wallet storage
         print("Debug: Registered Wallets -", [_short_public_key(key) for key in self.wallets.keys()])
@@ -333,7 +370,11 @@ class Blockchain:
             "audit_logs": self.audit_logs,
             "finality_attestations": self.finality_attestations,
             "finalized_blocks": self.finalized_blocks,
+            "post_mint_disputes": deepcopy(self.post_mint_disputes),
+            "report_reviewer_index": self._report_reviewer_index,
             "wallets": {key: wallet.to_dict() for key, wallet in self.wallets.items()},
+            **({"admission_activation": self.admission_activation_record}
+               if self.admission_activation_record is not None else {}),
         }
 
     @staticmethod
@@ -433,13 +474,94 @@ class Blockchain:
         return self._native_ledger_service.restore_native_transaction_state(raw_transactions, raw_transfer_intents)
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
-        self.storage.save_blockchain_state(self._serialize_blockchain_state())
+        local_state = self._serialize_blockchain_state()
+        def reject_stale_reports(durable):
+            # Legacy callers replace a whole state snapshot. Under the same
+            # storage lock used by report admission and mint, refuse a snapshot
+            # that differs from committed report or report-quarantine state.
+            local_by_id = {item["submission_id"]: item for item in local_state["submissions"]}
+            durable_by_id = {item["submission_id"]: item for item in durable.get("submissions", [])}
+            for submission_id in local_by_id.keys() | durable_by_id.keys():
+                local = local_by_id.get(submission_id) or {}
+                committed = durable_by_id.get(submission_id) or {}
+                if not (local.get("community_reports") or committed.get("community_reports")
+                        or local.get("quarantine_reason") == "community_report_threshold"
+                        or committed.get("quarantine_reason") == "community_report_threshold"):
+                    continue
+                if (local.get("community_reports") != committed.get("community_reports")
+                    or local.get("report_quarantine_evidence") != committed.get("report_quarantine_evidence")
+                    or (committed.get("quarantine_reason") == "community_report_threshold" and (
+                        local.get("status") != committed.get("status")
+                        or local.get("quarantine_reason") != committed.get("quarantine_reason")
+                        or submission_id in local_state["mint_queue"]
+                    ))):
+                    raise ValueError("Stale community reporting state; reload before saving.")
+            # The facade does not serialize peer records or future storage
+            # sections. Keep those locked durable sections in the replacement.
+            # Disputes are an independent finalized-content overlay. A stale
+            # facade saving other state must carry forward the durable set,
+            # never erase it or block an otherwise valid chain update.
+            return {**durable, **local_state,
+                    "post_mint_disputes": deepcopy(durable.get("post_mint_disputes", {}) or {})}
+
+        self.storage.atomic_update_blockchain_document(reject_stale_reports)
         print("Debug: Blockchain and wallets saved successfully.")
 
     def _current_canonical_head(self):
         if not self.chain:
             return {"height": None, "hash": None}
         return {"height": self.chain[-1].index, "hash": self.chain[-1].hash}
+
+    @property
+    def admission_activation_height(self):
+        return (self.admission_activation_record or {}).get("activation_height")
+
+    def admission_activation_status(self):
+        tip = self.chain[-1].index if self.chain else None
+        height = self.admission_activation_height
+        try:
+            stored_record = self._admission_activation_store.read()
+            malformed_configuration = False
+        except ValueError:
+            stored_record = None
+            malformed_configuration = True
+        changed_configuration = malformed_configuration or stored_record != self.admission_activation_record
+        state = ("misconfigured" if changed_configuration or (height is None and ENVIRONMENT in {"testnet", "production"})
+                 else "pre_activation" if height is None or tip is None or tip < height
+                 else "active")
+        return {"network_id": self.protocol_v1_network_id(),
+                "activation_height": height, "last_legacy_height": height - 1 if height is not None else None,
+                "canonical_tip_height": tip, "canonical_tip_hash": self.chain[-1].hash if self.chain else None,
+                "state": state}
+
+    def require_admission_activation_for_new_block(self):
+        configured = self._admission_activation_store.read()
+        if configured != self.admission_activation_record:
+            raise ValueError("Admission activation configuration changed or disappeared; restart is required.")
+        if self.admission_activation_height is None and ENVIRONMENT in {"testnet", "production"}:
+            raise ValueError("Public Testnet block acceptance requires a configured admission activation height.")
+
+    def configure_admission_activation(self, height=None):
+        """Fix the network height once; callers distribute that exact value to peers."""
+        with self._certified_commit_lock:
+            durable = self.storage.load_blockchain_state()
+            head = self._current_canonical_head()
+            durable_chain = durable.get("chain", []) if isinstance(durable, dict) else []
+            durable_head = durable_chain[-1] if durable_chain else None
+            if durable_head is None or durable_head.get("index") != head["height"] or durable_head.get("hash") != head["hash"]:
+                raise ValueError("Canonical tip changed; reload before configuring admission activation.")
+            chosen = head["height"] + 1 if height is None else height
+            if type(chosen) is not int or chosen < 1:
+                raise ValueError("Admission activation height must be a positive integer.")
+            if self.admission_activation_record is not None:
+                if chosen != self.admission_activation_height:
+                    raise ValueError("Admission activation height is immutable once configured.")
+                return self.admission_activation_status()
+            if chosen <= head["height"]:
+                raise ValueError("Admission activation must be after the current canonical tip.")
+            self.admission_activation_record = self._admission_activation_store.configure(chosen)
+            self.save_blockchain()
+            return self.admission_activation_status()
 
     @staticmethod
     def certified_commit_identity(certificate):
@@ -453,10 +575,9 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError("Submission not found for certified commit.")
-        certificate = self.get_originality_certificate_for_submission(submission.submission_id)
-        if certificate is None:
-            raise ValueError("Certified commit requires an originality certificate.")
-        self.validate_originality_certificate(certificate, submission)
+        if submission.attestation_requirement == ATTESTATION_REQUIRED and self.report_status(submission_id)["threshold_met"]:
+            raise ValueError("Community report threshold quarantines this submission.")
+        certificate = self.require_valid_certificate_for_submission(submission)
         return {
             "commit_identity": self.certified_commit_identity(certificate),
             "submission_id": str(submission.submission_id),
@@ -509,6 +630,10 @@ class Blockchain:
         deliberately avoids load-time reconciliation because that would add
         unrequested mutations to the commit boundary.
         """
+        tip = (loaded_data.get("chain") or [{}])[-1].get("index")
+        configured = self._admission_activation_store.verify_document(loaded_data, chain_tip=tip)
+        if configured != self.admission_activation_record:
+            raise ValueError("Atomic state has conflicting admission activation configuration.")
         existing_wallets = dict(self.wallets)
         existing_submissions = {item.submission_id: item for item in self.submissions}
         existing_content_objects = {
@@ -569,6 +694,8 @@ class Blockchain:
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
         self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
         self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+        self.post_mint_disputes = deepcopy(loaded_data.get("post_mint_disputes", {}) or {})
+        self._set_report_reviewer_index(loaded_data.get("report_reviewer_index"), rebuild=False)
         self._validate_persisted_finality_state()
         self.recompute_reward_pool_balance(chain=self.chain)
 
@@ -661,8 +788,10 @@ class Blockchain:
             calculate_hash_from_dict=self.calculate_hash_from_dict,
             validate_transaction=self.validate_transaction,
             validate_genesis=self.validate_canonical_public_testnet_v1_genesis,
+            reviewer_status_resolver=self.get_reviewer_status_at_reference,
             config={
                 "network_name": NETWORK_NAME,
+                "admission_activation_height": self.admission_activation_height,
                 "meme_block_reward": MEME_BLOCK_REWARD,
                 "voter_reward_approval_side": VOTER_REWARD_APPROVAL_SIDE,
                 "voter_reward_rejection_side": VOTER_REWARD_REJECTION_SIDE,
@@ -1190,7 +1319,10 @@ class Blockchain:
         minted = self.mint_submission(submission_id, miner=miner, validate_meme=False)
         self.save_blockchain()
         latest_block = self.get_latest_block()
-        certificate = self.get_originality_certificate(latest_block.certificate_id) if latest_block.certificate_id else None
+        certificate = (AdmissionMintCertificateView(latest_block.admission_certificate)
+                       if latest_block.block_version == 2 and latest_block.admission_certificate
+                       else self.get_originality_certificate(latest_block.certificate_id)
+                       if latest_block.certificate_id else None)
         return minted, self.get_submission(submission_id) or submission, latest_block, certificate
 
     def get_mint_queue_operation(self, *, include_blocked=True, mintable_only=False):
@@ -1217,17 +1349,17 @@ class Blockchain:
             raise ValueError("Only pending submissions can be evaluated.")
         evaluation = self.evaluate_submission(submission_id, automated_originality_passed=automated_originality_passed)
         queued_submission = None
-        certificate = self.get_originality_certificate_for_submission(submission_id)
+        certificate = self.require_valid_certificate_for_submission(submission) if submission.status == APPROVED else None
         if submission.status == APPROVED:
             if not certificate:
-                raise ValueError("Approved submission is missing an originality certificate and cannot enter the mint queue.")
+                raise ValueError("Approved submission is missing a valid admission certificate.")
             queued_submission = self.add_to_mint_queue(submission_id)
-            certificate = self.get_originality_certificate_for_submission(submission_id)
+            certificate = self.require_valid_certificate_for_submission(submission)
         self.save_blockchain()
         if submission.status in {APPROVED, QUEUED}:
-            certificate = self.get_originality_certificate_for_submission(submission_id)
+            certificate = self.require_valid_certificate_for_submission(submission)
             if not certificate:
-                raise ValueError("Originality certificate creation failed: certificate could not be retrieved after approval.")
+                raise ValueError("Admission certificate could not be retrieved after approval.")
             submission.certificate_id = certificate.certificate_id
         return evaluation, queued_submission or submission, certificate
 
@@ -1258,6 +1390,54 @@ class Blockchain:
             self.save_blockchain()
             return submission
 
+    def attach_current_admission_attestation_operation(self, *, submission_id, wallet_address,
+                                                       message, signature, auth_manager):
+        """Signed transition of an unminted legacy record into current review."""
+        with self._submission_attestation_lock:
+            self.load_blockchain()
+            submission = self.get_submission(submission_id)
+            if (submission is None or submission.status not in {PENDING, APPROVED, QUEUED}
+                or submission.attestation_requirement == ATTESTATION_REQUIRED):
+                raise ValueError("Only an unminted legacy submission can enter current admission review.")
+            if normalize_wallet_address(submission.submitter) != normalize_wallet_address(wallet_address):
+                raise ValueError("Attestation wallet does not own this submission.")
+            verification = auth_manager.verify_submission_signature(
+                wallet_address=wallet_address, message=message, signature=signature,
+                content_hash=submission.content_hash, content_id=submission.content_id)
+            if verification["submission_id"] != submission_id:
+                raise ValueError("Signed attestation targets a different submission.")
+            self.ensure_submitter_attestation_not_replayed(verification["submitter_attestation"],
+                                                          exclude_submission_id=submission_id)
+            _content, raw, evidence = self._submitter_attestation_context(submission)
+            validate_submitter_attestation(
+                verification["submitter_attestation"],
+                expected_wallet_address=submission.submitter,
+                expected_submission_id=submission_id,
+                expected_raw_media_sha256=submission.content_hash,
+                expected_technical_evidence=evidence, raw_media_bytes=raw,
+                expected_network_id=self.protocol_v1_network_id(),
+            )
+            submission.status = PENDING
+            self.mint_queue[:] = [item for item in self.mint_queue if item != submission_id]
+            submission.certificate_id = None
+            submission.admission_certificate = None
+            submission.admission_state = "awaiting_review"
+            submission.quarantine_reason = None
+            submission.decision_reason = None
+            submission.decision_finalized_at = None
+            submission.attestation_requirement = ATTESTATION_REQUIRED
+            submission.submitter_attestation = dict(verification["submitter_attestation"])
+            submission.creator_wallet_address = wallet_address
+            submission.signature_scheme = str(verification["signature_scheme"])
+            submission.submission_signature = str(verification["submission_signature"])
+            submission.submission_message = str(verification["submission_message"])
+            submission.signed_message_hash = str(verification["signed_message_hash"])
+            submission.submission_nonce = str(verification["nonce"])
+            submission.signed_at = str(verification["signed_at"])
+            submission.identity_source = str(verification["identity_source"])
+            self.save_blockchain()
+            return submission
+
     def submit_content_operation(self, *, content_hash=None, content_id=None, image_path=None, text_content="", submitter=""):
         if content_hash is not None or content_id is not None:
             submission = self.submit_existing_content(
@@ -1275,12 +1455,241 @@ class Blockchain:
         self.save_blockchain()
         return submission
 
-    def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager):
+    def report_status(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        for record in submission.community_reports:
+            if not verify_report(record, submission_id=submission_id,
+                                 content_hash=submission.content_hash,
+                                 status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Stored community report evidence is invalid.")
+        tally = report_tally(submission.community_reports, submission_id=submission_id,
+                             content_hash=submission.content_hash)
+        if tally["threshold_met"] and submission.status != MINTED:
+            if submission.status != QUARANTINED or submission.quarantine_reason != "community_report_threshold":
+                raise ValueError("Report threshold and submission quarantine state differ.")
+            evidence = submission.report_quarantine_evidence
+            required = (
+                "policy_id", "policy_version", "policy_digest", "submission_id",
+                "content_hash", "report_set", "report_set_digest",
+                "observed_report_count", "observed_report_digest",
+                "accepted_report_count", "established_reporter_count",
+                "minimum_valid_reports", "minimum_established_reporters",
+                "threshold_met", "quarantine_trigger_identity",
+                "canonical_trigger_report_set", "canonical_trigger_report_set_digest",
+            )
+            if not isinstance(evidence, dict) or any(evidence.get(key) != tally[key] for key in required):
+                raise ValueError("Stored report quarantine evidence does not match accepted reports.")
+        return {**tally, "protocol_state": "post_mint_dispute_flow_required" if submission.status == MINTED
+                else "quarantined" if submission.status == QUARANTINED else "pre_mint_review",
+                "quarantine_state": submission.status == QUARANTINED,
+                "quarantine_reason": submission.quarantine_reason,
+                "quarantine_evidence": submission.report_quarantine_evidence}
+
+    def record_community_report_operation(self, record):
+        """Serialize a report with mint commit using the durable document lock."""
+        record = canonical_report_record(record)
+        payload = record.get("payload") if isinstance(record, dict) else None
+        if not isinstance(payload, dict):
+            raise ValueError("Signed report payload is required.")
+        submission_id = payload.get("submission_id")
+        outcome = {}
+
+        def mutate(document):
+            self._restore_blockchain_state_document(document)
+            submission = self.get_submission(submission_id)
+            if submission is None:
+                raise ValueError(f"Submission not found: {submission_id}")
+            if submission.status == MINTED or any(block.submission_id == submission_id for block in self.chain):
+                raise ValueError("Post-mint dispute flow required; finalized submissions cannot be pre-mint reported.")
+            if submission.attestation_requirement != ATTESTATION_REQUIRED:
+                raise ValueError("Community reporting requires a current attested submission.")
+            if submission.status in {REJECTED, HARD_REJECTED}:
+                raise ValueError("Submission is no longer in current pre-mint review.")
+            if submission.status == QUARANTINED and submission.quarantine_reason != "community_report_threshold":
+                raise ValueError("Submission is already quarantined for a different reason.")
+            wallet = normalize_wallet_address(payload.get("wallet_address"))
+            if wallet == normalize_wallet_address(submission.submitter):
+                raise ValueError("Submission creator cannot report their own submission.")
+            if payload.get("content_hash") != submission.content_hash:
+                raise ValueError("Report media hash differs from submission.")
+            if payload.get("policy_digest") != report_policy_digest():
+                raise ValueError("Unknown report policy digest.")
+            if not verify_report(record, submission_id=submission_id,
+                                 content_hash=submission.content_hash,
+                                 status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Invalid signed report or reporter eligibility reference.")
+            for existing in submission.community_reports:
+                if existing == record:
+                    outcome["action"] = "duplicate"
+                    outcome["record"] = existing
+                    outcome["status"] = self.report_status(submission_id)
+                    return document
+                if existing.get("identity") == record.get("identity") and existing["payload"]["wallet_address"] != wallet:
+                    raise ValueError("Report identity already used by another wallet.")
+            conflicting = any(existing["payload"]["wallet_address"] == wallet
+                              for existing in submission.community_reports)
+            submission.community_reports.append(deepcopy(record))
+            submission.community_reports.sort(key=lambda item: (
+                item["payload"]["wallet_address"], item["identity"], canonical_hash(item),
+            ))
+            tally = report_tally(submission.community_reports, submission_id=submission_id,
+                                 content_hash=submission.content_hash)
+            if tally["threshold_met"]:
+                self._quarantine_current_submission(submission, "community_report_threshold")
+                submission.report_quarantine_evidence = {
+                    key: deepcopy(tally[key]) for key in (
+                        "policy_id", "policy_version", "policy_digest", "submission_id",
+                        "content_hash", "report_set", "report_set_digest",
+                        "observed_report_count", "observed_report_digest",
+                        "accepted_report_count", "established_reporter_count",
+                        "minimum_valid_reports", "minimum_established_reporters",
+                        "threshold_met", "quarantine_trigger_identity",
+                        "canonical_trigger_report_set", "canonical_trigger_report_set_digest",
+                    )
+                }
+            outcome["action"] = "conflict_recorded" if conflicting else "accepted"
+            outcome["record"] = record
+            outcome["status"] = self.report_status(submission_id)
+            return self._serialize_blockchain_state()
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except Exception:
+            self.load_blockchain()
+            raise
+        self._restore_blockchain_state_document(document)
+        return outcome
+
+    def _finalized_dispute_block(self, submission_id):
+        """Resolve a media block by an incremental canonical submission index."""
+        indexed = getattr(self, "_dispute_block_index", {})
+        indexed_length = getattr(self, "_dispute_index_length", 0)
+        indexed_hash = getattr(self, "_dispute_index_last_hash", None)
+        if indexed_length > len(self.chain) or (indexed_length and
+            self.chain[indexed_length - 1].hash != indexed_hash):
+            indexed, indexed_length = {}, 0
+        for block in self.chain[indexed_length:]:
+            if block.submission_id and block.media_bytes is not None:
+                indexed[block.submission_id] = block.index
+        self._dispute_block_index = indexed
+        self._dispute_index_length = len(self.chain)
+        self._dispute_index_last_hash = self.chain[-1].hash if self.chain else None
+        height = indexed.get(submission_id)
+        if height is None:
+            raise ValueError("Finalized media block not found for submission.")
+        block = self.chain[height]
+        if not self.is_protocol_v1_block_payload(block) or block.network_id != self.protocol_v1_network_id():
+            raise ValueError("Dispute requires a Public Testnet v1 media block.")
+        if not self._is_finalized_dispute_reference(height, block.hash):
+            raise ValueError("Media block is not finalized and canonical.")
+        if (not block.media_bytes or block.media_hash != hashlib.sha256(block.media_bytes).hexdigest()
+            or block.content_hash != block.media_hash):
+            raise ValueError("Finalized block media hash does not match immutable bytes.")
+        return block
+
+    def _is_finalized_dispute_reference(self, height, block_hash):
+        """Maintain an append-only finality membership projection for disputes."""
+        records = self.finalized_blocks
+        known = getattr(self, "_dispute_finality_index", set())
+        length = getattr(self, "_dispute_finality_length", 0)
+        last = getattr(self, "_dispute_finality_last", None)
+        if length > len(records) or (length and
+            (records[length - 1].get("block_height"), records[length - 1].get("block_hash")) != last):
+            known, length = set(), 0
+        for item in records[length:]:
+            if isinstance(item, dict):
+                known.add((item.get("block_height"), str(item.get("block_hash") or "").lower()))
+        self._dispute_finality_index = known
+        self._dispute_finality_length = len(records)
+        self._dispute_finality_last = ((records[-1].get("block_height"), records[-1].get("block_hash"))
+                                      if records else None)
+        return height < len(self.chain) and self.chain[height].hash.lower() == block_hash.lower() \
+            and (height, block_hash.lower()) in known
+
+    def dispute_status(self, submission_id):
+        block = self._finalized_dispute_block(submission_id)
+        observations = self.post_mint_disputes.get(submission_id, [])
+        for record in observations:
+            if not verify_dispute(record, submission_id=submission_id, block_height=block.index,
+                                  block_hash=block.hash, media_hash=block.media_hash,
+                                  status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Stored post-mint dispute evidence is invalid.")
+        return dispute_tally(observations, submission_id=submission_id,
+                             block_height=block.index, block_hash=block.hash,
+                             media_hash=block.media_hash)
+
+    def record_post_mint_dispute_operation(self, record):
+        """Atomically add signed observations without touching finalized history."""
+        record = canonical_dispute_record(record)
+        payload = record.get("payload")
+        if not isinstance(payload, dict):
+            raise ValueError("Signed dispute payload is required.")
+        submission_id = payload.get("submission_id")
+        outcome = {}
+
+        def mutate(document):
+            self._restore_blockchain_state_document(document)
+            block = self._finalized_dispute_block(submission_id)
+            if (payload.get("block_height") != block.index or
+                payload.get("block_hash") != block.hash or
+                payload.get("media_hash") != block.media_hash):
+                raise ValueError("Dispute does not bind the exact finalized media block.")
+            if normalize_wallet_address(payload.get("wallet_address")) == normalize_wallet_address(block.creator_wallet):
+                raise ValueError("Submission creator cannot dispute their own finalized media.")
+            if not verify_dispute(record, submission_id=submission_id, block_height=block.index,
+                                  block_hash=block.hash, media_hash=block.media_hash,
+                                  status_resolver=self.get_report_reviewer_status_at_reference):
+                raise ValueError("Invalid signed dispute or disputer eligibility reference.")
+            observations = self.post_mint_disputes.setdefault(submission_id, [])
+            for existing in observations:
+                if existing == record:
+                    outcome.update(action="duplicate", record=existing,
+                                   status=self.dispute_status(submission_id))
+                    return document
+                if existing["identity"] == record["identity"] and existing != record:
+                    raise ValueError("Dispute identity conflicts with existing evidence.")
+            conflict = any(item["payload"]["wallet_address"] == payload["wallet_address"]
+                           for item in observations)
+            observations.append(deepcopy(record))
+            observations.sort(key=lambda item: (item["payload"]["wallet_address"],
+                                                item["identity"], canonical_hash(item)))
+            outcome.update(action="conflict_recorded" if conflict else "accepted", record=record,
+                           status=self.dispute_status(submission_id))
+            document["post_mint_disputes"] = self.post_mint_disputes
+            return document
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+        except Exception:
+            self.load_blockchain()
+            raise
+        self._restore_blockchain_state_document(document)
+        return outcome
+
+    def cast_signed_submission_vote_operation(self, *, submission_id, voter, vote_type, message, signature, auth_manager, dimension=None):
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
-        verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type)
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            if dimension not in {ORIGINALITY, ADMISSIBILITY}:
+                raise ValueError("Current submissions require an explicit review dimension.")
+            validate_choice(dimension, vote_type)
+            self.require_valid_submitter_attestation(submission)
+        elif dimension == ORIGINALITY:
+            dimension = None  # An explicit API hint does not change the legacy signed domain.
+        elif dimension is not None:
+            raise ValueError("Legacy submissions use originality-only review.")
         voter = normalize_wallet_address(voter) or voter
+        existing_retry = self.storage.get_vote(submission_id, voter, self.votes, dimension=dimension or ORIGINALITY)
+        if (existing_retry is not None and existing_retry.get("vote_type") == vote_type
+            and existing_retry.get("vote_message") == message
+            and str(existing_retry.get("vote_signature") or "").lower() == str(signature).lower()):
+            return existing_retry
+        verification = auth_manager.verify_vote_signature(wallet_address=voter, message=message, signature=signature, submission_id=submission_id, content_hash=submission.content_hash or "", vote_type=vote_type, dimension=dimension)
+        if submission.attestation_requirement == ATTESTATION_REQUIRED and verification.get("vote_version") != REVIEW_VOTE_VERSION:
+            raise ValueError("Current submissions require dimension-bound review signatures.")
         reviewer_decision = self.get_reviewer_vote_decision(voter) if self.get_finalized_head() is not None or ENVIRONMENT != "development" else None
         durable_vote = {
             "voter": voter, "submission_id": submission_id, "vote_type": vote_type,
@@ -1298,7 +1707,15 @@ class Blockchain:
             "reviewer_status_effective_height": reviewer_decision.snapshot.get("reference_finalized_height") if reviewer_decision else None,
             "reviewer_status_reference_block_hash": reviewer_decision.snapshot.get("reference_finalized_block_hash") if reviewer_decision else None,
         }
-        durable_vote["vote_identity"] = calculate_signed_vote_identity(
+        if dimension is not None:
+            durable_vote["dimension"] = dimension
+        durable_vote["vote_identity"] = (dual_vote_identity(
+            wallet_address=voter, submission_id=submission_id,
+            content_hash=submission.content_hash, dimension=dimension,
+            choice=vote_type, nonce=durable_vote["vote_nonce"],
+            issued_at=durable_vote["vote_issued_at"], expires_at=durable_vote["vote_expires_at"],
+            network_id=durable_vote["network_id"], signature=durable_vote["vote_signature"],
+        ) if dimension is not None else calculate_signed_vote_identity(
             wallet_address=voter,
             submission_id=submission_id,
             content_hash=submission.content_hash,
@@ -1309,7 +1726,7 @@ class Blockchain:
             network_id=durable_vote["network_id"],
             signature=durable_vote["vote_signature"],
             signature_scheme=durable_vote["signature_scheme"],
-        )
+        ))
         if hasattr(self.storage, "list_durable_votes"):
             prior_identity = next((item for item in self.storage.list_durable_votes(submission_id=submission_id) if item.get("vote_identity") == durable_vote["vote_identity"]), None)
             if prior_identity is not None:
@@ -1332,7 +1749,7 @@ class Blockchain:
             self._persist_reputation_outcome(outcome)
             return outcome
 
-        existing = self.storage.get_vote(submission_id, voter, self.votes)
+        existing = self.storage.get_vote(submission_id, voter, self.votes, dimension=dimension or ORIGINALITY)
         if existing is not None:
             if hasattr(self.storage, "record_durable_vote"):
                 self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason="conflicting_counted_vote")
@@ -1353,7 +1770,17 @@ class Blockchain:
                 [durable_vote], active_penalty_id=active["penalty_id"] if active else None,
             )
             raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
-        if reviewer_decision and not reviewer_decision.eligible:
+        prior_other_dimension = any(
+            item.get("submission_id") == submission_id
+            and normalize_wallet_address(item.get("voter")) == voter
+            and item.get("dimension") != dimension
+            and isinstance(item.get("reviewer_status_effective_height"), int)
+            and item["reviewer_status_effective_height"] // REVIEW_EPOCH_BLOCKS == epoch
+            for item in self.votes
+        ) if dimension is not None else False
+        limit_only_same_submission = (reviewer_decision and prior_other_dimension
+            and reviewer_decision.reason == "review_epoch_vote_limit_reached")
+        if reviewer_decision and not reviewer_decision.eligible and not limit_only_same_submission:
             if hasattr(self.storage, "record_durable_vote"):
                 self.storage.record_durable_vote(durable_vote, lifecycle_state="rejected", rejection_reason=reviewer_decision.reason)
             if reviewer_decision.reason == "review_epoch_vote_limit_reached" and finalized is not None:
@@ -1364,7 +1791,10 @@ class Blockchain:
                 )
                 self._persist_reputation_outcome(outcome)
             raise ValueError(f"Reviewer is not eligible: {reviewer_decision.reason}.")
-        vote = self.cast_submission_vote(submission_id=submission_id, voter=voter, vote_type=vote_type)
+        vote = self.cast_submission_vote(
+            submission_id=submission_id, voter=voter, vote_type=vote_type,
+            **({"dimension": dimension} if dimension is not None else {}),
+        )
         vote.update(durable_vote)
         if reviewer_decision and hasattr(self.storage, "record_durable_vote_with_epoch_limit"):
             epoch_start = int(reviewer_decision.review_epoch) * REVIEW_EPOCH_BLOCKS
@@ -1583,6 +2013,10 @@ class Blockchain:
         try:
             loaded_data = self.storage.load_blockchain_state()
 
+            tip = (loaded_data.get("chain") or [{}])[-1].get("index") if isinstance(loaded_data, dict) else None
+            self.admission_activation_record = self._admission_activation_store.verify_document(
+                loaded_data, chain_tip=tip)
+
             if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
                 self.chain = [Block.from_dict(block_data) for block_data in loaded_data["chain"]]
 
@@ -1623,14 +2057,36 @@ class Blockchain:
                 self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
                 self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
                 self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+                self.post_mint_disputes = deepcopy(loaded_data.get("post_mint_disputes", {}) or {})
                 self._validate_persisted_finality_state()
                 self.recompute_reward_pool_balance(chain=self.chain)
                 self.link_content_objects_to_submissions()
                 self.refresh_content_object_storage_statuses()
                 self.link_certificates_to_submissions()
                 self.reconcile_submission_canonical_state()
+                admission_queue_changed = False
+                if not self._admission_queue_reconciled:
+                    for queued_id in tuple(self.mint_queue):
+                        pending = self.get_submission(queued_id)
+                        if pending is None:
+                            continue
+                        if pending.attestation_requirement != ATTESTATION_REQUIRED:
+                            if (self.admission_activation_height is not None and self.chain
+                                and self.chain[-1].index + 1 >= self.admission_activation_height):
+                                self.mint_queue.remove(queued_id)
+                                if pending.status == QUEUED:
+                                    pending.status = APPROVED
+                                    pending.admission_state = "awaiting_attestation"
+                                admission_queue_changed = True
+                            continue
+                        try:
+                            self.validate_current_admission(pending)
+                        except (ValueError, SubmitterAttestationError):
+                            self._quarantine_current_submission(pending, "invalid_admission_on_restart")
+                            admission_queue_changed = True
+                    self._admission_queue_reconciled = True
                 mempool_report = self.revalidate_mempool_transactions(save=False)
-                if native_state["changed"] or mempool_report["removed"] > 0:
+                if native_state["changed"] or mempool_report["removed"] > 0 or admission_queue_changed:
                     self.save_blockchain()
                 if native_state["removed"] > 0:
                     print(
@@ -1644,6 +2100,8 @@ class Blockchain:
                             "invalid_chain_state",
                             "Persisted blockchain state failed chain validation.",
                         )
+                if self._set_report_reviewer_index(loaded_data.get("report_reviewer_index"), rebuild=True):
+                    self.save_blockchain()
                 print(f"Debug: Blockchain length after loading - {len(self.chain)} blocks")
                 print(f"Debug: Wallets loaded: {len(self.wallets)} wallets")
                 return True
@@ -1675,6 +2133,9 @@ class Blockchain:
             self.audit_logs = []
             self.finality_attestations = []
             self.finalized_blocks = []
+            self.post_mint_disputes = {}
+            self._report_reviewer_index = {}
+            self._report_finalized_head = None
         except json.JSONDecodeError as exc:
             raise GenesisValidationError(
                 "invalid_chain_state",
@@ -1969,7 +2430,7 @@ class Blockchain:
 
     @staticmethod
     def is_protocol_v1_block_payload(block) -> bool:
-        return Blockchain._block_field(block, "block_version") == PROTOCOL_V1_BLOCK_VERSION
+        return Blockchain._block_field(block, "block_version") in {PROTOCOL_V1_BLOCK_VERSION, 2}
 
     @staticmethod
     def protocol_v1_network_id() -> str:
@@ -2141,6 +2602,75 @@ class Blockchain:
             and str(record.get("block_hash") or "").strip().lower() == normalized_hash
             for record in self.finalized_blocks if isinstance(record, dict)
         )
+
+    def _set_report_reviewer_index(self, raw, *, rebuild):
+        """Load the durable projection; rebuild missing/corrupt snapshots at startup."""
+        index = dict(raw) if isinstance(raw, dict) else {}
+        changed = False
+        if rebuild:
+            ordered_finality = sorted(self.finalized_blocks,
+                                      key=lambda item: (int(item["block_height"]), str(item["block_hash"])))
+            if ordered_finality != self.finalized_blocks:
+                self.finalized_blocks = ordered_finality
+                changed = True
+        finalized = {
+            (int(item["block_height"]), str(item["block_hash"]).lower())
+            for item in self.finalized_blocks if isinstance(item, dict)
+        }
+        changed = changed or (not isinstance(raw, dict) and bool(finalized))
+        if rebuild:
+            for key in list(index):
+                if not validate_snapshot(index[key], self.chain, finalized) or key != reference_key(index[key]["height"], index[key]["block_hash"]):
+                    index.pop(key)
+                    changed = True
+            for height, block_hash in sorted(finalized):
+                key = reference_key(height, block_hash)
+                if key not in index:
+                    index[key] = qualification_snapshot(self.chain, height, block_hash)
+                    changed = True
+        self._report_reviewer_index = index
+        if self.finalized_blocks:
+            latest = self.finalized_blocks[-1]
+            self._report_finalized_head = {
+                "block_height": int(latest["block_height"]),
+                "block_hash": str(latest["block_hash"]).lower(),
+            }
+        else:
+            self._report_finalized_head = None
+        return changed
+
+    def get_report_reviewer_status_at_reference(self, reviewer_address, height, block_hash):
+        """Resolve qualification by finalized reference without ancestry traversal."""
+        if isinstance(height, bool) or not isinstance(height, int) or height < 0 or height >= len(self.chain):
+            raise ValueError("Reviewer reference is not a finalized canonical block.")
+        normalized_hash = str(block_hash or "").strip().lower()
+        key = reference_key(height, normalized_hash)
+        snapshot = self._report_reviewer_index.get(key)
+        if (snapshot is None or self.chain[height].hash.lower() != normalized_hash
+            or snapshot.get("height") != height or snapshot.get("block_hash") != normalized_hash):
+            raise ValueError("Finalized reviewer qualification index is missing or stale.")
+        wallet = normalize_wallet_address(reviewer_address)
+        if wallet is None:
+            raise ValueError("Reporter wallet is invalid.")
+        qualification_height = snapshot["qualification_heights"].get(wallet)
+        if qualification_height is not None and snapshot.get("qualification_entry_digests", {}).get(wallet) != qualification_entry_digest(
+            height, normalized_hash, wallet, qualification_height
+        ):
+            raise ValueError("Finalized reviewer qualification index entry is corrupt.")
+        return self._reviewer_eligibility_service.status_at_reference(
+            reviewer_address=wallet, chain=None,
+            finalized_head={"block_height": height, "block_hash": normalized_hash},
+            storage=self.storage, indexed_qualification_height=qualification_height,
+        )["status"]
+
+    def get_report_reviewer_decision(self, reviewer_address):
+        reference = self._report_finalized_head
+        if reference is None:
+            return {"status": "NEW", "reference_finalized_height": None,
+                    "reference_finalized_block_hash": None}
+        height, block_hash = reference["block_height"], reference["block_hash"]
+        return {"status": self.get_report_reviewer_status_at_reference(reviewer_address, height, block_hash),
+                "reference_finalized_height": height, "reference_finalized_block_hash": block_hash}
 
     def get_reviewer_status_at_reference(self, reviewer_address, height, block_hash, *, policy_version=REVIEWER_POLICY_VERSION, reputation_rule_version=REPUTATION_RULE_VERSION):
         if not self.is_finalized_canonical_reference(height, block_hash):
@@ -2315,6 +2845,7 @@ class Blockchain:
                 updated_finalized_blocks,
                 key=lambda value: (value["block_height"], value["block_hash"]),
             )
+            self._set_report_reviewer_index(self._report_reviewer_index, rebuild=True)
             self.save_blockchain()
         for result, canonical in results:
             if result.get("finalization") is not None:
@@ -2345,6 +2876,17 @@ class Blockchain:
         )
 
     def get_submission_certificate_state(self, submission) -> dict[str, object]:
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            if submission.admission_certificate is None:
+                return {"certificate_status": "missing", "certificate_id": None,
+                        "certificate": None, "validation_error": None}
+            try:
+                certificate = AdmissionMintCertificateView(self.validate_current_admission(submission))
+            except (ValueError, SubmitterAttestationError) as exc:
+                return {"certificate_status": "invalid", "certificate_id": None,
+                        "certificate": None, "validation_error": str(exc)}
+            return {"certificate_status": "valid", "certificate_id": certificate.certificate_id,
+                    "certificate": certificate, "validation_error": None}
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         if certificate is None:
             return {
@@ -2352,6 +2894,13 @@ class Blockchain:
                 "certificate_id": None,
                 "certificate": None,
                 "validation_error": None,
+            }
+        if submission.attestation_requirement == ATTESTATION_REQUIRED and submission.status != MINTED:
+            return {
+                "certificate_status": "invalid",
+                "certificate_id": certificate.certificate_id,
+                "certificate": certificate,
+                "validation_error": "Originality-only certificates cannot certify current dual-review submissions.",
             }
         try:
             self.validate_originality_certificate(certificate, submission)
@@ -2378,7 +2927,7 @@ class Blockchain:
         certificate = certificate_state["certificate"]
         block = self.get_protocol_v1_block_for_submission(submission.submission_id)
         block_state = self.get_block_chain_state(block) if block is not None else self.get_block_chain_state(None)
-        rejected = submission.status in {REJECTED, HARD_REJECTED}
+        rejected = submission.status in {REJECTED, HARD_REJECTED, QUARANTINED}
         voting = submission.status == PENDING and not rejected and not self.is_submission_voting_locked(submission)
         certified = certificate_state["certificate_status"] == "valid"
         mint_eligible = False
@@ -2473,6 +3022,50 @@ class Blockchain:
 
     def recover_block_media_bytes(self, block_or_hash):
         return self._content_coordination_service.recover_block_media_bytes(self.storage, block_or_hash, self.get_block_by_hash)
+    def resolve_immutable_media_block(self, *, block_hash=None, block_height=None, submission_id=None):
+        selectors = [block_hash is not None, block_height is not None, submission_id is not None]
+        if sum(selectors) != 1:
+            raise ValueError("Exactly one of block_hash, block_height, or submission_id is required.")
+        if block_hash is not None:
+            block = self.get_block_by_hash(block_hash)
+        elif block_height is not None:
+            block = self.get_block_by_height(block_height)
+        else:
+            block = self.get_protocol_v1_block_for_submission(submission_id)
+        if block is None:
+            raise ValueError("Immutable media block not found.")
+        return block
+    def verify_block_media_integrity(self, block_or_hash, *, require_finalized=False):
+        block = self.get_block_by_hash(block_or_hash) if isinstance(block_or_hash, str) else block_or_hash
+        if block is None:
+            raise ValueError("Immutable media block not found.")
+        chain_state = self.get_block_chain_state(block)
+        if not chain_state["canonical"]:
+            raise ValueError("Media block is not canonical.")
+        if require_finalized and not chain_state["finalized"]:
+            raise ValueError("Media block is not finalized.")
+        report = verify_media_block(
+            block,
+            reviewer_status_resolver=self.get_reviewer_status_at_reference,
+            expected_block_hash=block.hash,
+            expected_block_height=block.index,
+        )
+        return {
+            **report,
+            "canonical": chain_state["canonical"],
+            "finalized": chain_state["finalized"],
+            "block_status": chain_state["phase"],
+            "download_path": f"/blocks/{block.hash}/media",
+        }
+    def reconstruct_immutable_media(self, *, block_hash=None, block_height=None,
+                                    submission_id=None, require_finalized=False):
+        block = self.resolve_immutable_media_block(
+            block_hash=block_hash,
+            block_height=block_height,
+            submission_id=submission_id,
+        )
+        self.verify_block_media_integrity(block, require_finalized=require_finalized)
+        return reconstruct_media_bytes(block)
     def _resolve_protocol_v1_block_media(self, block):
         return self._content_coordination_service.resolve_protocol_v1_block_media(self.storage, block, self.get_block_by_hash)
     def cache_protocol_v1_block_content(self, block, *, submission_id=None):
@@ -3020,6 +3613,13 @@ class Blockchain:
     def validate_originality_certificate(
         self, certificate, submission, *, allowed_submission_statuses=None, chain=None
     ):
+        if isinstance(certificate, AdmissionMintCertificateView):
+            if submission.attestation_requirement != ATTESTATION_REQUIRED:
+                raise ValueError("Admission certificate cannot certify a legacy submission.")
+            validated = self.validate_current_admission(submission)
+            if validated != certificate.admission_certificate:
+                raise ValueError("Admission certificate differs from durable submission state.")
+            return certificate
         validation_chain = self.chain if chain is None else chain
         kwargs = {}
         if certificate is not None and certificate.is_milestone5_certificate():
@@ -3060,13 +3660,147 @@ class Blockchain:
         return self._submission_originality_service.hard_reject_submission(self._submission_originality_state(), self.storage, submission_id, reason)
     def record_vote(self, voter, submission_id=None, created_at=None):
         return self._submission_originality_service.record_vote(self._submission_originality_state(), voter, submission_id, created_at)
-    def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None):
+    def cast_submission_vote(self, submission_id, voter, vote_type, created_at=None, *, dimension=None):
+        submission = self.get_submission(submission_id)
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED and dimension is None:
+            raise ValueError("Current submissions require dimension-bound signed review votes.")
+        if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED:
+            self.require_valid_submitter_attestation(submission)
         evidence = self.ensure_current_originality_evidence(submission_id)
         if evidence["final_prevote_decision"] == HARD_REJECT:
             raise ValueError("Hard rejected submissions cannot receive votes.")
-        return self._submission_originality_service.cast_submission_vote(self._submission_originality_state(), self.storage, submission_id, voter, vote_type, created_at)
+        return self._submission_originality_service.cast_submission_vote(self._submission_originality_state(), self.storage, submission_id, voter, vote_type, created_at, dimension=dimension)
     def get_submission_votes(self, submission_id):
         return self._submission_originality_service.get_submission_votes(self._submission_originality_state(), self.storage, submission_id)
+
+    def get_dual_review(self, submission_id):
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError(f"Submission not found: {submission_id}")
+        valid_votes = [vote for vote in self.storage.get_votes_for_submission(submission_id, self.votes)
+            if verify_vote_record(vote, submission_id=submission_id,
+                content_hash=submission.content_hash,
+                network_id=self.protocol_v1_network_id(),
+                creator_address=submission.submitter,
+                reviewer_status_resolver=self.get_reviewer_status_at_reference)]
+        review = combined_review(valid_votes)
+        review["submission_id"] = submission_id
+        review["content_hash"] = submission.content_hash
+        review["review_mode"] = "dual_v1" if submission.attestation_requirement == ATTESTATION_REQUIRED else "legacy_originality_only"
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            try:
+                attestation_status = self.validate_submission_attestation(submission, allow_legacy=False)
+                review["attestation_valid"] = True
+                review["attestation_message_hash"] = attestation_status["attestation"]["canonical_message_hash"]
+                review["technical_evidence_digest"] = attestation_status["attestation"]["canonical_payload"]["technical_evidence_digest"]
+            except (ValueError, SubmitterAttestationError):
+                review["attestation_valid"] = False
+                review["attestation_message_hash"] = None
+                review["technical_evidence_digest"] = None
+            review["review_qualified"] = review["review_qualified"] and review["attestation_valid"]
+            review["review_state"] = "resolved_dual_review" if review["review_complete"] else "incomplete_dual_review"
+        else:
+            review["review_qualified"] = False
+            review["review_state"] = "legacy_originality_only"
+            review["attestation_valid"] = False
+            review["attestation_message_hash"] = None
+            review["technical_evidence_digest"] = None
+        review["review_evidence_digest"] = canonical_hash(review)
+        return review
+
+    def get_qualified_dual_review_evidence(self, submission_id):
+        review = self.get_dual_review(submission_id)
+        if review["review_mode"] != "dual_v1" or not review["review_qualified"]:
+            raise ValueError("Both review dimensions and submitter attestation must qualify.")
+        return review
+
+    def _quarantine_current_submission(self, submission, reason):
+        if submission.status == MINTED:
+            raise ValueError("Finalized media cannot be quarantined as pending content.")
+        if submission.status != QUARANTINED:
+            submission.transition_to(QUARANTINED)
+        submission.admission_state = "quarantined"
+        submission.quarantine_reason = reason
+        self.mint_queue[:] = [item for item in self.mint_queue if item != submission.submission_id]
+        return submission
+
+    def _quarantine_stale_current_queue_record(self, submission_id, reason):
+        """Persist removal without changing the canonical head or CAS commit rules."""
+        def mutate(document):
+            for item in document.get("submissions", []):
+                if item.get("submission_id") == submission_id and item.get("attestation_requirement") == ATTESTATION_REQUIRED and item.get("status") != MINTED:
+                    item["status"] = QUARANTINED
+                    item["admission_state"] = "quarantined"
+                    item["quarantine_reason"] = reason
+                    document["mint_queue"] = [value for value in document.get("mint_queue", []) if value != submission_id]
+                    break
+            return document
+        document = self.storage.atomic_update_blockchain_document(mutate)
+        self._restore_blockchain_state_document(document)
+
+    def validate_current_admission(self, submission):
+        if submission.attestation_requirement != ATTESTATION_REQUIRED:
+            raise ValueError("Current admission requires a Public Testnet attested submission.")
+        certificate = submission.admission_certificate
+        if certificate is None:
+            raise ValueError("Originality-only certificates cannot certify current submissions; frozen admission certificate is missing.")
+        _content, media_bytes, evidence = self._submitter_attestation_context(submission)
+        if certificate.get("technical_evidence") != technical_evidence_identity(evidence):
+            raise ValueError("Frozen technical evidence differs from stored evidence.")
+        if certificate.get("attestation") != attestation_identity(submission.submitter_attestation):
+            raise ValueError("Frozen attestation differs from stored attestation.")
+        validate_admission_certificate(certificate, media_bytes=media_bytes,
+                                       reviewer_status_resolver=self.get_reviewer_status_at_reference)
+        if certificate["submission_id"] != submission.submission_id or certificate["content_hash"] != submission.content_hash:
+            raise ValueError("Frozen admission certificate submission binding differs.")
+        return certificate
+
+    def admission_status(self, submission):
+        if submission.attestation_requirement != ATTESTATION_REQUIRED:
+            if (submission.status != MINTED and self.admission_activation_height is not None
+                and self.chain and self.chain[-1].index + 1 >= self.admission_activation_height):
+                return {"state": "awaiting_attestation", "reason": "legacy_pending_requires_current_admission",
+                        "certificate_digest": None}
+            return {"state": "legacy_pre_activation", "reason": None, "certificate_digest": None}
+        if submission.status == MINTED:
+            return {"state": "minted", "reason": None,
+                    "certificate_digest": (submission.admission_certificate or {}).get("certificate_digest")}
+        if submission.status == QUARANTINED:
+            return {"state": "quarantined", "reason": submission.quarantine_reason,
+                    "certificate_digest": (submission.admission_certificate or {}).get("certificate_digest")}
+        if submission.admission_certificate is not None:
+            try:
+                certificate = self.validate_current_admission(submission)
+            except (ValueError, SubmitterAttestationError) as exc:
+                return {"state": "quarantined", "reason": str(exc), "certificate_digest": None}
+            return {"state": "mintable" if submission.status == QUEUED else "admission_qualified",
+                    "reason": None, "certificate_digest": certificate["certificate_digest"]}
+        try:
+            self.require_valid_submitter_attestation(submission)
+        except (ValueError, SubmitterAttestationError) as exc:
+            code = getattr(exc, "reason_code", None)
+            state = ("technical_rejected" if code == REASON_EVIDENCE_DIGEST_MISMATCH
+                     else "policy_mismatch" if code == REASON_POLICY_MISMATCH
+                     else "awaiting_attestation" if code == REASON_MISSING_ATTESTATION
+                     else "invalid_attestation")
+            return {"state": state, "reason": code or str(exc), "certificate_digest": None}
+        review = self.get_dual_review(submission.submission_id)
+        if review["originality"]["outcome"] == "not_original":
+            return {"state": "review_rejected_originality", "reason": "not_original", "certificate_digest": None}
+        if review["admissibility"]["outcome"] == "not_admissible":
+            return {"state": "review_rejected_admissibility", "reason": "not_admissible", "certificate_digest": None}
+        if review["review_qualified"]:
+            return {"state": "review_qualified", "reason": None, "certificate_digest": None}
+        if (review["originality"]["eligible_valid_votes"] == 0
+            and review["admissibility"]["eligible_valid_votes"] == 0):
+            return {"state": "awaiting_review", "reason": None, "certificate_digest": None}
+        return {"state": "review_unresolved", "reason": None, "certificate_digest": None}
+
+    def validate_qualified_dual_review_evidence(self, submission_id, evidence):
+        current = self.get_qualified_dual_review_evidence(submission_id)
+        if not isinstance(evidence, dict) or evidence != current:
+            raise ValueError("Dual-review evidence does not match the current signed vote set and prerequisites.")
+        return current
     def is_submission_voting_locked(self, submission):
         return self._submission_originality_service.is_submission_voting_locked(self._submission_originality_state(), self.storage, submission)
     def get_originality_certificate(self, certificate_id):
@@ -3215,7 +3949,11 @@ class Blockchain:
 
     def count_votes_by_wallet_since(self, wallet_address, since_timestamp):
         wallet = self._normalize_native_wallet_identity(wallet_address)
-        return 0 if wallet is None else sum(1 for vote in self.votes if (_coerce_timestamp(vote.get("created_at")) or 0) >= float(since_timestamp) and self._wallet_matches_vote(vote, wallet))
+        if wallet is None:
+            return 0
+        return len({vote.get("submission_id") or f"legacy:{index}" for index, vote in enumerate(self.votes)
+                    if (_coerce_timestamp(vote.get("created_at")) or 0) >= float(since_timestamp)
+                    and self._wallet_matches_vote(vote, wallet)})
 
     def get_account_activity_summary(self, wallet_address, *, now=None):
         wallet = self._normalize_native_wallet_identity(wallet_address)
@@ -3224,7 +3962,8 @@ class Blockchain:
         submissions = [item for item in self.submissions if self._wallet_matches_submission(item, wallet)]; votes = [item for item in self.votes if self._wallet_matches_vote(item, wallet)]; rewards = self.get_reward_records_for_wallet(wallet); transactions = self.get_native_transactions_for_wallet(wallet)
         timestamps = [_coerce_timestamp(getattr(item, "created_at", None)) for item in submissions] + [_coerce_timestamp(item.get("created_at")) for item in votes] + [_coerce_timestamp(item.get("minted_at")) for item in rewards] + [_coerce_timestamp(item.get("created_at") or item.get("updated_at") or item.get("timestamp")) for item in transactions]
         timestamps = [item for item in timestamps if item is not None]; first = min(timestamps) if timestamps else None; balance = self.get_native_balance_snapshot(wallet)["final_balance"]
-        return {"wallet_address": wallet, "normalized_wallet_address": wallet, "exists": bool(timestamps) or Decimal(balance) > Decimal("0"), "first_activity_at": first, "account_age_seconds": max(0, int(float(now if now is not None else time.time()) - first)) if first is not None else 0, "submission_count": len(submissions), "vote_count": len(votes), "reward_count": len(rewards), "settled_transfer_count": sum(1 for item in transactions if str(item.get("status") or "").strip().lower() == "settled"), "settled_balance_zoid": balance}
+        participation_count = len({vote.get("submission_id") or f"legacy:{index}" for index, vote in enumerate(votes)})
+        return {"wallet_address": wallet, "normalized_wallet_address": wallet, "exists": bool(timestamps) or Decimal(balance) > Decimal("0"), "first_activity_at": first, "account_age_seconds": max(0, int(float(now if now is not None else time.time()) - first)) if first is not None else 0, "submission_count": len(submissions), "vote_count": participation_count, "reward_count": len(rewards), "settled_transfer_count": sum(1 for item in transactions if str(item.get("status") or "").strip().lower() == "settled"), "settled_balance_zoid": balance}
 
     def get_transfer_intents_for_wallet(self, wallet_address): return self._native_ledger_service.get_transfer_intents_for_wallet(self._native_ledger_state(), wallet_address)
     def get_native_transactions_for_wallet(self, wallet_address): return self._native_ledger_service.get_native_transactions_for_wallet(self._native_ledger_state(), wallet_address)
@@ -3316,6 +4055,13 @@ class Blockchain:
     def get_pending_incoming_transfer_amount(self, wallet_address):
         return self.get_native_balance_snapshot(wallet_address)["pending_incoming"]
     def require_valid_certificate_for_submission(self, submission):
+        self.require_admission_activation_for_new_block()
+        if (self.admission_activation_height is not None and self.chain
+            and self.chain[-1].index + 1 >= self.admission_activation_height
+            and submission.attestation_requirement != ATTESTATION_REQUIRED):
+            raise ValueError("Post-activation minting requires current frozen admission evidence, including for pending legacy submissions.")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            return AdmissionMintCertificateView(self.validate_current_admission(submission))
         certificate = self.get_originality_certificate_for_submission(submission.submission_id)
         self.validate_originality_certificate(certificate, submission)
         return certificate
@@ -3349,6 +4095,8 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError(f"Submission not found: {submission_id}")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            raise ValueError("Dual-review certification is not activated; originality-only certificates cannot certify current submissions.")
         # Model A requires canonical bytes.  Promote legacy local content
         # before producing the evidence that the new certificate will bind.
         self._promote_submission_content_for_protocol_v1(submission)
@@ -3405,6 +4153,49 @@ class Blockchain:
         submission = self.get_submission(submission_id)
         if not submission:
             raise ValueError(f"Submission not found: {submission_id}")
+        if submission.attestation_requirement == ATTESTATION_REQUIRED:
+            status = self.admission_status(submission)
+            if status["state"] == "quarantined":
+                if submission.status != QUARANTINED:
+                    self._quarantine_current_submission(submission, "invalid_frozen_admission_evidence")
+                return {"submission_id": submission_id, "status": submission.status,
+                        "admission": self.admission_status(submission),
+                        "reason": submission.quarantine_reason}
+            if status["state"] in {"technical_rejected", "policy_mismatch", "awaiting_attestation", "invalid_attestation", "review_rejected_originality", "review_rejected_admissibility"}:
+                self._quarantine_current_submission(submission, status["state"])
+                return {"submission_id": submission_id, "status": submission.status,
+                        "admission": self.admission_status(submission), "reason": status["state"]}
+            if status["state"] in {"awaiting_review", "review_unresolved"}:
+                return {"submission_id": submission_id, "status": submission.status,
+                        "dual_review": self.get_dual_review(submission_id), "admission": status,
+                        "reason": "awaiting_dual_review"}
+            if submission.admission_certificate is None:
+                _content, media_bytes, technical_evidence = self._submitter_attestation_context(submission)
+                votes = [vote for vote in self.storage.get_votes_for_submission(submission_id, self.votes)
+                         if verify_vote_record(vote, submission_id=submission_id,
+                             content_hash=submission.content_hash,
+                             network_id=self.protocol_v1_network_id(),
+                             creator_address=submission.submitter,
+                             reviewer_status_resolver=self.get_reviewer_status_at_reference)]
+                try:
+                    submission.admission_certificate = build_admission_certificate(
+                        submission_id=submission_id, content_hash=submission.content_hash,
+                        creator_wallet=submission.submitter, media_bytes=media_bytes,
+                        technical_evidence=technical_evidence,
+                        attestation=submission.submitter_attestation, votes=votes,
+                        reviewer_status_resolver=self.get_reviewer_status_at_reference)
+                except (ValueError, SubmitterAttestationError) as exc:
+                    self._quarantine_current_submission(submission, "invalid_frozen_admission_evidence")
+                    return {"submission_id": submission_id, "status": submission.status,
+                            "admission": self.admission_status(submission), "reason": str(exc)}
+                submission.transition_to(APPROVED)
+                submission.admission_state = "admission_qualified"
+            return {
+                "submission_id": submission_id,
+                "status": submission.status,
+                "admission": self.admission_status(submission),
+                "reason": "admission_qualified",
+            }
 
         evidence = self.ensure_current_originality_evidence(submission_id)
 
@@ -3548,16 +4339,21 @@ class Blockchain:
         self.lifecycle_timing.mark(submission_id, "ready_for_mint")
         return submission
     def _queue_submission_record(self, submission, *, content_object=None, certificate=None):
-        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
+        return self._mint_queue_service.record(self.storage, submission, content_object=content_object, certificate=certificate, network_name=NETWORK_NAME, extract_text_func=extract_text, certificate_validator=self._validate_queue_certificate)
+    def _validate_queue_certificate(self, certificate, submission):
+        validated = self.require_valid_certificate_for_submission(submission)
+        if validated.certificate_id != certificate.certificate_id:
+            raise ValueError("Queued certificate differs from current admission eligibility.")
+        return validated
     def _evaluate_mint_queue_item(self, submission_id):
-        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text, self.validate_originality_certificate)
+        return self._mint_queue_service.evaluate(self._mint_queue_state(), self.storage, submission_id, NETWORK_NAME, extract_text, self._validate_queue_certificate)
     def get_mint_queue(self, include_blocked=True, mintable_only=False):
-        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text, certificate_validator=self.validate_originality_certificate)
+        return self._mint_queue_service.list(self._mint_queue_state(), self.storage, network_name=NETWORK_NAME, include_blocked=include_blocked, mintable_only=mintable_only, extract_text_func=extract_text, certificate_validator=self._validate_queue_certificate)
     def _first_mintable_queue_record(self):
         return self._mint_queue_service.first_mintable(
             self._mint_queue_state(), self.storage, network_name=NETWORK_NAME,
             extract_text_func=extract_text,
-            certificate_validator=self.validate_originality_certificate,
+            certificate_validator=self._validate_queue_certificate,
         )
     def _apply_certified_candidate_in_commit(self, candidate, submission):
         """Apply all durable effects of one already-validated certified block.
@@ -3617,7 +4413,13 @@ class Blockchain:
         acquired its transaction/lock.  A stale caller receives
         ``StaleCanonicalHeadError`` and must explicitly prepare again.
         """
-        request = self._prepare_certified_commit_request(submission_id, miner)
+        try:
+            request = self._prepare_certified_commit_request(submission_id, miner)
+        except (ValueError, SubmitterAttestationError) as exc:
+            submission = self.get_submission(submission_id)
+            if submission is not None and submission.attestation_requirement == ATTESTATION_REQUIRED and submission.status == QUEUED:
+                self._quarantine_stale_current_queue_record(submission_id, "invalid_admission_before_commit")
+            raise
         expected_head = dict(expected_head or self._current_canonical_head())
         memory_snapshot = json.loads(json.dumps(self._serialize_blockchain_state()))
         # Native mempool records and the configurable reward-pool test value
@@ -3627,6 +4429,7 @@ class Blockchain:
         local_native_transactions = json.loads(json.dumps(self.native_transactions))
         local_reward_pool = self.reward_pool
         replayed = False
+        stale_admission = False
 
         def replay(document):
             nonlocal replayed
@@ -3641,6 +4444,7 @@ class Blockchain:
             return True
 
         def mutate(document):
+            nonlocal stale_admission
             # The backend has already locked and reread this document.  Restore
             # it so every service observes transaction-bound balances, nonces,
             # mempool records, rewards, and canonical chain state.
@@ -3661,7 +4465,11 @@ class Blockchain:
             submission = self.get_submission(submission_id)
             if submission is None:
                 raise ValueError("Submission not found for atomic certified commit.")
-            current_request = self._prepare_certified_commit_request(submission_id, miner)
+            try:
+                current_request = self._prepare_certified_commit_request(submission_id, miner)
+            except (ValueError, SubmitterAttestationError):
+                stale_admission = submission.attestation_requirement == ATTESTATION_REQUIRED
+                raise
             if current_request != request:
                 raise ValueError("Conflicting certified commit: durable submission or certificate changed before commit.")
             if submission.status != QUEUED:
@@ -3717,6 +4525,8 @@ class Blockchain:
         except Exception:
             if not committed:
                 self._restore_blockchain_state_document(memory_snapshot)
+                if stale_admission:
+                    self._quarantine_stale_current_queue_record(submission_id, "invalid_admission_during_commit")
             raise
         finally:
             self.__dict__.pop("_atomic_commit_native_overlay", None)
@@ -3919,7 +4729,7 @@ class Blockchain:
                         max_block_size_kb=max_block_size_kb,
                         validate_meme=validate_meme,
                     )
-            raise ValueError(record.get("mint_block_reason") or "Submission is not mintable.")
+            raise ValueError(record.get("validation_error") or record.get("mint_block_reason") or "Submission is not mintable.")
 
         certificate = self.require_valid_certificate_for_submission(submission)
         return self._mint_submission_record(
@@ -4011,33 +4821,9 @@ class Blockchain:
 
     def remove_invalid_mint_queue_entries(self):
         return self._mint_queue_service.remove_invalid(self._mint_queue_state(), self.storage, self.require_valid_certificate_for_submission)
-    def remove_invalid_mint_queue_entries(self):
-        valid_queue = []
-        removed_entries = []
-        for submission_id in self.mint_queue:
-            submission = self.get_submission(submission_id)
-            try:
-                certificate_ready = (
-                    submission
-                    and submission.status == QUEUED
-                    and self.require_valid_certificate_for_submission(submission)
-                )
-            except ValueError:
-                certificate_ready = False
-
-            if certificate_ready:
-                valid_queue.append(submission_id)
-            else:
-                if submission and submission.status == QUEUED:
-                    submission.status = APPROVED
-                if submission and not self.get_originality_certificate_for_submission(submission.submission_id):
-                    submission.certificate_id = None
-                removed_entries.append(submission_id)
-
-        self.mint_queue = valid_queue
-        return removed_entries
 
     def validate_candidate_block_for_local_acceptance(self, block, *, current_chain=None):
+        self.require_admission_activation_for_new_block()
         working_chain = current_chain or self.chain
         self._ensure_validated_chain_prefix(working_chain)
         accepted = self._block_validation_service.validate_candidate(
@@ -4274,6 +5060,13 @@ class Blockchain:
         )
     def is_chain_valid(self, chain):
         """Validate a given chain."""
+        candidate_hashes = tuple(str(item.get("hash") or "") for item in self.chain_to_dicts(chain))
+        local_hashes = tuple(block.hash for block in self.chain)
+        if candidate_hashes != local_hashes:
+            try:
+                self.require_admission_activation_for_new_block()
+            except ValueError:
+                return False
         valid = self._block_validation_service.validate_chain(
             chain, self._block_validation_collaborators()
         )

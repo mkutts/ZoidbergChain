@@ -82,7 +82,9 @@ python -m scripts.ops storage-integrity
 
 - if JSON state was restored, verify the blockchain file and peer file came from the same snapshot window
 - if SQLite state was restored, verify the database file was fully copied while the node was stopped or quiesced
-- if content storage is missing objects, the chain may still reference those hashes even though local preview fetches fail
+- finalized current media remain exactly reconstructable from the block records even if content storage is missing; auxiliary previews for pending/legacy content may still fail
+- portable export/import and JSON→SQLite migration verify current embedded media bytes, hashes, block hashes, and admission evidence before accepting the restored state
+- use the block media download path to verify a sample finalized block's returned `X-Zoidberg-Media-SHA256` and byte length against its block summary
 
 ## Two-Node Recovery Notes
 

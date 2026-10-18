@@ -1,3 +1,5 @@
+import { buildMediaLifecycleDisplay } from './mediaLifecycle.js';
+
 const PUBLIC_TESTNET_V1_NETWORK_ID = 'zoidberg-public-testnet-v1';
 const PUBLIC_TESTNET_V1_LABEL = 'Public Testnet v1';
 
@@ -126,6 +128,9 @@ export function buildFinalityDisplay(record = {}) {
 }
 
 export function buildSubmissionLifecycleDisplay(submission = {}) {
+  if (submission?.lifecycle && typeof submission.lifecycle === 'object') {
+    return buildMediaLifecycleDisplay(submission.lifecycle);
+  }
   const lifecycle = submission?.protocol_v1_lifecycle || {};
   const phase = normalizeToken(lifecycle.phase || submission?.block_status || submission?.mint_status || submission?.submission_status || submission?.status);
   const finality = buildFinalityDisplay({
@@ -153,6 +158,22 @@ export function buildSubmissionLifecycleDisplay(submission = {}) {
   }
   if (lifecycle.finalized || lifecycle.confirmed || lifecycle.canonical) {
     return finality;
+  }
+  const admission = normalizeToken(submission?.admission?.state);
+  if (admission === 'minted') {
+    return { label: 'Minted', tone: 'ready', detail: 'Admitted media is in a blockchain block.' };
+  }
+  if (admission === 'quarantined' || admission.startsWith('review_rejected') || admission === 'technical_rejected' || admission === 'invalid_attestation') {
+    return { label: 'Quarantined', tone: 'warning-chip', detail: `This submission cannot mint: ${submission?.admission?.reason || admission}.` };
+  }
+  if (admission === 'mintable') {
+    return { label: 'Mint Pending', tone: 'ready', detail: 'Frozen admission evidence is valid and the submission is queued for minting.' };
+  }
+  if (admission === 'admission_qualified') {
+    return { label: 'Admission Qualified', tone: 'ready', detail: 'Both reviews passed and the frozen admission certificate is valid.' };
+  }
+  if (admission === 'awaiting_review' || admission === 'review_unresolved' || admission === 'review_qualified') {
+    return { label: 'Review Pending', tone: 'pending', detail: 'Waiting for the admission decision and mint queue transition.' };
   }
   if (lifecycle.block_accepted) {
     return {
@@ -300,6 +321,30 @@ export function humanizeProtocolActionError(message, options = {}) {
   }
   if (lower.includes('invalid_signature') || lower.includes('signature could not be verified')) {
     return `The ${action} signature could not be verified. Sign the exact backend message again in MetaMask.`;
+  }
+  if (lower.includes('challenge') && lower.includes('expired')) {
+    return `${actionLabel} signing window expired. Request a fresh challenge and try again.`;
+  }
+  if (lower.includes('unknown') && lower.includes('policy')) {
+    return `The node returned an unsupported ${action} policy version. Refresh before trying again.`;
+  }
+  if (lower.includes('quarantin')) {
+    return 'This pre-mint submission is quarantined and cannot mint in its current review round. It has not been deleted.';
+  }
+  if (lower.includes('post-mint dispute flow required')) {
+    return 'This media is already finalized. Use the separate post-mint Dispute action; the block remains immutable.';
+  }
+  if (lower.includes('not finalized') || lower.includes('not-finalized')) {
+    return 'Post-mint disputes are available only after the media block is finalized.';
+  }
+  if (lower.includes('admission activation') && (lower.includes('config') || lower.includes('misconfig'))) {
+    return 'This node is not correctly configured for current admission enforcement. Ask the operator to fix activation status.';
+  }
+  if (lower.includes('integrity')) {
+    return 'The media bytes failed immutable-block integrity verification. Do not rely on this artifact.';
+  }
+  if (lower.includes('legacy') && lower.includes('current')) {
+    return 'This legacy/pre-activation record cannot be treated as current admission-certified media.';
   }
   if (lower.includes('already minted')) {
     return 'This submission already has a Protocol v1 block.';

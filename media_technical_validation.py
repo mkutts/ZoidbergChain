@@ -105,6 +105,14 @@ _NON_IDENTITY_EVIDENCE_FIELDS = {
 }
 
 
+def technical_evidence_identity(evidence: Mapping[str, Any]) -> dict[str, Any]:
+    """Consensus identity projection; omit transport and local defense observations."""
+    if not isinstance(evidence, Mapping):
+        raise ValueError("Technical validation evidence is required.")
+    return {key: value for key, value in evidence.items()
+            if key not in _NON_IDENTITY_EVIDENCE_FIELDS}
+
+
 def _evidence_digest(result: Mapping[str, Any]) -> str:
     return canonical_hash({
         key: value

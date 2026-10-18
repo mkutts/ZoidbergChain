@@ -29,6 +29,7 @@ from milestone5_policy import (
 )
 from native_transfer import normalize_wallet_address
 from protocol_v1_originality import calculate_signed_vote_identity
+from dual_review import REVIEW_VOTE_VERSION, ORIGINALITY, vote_identity as dual_vote_identity, validate_choice
 from originality import CERTIFICATE_EVIDENCE_PROFILE, validate_originality_evidence
 
 
@@ -53,16 +54,18 @@ _STORAGE_SECTIONS = (
     "audit_logs",
     "finality_attestations",
     "finalized_blocks",
+    "report_reviewer_index",
+    "post_mint_disputes",
     "peers",
 )
 _BLOCKCHAIN_JSON_REQUIRED_SECTIONS = tuple(
-    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence"}
+    section for section in _STORAGE_SECTIONS if section not in {"peers", "transfer_intents", "native_transactions", "finality_attestations", "finalized_blocks", "originality_evidence", "report_reviewer_index", "post_mint_disputes"}
 )
 # Native records are authoritative in ``native_transaction_records`` for the
 # SQLite backend.  Keeping a second, whole-mempool JSON copy in
 # ``storage_sections`` was legacy compatibility residue: it was never read
 # (the relational records replace it on load), yet every admission rewrote it.
-_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence"}
+_OPTIONAL_SQLITE_SECTIONS = {"content_objects", "native_transactions", "originality_evidence", "report_reviewer_index", "post_mint_disputes"}
 
 # These are deliberately storage-level names rather than public API statuses.
 # A transaction's finality remains derived from its canonical block and the
@@ -149,6 +152,10 @@ def _default_section_value(section_name):
         return []
     if section_name == "finalized_blocks":
         return []
+    if section_name == "report_reviewer_index":
+        return {}
+    if section_name == "post_mint_disputes":
+        return {}
     if section_name == "peers":
         return []
     return None
@@ -202,6 +209,11 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
     if voter is None:
         voter = str(vote.get("voter_wallet_address") or vote.get("voter") or "").strip()
     vote_choice = vote.get("vote_type")
+    dimension = vote.get("dimension", ORIGINALITY)
+    if vote.get("vote_version") == REVIEW_VOTE_VERSION:
+        validate_choice(dimension, vote_choice)
+    elif dimension != ORIGINALITY:
+        raise StorageCorruptionError("Legacy votes must remain originality-only.")
     content_hash = str(vote.get("content_hash") or "").strip().lower() or None
     signature = str(vote.get("vote_signature") or vote.get("signature") or "").strip() or None
     signature_scheme = str(vote.get("signature_scheme") or "").strip().lower() or None
@@ -214,7 +226,12 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
     if identity is not None and not signed_complete:
         raise StorageCorruptionError("Canonical vote_identity requires the complete signed Protocol v1 vote payload.")
     if signed_complete:
-        calculated = calculate_signed_vote_identity(
+        calculated = (dual_vote_identity(
+            wallet_address=voter, submission_id=submission_id,
+            content_hash=content_hash, dimension=dimension, choice=vote_choice,
+            nonce=nonce, issued_at=issued_at, expires_at=expires_at,
+            network_id=network_id, signature=signature,
+        ) if vote.get("vote_version") == REVIEW_VOTE_VERSION else calculate_signed_vote_identity(
             wallet_address=voter,
             submission_id=submission_id,
             content_hash=content_hash,
@@ -225,7 +242,7 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
             network_id=network_id,
             signature=signature,
             signature_scheme=signature_scheme,
-        )
+        ))
         if identity is not None and identity != calculated:
             raise StorageCorruptionError("Stored vote_identity does not match the canonical signed vote.")
         identity = calculated
@@ -259,6 +276,7 @@ def _normalized_vote_record(vote: dict[str, Any], *, legacy_index: int | None = 
         "content_hash": content_hash,
         "voter_address": voter,
         "vote_choice": vote_choice,
+        "dimension": dimension,
         "signed_payload_version": vote.get("vote_version"),
         "protocol_version": vote.get("protocol_version"),
         "network_id": network_id,
@@ -914,7 +932,7 @@ class StorageBackend(ABC):
         document["votes"] = votes
         self.save_blockchain_document(document)
 
-    def get_vote(self, submission_id, voter, votes=None):
+    def get_vote(self, submission_id, voter, votes=None, *, dimension=ORIGINALITY):
         if not isinstance(submission_id, str) or not submission_id.strip():
             return None
         if not isinstance(voter, str) or not voter.strip():
@@ -923,7 +941,9 @@ class StorageBackend(ABC):
         submission_id = submission_id.strip()
         voter = voter.strip()
         for vote in votes or []:
-            if self._record_value(vote, "submission_id") == submission_id and self._record_value(vote, "voter") == voter:
+            if (self._record_value(vote, "submission_id") == submission_id
+                and self._record_value(vote, "voter") == voter
+                and self._record_value(vote, "dimension") in ({None, ORIGINALITY} if dimension == ORIGINALITY else {dimension})):
                 return vote
         return None
 
@@ -1485,39 +1505,60 @@ class SQLiteStorageBackend(StorageBackend):
             if existing is not None:
                 return {"evidence_id": existing[0], "lifecycle_state": existing[1], "replay": True}
             used = connection.execute(
-                """SELECT COUNT(*) FROM durable_vote_records
+                """SELECT COUNT(DISTINCT submission_id) FROM durable_vote_records
                    WHERE voter_address = ? AND reviewer_policy_version = ?
                      AND lifecycle_state = 'accepted'
                      AND reviewer_status_effective_height BETWEEN ? AND ?""",
                 (record["voter_address"], record["reviewer_policy_version"], epoch_start_height, epoch_end_height),
             ).fetchone()[0]
-            if int(used) >= maximum_votes:
+            same_submission = connection.execute(
+                """SELECT 1 FROM durable_vote_records WHERE voter_address = ?
+                   AND submission_id = ? AND lifecycle_state = 'accepted'
+                   AND reviewer_status_effective_height BETWEEN ? AND ?
+                   LIMIT 1""",
+                (record["voter_address"], record["submission_id"], epoch_start_height, epoch_end_height),
+            ).fetchone()
+            if int(used) >= maximum_votes and same_submission is None:
                 record["rejection_reason"] = "review_epoch_vote_limit_reached"
                 return self._insert_durable_vote_record(connection, record, lifecycle_state="rejected")
             return self._insert_durable_vote_record(connection, record, lifecycle_state="accepted")
 
-    def list_durable_votes(self, *, submission_id: str | None = None) -> list[dict[str, Any]]:
+    def list_durable_votes(self, *, submission_id: str | None = None,
+                           voter_address: str | None = None) -> list[dict[str, Any]]:
         columns = (
             "evidence_id", "vote_identity", "identity_status", "submission_id", "content_hash",
-            "voter_address", "vote_choice", "lifecycle_state", "rejection_reason",
+            "voter_address", "vote_choice", "dimension", "lifecycle_state", "rejection_reason",
             "signed_payload_version", "protocol_version", "network_id", "nonce", "issued_at",
             "expires_at", "signature", "signature_scheme", "signed_message", "signed_message_hash",
             "reviewer_policy_version", "reputation_rule_version", "reviewer_status",
             "reviewer_eligible",
             "reviewer_status_effective_height", "reviewer_status_reference_block_hash", "observed_at",
         )
-        where = " WHERE submission_id = ?" if submission_id is not None else ""
-        parameters = (str(submission_id).strip(),) if submission_id is not None else ()
+        clauses = []
+        parameters = []
+        if submission_id is not None:
+            clauses.append("submission_id = ?")
+            parameters.append(str(submission_id).strip())
+        if voter_address is not None:
+            wallet = normalize_wallet_address(voter_address)
+            if wallet is None:
+                raise ValueError("Invalid reviewer wallet for durable vote lookup.")
+            clauses.append("voter_address = ?")
+            parameters.append(wallet)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
         with self._connect() as connection:
             rows = connection.execute(
                 f"SELECT {', '.join(columns)} FROM durable_vote_records{where} ORDER BY observed_at, evidence_id",
-                parameters,
+                tuple(parameters),
             ).fetchall()
         results = [dict(zip(columns, row)) for row in rows]
         for result in results:
             if result.get("reviewer_eligible") is not None:
                 result["reviewer_eligible"] = bool(result["reviewer_eligible"])
         return results
+
+    def list_durable_votes_for_reviewer(self, reviewer_address: str) -> list[dict[str, Any]]:
+        return self.list_durable_votes(voter_address=reviewer_address)
 
     def record_reviewer_offense(self, offense: dict[str, Any]) -> dict[str, Any]:
         required = {
@@ -2165,6 +2206,7 @@ class SQLiteStorageBackend(StorageBackend):
                     content_hash TEXT,
                     voter_address TEXT NOT NULL,
                     vote_choice TEXT,
+                    dimension TEXT NOT NULL DEFAULT 'originality',
                     lifecycle_state TEXT NOT NULL CHECK (lifecycle_state IN ('accepted', 'rejected')),
                     rejection_reason TEXT,
                     signed_payload_version INTEGER,
@@ -2196,12 +2238,19 @@ class SQLiteStorageBackend(StorageBackend):
                     "ALTER TABLE durable_vote_records ADD COLUMN reviewer_eligible INTEGER "
                     "CHECK (reviewer_eligible IS NULL OR reviewer_eligible IN (0, 1))"
                 )
+            if "dimension" not in durable_columns:
+                connection.execute("ALTER TABLE durable_vote_records ADD COLUMN dimension TEXT NOT NULL DEFAULT 'originality'")
+            connection.execute("DROP INDEX IF EXISTS one_accepted_vote_per_submission_wallet")
             connection.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS one_accepted_vote_per_submission_wallet
-                ON durable_vote_records(submission_id, voter_address)
+                ON durable_vote_records(submission_id, voter_address, dimension)
                 WHERE lifecycle_state = 'accepted'
                 """
+            )
+            connection.execute(
+                """CREATE INDEX IF NOT EXISTS reviewer_durable_votes_lookup
+                   ON durable_vote_records(voter_address, lifecycle_state, reviewer_status_effective_height)"""
             )
             connection.execute(
                 """
@@ -2651,6 +2700,11 @@ class SQLiteStorageBackend(StorageBackend):
                         strict=strict,
                         label=f"SQLite section {section_name}",
                     )
+                elif section_name == "admission_activation":
+                    defaults[section_name] = _json_loads_or_default(
+                        json_data_value, None, strict=strict,
+                        label="SQLite section admission_activation",
+                    )
 
             missing_sections = [
                 section
@@ -2675,6 +2729,11 @@ class SQLiteStorageBackend(StorageBackend):
                 defaults[section_name] = _json_loads_or_default(
                     json_data_value, _default_section_value(section_name), strict=strict,
                     label=f"SQLite section {section_name}",
+                )
+            elif section_name == "admission_activation":
+                defaults[section_name] = _json_loads_or_default(
+                    json_data_value, None, strict=strict,
+                    label="SQLite section admission_activation",
                 )
         missing_sections = [section for section in _STORAGE_SECTIONS if section not in seen_sections and section not in _OPTIONAL_SQLITE_SECTIONS]
         if missing_sections and strict:
@@ -2908,6 +2967,15 @@ class SQLiteStorageBackend(StorageBackend):
                 """,
                 (section_name, json.dumps(payload), _utc_now_iso()),
             )
+        if "admission_activation" in sections:
+            connection.execute(
+                """INSERT INTO storage_sections (section_name, json_data, updated_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(section_name) DO UPDATE SET
+                       json_data = excluded.json_data,
+                       updated_at = excluded.updated_at""",
+                ("admission_activation", json.dumps(sections["admission_activation"]), _utc_now_iso()),
+            )
 
     @staticmethod
     def _synchronize_canonical_claims(connection, document: dict[str, Any]) -> None:
@@ -2954,7 +3022,7 @@ class SQLiteStorageBackend(StorageBackend):
         if not os.path.exists(self.sqlite_db_path):
             return None
         sections = self._load_sections()
-        return {
+        document = {
             "chain": sections["chain"],
             "wallets": sections["wallets"],
             "submissions": sections["submissions"],
@@ -2974,8 +3042,13 @@ class SQLiteStorageBackend(StorageBackend):
             "audit_logs": sections["audit_logs"],
             "finality_attestations": sections["finality_attestations"],
             "finalized_blocks": sections["finalized_blocks"],
+            "report_reviewer_index": sections["report_reviewer_index"],
+            "post_mint_disputes": sections["post_mint_disputes"],
             "peers": sections["peers"],
         }
+        if "admission_activation" in sections:
+            document["admission_activation"] = sections["admission_activation"]
+        return document
 
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
         current_document = self._load_sections()
@@ -2985,6 +3058,10 @@ class SQLiteStorageBackend(StorageBackend):
             )
             for section_name in _STORAGE_SECTIONS
         }
+        if "admission_activation" in document:
+            merged_document["admission_activation"] = deepcopy(document["admission_activation"])
+        elif "admission_activation" in current_document:
+            merged_document["admission_activation"] = deepcopy(current_document["admission_activation"])
         self._save_sections(merged_document)
 
     def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate, replay=None):
@@ -2994,6 +3071,8 @@ class SQLiteStorageBackend(StorageBackend):
             connection.execute("BEGIN IMMEDIATE")
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
+            if "admission_activation" in sections:
+                document["admission_activation"] = sections["admission_activation"]
             if replay is not None and replay(deepcopy(document)):
                 return document
             _verify_expected_canonical_head(document, expected_head)
@@ -3028,6 +3107,8 @@ class SQLiteStorageBackend(StorageBackend):
                 )
             sections = self._load_sections_from_connection(connection)
             document = {section: sections[section] for section in _STORAGE_SECTIONS}
+            if "admission_activation" in sections:
+                document["admission_activation"] = sections["admission_activation"]
             previous_transactions = sections.get("native_transactions", [])
             if copy_document:
                 replacement = self._normalize_blockchain_document(mutate(deepcopy(document)))

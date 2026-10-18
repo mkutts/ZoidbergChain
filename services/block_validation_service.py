@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Callable
 
-from block import PROTOCOL_V1_BLOCK_VERSION
+from block import ADMISSION_BLOCK_VERSION, PROTOCOL_V1_BLOCK_VERSION
+from admission_certificate import AdmissionMintCertificateView, validate_admission_certificate
 from content import (
     CONTENT_TYPE_IMAGE,
     CONTENT_TYPE_MIXED,
@@ -64,6 +65,7 @@ class BlockValidationCollaborators:
     calculate_hash_from_dict: Callable
     validate_transaction: Callable
     validate_genesis: Callable
+    reviewer_status_resolver: Callable
     config: dict
 
 
@@ -154,7 +156,7 @@ class BlockValidationService:
     def validate_protocol_v1_payload(self, block_dict, c: BlockValidationCollaborators):
         if not c.is_protocol_v1_block_payload(block_dict):
             return True
-        if block_dict.get("block_version") != PROTOCOL_V1_BLOCK_VERSION:
+        if block_dict.get("block_version") not in {PROTOCOL_V1_BLOCK_VERSION, ADMISSION_BLOCK_VERSION}:
             self._raise("invalid_block_version", "Unsupported Protocol v1 block_version.", block_index=block_dict.get("index"), block_version=block_dict.get("block_version"))
         network_id, expected_network_id = block_dict.get("network_id"), c.protocol_v1_network_id()
         if network_id != expected_network_id:
@@ -167,8 +169,18 @@ class BlockValidationService:
         except ValueError as exc: self._raise("invalid_content_metadata", str(exc), block_index=block_dict.get("index"))
         try: resolved = c.resolve_protocol_v1_block_media(block_dict)
         except (UnicodeDecodeError, ValueError) as exc: self._raise("invalid_embedded_media", str(exc), block_index=block_dict.get("index"))
-        if media_hash != resolved["content_hash"]: self._raise("media_hash_mismatch", "Protocol v1 block media_hash does not match embedded media bytes.", block_index=block_dict.get("index"), media_hash=media_hash, actual_media_hash=resolved["content_hash"])
-        if content_hash != resolved["content_hash"]: self._raise("content_hash_mismatch", "Protocol v1 block content_hash does not match embedded media bytes.", block_index=block_dict.get("index"), content_hash=content_hash, actual_content_hash=resolved["content_hash"])
+        raw_media = bytes(resolved["stored_bytes"])
+        embedded_media = block_dict.get("media_bytes")
+        try:
+            from block import Block
+            embedded_media = Block._coerce_media_bytes(embedded_media)
+        except (TypeError, ValueError) as exc:
+            self._raise("invalid_embedded_media", str(exc), block_index=block_dict.get("index"))
+        if raw_media != embedded_media:
+            self._raise("noncanonical_media_bytes", "Protocol v1 media_bytes must already be the canonical accepted byte sequence.", block_index=block_dict.get("index"))
+        actual_hash = resolved["content_hash"]
+        if media_hash != actual_hash: self._raise("media_hash_mismatch", "Protocol v1 block media_hash does not match embedded media bytes.", block_index=block_dict.get("index"), media_hash=media_hash, actual_media_hash=actual_hash)
+        if content_hash != actual_hash: self._raise("content_hash_mismatch", "Protocol v1 block content_hash does not match embedded media bytes.", block_index=block_dict.get("index"), content_hash=content_hash, actual_content_hash=actual_hash)
         if resolved["mime_type"] == TEXT_MIME_TYPE and content_type != CONTENT_TYPE_TEXT: self._raise("content_type_mismatch", "Protocol v1 text blocks must declare content_type='text'.", block_index=block_dict.get("index"))
         if resolved["mime_type"] != TEXT_MIME_TYPE and content_type not in {CONTENT_TYPE_IMAGE, CONTENT_TYPE_MIXED}: self._raise("content_type_mismatch", "Protocol v1 binary blocks must declare content_type='image' or 'mixed'.", block_index=block_dict.get("index"))
         return True
@@ -209,6 +221,8 @@ class BlockValidationService:
 
     def validate_certificate_metadata(self, block_dict, c: BlockValidationCollaborators, *, prior_chain=None):
         if block_dict.get("index") == 0: return True
+        if block_dict.get("block_version") == ADMISSION_BLOCK_VERSION:
+            return self.validate_admission_block(block_dict, c)
         metadata = self.extract_certificate_metadata(block_dict)
         voter_rewards = self.validate_voter_rewards(block_dict, c, prior_chain=prior_chain)
         if not metadata:
@@ -225,6 +239,8 @@ class BlockValidationService:
         if certificate.content_hash != metadata["content_hash"]: self._raise("content_hash_mismatch", "Block certificate content_hash does not match block content_hash.", certificate_id=metadata["certificate_id"], submission_id=metadata["submission_id"])
         if metadata.get("content_id") is not None and getattr(certificate, "content_id", None) is not None and certificate.content_id != metadata["content_id"]: self._raise("content_id_mismatch", "Block content_id does not match certificate content_id.", certificate_id=metadata["certificate_id"], submission_id=metadata["submission_id"])
         submission = c.get_submission(metadata["submission_id"])
+        if submission is not None and getattr(submission, "attestation_requirement", None) == "public_testnet_v1_required":
+            self._raise("missing_admission_certificate", "Originality-only block cannot mint a current submission.")
         if submission:
             c.validate_originality_certificate(certificate, submission, chain=prior_chain)
             if metadata["content_hash"] != submission.content_hash: self._raise("content_hash_mismatch", "Block content_hash does not match submission.", submission_id=metadata["submission_id"])
@@ -265,6 +281,15 @@ class BlockValidationService:
         return True
 
     def validate_block(self, block_dict, c: BlockValidationCollaborators, *, prior_chain=None):
+        if block_dict.get("index") != 0 and block_dict.get("block_version") not in {None, PROTOCOL_V1_BLOCK_VERSION, ADMISSION_BLOCK_VERSION}:
+            self._raise("invalid_block_version", "Unknown current media block version.")
+        activation_height = c.config.get("admission_activation_height")
+        if activation_height is not None and (type(block_dict.get("index")) is not int or block_dict["index"] < 0):
+            self._raise("invalid_block_height", "Admission block height must be a non-negative integer.")
+        if (activation_height is not None
+            and block_dict.get("index", 0) >= activation_height
+            and block_dict.get("block_version") != ADMISSION_BLOCK_VERSION):
+            self._raise("missing_admission_certificate", "Post-activation media block requires frozen admission evidence.")
         self.validate_protocol_v1_payload(block_dict, c)
         self.validate_certificate_metadata(block_dict, c, prior_chain=prior_chain)
         self.validate_native_transactions(block_dict, c, prior_chain=prior_chain)
@@ -288,6 +313,43 @@ class BlockValidationService:
         self.validate_block(block_dict, c, prior_chain=prior)
         if not validated_chain_prefix and not self.validate_chain(prior + [block_dict], c):
             raise ValueError("Block failed chain validation.")
+        return True
+
+    def validate_admission_block(self, block_dict, c: BlockValidationCollaborators):
+        certificate = block_dict.get("admission_certificate")
+        try:
+            resolved = c.resolve_protocol_v1_block_media(block_dict)
+            raw = resolved["stored_bytes"]
+            validate_admission_certificate(certificate, media_bytes=raw,
+                                           reviewer_status_resolver=c.reviewer_status_resolver)
+            view = AdmissionMintCertificateView(certificate)
+        except (KeyError, TypeError, ValueError) as exc:
+            self._raise("invalid_admission_certificate", str(exc), block_index=block_dict.get("index"))
+        expected = {
+            "submission_id": view.submission_id,
+            "certificate_id": view.certificate_id,
+            "content_hash": view.content_hash,
+            "content_id": view.content_id,
+            "creator_wallet": view.creator_wallet,
+            "vote_hash": view.vote_hash,
+            "approval_percentage": view.approval_percentage,
+            "decisive_vote_total": view.decisive_vote_total,
+            "minimum_votes_required": view.minimum_votes_required,
+            "approved_at": view.approved_at,
+            "originality_score": view.originality_score,
+        }
+        for field, value in expected.items():
+            if block_dict.get(field) != value:
+                self._raise("admission_block_binding_mismatch", f"Admission block {field} does not match its certificate.",
+                            block_index=block_dict.get("index"), field_name=field)
+        if block_dict.get("network_id") != certificate["network_id"]:
+            self._raise("wrong_network", "Admission block network differs from certificate.")
+        if block_dict.get("voter_rewards"):
+            self._raise("invalid_voter_reward_metadata", "Admission v1 blocks do not carry legacy originality voter rewards.")
+        submission = c.get_submission(view.submission_id)
+        if submission is not None and getattr(submission, "attestation_requirement", None) == "public_testnet_v1_required":
+            if submission.content_hash != view.content_hash:
+                self._raise("admission_submission_mismatch", "Admission block differs from local current submission.")
         return True
 
     def validate_chain(self, chain, c: BlockValidationCollaborators):

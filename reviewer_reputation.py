@@ -24,6 +24,7 @@ from protocol_v1_originality import (
     build_protocol_v1_vote_message,
     calculate_signed_vote_identity,
 )
+from dual_review import REVIEW_VOTE_VERSION, ORIGINALITY, validate_choice, vote_message as dual_vote_message, vote_identity as dual_vote_identity
 from submission import VOTE_TYPES
 from wallet_auth import hash_wallet_message, recover_signed_wallet_address
 
@@ -71,10 +72,13 @@ def canonical_signed_vote_evidence(vote: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Signed vote evidence requires submission_id.")
     content_hash = _canonical_hash_value(vote.get("content_hash"), field_name="content_hash")
     vote_choice = vote.get("vote_choice", vote.get("vote_type", vote.get("vote_value")))
-    if vote_choice not in VOTE_TYPES:
-        raise ValueError("Signed vote evidence has an unsupported vote choice.")
     vote_version = vote.get("vote_version", vote.get("signed_payload_version"))
-    if vote_version != PROTOCOL_V1_VOTE_VERSION or vote.get("protocol_version") != PROTOCOL_VERSION:
+    dimension = vote.get("dimension", ORIGINALITY)
+    if vote_version == REVIEW_VOTE_VERSION:
+        validate_choice(dimension, vote_choice)
+    elif vote_choice not in VOTE_TYPES or dimension != ORIGINALITY:
+        raise ValueError("Signed vote evidence has an unsupported vote choice or dimension.")
+    if vote_version not in {PROTOCOL_V1_VOTE_VERSION, REVIEW_VOTE_VERSION} or vote.get("protocol_version") != PROTOCOL_VERSION:
         raise ValueError("Offense evidence requires a signed Protocol v1 vote.")
     network_id = str(vote.get("network_id") or "").strip().lower()
     nonce = str(vote.get("vote_nonce") or vote.get("nonce") or "").strip()
@@ -90,7 +94,11 @@ def canonical_signed_vote_evidence(vote: dict[str, Any]) -> dict[str, Any]:
     signature = signature.lower()
     if not signature.startswith("0x"):
         signature = "0x" + signature
-    expected_message = build_protocol_v1_vote_message(
+    expected_message = dual_vote_message(
+        wallet_address=reviewer, submission_id=submission_id, content_hash=content_hash,
+        dimension=dimension, choice=vote_choice, nonce=nonce,
+        issued_at=issued_at, expires_at=expires_at, network_id=network_id,
+    ) if vote_version == REVIEW_VOTE_VERSION else build_protocol_v1_vote_message(
         wallet_address=reviewer,
         submission_id=submission_id,
         content_hash=content_hash,
@@ -107,7 +115,12 @@ def canonical_signed_vote_evidence(vote: dict[str, Any]) -> dict[str, Any]:
     message_hash = hash_wallet_message(message)
     if vote.get("signed_message_hash") not in {None, message_hash}:
         raise ValueError("Signed vote evidence message hash is inconsistent.")
-    identity = calculate_signed_vote_identity(
+    identity = dual_vote_identity(
+        wallet_address=reviewer, submission_id=submission_id, content_hash=content_hash,
+        dimension=dimension, choice=vote_choice, nonce=nonce,
+        issued_at=issued_at, expires_at=expires_at, network_id=network_id,
+        signature=signature,
+    ) if vote_version == REVIEW_VOTE_VERSION else calculate_signed_vote_identity(
         wallet_address=reviewer,
         submission_id=submission_id,
         content_hash=content_hash,
@@ -123,7 +136,7 @@ def canonical_signed_vote_evidence(vote: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Signed vote evidence identity is inconsistent.")
     status_height = vote.get("reviewer_status_effective_height")
     status_hash = vote.get("reviewer_status_reference_block_hash")
-    return canonical_json_data({
+    projected = {
         "content_hash": content_hash,
         "expires_at": expires_at,
         "issued_at": issued_at,
@@ -144,14 +157,17 @@ def canonical_signed_vote_evidence(vote: dict[str, Any]) -> dict[str, Any]:
         "submission_id": submission_id,
         "vote_choice": vote_choice,
         "vote_identity": identity,
-        "vote_version": PROTOCOL_V1_VOTE_VERSION,
-    })
+        "vote_version": vote_version,
+    }
+    if vote_version == REVIEW_VOTE_VERSION:
+        projected["dimension"] = dimension
+    return canonical_json_data(projected)
 
 
 def _incident_identity(
     offense_type: str, reviewer: str, *, submission_id: str | None,
     content_hash: str | None, vote_identities: list[str], review_epoch: int,
-    active_penalty_id: str | None,
+    active_penalty_id: str | None, dimension: str | None = None,
 ) -> dict[str, Any]:
     identity: dict[str, Any] = {
         "identity_kind": "reviewer-offense-v1",
@@ -161,6 +177,8 @@ def _incident_identity(
     }
     if offense_type == SIGNED_VOTE_EQUIVOCATION:
         identity.update({"submission_id": submission_id, "content_hash": content_hash})
+        if dimension is not None:
+            identity["dimension"] = dimension
     elif offense_type == CREATOR_SELF_VOTE:
         identity["vote_identity"] = vote_identities[0]
     elif offense_type == RATE_LIMIT_ABUSE:
@@ -211,6 +229,7 @@ def build_offense_evidence(
         offense_type, reviewer, submission_id=submission_id,
         content_hash=content_hash, vote_identities=vote_identities,
         review_epoch=epoch, active_penalty_id=active_penalty_id,
+        dimension=(canonical_votes[0].get("dimension") if canonical_votes[0]["vote_version"] == REVIEW_VOTE_VERSION else None),
     )
     evidence_payload = canonical_json_data({
         "active_penalty_id": active_penalty_id,
@@ -283,7 +302,7 @@ def validate_offense_evidence(
     if rebuilt["offense_type"] == SIGNED_VOTE_EQUIVOCATION:
         if len(votes) < 2:
             raise ValueError("Equivocation evidence requires two signed votes.")
-        bindings = {(vote["submission_id"], vote["content_hash"], vote["reviewer_address"]) for vote in votes}
+        bindings = {(vote["submission_id"], vote["content_hash"], vote["reviewer_address"], vote.get("dimension", ORIGINALITY)) for vote in votes}
         if len(bindings) != 1 or len({vote["vote_choice"] for vote in votes}) < 2:
             raise ValueError("Equivocation evidence does not prove conflicting signed choices.")
     elif rebuilt["offense_type"] == CREATOR_SELF_VOTE:
@@ -512,6 +531,10 @@ class ReviewerReputationService:
             ),
             key=lambda item: item["vote_identity"],
         )
+        accepted_by_submission = {}
+        for accepted_vote in accepted_votes:
+            accepted_by_submission.setdefault(accepted_vote["submission_id"], accepted_vote)
+        accepted_votes = list(accepted_by_submission.values())
         if maximum_votes <= 0 or len(accepted_votes) < maximum_votes:
             raise ValueError("Rate-limit abuse cannot be proven without the accepted epoch quota evidence.")
         offense = build_offense_evidence(

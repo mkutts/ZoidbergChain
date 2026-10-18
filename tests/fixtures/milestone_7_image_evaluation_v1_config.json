@@ -1,0 +1,29 @@
+{
+  "evaluation_id": "zoidbergchain-image-compression-evaluation-v1",
+  "evaluation_version": "1.0.0",
+  "baseline_results": "benchmarks/milestone_7_task_7_4_results.json",
+  "baseline_candidate": "zstd-3",
+  "corpus_manifest": "tests/fixtures/milestone_7_corpus_v1_manifest.json",
+  "image_workload_assumption": "Equal sample weighting is shown with p50/p95 and byte-weighted savings uses corpus bytes. Neither is an estimate of real upload frequency.",
+  "unavailable_candidates": [
+    {
+      "id": "jpeg-xl-jpeg-reconstruction",
+      "applies_to": "image/jpeg",
+      "status": "not_tested",
+      "required_tools": ["cjxl", "djxl"],
+      "reason": "Neither tool nor an audited Python binding is installed; this task does not add native experimental dependencies."
+    },
+    {
+      "id": "png-optimizer",
+      "applies_to": "image/png",
+      "status": "not_applicable_for_byte_identity",
+      "reason": "Ordinary PNG optimization/re-encoding can preserve pixels but cannot generally reconstruct original file bytes, chunks, metadata, ordering, or deflate stream without retaining restoration data."
+    },
+    {
+      "id": "jpegtran-lossless-transform",
+      "applies_to": "image/jpeg",
+      "status": "not_applicable_for_byte_identity",
+      "reason": "Coefficient-domain transforms/re-writes are not a reversible representation of arbitrary original JPEG file bytes."
+    }
+  ]
+}

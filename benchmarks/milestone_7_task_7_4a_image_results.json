@@ -1,0 +1,256 @@
+{
+  "baseline": {
+    "baseline_environment": {
+      "brotli": "1.2.0",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "python": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
+      "zlib": "1.3.1",
+      "zstandard": "0.25.0"
+    },
+    "candidate": "zstd-3",
+    "results_path": "benchmarks/milestone_7_task_7_4_results.json",
+    "results_sha256": "49d187121de4be3ca208f9a8beb60e06172a01fbde1b08d42b30f70ca63b218e"
+  },
+  "candidates_not_executed": [
+    {
+      "applies_to": "image/jpeg",
+      "id": "jpeg-xl-jpeg-reconstruction",
+      "reason": "Neither tool nor an audited Python binding is installed; this task does not add native experimental dependencies.",
+      "required_tools": [
+        "cjxl",
+        "djxl"
+      ],
+      "status": "not_tested"
+    },
+    {
+      "applies_to": "image/png",
+      "id": "png-optimizer",
+      "reason": "Ordinary PNG optimization/re-encoding can preserve pixels but cannot generally reconstruct original file bytes, chunks, metadata, ordering, or deflate stream without retaining restoration data.",
+      "status": "not_applicable_for_byte_identity"
+    },
+    {
+      "applies_to": "image/jpeg",
+      "id": "jpegtran-lossless-transform",
+      "reason": "Coefficient-domain transforms/re-writes are not a reversible representation of arbitrary original JPEG file bytes.",
+      "status": "not_applicable_for_byte_identity"
+    }
+  ],
+  "corpus": {
+    "composition": "27 repository-authored synthetic image containers; no independently sourced real-world additions",
+    "id": "zoidbergchain-media-benchmark-v1",
+    "manifest_sha256": "d872a8669cad218b72e5dbcf1dfbbff4de8718fc48c37f4950bf7dc46bff121f",
+    "version": "1.1.0"
+  },
+  "evaluation_id": "zoidbergchain-image-compression-evaluation-v1",
+  "evaluation_version": "1.0.0",
+  "image_workload_assumption": "Equal sample weighting is shown with p50/p95 and byte-weighted savings uses corpus bytes. Neither is an estimate of real upload frequency.",
+  "jpeg_container_diagnostics": [
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 3530,
+      "sample_id": "jpeg-flat-small",
+      "scan_and_trailer_bytes": 2919,
+      "sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6",
+      "zstd_encoded_bytes": 1275,
+      "zstd_savings_percent": 63.88101983002833
+    },
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 56015,
+      "sample_id": "jpeg-text-poster",
+      "scan_and_trailer_bytes": 55404,
+      "sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed",
+      "zstd_encoded_bytes": 21220,
+      "zstd_savings_percent": 62.11729001160404
+    },
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 689193,
+      "sample_id": "jpeg-photo-like",
+      "scan_and_trailer_bytes": 688582,
+      "sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e",
+      "zstd_encoded_bytes": 173191,
+      "zstd_savings_percent": 74.87046444174564
+    },
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 1530684,
+      "sample_id": "jpeg-noise-capacity",
+      "scan_and_trailer_bytes": 1530073,
+      "sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616",
+      "zstd_encoded_bytes": 1530734,
+      "zstd_savings_percent": -0.003266513532507176
+    },
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 97649,
+      "sample_id": "jpeg-photo-small",
+      "scan_and_trailer_bytes": 97038,
+      "sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f",
+      "zstd_encoded_bytes": 40570,
+      "zstd_savings_percent": 58.453235568208584
+    },
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 57251,
+      "sample_id": "jpeg-mixed-medium",
+      "scan_and_trailer_bytes": 56640,
+      "sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909",
+      "zstd_encoded_bytes": 9390,
+      "zstd_savings_percent": 83.59853976349758
+    },
+    {
+      "app_payload_bytes": 14,
+      "comment_payload_bytes": 0,
+      "markers_before_scan": [
+        "FFE0",
+        "FFDB",
+        "FFDB",
+        "FFC0",
+        "FFC4",
+        "FFC4",
+        "FFC4",
+        "FFC4"
+      ],
+      "original_bytes": 66371,
+      "sample_id": "jpeg-text-large",
+      "scan_and_trailer_bytes": 65760,
+      "sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93",
+      "zstd_encoded_bytes": 13187,
+      "zstd_savings_percent": 80.13138268219554
+    }
+  ],
+  "tool_availability": {
+    "cjxl": false,
+    "djxl": false,
+    "jpegtran": false
+  },
+  "zstd3_all_images": {
+    "adaptive_effective_savings_percent": 13.026222969136803,
+    "aggregate_compression_mb_s": 996.4772559505258,
+    "aggregate_decompression_mb_s": 2791.5192316529574,
+    "effective_expansion_files": 9,
+    "exact_reconstruction_successes": 27,
+    "p50_raw_savings_percent": 14.742698191933245,
+    "p95_raw_savings_percent": 80.13138268219554,
+    "raw_byte_weighted_savings_percent": 13.031553388069216,
+    "raw_expansion_files": 9,
+    "samples": 27
+  },
+  "zstd3_by_mime": {
+    "image/gif": {
+      "adaptive_effective_savings_percent": 6.149253322091175,
+      "aggregate_compression_mb_s": 950.6916050456721,
+      "aggregate_decompression_mb_s": 1372.0276208411801,
+      "effective_expansion_files": 5,
+      "exact_reconstruction_successes": 6,
+      "p50_raw_savings_percent": -0.28220116911912285,
+      "p95_raw_savings_percent": 6.705030485905716,
+      "raw_byte_weighted_savings_percent": 6.147970388536084,
+      "raw_expansion_files": 5,
+      "samples": 6
+    },
+    "image/jpeg": {
+      "adaptive_effective_savings_percent": 28.42618853266192,
+      "aggregate_compression_mb_s": 645.2735201527584,
+      "aggregate_decompression_mb_s": 2517.3072277028386,
+      "effective_expansion_files": 1,
+      "exact_reconstruction_successes": 7,
+      "p50_raw_savings_percent": 63.88101983002833,
+      "p95_raw_savings_percent": 83.59853976349758,
+      "raw_byte_weighted_savings_percent": 28.437157220018616,
+      "raw_expansion_files": 1,
+      "samples": 7
+    },
+    "image/png": {
+      "adaptive_effective_savings_percent": 0.6401274576769422,
+      "aggregate_compression_mb_s": 2428.207764101177,
+      "aggregate_decompression_mb_s": 3844.055674518201,
+      "effective_expansion_files": 1,
+      "exact_reconstruction_successes": 7,
+      "p50_raw_savings_percent": 56.30618360119859,
+      "p95_raw_savings_percent": 70.53291536050156,
+      "raw_byte_weighted_savings_percent": 0.63631714808704,
+      "raw_expansion_files": 1,
+      "samples": 7
+    },
+    "image/webp": {
+      "adaptive_effective_savings_percent": 1.698077427892164,
+      "aggregate_compression_mb_s": 1610.00711997152,
+      "aggregate_decompression_mb_s": 11522.31847133758,
+      "effective_expansion_files": 2,
+      "exact_reconstruction_successes": 7,
+      "p50_raw_savings_percent": 4.915345536949833,
+      "p95_raw_savings_percent": 20.559114735002915,
+      "raw_byte_weighted_savings_percent": 1.693749709785053,
+      "raw_expansion_files": 2,
+      "samples": 7
+    }
+  }
+}

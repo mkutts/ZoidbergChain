@@ -1,0 +1,873 @@
+{
+  "corpus_id": "zoidbergchain-media-benchmark-v1",
+  "corpus_version": "1.1.0",
+  "environment": {
+    "jpeg_codec": "8.0",
+    "pillow": "12.3.0",
+    "python": "3.13.5",
+    "webp_codec": "1.6.0"
+  },
+  "provisional_limits": {
+    "canonical_block_bytes": 524288,
+    "encoded_media_bytes": 262144,
+    "original_media_bytes": 262144
+  },
+  "purpose": "Representative original-media corpus; no compression results are recorded.",
+  "samples": [
+    {
+      "accepted_byte_size": 35,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "plain_text",
+      "complexity": "highly_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Short natural-language meme caption.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-caption-small",
+      "mime_type": "text/plain",
+      "original_byte_size": 36,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "633d1db519b6651029acf84edfb87fc09fe482805c38151b6321ebb49cc6195f"
+    },
+    {
+      "accepted_byte_size": 398,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "plain_text",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Repository-authored node-operation release note.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-story-medium",
+      "mime_type": "text/plain",
+      "original_byte_size": 399,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "a1e8db6a92cb0c98617f406a06658ac1fb5b507a694124a359c5d5be3fce3928"
+    },
+    {
+      "accepted_byte_size": 2852,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "plain_text",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Plausible human-readable chain audit log.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-audit-log-large",
+      "mime_type": "text/plain",
+      "original_byte_size": 2852,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "d5e4b3633a397fbb35d06ef8a40c659fe8c6d5288355a06fe8739bdc9f0c7acb"
+    },
+    {
+      "accepted_byte_size": 109,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "structured_metadata_json",
+      "complexity": "highly_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Pretty-printed metadata represented as accepted plain text.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-json-pretty",
+      "mime_type": "text/plain",
+      "original_byte_size": 110,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "e811ae217c543c5960e90cce0f910ad7dbb0208add743a82fc4715e4d6dafb1f"
+    },
+    {
+      "accepted_byte_size": 2947,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "structured_metadata_json",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Minified blockchain event metadata represented as accepted plain text.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-json-minified",
+      "mime_type": "text/plain",
+      "original_byte_size": 2947,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "e0aafa7803f0f807eb9b0de8df34d3d53b6719c6b825c836eb8cb9fea1562601"
+    },
+    {
+      "accepted_byte_size": 11813,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "structured_metadata_json",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Nested peer snapshot and recent admission metadata as accepted plain text.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-json-peer-snapshot-large",
+      "mime_type": "text/plain",
+      "original_byte_size": 11814,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "8d1872e9e28086fdd9fbb78b3a8bd0d6a1e96db090bc29b229186dfd799341e7"
+    },
+    {
+      "accepted_byte_size": 125,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "source_code",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Harmless source-code excerpt represented as accepted plain text.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-source-code",
+      "mime_type": "text/plain",
+      "original_byte_size": 126,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "bcedb68696197cc02ca3a71036ac9e019bcf773fdaf2591186ebb5d7140d5eba"
+    },
+    {
+      "accepted_byte_size": 462,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "source_code",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Plausible typed admission-summary source module.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-source-admission-model",
+      "mime_type": "text/plain",
+      "original_byte_size": 463,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "117ef4d39a4ec47ce2ca336b1b4d211a1dddca23b8faa20afdcddecdf5b577aa"
+    },
+    {
+      "accepted_byte_size": 544,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": false,
+      "category": "source_code",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "not_applicable",
+      "current_validator_reason_codes": [],
+      "current_validator_status": "accepted",
+      "description": "Plausible snapshot-inspection command-line source module.",
+      "dimensions": null,
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "text-source-snapshot-cli",
+      "mime_type": "text/plain",
+      "original_byte_size": 545,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": null,
+      "sha256": "7628d60d857d577f0ca03b6cbc118acbe2696ee2e04a242fdf6516f1be980b2c"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "simple_image",
+      "complexity": "highly_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic flat raster sample.",
+      "dimensions": [
+        320,
+        180
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-flat-small",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 3530,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 101,
+      "sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "text_heavy_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic poster raster sample.",
+      "dimensions": [
+        960,
+        540
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-text-poster",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 56015,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 102,
+      "sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": false,
+      "capacity_analysis": true,
+      "category": "photographic_like_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "EXCEEDS_ACCEPTED_MEDIA_BYTE_LIMIT"
+      ],
+      "current_validator_status": "rejected_policy",
+      "description": "Deterministic gradient raster sample.",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-photo-like",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 689193,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 103,
+      "sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": false,
+      "capacity_analysis": true,
+      "category": "high_entropy_image",
+      "complexity": "difficult_to_compress",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "EXCEEDS_ACCEPTED_MEDIA_BYTE_LIMIT"
+      ],
+      "current_validator_status": "rejected_policy",
+      "description": "Deterministic noise raster sample.",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-noise-capacity",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 1530684,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 104,
+      "sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "photographic_like_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic gradient raster sample.",
+      "dimensions": [
+        480,
+        270
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-photo-small",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 97649,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 105,
+      "sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "mixed_complexity_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        800,
+        600
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-mixed-medium",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 57251,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 106,
+      "sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "text_heavy_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic poster raster sample.",
+      "dimensions": [
+        1200,
+        675
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "jpeg-text-large",
+      "mime_type": "image/jpeg",
+      "original_byte_size": 66371,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 107,
+      "sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "simple_image",
+      "complexity": "highly_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic flat raster sample.",
+      "dimensions": [
+        320,
+        180
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-flat-small",
+      "mime_type": "image/png",
+      "original_byte_size": 638,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 201,
+      "sha256": "661c37d971f8727953face7d0b8da6663ce8a1985c7ea9fab8c14aa079280632"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "illustrated_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        960,
+        540
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-illustrated-medium",
+      "mime_type": "image/png",
+      "original_byte_size": 3550,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 202,
+      "sha256": "a085bd399617bff4a0a989f95c25a5089cf33b5db5f78ae927379a9a7012c2bd"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "text_heavy_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic poster raster sample.",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-text-poster",
+      "mime_type": "image/png",
+      "original_byte_size": 5337,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 203,
+      "sha256": "574feb77cf23bc7984f04d97f355c7eab2fcc47dfaa2336bc669c58fec8aad79"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": false,
+      "capacity_analysis": true,
+      "category": "high_entropy_image",
+      "complexity": "difficult_to_compress",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "EXCEEDS_ACCEPTED_MEDIA_BYTE_LIMIT"
+      ],
+      "current_validator_status": "rejected_policy",
+      "description": "Deterministic noise raster sample.",
+      "dimensions": [
+        768,
+        768
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-noise-capacity",
+      "mime_type": "image/png",
+      "original_byte_size": 1772761,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 204,
+      "sha256": "4fe5ab20eb591bddbbb8f54adca02fffb7f453c342b2171a25b811be91274da8"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "photographic_like_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic gradient raster sample.",
+      "dimensions": [
+        480,
+        270
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-photo-small",
+      "mime_type": "image/png",
+      "original_byte_size": 4314,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 205,
+      "sha256": "36218ec3e027ecfd779dc5037a43acf26522a99f3b9473de475c951e687e44a5"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "mixed_complexity_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        800,
+        600
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-mixed-medium",
+      "mime_type": "image/png",
+      "original_byte_size": 3671,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 206,
+      "sha256": "8d39f6a5a686cd61f14b308f38792d7edbdb153b30a2cd671ff714abbdcce122"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "text_heavy_meme",
+      "complexity": "moderately_compressible",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic poster raster sample.",
+      "dimensions": [
+        1200,
+        675
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "png-text-large",
+      "mime_type": "image/png",
+      "original_byte_size": 4903,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 207,
+      "sha256": "d1740689d0b649c9689eed37b09909c931b8e183e11db86baca0462cdd7da4b9"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "simple_image",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic flat raster sample.",
+      "dimensions": [
+        320,
+        180
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-flat-small",
+      "mime_type": "image/webp",
+      "original_byte_size": 376,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 301,
+      "sha256": "7c4d1d04659178703a09cefaba52891133ae279e56cf4750514347cc8eeff562"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "illustrated_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        960,
+        540
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-illustrated-medium",
+      "mime_type": "image/webp",
+      "original_byte_size": 10992,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 302,
+      "sha256": "0c369277d296429346bff9c32325bfd741377e109b41780be28101a08d401de5"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "photographic_like_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic gradient raster sample.",
+      "dimensions": [
+        1280,
+        720
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-photo-like",
+      "mime_type": "image/webp",
+      "original_byte_size": 215346,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 303,
+      "sha256": "b377ca497c100b4dc0c8fe17ca1f5b82628721e580f4990d5404e09ddff42fd9"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": false,
+      "capacity_analysis": true,
+      "category": "high_entropy_image",
+      "complexity": "difficult_to_compress",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "EXCEEDS_ACCEPTED_MEDIA_BYTE_LIMIT"
+      ],
+      "current_validator_status": "rejected_policy",
+      "description": "Deterministic noise raster sample.",
+      "dimensions": [
+        1024,
+        768
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-noise-capacity",
+      "mime_type": "image/webp",
+      "original_byte_size": 625250,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 304,
+      "sha256": "427f84db03cb6e822e6bda8f81acfa6e92bc13d5c2c9948d88caa369e63c5951"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "photographic_like_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic gradient raster sample.",
+      "dimensions": [
+        480,
+        270
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-photo-small",
+      "mime_type": "image/webp",
+      "original_byte_size": 31762,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 305,
+      "sha256": "06060be99cab89545df668540d1d04b941c58cc73266bea0090c991f4fae5083"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "mixed_complexity_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        800,
+        600
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-mixed-medium",
+      "mime_type": "image/webp",
+      "original_byte_size": 10302,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 306,
+      "sha256": "9f4af322753ebb1a6da69f2268861e76ddf6c0bc45f52034fc24420deece555a"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "text_heavy_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic poster raster sample.",
+      "dimensions": [
+        1200,
+        675
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "webp-text-large",
+      "mime_type": "image/webp",
+      "original_byte_size": 10474,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 307,
+      "sha256": "d7252f0af8737478312c0ea693d495338847daa380da2997e6620f8e08c17b2d"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "simple_image",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic flat raster sample.",
+      "dimensions": [
+        320,
+        180
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "gif-flat-small",
+      "mime_type": "image/gif",
+      "original_byte_size": 652,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 401,
+      "sha256": "01b2d4d1d2e48f350e65f6df08edc808df08770e37f204aff1cc32dea6c2d90f"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": true,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "animated_illustrated_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        640,
+        360
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "gif-animated-illustrated",
+      "mime_type": "image/gif",
+      "original_byte_size": 6200,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 402,
+      "sha256": "d5941c77e3b6a8800357def61aacded0c5993f219ccf2a6f3159c930ffbe7a9f"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": false,
+      "capacity_analysis": true,
+      "category": "high_entropy_image",
+      "complexity": "difficult_to_compress",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "EXCEEDS_ACCEPTED_MEDIA_BYTE_LIMIT"
+      ],
+      "current_validator_status": "rejected_policy",
+      "description": "Deterministic noise raster sample.",
+      "dimensions": [
+        768,
+        768
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "gif-noise-capacity",
+      "mime_type": "image/gif",
+      "original_byte_size": 802666,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 403,
+      "sha256": "4cc496487f2497ec3d3ac18f212f10ca1d51204785c99664bdc261af47d4f590"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "photographic_like_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic gradient raster sample.",
+      "dimensions": [
+        480,
+        270
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "gif-photo-small",
+      "mime_type": "image/gif",
+      "original_byte_size": 55720,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 404,
+      "sha256": "83add893b06499e9a8b0f1e31a60562b0b9bbd18af51abae923891382c5f3d51"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "text_heavy_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic poster raster sample.",
+      "dimensions": [
+        800,
+        600
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "gif-text-medium",
+      "mime_type": "image/gif",
+      "original_byte_size": 4057,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 405,
+      "sha256": "34c04be3b66e05d07192e9cb7cf948c4d9e03b6b2c0043ccea316651b25ab0e6"
+    },
+    {
+      "accepted_byte_size": null,
+      "animated": false,
+      "benchmark_scoring": true,
+      "capacity_analysis": true,
+      "category": "mixed_complexity_meme",
+      "complexity": "already_compressed",
+      "container_decode_status": "valid_pillow_decode",
+      "current_validator_reason_codes": [
+        "MALFORMED_MEDIA"
+      ],
+      "current_validator_status": "rejected_environment_isolation",
+      "description": "Deterministic illustration raster sample.",
+      "dimensions": [
+        1200,
+        675
+      ],
+      "generation_method": "repository-authored deterministic Pillow raster or UTF-8 bytes; no network source",
+      "id": "gif-mixed-large",
+      "mime_type": "image/gif",
+      "original_byte_size": 4961,
+      "redistribution": "repository-authored deterministic sample",
+      "seed": 406,
+      "sha256": "e3d088d4244f059769684ec47713c1eae7b617caddd9f6e360d2bbd1cf521613"
+    }
+  ]
+}

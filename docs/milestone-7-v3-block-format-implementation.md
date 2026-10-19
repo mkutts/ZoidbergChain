@@ -2,6 +2,14 @@
 
 Date: 2026-10-19 (America/New_York).
 
+Task 7.10A follow-up: see the [canonical schema decision](milestone-7-v3-canonical-schema-decision.md)
+for the resolved 17-field native projection (using the existing block-specific
+ledger helper), explicit memo null, closed admission evidence, exact rational
+summary objects selected by the user, and signing preimages. Replay-safe
+treatment of optional legacy signed transfers remains BLOCKED; new policy and
+integration context also need freezing. Task 7.10 has not resumed. The findings
+and repository state below are the historical Task 7.10 stop record.
+
 **Disposition: stopped at Step 2; production format implementation is blocked.**
 This document records repository verification, field-budget analysis, precise
 schema blockers, and focused baseline checks. It does not define a replacement

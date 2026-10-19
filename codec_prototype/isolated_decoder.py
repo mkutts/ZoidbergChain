@@ -1,7 +1,7 @@
 """Offline, bounded per-request decoder processes. No production integration.
 
 Only the child calls decode(). Operational failures never imply INVALID.
-Windows resource controls are required; other platforms fail closed locally.
+Windows or Linux resource controls are mandatory; other platforms fail closed.
 """
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import sysconfig
 import threading
 import time
 import uuid
@@ -34,7 +35,7 @@ class Status(str, Enum):
 @dataclass(frozen=True)
 class Limits:
     memory_bytes: int = 128 * 1024 * 1024
-    cpu_seconds: float = 5.0  # Windows user-mode CPU, not total/kernel time.
+    cpu_seconds: float = 5.0  # Windows user CPU; Linux user + system CPU.
     wall_seconds: float = 10.0  # Begins at READY; never a validity predicate.
     startup_seconds: float = 5.0
 
@@ -97,6 +98,10 @@ class IsolatedDecoder:
                 raise TimeoutError("decoder shutdown did not finish; capacity remains reserved")
 
     def _command(self):
+        if sys.platform == "linux":
+            return [sys.executable, "-I", "-u", str(ROOT / "codec_prototype/worker_linux_entry.py"),
+                    str(os.getpid()), str(self.limits.memory_bytes), str(self.limits.cpu_seconds),
+                    sysconfig.get_path("purelib"), str(threading.get_native_id())]
         # The Windows venv redirector itself creates another process. Launch
         # the base interpreter directly and provide only the trusted venv site.
         return [str(Path(sys._base_executable).resolve()), "-I", "-u",
@@ -104,6 +109,9 @@ class IsolatedDecoder:
                 str(Path(sys.prefix) / "Lib/site-packages")]
 
     def _spawn(self):
+        if sys.platform == "linux":
+            from .worker_linux import LinuxProcess
+            return LinuxProcess(self._command(), self.limits, ROOT)
         if os.name != "nt":
             raise NotImplementedError("OS resource enforcement is not tested on this platform")
         from .worker_windows import WindowsProcess
@@ -136,7 +144,7 @@ class IsolatedDecoder:
                 return Outcome(Status.INVALID, stage=exc.stage, code=exc.code)
             if own_cancel.is_set() or (cancel is not None and cancel.is_set()):
                 return local("cancelled")
-            if os.name != "nt":
+            if os.name != "nt" and sys.platform != "linux":
                 return local("unsupported_platform")
             request = dict(v=1, kind="request", id=uuid.uuid4().hex,
                            request_sha256=hashlib.sha256(raw).hexdigest())
@@ -151,6 +159,12 @@ class IsolatedDecoder:
             def communicate():
                 try:
                     meta, body = ipc.read_message(process.stdout, 0)
+                    if (set(meta) == {"v", "kind", "reason"} and type(meta["v"]) is int
+                            and meta["v"] == 1 and meta["kind"] == "unavailable" and not body
+                            and type(meta["reason"]) is str
+                            and re.fullmatch(r"linux_[a-z_]{1,55}", meta["reason"])):
+                        state["error"] = meta["reason"]
+                        return
                     if meta != dict(v=1, kind="ready") or type(meta["v"]) is not int or body:
                         raise ipc.IPCError("ready")
                     state["ready_at"] = time.perf_counter_ns()
@@ -189,7 +203,8 @@ class IsolatedDecoder:
                     break
                 if finished.wait(0.01):
                     if "error" in state:
-                        outcome = local("worker_crash_or_ipc", metrics)
+                        outcome = local(state["error"] if state["error"].startswith("linux_")
+                                        else "worker_crash_or_ipc", metrics)
                         break
                     # Even a complete success message requires a clean exit.
                     if process.poll() is None:

@@ -1,4 +1,4 @@
-"""One request, then exit. Invoked only by the trusted Windows launcher."""
+"""One request, then exit. Invoked only by trusted platform launchers."""
 from __future__ import annotations
 
 import hashlib
@@ -16,10 +16,12 @@ if len(sys.argv) == 2:
 from codec_prototype import worker_ipc as ipc
 
 
-def main():
+def main(before_ready=None):
     # Import and pin the backend before READY; startup failures are local.
     from codec_prototype import strict_decoder as decoder
     decoder._backend()
+    if before_ready is not None:
+        before_ready()
     source, target = sys.stdin.buffer, sys.stdout.buffer
     ipc.write_message(target, dict(v=1, kind="ready"))
     request, raw = ipc.read_message(source, ipc.MAX_REQUEST)

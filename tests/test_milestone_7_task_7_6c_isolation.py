@@ -98,6 +98,7 @@ def test_oversized_and_invalid_json_reject_before_dispatch(monkeypatch):
 
 def test_unsupported_platform_never_falls_back_to_parent_decode(monkeypatch):
     monkeypatch.setattr(isolated, "os", SimpleNamespace(name="posix"))
+    monkeypatch.setattr(isolated, "sys", SimpleNamespace(platform="darwin"))
     result = isolated.IsolatedDecoder().validate(RAW)
     assert result.status == isolated.Status.INDETERMINATE_LOCAL_FAILURE and result.reason == "unsupported_platform"
 
@@ -377,7 +378,10 @@ def test_measurement_artifact_matches_worker_sources_and_replay():
     report = json.loads((ROOT / "benchmarks/milestone_7_task_7_6c_results.json").read_bytes())
     assert report["baseline_head"] == "86838da59d41964d8a0714720bdbf6d44a98a239"
     for path, digest in report["source_sha256"].items():
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == digest
+        # This immutable artifact describes the committed 7.6C sources. Later
+        # platform work must not rewrite its historical measurements/hashes.
+        historical = subprocess.check_output(["git", "show", f"8607636:{path}"], cwd=ROOT)
+        assert hashlib.sha256(historical).hexdigest() == digest
     assert report["golden"]["counts"] == {"VALID": 42, "INVALID": 110}
     assert report["corpus"]["samples"] == 36
     assert all(row["exact_bytes"] for row in report["corpus"]["rows"])

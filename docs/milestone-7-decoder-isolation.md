@@ -1,6 +1,6 @@
 # Milestone 7 Task 7.6C — Isolated decoder worker and resource containment
 
-Date: 2026-10-18. Scope: offline prototype only. Windows process/resource containment is implemented and tested; Linux enforcement and protection against a compromised native decoder remain incomplete. No production security approval is claimed.
+Date: 2026-10-18. Historical Task 7.6C evidence; scope: offline prototype only. Windows process/resource containment was implemented and tested here; Linux was unsupported at that commit. Current Linux implementation, WSL2 test evidence and remaining security restrictions are recorded separately in [Task 7.6D](milestone-7-linux-decoder-isolation.md). No production security approval is claimed.
 
 ## Repository and scope
 
@@ -86,7 +86,7 @@ The job is anonymous and its handle is not inherited. Atomic assignment removes 
 
 ## Linux and other platforms
 
-Linux enforcement is **not implemented or tested**. A canonical request on an unsupported platform returns `INDETERMINATE_LOCAL_FAILURE(unsupported_platform)` without dispatching or decoding in the parent. Cheap deterministic JSON errors can still return INVALID before platform dispatch. A Python platform launcher or an installed subsystem does not constitute Linux execution evidence.
+At the Task 7.6C commit Linux enforcement was **not implemented or tested**. Task 7.6D now supplies the [Linux launcher and current evidence](milestone-7-linux-decoder-isolation.md); the following paragraph retains the earlier design requirements. Other unsupported platforms still return `INDETERMINATE_LOCAL_FAILURE(unsupported_platform)` without dispatching or decoding in the parent. Cheap deterministic JSON errors can still return INVALID before platform dispatch.
 
 A separate Linux implementation needs controls established before untrusted work, a constrained process/identity, cgroup memory/process/CPU-rate limits, cumulative CPU-time limits, restricted filesystem/network/syscalls, bounded inherited descriptors and reliable parent-death/whole-tree cleanup. CPU rate alone is not a cumulative execution budget. cgroup access/support failures must be local failures; no permissive subprocess fallback is acceptable. Test native crashes, parent death, cancellation, group cleanup, privilege removal and all vectors on the real supported kernel/runtime. [Linux cgroup v2](https://docs.kernel.org/admin-guide/cgroup-v2.html), [Unix resource limits](https://docs.python.org/3.13/library/resource.html).
 

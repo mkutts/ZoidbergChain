@@ -2,13 +2,16 @@
 
 Date: 2026-10-19 (America/New_York).
 
-Task 7.10A follow-up: see the [canonical schema decision](milestone-7-v3-canonical-schema-decision.md)
-for the resolved 17-field native projection (using the existing block-specific
-ledger helper), explicit memo null, closed admission evidence, exact rational
-summary objects selected by the user, and signing preimages. Replay-safe
-treatment of optional legacy signed transfers remains BLOCKED; new policy and
-integration context also need freezing. Task 7.10 has not resumed. The findings
-and repository state below are the historical Task 7.10 stop record.
+Task 7.10B follow-up: the [signing/domain decision](milestone-7-v3-signing-and-domain-separation.md)
+resolves legacy replay with the existing personal-sign scheme, native U10/T18
+including genesis/type binding, and a reward-only unsigned system projection.
+The [canonical schema decision](milestone-7-v3-canonical-schema-decision.md)
+retains explicit memo null, closed evidence and exact rational summaries. The
+signing/schema gate is resolved for review of isolated format work in an
+explicit fixture context. Actual launch identity, policy/registry freeze,
+implementation, integration and security/activation gates remain. Task 7.10 has
+not resumed automatically. The findings and repository state below are the
+historical Task 7.10 stop record, including its then-unresolved decisions.
 
 **Disposition: stopped at Step 2; production format implementation is blocked.**
 This document records repository verification, field-budget analysis, precise

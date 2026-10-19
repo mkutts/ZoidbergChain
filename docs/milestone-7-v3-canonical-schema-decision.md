@@ -2,13 +2,24 @@
 
 Date: 2026-10-19 (America/New_York).
 
-**Status: partially resolved; full Task 7.10 resumption is BLOCKED.** This is a
-documentation and focused-verification task. Native projection, null handling,
+**Current signing follow-up:** [Task 7.10B](milestone-7-v3-signing-and-domain-separation.md)
+resolves the legacy replay decision: native U10/T18 with explicit genesis/type
+binding, and exactly one unsigned creator reward in `transactions`. These
+prelaunch amendments supersede the provisional U8/T17 signing examples below;
+their byte/hash results are retained as historical examples, not an additional
+accepted signing profile. Isolated Task 7.10 work may resume after review with
+an explicit fixture context; actual launch identity/policy and integration gates
+remain, and no implementation resumes automatically.
+
+Repository and verification snapshots below describe Task 7.10A at its own
+starting HEAD; Task 7.10B records its newer repository state separately.
+
+This is a documentation and focused-verification task. Native projection, null handling,
 closed admission evidence, exact rational summaries and commitment rules are
 specified below. The user explicitly selected rational summary objects during
 Task 7.10A; this amends the two decimal summary slots in Task 7.2 for the new
-protocol only. Treatment of undomained legacy transfer signatures still needs
-an explicit decision. No production
+protocol only. The formerly unresolved undomained legacy-transfer rule is
+resolved by Task 7.10B's versioned user-transfer and reward-only decision. No production
 format, consensus adapter, migration, activation, reset, or deployment is added.
 
 The [Task 7.10 report](milestone-7-v3-block-format-implementation.md) remains the
@@ -64,6 +75,7 @@ or tagged-binary transform is part of either function on these schema objects.
 | --- | --- |
 | `N` | Frozen launch network ID, 3..64 ASCII characters, `[a-z0-9][a-z0-9-]{2,63}`, matched over the entire string; never default to the old network |
 | `W` | Frozen application network name, 3..64 ASCII characters, `[A-Za-z0-9][A-Za-z0-9_.-]{2,63}` from `validators.py`; one value bound alongside N, not a caller-selected alias |
+| `G` | Trusted genesis H64 from Task 7.10B; required in native T and signed U; the cryptographic chain identity is (N,G), with actual launch value pending |
 | `H64` / `ID32` | Exactly 64 / 32 lowercase ASCII hex characters |
 | `Wallet` | Exactly `0x` + 40 lowercase hex characters, existing cryptographic wallet identity; exactly 42 bytes |
 | `PublicKey` | Exactly 66 lowercase hex characters representing a valid compressed secp256k1 key under the existing miner/legacy validator |
@@ -98,7 +110,7 @@ Changing their substance requires separately versioned policy review.
 
 ## 3. Native transaction decision
 
-### 3.1 Exact record T — all 17 fields required, no optional fields
+### 3.1 Exact record T — all 18 fields required, no optional fields
 
 | Field | Type, bound and validation |
 | --- | --- |
@@ -108,6 +120,7 @@ Changing their substance requires separately versioned policy review.
 | `transaction_version` | Integer exactly 2 |
 | `protocol_version` | Integer exactly 2 |
 | `network_id` | Exact N, <=64 bytes |
+| `genesis_hash` | H64, exact trusted G from Task 7.10B; required in T and signed U |
 | `from_address`, `to_address` | Wallet; distinct; sender must match recovered signer |
 | `amount` | Money, strictly positive, bounded by the launch supply and available balance |
 | `fee` | Money, exactly `"0"` under the current fee policy |
@@ -119,8 +132,9 @@ Changing their substance requires separately versioned policy review.
 | `signed_message` | String <=4,096 raw UTF-8 bytes, exactly UTF-8 decoding of the canonical envelope M below |
 | `signed_message_hash` | H64, exactly SHA-256(M); also equals `tx_id` under existing native identity semantics |
 
-This is the field set selected by the existing block-specific projection,
-requiring its three version/network fields for the new protocol. It keeps
+This retains the field set selected by the existing block-specific projection,
+requires its three version/network fields for the new protocol, and adds the
+explicit genesis hash required by Task 7.10B. It keeps
 signature, canonical signing message, nonce, fee, timestamp and all transfer
 identity data. It does **not** copy `NativeTransaction.to_dict()` wholesale.
 
@@ -143,13 +157,15 @@ making its platform-independent meaning explicit.
 
 ### 3.2 Native signed payload, message and ID
 
-The closed payload U has exactly eight required keys:
+The closed payload U has exactly ten required keys after Task 7.10B:
 
 ```text
-{amount, fee, from_address, memo, nonce, timestamp, to_address, transaction_version}
+{amount, fee, from_address, genesis_hash, memo, nonce, timestamp,
+ to_address, transaction_type, transaction_version}
 ```
 
-Each value equals the corresponding T value, including explicit null memo.
+Each value equals the corresponding T value, including explicit null memo,
+trusted genesis_hash and exact transaction_type=native_transfer.
 Define the exact six-key envelope and bytes:
 
 ```text
@@ -167,6 +183,8 @@ signature and mutable metadata. The signature authenticates M, not the text of
 its SHA-256 hex ID. Neither `tx_id` nor signature occurs inside U, avoiding
 self-reference. A second signature for identical U has the same transaction ID;
 it does not create a second spend or nonce.
+Task 7.10B adds G and type to the preimage explicitly. The provisional U8 was
+never activated; it is not accepted as another S=2 encoding after this decision.
 
 ### 3.3 Lifecycle, ordering, duplicates and limits
 
@@ -204,7 +222,7 @@ an alternate consensus limit. No transaction truncation is permitted.
 | Input | Canonical rule |
 | --- | --- |
 | Missing required key | Reject, including a missing memo; never default fee, version, collection or metadata |
-| Optional absence | Only explicitly enumerated optionals: image `meme_text`; legacy signature only if a future resolved legacy rule permits it. Absent is the sole no-caption representation |
+| Optional absence | Only explicitly enumerated optionals: image `meme_text`. Absent is the sole no-caption representation. The protocol reward's signature key is forbidden, not an optional user-transfer bypass |
 | Explicit null | Only native memo and the four text technical-evidence dimension/frame/pixel fields listed below; every other field here forbids null |
 | Empty string | Reject for all required strings and optional caption/memo; no null/empty/absent aliases on wire |
 | Empty array | `native_transactions=[]` is valid; `voter_rewards=[]` is required. Other arrays obey their own minima: a qualifying certificate cannot have zero votes, and a reward-bearing block cannot have no reward transaction |
@@ -269,9 +287,10 @@ Block `timestamp`/`minted_at` are nonnegative canonical decimal strings of secon
 <=6 fractional digits, integer part <=UInt maximum, <=32 ASCII bytes; construct
 from integer microseconds without rounding a float. `approved_at` remains integer
 zero. Existing time-validation meaning must be retained by later adapters.
-`payload_size_kb`, legacy amount/tip strings and reward amounts obey the retained
-decimal grammar/field budgets, but legacy signed transfer verification remains
-blocked as explained in section 8. No local receipt/settlement time enters P.
+The new reward-only `payload_size_kb` and tip are `"0"`, amount is `"5"`, and
+historical legacy decimal/signature handling is confined to historical readers.
+Ordinary legacy transfers are rejected by the resolved section 8 rule.
+No local receipt/settlement time enters P.
 
 ### 5.2 Tally and reputation authority
 
@@ -690,42 +709,30 @@ exact base64 E and decoding metadata. Different valid encodings preserve H but
 change the block commitment. Retained blocks cannot be reencoded or reuse
 old-hash finality signatures.
 
-## 8. Additional BLOCKED rule: legacy signed transfers
+## 8. RESOLVED by Task 7.10B: versioned transfers and reward-only projection
 
-Task 7.2 carries reward/legacy transaction payloads in `transactions`; Task 7.9
-bounds them at 16 records including the mandatory reward, <=1,024 bytes each.
-Their proposed closed keys remain `sender`, `recipient`, `amount`, `tip`,
-`payload_size_kb`, with signature only for a signed legacy transfer. Reward
-sender is `REWARD_POOL`, reward recipient is the creator Wallet, reward amount
-is the unchanged rule, tip/payload_size_kb zero, and signature absent. No GENESIS
-transaction belongs in a non-genesis media block. Optional signed legacy
-records use existing validated PublicKey identities and canonical 64-byte raw
-ECDSA signatures in 88-character padded standard base64.
+The [signing/domain decision](milestone-7-v3-signing-and-domain-separation.md)
+selects one protected user-transfer family using the existing personal_sign
+scheme: native_transfer, protocol_version=2, transaction_version=2, signed U10
+including trusted genesis_hash and transaction_type. The canonical native T18
+retains every immutable prior field and adds genesis_hash. The domain envelope
+keeps its exact six keys. No new cryptographic algorithm is introduced.
 
-However `transaction.py:sign_transaction` / `is_valid` authenticate only:
+For a non-genesis media block, `transactions` is exactly one unsigned creator
+reward with five keys: sender=REWARD_POOL, recipient=validated creator Wallet,
+amount="5", tip="0", payload_size_kb="0". Signature and all extra keys are
+forbidden. Full certificate, creator, reward-pool, duplicate-claim, ancestry and
+consensus validation authorize it; a sentinel is not a general unsigned-spend
+permission. Genesis allocations are restricted to the separately frozen genesis.
 
-```text
-UTF8(sender + recipient + str(amount) + str(tip)), ECDSA-SHA1
-```
-
-There is no N, protocol domain, nonce or payload_size_kb binding. Two networks
-with those same four values give exactly the same preimage. The spelling of
-numeric application values (`1.0` versus canonical `"1"`) can also change the
-old signature preimage. Reusing that verifier in a fresh protocol would violate
-this task's cross-protocol replay requirement; silently domain-enveloping it
-would change the existing signature semantics. Merely changing a block domain
-does not give its embedded undomained transfer signature replay protection.
-
-| Alternative requiring a decision | Consequence |
-| --- | --- |
-| Keep only the unsigned mandatory reward in this legacy array; carry user transfers exclusively as the already domain-separated native records | Minimal new cryptographic surface, but explicitly narrows Task 7.2's optional legacy transfer allowance; owner/protocol amendment required |
-| Specify a new bounded network/domain-separated legacy transfer signature format and its numeric preimage | Preserves a second transfer path, but needs an explicit version/schema/signing change and test identities/vectors, beyond a silent serialization repair |
-| Retain old signature verification unchanged | Does not satisfy the requested replay separation; not accepted by this decision |
-
-No alternative is adopted. The 16-record budget remains a conservative capacity
-reservation, not a claim that a complete safe legacy signing contract exists.
-No omission of native fee, nonce, signature or other signed fields is proposed
-to fix this legacy-path conflict.
+Ordinary legacy Transaction objects, raw/base64 legacy signatures, versionless
+native messages, version-1 native transfers and the provisional U8 profile are
+rejected on the new network, with no fallback. Historical readers retain their
+original preimages, including the old concatenated ECDSA-SHA1 bytes. This is an
+explicit narrowing of Task 7.2's optional legacy user-transfer allowance, not
+conversion or re-signing of old state. See Task 7.10B for exact audit references,
+strategy alternatives, launch N/G binding, acyclic genesis derivation and new
+positive/negative byte examples. No reset or signing implementation is performed.
 
 ## 9. Capacity proof with closed components
 
@@ -751,7 +758,7 @@ message byte caps and scalar counts are not substituted for serialized lengths.
 | Two tallies | 16,384 combined |
 | Complete certificate scalar fields, names, delimiters and digest beyond its five nested values | 836 |
 | Derived full certificate bound | **172,901**, inside 196,608 parent cap |
-| Reward/legacy array reserved ceiling | 16*1,024 + 17 = 16,401, counted in S_rest; signed legacy semantics remain blocked |
+| Reward-only array after Task 7.10B | Exactly one 126-byte Q, array 128 bytes; inside unchanged 1,024-byte record/S_rest budgets |
 | Optional image caption value | <=6,002 including quotes: 1,000 worst-escaped C0 scalars can fit the separate 4,096 raw-UTF-8-byte cap |
 | Header, other scalars, media descriptor, envelope, portable hash wrapper, caption, legacy array and all residual delimiters | S_rest <=32,768; updated top-level width enumeration gives <=24,065 |
 | Finality fields in R | **0**; separate proof <=262,144 |
@@ -767,7 +774,7 @@ width maxima may be conservative and need not be jointly achievable.
 No signatures are fabricated to populate a maximum-sized certificate. Their
 actual canonical 132-character content lengths are already inside the relevant
 record caps: at most 33 personal signatures in a certificate including submitter,
-ten native signatures and fifteen optional legacy signatures in their arrays.
+ten native signatures; no optional legacy user signatures remain in the new block.
 Do not add those subsets twice. Null text dimensions and signatures' quotes
 are already included. Repeated signed JSON strings require escaping again and
 count toward each enclosing record cap.
@@ -782,6 +789,8 @@ O = len(R)-L = S_cert+S_native+S_rest <=327,680
 len(R) <=2,796,204+327,680 =3,123,884 <3,145,728
 margin =21,844
 ```
+
+Task 7.10B's explicit native genesis/type fields still fit the existing record/message caps; the old figures in this paragraph remain conservative. Its reward-only projection provides the updated tighter bound 3,058,797 bytes.
 
 Using the closed certificate/count bounds above and the same S_rest cap gives
 the tighter conservative ceiling **3,083,804**, leaving **61,924 bytes** under
@@ -803,7 +812,7 @@ is sufficient; **no increase or relaxation of the 3 MiB cap is proposed**.
 Every child, collection and parent cap applies together; combinations exceeding
 one are not permitted representations. Mandatory frozen evidence must fit an
 identity reservation before certification. There is no guarantee every current
-unbounded historical certificate or every size-eligible upload can fit. Optional
+unbounded historical certificate or every size-eligible upload can fit. Optional native
 transactions are omitted/deferred when necessary; never truncate evidence,
 votes, signatures, caption or media. A mathematically valid 3 MiB boundary
 record is unreachable under the tighter simultaneous caps; tests must account
@@ -830,6 +839,8 @@ default. The public test key is the already published all-`11` 32-byte key in
 `0x19e7e376e7c213b7e7e7e46cc70a5dd086daff2a`. No real key is generated,
 accessed, rotated or deployed. Only this known disposable identity is used in
 the native example. Examples do not establish a funded sender or admit a block.
+
+**Task 7.10B note:** native message/record examples in this section preserve the provisional U8/T17 bytes for historical reproduction. They are negative missing-context profiles under current U10/T18; use Task 7.10B's vectors for new positive signing cases. Other media/rational byte examples are unchanged.
 
 ### Exact small JSON and media preimages
 
@@ -910,7 +921,7 @@ EIP-191 Keccak digest `3fc1a69fb3964ff681fe1d4a3058fcfd3de0963c4de789691c66308e4
 
 Canonical test signature `0x2a48c4eb69a23efa6a847d1b7e809cba51d6ce039ce7e99f4d7dd957826a86dc086241135b4a6c68896ffa0c4e6c5f90ad95efd1aea22079a9593963695741331b`.
 
-Construct T1 and T2 with **exactly** section 3.1's 17 keys: copy their corresponding U values, set network=W and network_id=N to the stated test value, both version integers=2, transaction_type=`native_transfer`, signature_scheme=`personal_sign`, tx_id and signed_message_hash to the displayed SHA-256, signed_message to the exact corresponding JSON line above, and signature to its displayed test signature. This recipe uniquely defines every byte of each complete record without an unchecked signature placeholder.
+For historical reproduction only, construct the former Task 7.10A T1 and T2 with its original 17 keys (current section 3.1 minus genesis_hash), using the displayed U8 messages that omit genesis_hash and transaction_type: copy their corresponding U values, set network=W and network_id=N to the stated test value, both version integers=2, transaction_type=`native_transfer`, signature_scheme=`personal_sign`, tx_id and signed_message_hash to the displayed SHA-256, signed_message to the exact corresponding JSON line above, and signature to its displayed test signature. This recipe uniquely defines every byte of each complete record without an unchecked signature placeholder.
 
 | Preimage | Exact construction | UTF-8 bytes | SHA-256 |
 | --- | --- | ---: | --- |
@@ -946,7 +957,7 @@ UTF-8 length `66`; SHA-256 `e5beddf8dec7b8175cff3445da34830868ed4ebd74989f15269d
 
 UTF-8 length `66`; SHA-256 `6e8bbb5aa4d5453ba7ef7b461fd9861b47866f44f44fcdbbe6fbdc7d0daf781d`.
 
-These two **incomplete, invalid certificate projections** demonstrate that the version/network bytes participate in the digest. They are not positive certificate vectors. A full certificate hash is SHA-256(J(the exact complete 17-key body)); no unspecified certificate domain prefix or producer signature may be added. Complete positive certificate/block vectors remain pending the unresolved policy/legacy decisions and must use real test signatures satisfying the entire closed schema.
+These two **incomplete, invalid certificate projections** demonstrate that the version/network bytes participate in the digest. They are not positive certificate vectors. A full certificate hash is SHA-256(J(the exact complete 17-key body)); no unspecified certificate domain prefix or producer signature may be added. Complete positive certificate/block vectors remain pending frozen policy context and the superseding Task 7.10B signing vectors and must use real test signatures satisfying the entire closed schema.
 
 
 ### Rational summary vectors selected for v3
@@ -1087,7 +1098,9 @@ It is a memo projection, not a complete native record.
 
 ## 11. Focused checks and implementation handoff
 
-Baseline regression commands/results and example checks are recorded below.
+The baseline regression commands/results and worktree/example checks below are
+the historical Task 7.10A verification record. Task 7.10B's follow-up checks
+and three-document worktree are recorded in its signing/domain report.
 The full repository suite, live mempool/finality/admission path and independent
 Zstd decoder were not executed. Current tests remain historical-protocol tests;
 they cannot certify the unimplemented new format.
@@ -1132,8 +1145,8 @@ Before a separately authorized Task 7.10 resumption:
 1. Port the selected rational rule and all p,d/count/undefined examples into
    independently checked implementation fixtures; both summaries must agree
    with the original integer tally, without float/context-dependent conversions.
-2. Resolve the optional legacy signed transfer path versus replay separation;
-   explicitly amend the carried-forward allowance or specify its new version.
+2. Use the resolved Task 7.10B U10/T18 signing profile and reward-only Q; reject
+   the historical/unversioned/provisional alternatives without fallback.
 3. Freeze the bounded snapshot selection/approval and complete new policy
    registry/digests, N/W and intended statement/animation/safety launch choices.
    Do not use placeholder values as a production context. Reviewer/reputation
@@ -1150,7 +1163,9 @@ Before a separately authorized Task 7.10 resumption:
    media-admission isolation gates. Local resource failures withhold validation;
    compression fallback and watchdogs are not new validity rules.
 
-**Task 7.10 cannot safely resume as a complete specified block-format task yet.**
-This design report is reviewable with explicit blocked decisions. It authorizes
+**Task 7.10B resolves the remaining signing gate for isolated format work.**
+After review, that task may use an explicit immutable fixture context; real
+launch identity, policy, integration and security gates remain. Nothing resumes
+automatically. This design report authorizes
 no automatic implementation, signing-context activation, database change,
 network reset, deployment, commit, push, merge, or subsequent task.

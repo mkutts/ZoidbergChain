@@ -1,0 +1,534 @@
+{
+  "format_version": "task-7.10c-v1",
+  "warning": "FORMAT/CRYPTO FIXTURES ONLY; symbolic policies/genesis; no ancestry, ledger or image admission authority",
+  "context": {
+    "network_id": "zoidberg-signing-vector-v2",
+    "application": "zoidberg-signing-vector-v2",
+    "genesis_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "media_policy_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "review_policy_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "original_hex": "61",
+  "vectors": [
+    {
+      "id": "identity",
+      "kind": "descriptor",
+      "file": "identity.json",
+      "expected": "valid",
+      "bytes": 223,
+      "sha256": "7ee377e5bb1c7aa281895f2452de3f8c2e628e15140d7eed0c11fc15e08640ea"
+    },
+    {
+      "id": "zstd",
+      "kind": "descriptor",
+      "file": "zstd.json",
+      "expected": "valid",
+      "bytes": 236,
+      "sha256": "83f34eb6bedced5e6756b8c19723f8dd29dfc25640e4e70e9fb072ef4e2026ad"
+    },
+    {
+      "id": "native-message",
+      "kind": "preimage",
+      "file": "native-message.json",
+      "expected": "valid",
+      "bytes": 527,
+      "sha256": "e68931c52c88865a0ad5f73edee11b36d57887c1f953898ab0f052d86ac4f425"
+    },
+    {
+      "id": "native",
+      "kind": "transaction",
+      "file": "native.json",
+      "expected": "valid",
+      "bytes": 1400,
+      "sha256": "6f4133b41f9cc2b9833e6d826baf7578727e5ef9f9bd6db23d9177cf25ea94a7"
+    },
+    {
+      "id": "native-aggregate",
+      "kind": "aggregate",
+      "file": "native-aggregate.json",
+      "expected": "valid",
+      "bytes": 1402,
+      "sha256": "c49dfa7b2ff2ac4c42d799a02589da551d12dc0c89588d019cba6c3f0ea5b70a"
+    },
+    {
+      "id": "native-unicode",
+      "kind": "transaction",
+      "file": "native-unicode.json",
+      "expected": "valid",
+      "bytes": 1402,
+      "sha256": "e1a50c86247ecfa8ac565a904c4a5f6060a115879c0354d6423863ec97fbdb94"
+    },
+    {
+      "id": "native-unicode-aggregate",
+      "kind": "aggregate",
+      "file": "native-unicode-aggregate.json",
+      "expected": "valid",
+      "bytes": 1412,
+      "sha256": "8470f3890d60264e088c7569e103c05c9db81ffa1066f9257da42e281cac6940"
+    },
+    {
+      "id": "native-high-s",
+      "kind": "transaction",
+      "file": "native-high-s.json",
+      "expected": "valid",
+      "bytes": 1400,
+      "sha256": "28d55f0b52ba3b9b08078cb2181128268d89a630b77139ae53f1dca981a17c0b"
+    },
+    {
+      "id": "block-identity",
+      "kind": "record",
+      "file": "block-identity.json",
+      "expected": "valid",
+      "bytes": 34588,
+      "sha256": "aed15a42772a97f4fd200274dbfaf574b8dd8d0cfbd3dacb030bc06e17b1f21a"
+    },
+    {
+      "id": "block-zstd",
+      "kind": "record",
+      "file": "block-zstd.json",
+      "expected": "valid",
+      "bytes": 34601,
+      "sha256": "3d2d50db09a44989f7752719cfb3c50b11356718615cb11e4954bb56955a6036"
+    },
+    {
+      "id": "block-high-s",
+      "kind": "record",
+      "file": "block-high-s.json",
+      "expected": "valid",
+      "bytes": 34588,
+      "sha256": "8f87f6ac0ef62fba71baada2de1c27a358cbaf9ed995a668d38c9ed4e21d2bf9"
+    },
+    {
+      "id": "ratio-5-7",
+      "kind": "ratio",
+      "file": "ratio-5-7.json",
+      "expected": "valid",
+      "bytes": 31,
+      "sha256": "dc8dc4b48ae383b7b5077c7a78b3de8822afc8e16b675d35e9a98accb9b9f678"
+    },
+    {
+      "id": "ratio-1-3",
+      "kind": "ratio",
+      "file": "ratio-1-3.json",
+      "expected": "valid",
+      "bytes": 31,
+      "sha256": "70ddc0b5143b1ded7d3c08f91cb09d9a7fdcb8402cc7c8501c7e53a9b20dffdc"
+    },
+    {
+      "id": "ratio-0-1",
+      "kind": "ratio",
+      "file": "ratio-0-1.json",
+      "expected": "valid",
+      "bytes": 31,
+      "sha256": "78b35a451de9a90fdb84ebfdcfdad79e22b58018a910e3bd93607bcf30ec5424"
+    },
+    {
+      "id": "ratio-1-1",
+      "kind": "ratio",
+      "file": "ratio-1-1.json",
+      "expected": "valid",
+      "bytes": 31,
+      "sha256": "f45adc7eb6dfb04416b26678cb9afb54169e325c6a7e9bbfbf3dd14e621315df"
+    },
+    {
+      "id": "ratio-15-16",
+      "kind": "ratio",
+      "file": "ratio-15-16.json",
+      "expected": "valid",
+      "bytes": 33,
+      "sha256": "9603c10d25ad2e956a69f2212c7f39c959c435ca57da7e9bf5d88d7782219a7c"
+    },
+    {
+      "id": "ratio-bad-unreduced",
+      "kind": "ratio",
+      "file": "ratio-bad-unreduced.json",
+      "expected": "invalid",
+      "bytes": 31,
+      "sha256": "682e4f7b04e22d7ef8d0611745a2fa9801b837bb85233c30e7329d044ab314e9"
+    },
+    {
+      "id": "ratio-bad-zero-alias",
+      "kind": "ratio",
+      "file": "ratio-bad-zero-alias.json",
+      "expected": "invalid",
+      "bytes": 31,
+      "sha256": "39f39691fbe75c17abf2855ee02229a121824c47a4d783170de818b8463e2010"
+    },
+    {
+      "id": "ratio-bad-zero-votes",
+      "kind": "ratio",
+      "file": "ratio-bad-zero-votes.json",
+      "expected": "invalid",
+      "bytes": 31,
+      "sha256": "cf35c0f75ea19bdb5fbb3881ff9d1c4c1f4317e980a4bba22dcc8deb2b5c13f6"
+    },
+    {
+      "id": "ratio-bad-negative",
+      "kind": "ratio",
+      "file": "ratio-bad-negative.json",
+      "expected": "invalid",
+      "bytes": 32,
+      "sha256": "3e83041fd273ea717d7e328ff66fae0fbdcae2629fec471a77ca576ae0762f29"
+    },
+    {
+      "id": "ratio-bad-float",
+      "kind": "ratio",
+      "file": "ratio-bad-float.json",
+      "expected": "invalid",
+      "bytes": 33,
+      "sha256": "937959871d14cd7b1e0974ad96d325953cb5027cc50cf9dc11185dc1b7304a19"
+    },
+    {
+      "id": "ratio-bad-bool",
+      "kind": "ratio",
+      "file": "ratio-bad-bool.json",
+      "expected": "invalid",
+      "bytes": 34,
+      "sha256": "d254a925b166a272293f4704f61ef2c185b8e7def1b4584d20644ba8ba80c452"
+    },
+    {
+      "id": "ratio-bad-too-large",
+      "kind": "ratio",
+      "file": "ratio-bad-too-large.json",
+      "expected": "invalid",
+      "bytes": 32,
+      "sha256": "96a998a2e7f17ff231d0e1078d7e9380b00f4e92117358a0d7ac9cdac5bc272a"
+    },
+    {
+      "id": "media-bad-unsupported",
+      "kind": "descriptor",
+      "file": "media-bad-unsupported.json",
+      "expected": "invalid",
+      "bytes": 219,
+      "sha256": "c5bd863b26201bf84557df65c20498ed55e02e15dbbe76570189c7edf53e8f1c"
+    },
+    {
+      "id": "media-bad-pad-bits",
+      "kind": "descriptor",
+      "file": "media-bad-pad-bits.json",
+      "expected": "invalid",
+      "bytes": 223,
+      "sha256": "b1a848e26c172e8e5c0e37a91c44db479c19482af4d35d960b6efc91a5f0abed"
+    },
+    {
+      "id": "media-bad-oversize-text",
+      "kind": "descriptor",
+      "file": "media-bad-oversize-text.json",
+      "expected": "invalid",
+      "bytes": 228,
+      "sha256": "75b97875d7bed9168392e6897fd12dbed9d212bec05018b9f39ee391ee031fdd"
+    },
+    {
+      "id": "media-bad-size-bool",
+      "kind": "descriptor",
+      "file": "media-bad-size-bool.json",
+      "expected": "invalid",
+      "bytes": 226,
+      "sha256": "d1d2977c5d656cb27293bc60e68d2c1aaa90dccc82debff8f52accf724b4d610"
+    },
+    {
+      "id": "media-bad-unknown",
+      "kind": "descriptor",
+      "file": "media-bad-unknown.json",
+      "expected": "invalid",
+      "bytes": 233,
+      "sha256": "52b8e02225e4a19d43a0909d4e5a72d9c544f02e50f82d3771da616ce149622d"
+    },
+    {
+      "id": "media-bad-base64-whitespace",
+      "kind": "descriptor",
+      "file": "media-bad-base64-whitespace.json",
+      "expected": "invalid",
+      "bytes": 223,
+      "sha256": "88960ea313b2213895c62a42de9080539336752d32dc94d16ef217473cdd2747"
+    },
+    {
+      "id": "media-bad-checksum",
+      "kind": "reconstruction",
+      "file": "media-bad-checksum.json",
+      "expected": "invalid",
+      "bytes": 236,
+      "sha256": "ed250b81982f5292cf3c9671d793f5312c6afe564209cb32ac4433e77654bf8e"
+    },
+    {
+      "id": "media-bad-hash",
+      "kind": "reconstruction",
+      "file": "media-bad-hash.json",
+      "expected": "invalid",
+      "bytes": 223,
+      "sha256": "bee5c26a47cda8a853a3f2de1f231f77a177a177065ee475127e8dcc12089416"
+    },
+    {
+      "id": "native-bad-missing-memo",
+      "kind": "transaction",
+      "file": "native-bad-missing-memo.json",
+      "expected": "invalid",
+      "bytes": 1388,
+      "sha256": "3ca33cde52f946e36be4954f31df27bbd0de2b62ff0ec3ce2d359e98e2b66525"
+    },
+    {
+      "id": "native-bad-wrong-network",
+      "kind": "transaction",
+      "file": "native-bad-wrong-network.json",
+      "expected": "invalid",
+      "bytes": 1390,
+      "sha256": "4bc9a501a1da37274104e6ffcbdab87c2d0e7b62ce95d0b4d9f67749369f1bff"
+    },
+    {
+      "id": "native-bad-old-version",
+      "kind": "transaction",
+      "file": "native-bad-old-version.json",
+      "expected": "invalid",
+      "bytes": 1400,
+      "sha256": "4f43e8843b6fd1315f9107263f4fe43aac5ea6ee346595eaea8a0715c8fffd8c"
+    },
+    {
+      "id": "native-bad-legacy-signature",
+      "kind": "transaction",
+      "file": "native-bad-legacy-signature.json",
+      "expected": "invalid",
+      "bytes": 1272,
+      "sha256": "479117f899ee68c272d1c676ee353882e44833ef2b50ce4d982f0f1603a01180"
+    },
+    {
+      "id": "native-bad-unsigned",
+      "kind": "transaction",
+      "file": "native-bad-unsigned.json",
+      "expected": "invalid",
+      "bytes": 1270,
+      "sha256": "255d814e0d763d469d4272a9edd52396603c85751216145583ed6af757512047"
+    },
+    {
+      "id": "native-bad-wrong-genesis",
+      "kind": "transaction",
+      "file": "native-bad-wrong-genesis.json",
+      "expected": "invalid",
+      "bytes": 1400,
+      "sha256": "a682670a7375f2e56f77362e9db0aa6a5cf436baf6f367c23fbe69b289143ba5"
+    },
+    {
+      "id": "native-bad-tampered-signature",
+      "kind": "transaction",
+      "file": "native-bad-tampered-signature.json",
+      "expected": "invalid",
+      "bytes": 1400,
+      "sha256": "56c87c9e5411905861e9af8a26cc88507b7ade3790d5600e7f8db283165b0fb5"
+    },
+    {
+      "id": "block-bad-double-reward",
+      "kind": "record",
+      "file": "block-bad-double-reward.json",
+      "expected": "invalid",
+      "bytes": 34715,
+      "sha256": "8bebd15ea4881b2102488f0f229710bb9db25f4d5c6ab8f327b0c1abe99e299f"
+    },
+    {
+      "id": "block-bad-reward-signature",
+      "kind": "record",
+      "file": "block-bad-reward-signature.json",
+      "expected": "invalid",
+      "bytes": 34605,
+      "sha256": "beeeb4cd57b8f6acf66f5060b5ddb12f9ce4fb1c865200801903a07e6e3e1032"
+    },
+    {
+      "id": "block-bad-reward-recipient",
+      "kind": "record",
+      "file": "block-bad-reward-recipient.json",
+      "expected": "invalid",
+      "bytes": 34588,
+      "sha256": "84866b666c7c81432cb78f4e65d22b9bd738f6d2488b937dcfb00cc3c4a75a26"
+    },
+    {
+      "id": "block-bad-genesis-reward",
+      "kind": "record",
+      "file": "block-bad-genesis-reward.json",
+      "expected": "invalid",
+      "bytes": 34584,
+      "sha256": "2a0c3ef2d3bb16925dd9f365dc3929e695ef2ec9f9b36839d4de4002b171a7c7"
+    },
+    {
+      "id": "block-bad-vote-order",
+      "kind": "record",
+      "file": "block-bad-vote-order.json",
+      "expected": "invalid",
+      "bytes": 34588,
+      "sha256": "fadbf3a40b2681ace2e65ac3dbfde049db25bf7ab06f498006b3227ad0089e13"
+    },
+    {
+      "id": "block-bad-status-tamper",
+      "kind": "record",
+      "file": "block-bad-status-tamper.json",
+      "expected": "invalid",
+      "bytes": 34589,
+      "sha256": "09a9cc14328d0c709862598b43093b7cf231873094a898ce59197dbf60b72cc4"
+    },
+    {
+      "id": "block-bad-evidence-extra",
+      "kind": "record",
+      "file": "block-bad-evidence-extra.json",
+      "expected": "invalid",
+      "bytes": 34598,
+      "sha256": "d2e5547276a156af8645f09244dbdd4f401e4ac28e60febaf95baf1ac2dcf122"
+    },
+    {
+      "id": "block-bad-attestation-signature",
+      "kind": "record",
+      "file": "block-bad-attestation-signature.json",
+      "expected": "invalid",
+      "bytes": 34588,
+      "sha256": "c7390e25f0f16d4cca205e58f290e85ed1db86ae4dbeae3315801e142366430e"
+    },
+    {
+      "id": "block-bad-summary-tamper",
+      "kind": "record",
+      "file": "block-bad-summary-tamper.json",
+      "expected": "invalid",
+      "bytes": 34588,
+      "sha256": "f5c7bdc20698791096e1bcd2850df9c200152c116b4de999088d65bfc958ed57"
+    },
+    {
+      "id": "block-bad-native-duplicate",
+      "kind": "record",
+      "file": "block-bad-native-duplicate.json",
+      "expected": "invalid",
+      "bytes": 35989,
+      "sha256": "bdda80b830b955618a4f47fb68a4ba3d7d7fe46f9cdd3ab306fb55869bd6e0de"
+    },
+    {
+      "id": "block-bad-text-caption",
+      "kind": "record",
+      "file": "block-bad-text-caption.json",
+      "expected": "invalid",
+      "bytes": 34610,
+      "sha256": "a59e84d535f00bb4edd5b26e776a417ece2c405886047e85c9d02040e0bf1905"
+    },
+    {
+      "id": "block-bad-circular-finality",
+      "kind": "record",
+      "file": "block-bad-circular-finality.json",
+      "expected": "invalid",
+      "bytes": 34602,
+      "sha256": "c5f91e1da728d3a7a0c93944acdf04b28c62bb4f92fce94f40624f88e231212a"
+    },
+    {
+      "id": "block-bad-bool-version",
+      "kind": "record",
+      "file": "block-bad-bool-version.json",
+      "expected": "invalid",
+      "bytes": 34591,
+      "sha256": "65a9e7778ab2524cdaf433b5fe14f9900e5f695b7db19ddba31e9346fd053ab1"
+    },
+    {
+      "id": "json-bad-duplicate",
+      "kind": "json",
+      "file": "json-bad-duplicate.json",
+      "expected": "invalid",
+      "bytes": 13,
+      "sha256": "44d6ccc0d28d8de99be0b157cb395f188e35063fc51e4170056c63faac8d128b"
+    },
+    {
+      "id": "json-bad-surrogate",
+      "kind": "json",
+      "file": "json-bad-surrogate.json",
+      "expected": "invalid",
+      "bytes": 14,
+      "sha256": "7f3c6b6b4a88409efe4d2fba1cb3cf2b79b682fe4387678cba2e6b9645b58221"
+    },
+    {
+      "id": "json-bad-negative-zero",
+      "kind": "json",
+      "file": "json-bad-negative-zero.json",
+      "expected": "invalid",
+      "bytes": 8,
+      "sha256": "ea1ee51d0264a2f47ec96a676c4fe606fbb18b1cc55fb8be80a9a568fd8c02c3"
+    },
+    {
+      "id": "json-bad-nan",
+      "kind": "json",
+      "file": "json-bad-nan.json",
+      "expected": "invalid",
+      "bytes": 9,
+      "sha256": "c238cb6e9ac5407491b0988102620ab9445290d2ed7713c516a2b28bd2388968"
+    },
+    {
+      "id": "json-bad-unicode-escape",
+      "kind": "json",
+      "file": "json-bad-unicode-escape.json",
+      "expected": "invalid",
+      "bytes": 14,
+      "sha256": "bca462b835df0d11fbe295ae8e0bfb14f010da4801c954734d1801e1a07400a9"
+    },
+    {
+      "id": "json-bad-bom",
+      "kind": "json",
+      "file": "json-bad-bom.json",
+      "expected": "invalid",
+      "bytes": 5,
+      "sha256": "aa25e978046d680ef8740d837e6de5bc1e2a2dc6089dbda1012544b538d53f65"
+    },
+    {
+      "id": "json-bad-depth",
+      "kind": "json",
+      "file": "json-bad-depth.json",
+      "expected": "invalid",
+      "bytes": 67,
+      "sha256": "eac9bf029c22e177c74309fb891e3351dccfb04f055127ea82dc2dc3136cd899"
+    },
+    {
+      "id": "unicode",
+      "kind": "json",
+      "file": "unicode.json",
+      "expected": "valid",
+      "bytes": 47,
+      "sha256": "3a735abf8cd2d1f434ca5b80818f2aef68ad594982df37f0f94571bcc89d356b"
+    },
+    {
+      "id": "finality",
+      "kind": "finality",
+      "file": "finality.json",
+      "expected": "valid",
+      "bytes": 880,
+      "sha256": "989e2d026c536d62ce07856e920f89821a7781df4598d43baee114bee1116010"
+    },
+    {
+      "id": "finality-proof",
+      "kind": "proof",
+      "file": "finality-proof.json",
+      "expected": "valid",
+      "bytes": 1194,
+      "sha256": "efdf7aabccb1b7ec8436a57a1eca1b1e38f72695ea746a009384e44430d9f483"
+    },
+    {
+      "id": "tally-zero-votes",
+      "kind": "tally-case",
+      "file": "tally-zero-votes.json",
+      "expected": "valid",
+      "bytes": 477,
+      "sha256": "80c20eab04e0d872805cccb2f6f9a2c7ab4223533a966490172ce569d1125205"
+    },
+    {
+      "id": "tally-all-unsure",
+      "kind": "tally-case",
+      "file": "tally-all-unsure.json",
+      "expected": "valid",
+      "bytes": 13221,
+      "sha256": "1906e7a6fed3312c73c71398f0bd1ba2f3fa53a01e48c3cdbda62c507ddd0348"
+    },
+    {
+      "id": "tally-defined-zero",
+      "kind": "tally-case",
+      "file": "tally-defined-zero.json",
+      "expected": "valid",
+      "bytes": 13333,
+      "sha256": "4e7744f1d5b76efca0997b206bb9d59752c38c9d3ccd824e38b5c18eebad5e9d"
+    },
+    {
+      "id": "tally-one-third",
+      "kind": "tally-case",
+      "file": "tally-one-third.json",
+      "expected": "valid",
+      "bytes": 5993,
+      "sha256": "bc19a978a70e04e2143e2ca1d0d37a22e72d81350c5272dbafdb0710e945872a"
+    }
+  ]
+}

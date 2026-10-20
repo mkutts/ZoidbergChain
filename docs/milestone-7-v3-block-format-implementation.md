@@ -1,4 +1,250 @@
-# Milestone 7 Task 7.10 — v3 Format Implementation Gate
+# Milestone 7 Task 7.10C — Isolated Canonical v3 Implementation
+
+Date: 2026-10-19 (America/New_York).
+
+**Current disposition: Task 7.10C implemented for review; protocol v2/block v3
+remain inactive.** The original Task 7.10 stop report is preserved below under
+its historical heading. Its unresolved-schema disposition was superseded by
+Tasks 7.10A/B and this explicitly authorized isolated implementation.
+
+## Task 7.10C repository verification
+
+| Check | Result |
+| --- | --- |
+| Branch | `Compression-State-Bloat-and-Node-Economics` |
+| HEAD, unchanged | `96db3a0715cf5aeded2f81a8824f3d0f277cf890` |
+| Separate prerequisite commit | `96db3a0`, Task 7.10B signing/domain specification |
+| Earlier relevant commits | `ca1ac9e` Task 7.10A; `4f16cd3` Task 7.10 gate report; `824afdb` Task 7.9 |
+| Initial worktree | Clean |
+| Instructions | No repository or ancestor `AGENTS.md` found |
+| Final changes | This document; new `canonical_v3/`; two vector scripts; one test module; versioned fixtures below |
+| Git operations | No staging, commit, push, merge, branch change or reset |
+
+The six requested specification documents were read. Inspection stayed within
+the referenced serialization, signing, hashing, transaction, evidence and codec
+boundaries. No production database or live chain was opened. No runtime module,
+dependency manifest, network configuration or production policy was modified.
+
+## Implemented structures and public boundaries
+
+The package is deliberately not imported by active blockchain/services code.
+It accepts an explicit frozen `Context(N,W,G,media_policy_digest,review_policy_digest)`
+with no default network, genesis, policy digest or launch activation switch.
+Fixtures use symbolic context `zoidberg-signing-vector-v2`, G=`a`*64 and
+policy digests `b`*64 / `c`*64, explicitly **not approved launch artifacts**.
+
+| File | Implemented responsibility |
+| --- | --- |
+| `canonical_v3/__init__.py` | Nonactivation and validation-scope contract |
+| `canonical_v3/primitives.py` | Strict J/derived A serialization, bounded canonical parsing, duplicate-key detection, safe integer/Unicode/decimal/time/wallet/nonce/signature domains, explicit immutable context, exact rational construction/validation/comparison |
+| `canonical_v3/transactions.py` | Closed U10/T18, signing bytes and SHA-256 identity, EIP-191 recovery, exact native aggregate A, canonical order/ID/nonce uniqueness, intrinsic within-block nonce continuity, reward-only Q |
+| `canonical_v3/media.py` | Closed eight-field descriptor, identity/1 and zstd/1 producer selection, exact original-byte identity, strict base64, original/encoded caps, canonical text, existing isolated-worker reconstruction and three-way results |
+| `canonical_v3/evidence.py` | Closed technical evidence, submitter payload/attestation, flat signed reviews, frozen vote ordering/uniqueness, exact derived dimension tallies, certificate and cross-object bindings/digests/signatures |
+| `canonical_v3/finality.py` | Separate bounded finality records/proofs, exact target/context/signatures, explicit externally trusted validator set and equivocation exclusions, unchanged ceiling-of-two-thirds quorum |
+| `canonical_v3/block.py` | Closed non-genesis P/header/envelope/R, hash preimage, caption/reward/certificate/media/native/summary bindings, exact component and complete-record budgets, analytic size bound |
+
+`encode_record(P,ctx)` returns canonical immutable R bytes after format and
+signature validation. `parse_record(R,ctx)` checks exact wire canonicality,
+schema, hash, sizes, signatures and internal bindings. **Neither performs media
+reconstruction or establishes complete consensus validity.**
+`reconstruct_record_media(R,ctx)` additionally returns the existing worker's
+`Outcome`; INVALID format raises `V3Error`, deterministic codec failures return
+INVALID, and local decoder failure remains INDETERMINATE_LOCAL_FAILURE.
+No caller may treat format parsing alone as permission to vote, finalize,
+persist canonical state or serve verified media.
+
+Every standalone JSON input must byte-equal J after parsing. Duplicate keys,
+invalid UTF-8, surrogates, excessive depth, noncanonical escapes/spacing, `-0`,
+floats, NaN/infinity, unsafe integers, unknown/missing fields and implicit
+conversions reject. Native memo is required null or canonical nonempty text;
+the four technical image fields are required null for text. Only image
+`meme_text` is optional. No generic null-dropping or legacy normalizer is used.
+Money and time stay canonical strings with exact integer arithmetic; no float
+or Decimal-context conversion enters consensus bytes.
+
+## Exact preimages and media behavior
+
+```text
+M_native = J(protocol-2 native-transfer envelope with U10)
+tx_id = signed_message_hash = SHA256(M_native)
+native aggregate = SHA256(A(ordered exact T18 records))
+h = SHA256(J(protocol-2 block envelope with P))
+R = J({"envelope": envelope, "hash": h})
+```
+
+EIP-191 personal_sign authenticates UTF-8 message bytes with their **byte**
+length, using existing secp256k1 recovery and canonical Sig65, including valid
+high-S counterparts. No old plain SHA1/base64, versionless, v1-native or
+provisional U8 fallback exists. Signature bytes are excluded from native IDs
+but remain in T, A and R. Two signatures of identical U have the same ID;
+duplicate IDs/sender nonces reject instead of creating two spends.
+
+Exactly one unsigned Q rewards the validated creator with `"5"`, tip `"0"`,
+payload-size `"0"` and sender `REWARD_POOL`; its signature key is forbidden.
+Wrong recipient, extra reward, GENESIS sentinel or unsigned user transfers
+reject. New genesis construction/allocations remain outside this package:
+`object_type=genesis` cannot enter its media-block parser. No G-dependent
+transfer or finality proof is placed in its own hash dependency chain.
+
+Technical/certificate digests exclude only their named digest field. Submitter
+digest/hash bind its six-key envelope. Review signatures bind their specified
+flat 15-key object; identity also binds the signature. Derived vote-set hashes
+use wallet-sorted exact projections; status/reference metadata remains
+certificate-authenticated and still requires later ancestry resolution.
+Finality signs the already computed h and is entirely outside R.
+
+Producer defaults are zstd level 3, window_log 18, checksum and content size,
+no dictionary, threads=0. Construction compares **complete J(descriptor)**
+lengths, choosing compression strictly when smaller. Since every other block
+field and the fixed-width hash are identical, the descriptor length delta is
+also the complete R delta. Failed encoding or deterministically rejected
+producer framing falls back to worker-verified identity. Decoder local failure
+is never retried as identity, reclassified invalid, or hidden by a usable
+descriptor. Received encodings are never repaired or recompressed.
+
+`reconstruct` always uses `codec_prototype.isolated_decoder.IsolatedDecoder`;
+the validator has no direct strict-decoder/native-decompress shortcut. The
+existing worker checks framing, sequence/window rules, checksum, complete
+consumption, original count and SHA-256. The adapter also checks its returned
+original and canonical text. Byte/hash correctness does **not** establish image
+container safety or reviewer/ledger authority. The prototype is suitable here
+only for controlled offline tests with disposable state, as Task 7.9 permits.
+
+Both top-level summaries are reduced originality p/d objects. Inputs/records
+exclude bool/float coercion, require positive denominator, GCD=1 and zero 0/1;
+counts are 0..16, reduced denominator 1..16 and reduced numerator 0..15. Zero
+decisive votes (including all-unsure) produce no ratio and cannot qualify a
+complete certificate. Five total votes and one established reviewer determine
+quorum; unsure contributes to quorum, not the decisive denominator. Approval
+uses p*10000 >= d*7000; comparisons use cross-products. Display percentages
+remain outside canonical hashing. Originality/admissibility semantics are
+unchanged; the prior consumer inventory remains in the Task 7.10A document.
+
+## Sizes and vectors
+
+Enforced together: original image <=2,097,152; canonical text <=262,144; E
+<=2,097,152; complete R <=3,145,728; depth <=32; native count <=10/record
+<=8,192/array <=98,304; votes <=32/16 per dimension/record <=4,096/message
+<=2,048; technical/tally <=8,192; attestation <=16,384/message <=8,192;
+native message <=4,096; caption <=1,000 scalars/4,096 raw UTF-8 bytes; certificate
+<=196,608; S_rest <=32,768. Separate finality record/message/proof caps are
+1,536/1,024/262,144 with <=128 trusted validators. Schema-fixed Sig65 lengths,
+reward count/fields, time/decimal lengths and all other scalar bounds also apply.
+
+`conservative_size_bound()` enumerates every P/envelope field and delimiter,
+checks its field inventory, and uses the separately enumerated certificate
+inventory bound. It reproduces **3,058,797 bytes**, leaving **86,931 bytes** under
+3 MiB. Its components are L=2,796,204, certificate<=172,901, native array<=81,931
+and remaining widths<=7,761. The portable wrapper's 87 bytes and caption/JSON
+escaping are included. No cap was relaxed; no discrepant implementation bound
+remains. These conservative width combinations are not claimed jointly attainable.
+
+Tests cover complete format/signature-valid records with maximum image bytes
+and maximum escaped caption, maximum text bytes, and ten freshly signed public
+fixture transfers. The image-size probe uses a one-pixel PNG with an ancillary
+chunk and claims no live image-admission acceptance. All evidence signatures
+are real signatures from explicit predictable test scalars, not padded/fake
+signatures or fabricated accepted chain state. Separate C-1/C/C+1 byte-gate
+and component-budget probes are deliberately not called valid blocks. A valid
+record exactly at 3 MiB is unreachable under the tighter simultaneous caps.
+
+Versioned `tests/fixtures/milestone_7_v3_v1/manifest.json` freezes **65 files:
+23 positive, 42 negative**. Fixture positives mean their stated format/crypto
+scope, never complete chain acceptance. Coverage includes both media encodings,
+original H stability, three block hashes, U10/T18/null/Unicode/A, high-S identity
+collision/deduplication, ratios 5/7, 1/3, 0/1, 1/1 and 15/16, undefined zero-vote
+and all-unsure cases, negative/unknown/duplicate/noncanonical/oversize inputs,
+signature/evidence tampering, unsigned rewards and finality. Dynamic tests add
+closed-schema missing/null checks at every object type, all 152 ratio input
+pairs and 23,104 exact comparisons, cross-context signature replay, field/size
+boundaries, worker-local failures, fallback behavior and nonactivation checks.
+The fixture-local `.gitattributes` disables Git line-ending conversion so that
+canonical bytes and the frozen manifest fingerprint survive Windows checkout.
+
+| Frozen block | R bytes | h |
+| --- | ---: | --- |
+| Identity of `61` hex | 34,588 | `03e27961c4dd9571fc9766a4f490ebb93f46e440c7af82773bf9d1705d93617f` |
+| Zstd of the same original | 34,601 | `6512498086d35b49d1da6fa1e5e4b28b0ecea24f9f7118332ec60cc0f4249bc9` |
+| Identity, high-S native signature | 34,588 | `6af283b8f55e4141bdea9af1f35855aa9c02dd295a6eb526d6f9dde9750b58e4` |
+
+Original H is `ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb`.
+The identity R partitions into L=4, certificate=31,552, native=1,402 and
+S_rest=1,630. The expanded tiny Zstd frame is valid even though the producer
+selects identity for these original bytes. Changing encoded bytes/profile
+changes h without changing H; signature variation changes h without changing
+native tx_id. Unchanged canonical bytes reproduce the exact hash.
+
+## Verification and portability
+
+`scripts/milestone_7_task_7_10c_vectors.py` is an explicit offline authoring
+tool using independent JSON/hash/preimage construction, not imported by runtime
+or tests. Published Task 7.10A/B media/ratio/native oracles remain fixed tests.
+Golden tests never regenerate expected values. During initial vector authoring,
+one status-tamper mutation inadvertently left an already-established status
+unchanged; its input was corrected to flip the status, retaining rejection as
+the expected result. No expected preimage/hash was replaced to accommodate
+implementation disagreement.
+
+`scripts/milestone_7_task_7_10c_verify.mjs` independently sorts/serializes JSON
+and reconstructs nested preimages in Node, confirming all 65 file hashes/lengths
+and all 23 positive J/A checks including block, native, technical, certificate,
+submitter and vote commitments. .NET SHA256 independently matches all 65 file
+hashes/lengths. This is independent preimage/hash evidence, not an independently
+audited full consensus implementation or decoder.
+
+Windows CPython 3.13.5, Node 22.17.0, zstandard 0.25.0 / libzstd 1.5.7 were used.
+The existing Ubuntu WSL2 CPython 3.12.3 environment ran 31 selected tests:
+all 23 positive frozen J/A/preimages, exact rationals/JSON, sizes, real worker
+reconstruction, producer selection/fallback and failure propagation. Its
+`eth_account` and `cryptography` packages are absent; full signature/block
+validation tests ran on Windows only. No packages were installed to obscure
+this limitation. WSL2 is not native Ubuntu deployment validation.
+
+Focused commands (no fixture regeneration):
+
+```powershell
+.\.venv\Scripts\python.exe -B -m pytest tests/test_milestone_7_task_7_10c_v3.py -q --tb=short -p no:cacheprovider
+& 'C:\Program Files\nodejs\node.exe' scripts/milestone_7_task_7_10c_verify.mjs
+```
+
+The combined focused run includes the new tests, `test_protocol_v1.py`,
+`test_protocol_v1_golden_vectors.py`, `test_protocol_v1_native_transfers.py`, the
+existing pure finality-quorum test and both codec fixture inventories/golden
+replays. Results: **119 new tests, 73 historical protocol/quorum regressions,
+154 existing codec checks; 346 total passed**. Existing v1/protocol-1 block-v2
+hashes/signatures remain unchanged. The full repository suite and active image
+admission were not run or claimed.
+
+## Integration and remaining security gates
+
+| Later boundary | Required work; none connected here |
+| --- | --- |
+| Admission | Approved policy/statement/animation/snapshot freeze, isolated safe image validation, identity fit reservation before certification, historical eligibility/quotas and reference checks |
+| Production | Trusted launch context, complete validated snapshot, predecessor time/link checks, original/submission/certificate/reward uniqueness, reward pool/balances, expected first nonce and ancestry ID checks, optional transaction packing |
+| Consensus voting | Shared format + worker + media-safety + complete ancestry/state validation; withhold action on local failure; no format-only acceptance |
+| Finality | Resolve authenticated target/set/equivocation history and finalized anchors; collect new-domain signatures only after full block validation; preserve immutable R |
+| SQLite BLOB | Authoritative exact R bytes with atomic claims, tip/index/state transitions, bounded reads and reorg/recovery; no migration performed |
+| Peer sync | Trusted N/G/profile agreement, bounded transport/pages/proofs, preserve exact E/R, full verification before atomic acceptance |
+| Export/import | Exact canonical history/context/proofs, archive bounds, staged full verification and atomic restore; no historical transcoding |
+| API retrieval | Serve only verified original M/MIME/length/H after full policy validation; separate encoded/summary views, no partial/local-failure response body |
+| Launch/genesis | Owner-selected authenticated launch artifact and actual N/W/G, new genesis/state disposition, approved registry/digests/wording/animation, independent validation and explicit later activation/reset authorization |
+
+The unreviewed decoder/verifier and native work/state/error paths still require
+independent review, bounded-work analysis and adversarial audit. Production
+Windows worker filesystem/network/privilege confinement, aggregate resource
+controls, pre-bootstrap parent-death ownership/cleanup, native Ubuntu service
+validation and the previously documented isolated image-admission environment
+failure remain security gates. This task does not repair or bypass them.
+The package proves internal format/cryptographic consistency; it cannot prove
+an asserted reviewer status, complete selected snapshot, image safety, available
+balance, nonduplicated reward claim or authenticated ancestry from bytes alone.
+
+Task 7.10C is ready for review and commit **as isolated format work**. Nothing
+was activated, migrated, reset, deployed, committed or pushed; no next task began.
+
+---
+
+# Historical Task 7.10 — v3 Format Implementation Gate
 
 Date: 2026-10-19 (America/New_York).
 

@@ -1,0 +1,526 @@
+........................................................................ [ 62%]
+..................FFFFFFFFFFFFFF.FFFFFFFFF.                              [100%]
+================================== FAILURES ===================================
+__________ test_blockchain_round_trip_persists_core_entities_sqlite ___________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_sqlite_storage_backend.py:506: in test_blockchain_round_trip_persists_core_entities_sqlite
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['02d8bcc57b...294b9954', '03992b9a78...e2c005cc', '02dcae0f79...cecc1bcf']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+__________ test_backup_file_is_created_and_sanitized[_json_backend] ___________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:177: in test_backup_file_is_created_and_sanitized
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['020b5b4b02...a8d75a3c', '032696c6e2...e4abb774', '0299ddb4ae...fcac970d']
+_________ test_backup_file_is_created_and_sanitized[_sqlite_backend] __________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:177: in test_backup_file_is_created_and_sanitized
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['0256cc4f2f...e10665a1', '029f475167...8421e792', '02db5d5c10...23523875']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+_ test_export_includes_core_state_and_excludes_private_keys_by_default[_json_backend] _
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:196: in test_export_includes_core_state_and_excludes_private_keys_by_default
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['0315116aa4...c2b13669', '02967f11a3...10420892', '0355d63211...acc601f6']
+_ test_export_includes_core_state_and_excludes_private_keys_by_default[_sqlite_backend] _
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:196: in test_export_includes_core_state_and_excludes_private_keys_by_default
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['02578e3ad0...ddfc97f0', '032439aa7f...f7b4294c', '022edca80a...577fcaf3']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+_______ test_export_private_keys_requires_development_and_explicit_flag _______
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:234: in test_export_private_keys_requires_development_and_explicit_flag
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03cb147be2...0dfba647', '029410e2ab...a064a895', '0249ecb6b1...a6f733fa']
+____________ test_export_private_keys_rejected_outside_development ____________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:264: in test_export_private_keys_rejected_outside_development
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03805ba0d6...7b2f6cd0', '0201187a5a...a241b3f0', '03bfb44670...0eb9cfc3']
+__________ test_import_round_trip_into_empty_backend[_json_backend] ___________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:293: in test_import_round_trip_into_empty_backend
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['0312feb620...9e3b5055', '02409460b8...691e86aa', '038c4c8bc3...9d9d8236']
+_________ test_import_round_trip_into_empty_backend[_sqlite_backend] __________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:293: in test_import_round_trip_into_empty_backend
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['024b51d745...b9f69543', '02bea3a498...9a565756', '023a2a3fab...c9dee474']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+___ test_export_and_import_preserve_native_transaction_state[_json_backend] ___
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:319: in test_export_and_import_preserve_native_transaction_state
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['0294c96d46...3e52e870', '03e2d1b51f...29a621fd', '0247430c00...46c9f339']
+__ test_export_and_import_preserve_native_transaction_state[_sqlite_backend] __
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:319: in test_export_and_import_preserve_native_transaction_state
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03dcc9bf52...22604926', '0266d8f58c...64396cad', '021bc1fc9f...235f0ea2']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+__________________ test_import_refuses_overwrite_by_default ___________________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:350: in test_import_refuses_overwrite_by_default
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03178742ab...9b5e3819', '0248afb3a9...88d1eafd', '0312216368...35eb4095']
+_____ test_import_rejects_snapshot_with_mutated_public_testnet_v1_genesis _____
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:363: in test_import_rejects_snapshot_with_mutated_public_testnet_v1_genesis
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['036af93209...0dad587e', '02170b4065...c5b1083c', '029070f95d...44465572']
+_________________ test_import_creates_backup_before_overwrite _________________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:381: in test_import_creates_backup_before_overwrite
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['030b1e2601...8a8e0694', '03b2f2ce51...6a672679', '022b1a4b35...5907d06e']
+_____________ test_import_rejects_wrong_network_without_override ______________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:411: in test_import_rejects_wrong_network_without_override
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['028902b061...7d490a37', '0374e647b1...89990dc5', '02fab9db05...0828a7f4']
+______________________ test_import_runs_integrity_check _______________________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:427: in test_import_runs_integrity_check
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03d46f5837...8ea2a92d', '026d942bea...9b8a7114', '03918d67b8...93fa9165']
+______________________ test_dry_run_does_not_write_files ______________________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:446: in test_dry_run_does_not_write_files
+    seeded = _seed_backend(backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03fb0542ca...b3d2404f', '03b13faf69...f41ccb52', '03088fae27...cc55c1d2']
+_______ test_backup_snapshot_can_be_imported_as_restore[_json_backend] ________
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:472: in test_backup_snapshot_can_be_imported_as_restore
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['020471aa2a...cbc7828f', '033d9a53fb...6148fee9', '02fc9624d9...6b870ab8']
+______ test_backup_snapshot_can_be_imported_as_restore[_sqlite_backend] _______
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:472: in test_backup_snapshot_can_be_imported_as_restore
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['0391036e24...f2677add', '02f18c3e0d...45f11916', '03e2463890...5a67f84a']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+_____ test_imported_state_supports_follow_on_app_workflow[_json_backend] ______
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:493: in test_imported_state_supports_follow_on_app_workflow
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['022927a43b...c7114371', '0216f943e4...0f91860b', '02540d81c2...91e35bca']
+____ test_imported_state_supports_follow_on_app_workflow[_sqlite_backend] _____
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:493: in test_imported_state_supports_follow_on_app_workflow
+    seeded = _seed_backend(source_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['02baf7abd1...4590466d', '02921631af...7ed6f600', '038663a97e...e7341b8b']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+____ test_node_a_backup_export_import_do_not_affect_node_b[_json_backend] _____
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:549: in test_node_a_backup_export_import_do_not_affect_node_b
+    seed_a = _seed_backend(node_a_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['02adad885a...efeb1791', '0255aa8580...14950b44', '02db57e792...b66bd535']
+___ test_node_a_backup_export_import_do_not_affect_node_b[_sqlite_backend] ____
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:549: in test_node_a_backup_export_import_do_not_affect_node_b
+    seed_a = _seed_backend(node_a_backend, submission_image)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\tests\storage\test_storage_tools.py:63: in _seed_backend
+    submission = blockchain.submit_content(
+C:\Users\mattk\ZoidbergChain\blockchain.py:2413: in submit_content
+    submission = self._content_coordination_service.submit_content(self._content_coordination_state(), self.storage, NETWORK_NAME, image_path, text_content, submitter)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\services\content_coordination_service.py:235: in submit_content
+    validated = validate_media_bytes(data, original_filename=os.path.basename(image_path))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\mattk\ZoidbergChain\media_technical_validation.py:539: in validate_media_bytes
+    raise TechnicalMediaValidationError(result)
+E   media_technical_validation.TechnicalMediaValidationError: Technical media validation rejected the payload: MALFORMED_MEDIA
+---------------------------- Captured stdout call -----------------------------
+Debug: Blockchain and wallets loaded successfully from blockchain.json.
+Debug: Blockchain length after loading - 0 blocks
+Debug: Wallets loaded: 0 wallets
+Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['025ca30259...2f6aa532', '02cefb94a6...97963f7d', '0290172a3f...6169e194']
+------------------------------ Captured log call ------------------------------
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+WARNING  root:storage.py:1421 SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+=========================== short test summary info ===========================
+FAILED tests/storage/test_sqlite_storage_backend.py::test_blockchain_round_trip_persists_core_entities_sqlite
+FAILED tests/storage/test_storage_tools.py::test_backup_file_is_created_and_sanitized[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_backup_file_is_created_and_sanitized[_sqlite_backend]
+FAILED tests/storage/test_storage_tools.py::test_export_includes_core_state_and_excludes_private_keys_by_default[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_export_includes_core_state_and_excludes_private_keys_by_default[_sqlite_backend]
+FAILED tests/storage/test_storage_tools.py::test_export_private_keys_requires_development_and_explicit_flag
+FAILED tests/storage/test_storage_tools.py::test_export_private_keys_rejected_outside_development
+FAILED tests/storage/test_storage_tools.py::test_import_round_trip_into_empty_backend[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_import_round_trip_into_empty_backend[_sqlite_backend]
+FAILED tests/storage/test_storage_tools.py::test_export_and_import_preserve_native_transaction_state[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_export_and_import_preserve_native_transaction_state[_sqlite_backend]
+FAILED tests/storage/test_storage_tools.py::test_import_refuses_overwrite_by_default
+FAILED tests/storage/test_storage_tools.py::test_import_rejects_snapshot_with_mutated_public_testnet_v1_genesis
+FAILED tests/storage/test_storage_tools.py::test_import_creates_backup_before_overwrite
+FAILED tests/storage/test_storage_tools.py::test_import_rejects_wrong_network_without_override
+FAILED tests/storage/test_storage_tools.py::test_import_runs_integrity_check
+FAILED tests/storage/test_storage_tools.py::test_dry_run_does_not_write_files
+FAILED tests/storage/test_storage_tools.py::test_backup_snapshot_can_be_imported_as_restore[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_backup_snapshot_can_be_imported_as_restore[_sqlite_backend]
+FAILED tests/storage/test_storage_tools.py::test_imported_state_supports_follow_on_app_workflow[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_imported_state_supports_follow_on_app_workflow[_sqlite_backend]
+FAILED tests/storage/test_storage_tools.py::test_node_a_backup_export_import_do_not_affect_node_b[_json_backend]
+FAILED tests/storage/test_storage_tools.py::test_node_a_backup_export_import_do_not_affect_node_b[_sqlite_backend]
+23 failed, 92 passed in 11.99s

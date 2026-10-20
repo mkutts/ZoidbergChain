@@ -1,0 +1,21 @@
+........................................................................ [ 19%]
+........................................................................ [ 38%]
+.........F.............................................................. [ 57%]
+........................................................................ [ 76%]
+........................................................................ [ 95%]
+................                                                         [100%]
+=================================== FAILURES ===================================
+_______________________ test_corpus_exact_reconstruction _______________________
+tests/test_milestone_7_task_7_6d_linux_isolation.py:87: in test_corpus_exact_reconstruction
+    samples, _, _ = get_cases(bundle)
+                    ^^^^^^^^^^^^^^^^^
+scripts/milestone_7_task_7_6d_isolation.py:59: in get_cases
+    return cases()
+           ^^^^^^^
+scripts/milestone_7_task_7_6c_isolation.py:62: in cases
+    assert hashlib.sha256(original).hexdigest() == records[sample["id"]]["sha256"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_milestone_7_task_7_6d_linux_isolation.py::test_corpus_exact_reconstruction
+1 failed, 375 passed in 49.71s

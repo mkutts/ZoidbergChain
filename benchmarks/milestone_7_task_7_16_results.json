@@ -1,0 +1,218 @@
+{
+  "task": "Milestone 7 Task 7.16 ONLY",
+  "date": "2026-10-22",
+  "timezone": "America/New_York",
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "head": "4944acadb117cb18eae0d17a21a71c48ea611b91",
+  "initial_worktree": "clean",
+  "final_worktree": "four new unstaged files only",
+  "files": [
+    "canonical_v3/atomic.py",
+    "tests/test_milestone_7_task_7_16_atomic.py",
+    "docs/milestone-7-v3-atomic-certification.md",
+    "benchmarks/milestone_7_task_7_16_results.json"
+  ],
+  "active_tracked_changes": [],
+  "activation": false,
+  "production_database_migration": false,
+  "commit_push_merge": false,
+  "runtime": {
+    "platform": "Windows",
+    "python": "3.13.5",
+    "sqlite": "3.49.1"
+  },
+  "boundary": {
+    "database_files": 1,
+    "attached_databases": 0,
+    "begin": "BEGIN IMMEDIATE",
+    "journal_mode": "DELETE",
+    "synchronous": "EXTRA",
+    "foreign_keys": true,
+    "durable_changes": [
+      "certificate",
+      "replay claims",
+      "participation reservations",
+      "canonical candidate bytes",
+      "block index",
+      "transaction IDs",
+      "ownership/snapshot links"
+    ]
+  },
+  "wal": {
+    "available_on_test_runtime": false,
+    "refused_as": "StorageUnavailable before file access",
+    "reason": "SQLite 3.49.1 is affected by the published WAL-reset corruption race",
+    "required": "3.51.3+ or supported 3.50.7+/3.44.6+ backport family",
+    "advisory": "https://www.sqlite.org/wal.html#walreset"
+  },
+  "baseline": {
+    "tests": 258,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 258,
+    "junit_seconds": 578.065,
+    "pytest_seconds": 578.4,
+    "log": "temp/task716-baseline-host.log",
+    "junit": "temp/task716-baseline-host.xml",
+    "by_classname": {
+      "tests.test_milestone_7_task_7_11_storage": 53,
+      "tests.test_milestone_7_task_7_13_admission": 68,
+      "tests.test_milestone_7_task_7_14_issuance": 60,
+      "tests.test_milestone_7_task_7_15_history": 77
+    },
+    "skips": []
+  },
+  "atomic": {
+    "tests": 49,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 4,
+    "passed": 45,
+    "junit_seconds": 621.448,
+    "pytest_seconds": 621.75,
+    "log": "temp/task716-safe-atomic.log",
+    "junit": "temp/task716-safe-atomic.xml",
+    "by_classname": {
+      "tests.test_milestone_7_task_7_16_atomic": 49
+    },
+    "skips": [
+      {
+        "name": "test_external_process_termination_journal_recovery_and_retry[before_claims-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      },
+      {
+        "name": "test_external_process_termination_journal_recovery_and_retry[after_claims-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      },
+      {
+        "name": "test_external_process_termination_journal_recovery_and_retry[after_block-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      },
+      {
+        "name": "test_external_process_termination_journal_recovery_and_retry[after_commit-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      }
+    ]
+  },
+  "canonical_and_codec": {
+    "tests": 559,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 559,
+    "junit_seconds": 649.404,
+    "pytest_seconds": 649.55,
+    "log": "temp/task716-final-canonical.log",
+    "junit": "temp/task716-final-canonical.xml",
+    "by_classname": {
+      "tests.test_milestone_7_task_7_10c_v3": 119,
+      "tests.test_milestone_7_task_7_11_storage": 53,
+      "tests.test_milestone_7_task_7_13_admission": 68,
+      "tests.test_milestone_7_task_7_14_issuance": 60,
+      "tests.test_milestone_7_task_7_15_history": 77,
+      "tests.test_milestone_7_task_7_6_decoder": 138,
+      "tests.test_milestone_7_task_7_6a_sequences": 44
+    },
+    "skips": []
+  },
+  "historical": {
+    "tests": 227,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 227,
+    "junit_seconds": 421.102,
+    "pytest_seconds": 421.29,
+    "log": "temp/task716-historical.log",
+    "junit": "temp/task716-historical.xml",
+    "by_classname": {
+      "tests.blockchain.test_certificate_block_validation": 12,
+      "tests.blockchain.test_task_3_5_validator_quorum_finality": 12,
+      "tests.integration.test_task_3_7_concurrent_certified_minting": 2,
+      "tests.submissions.test_originality_certificate": 21,
+      "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility": 9,
+      "tests.test_milestone_5_task_5_6_certificate_v3": 8,
+      "tests.test_milestone_5_task_5_7_reviewer_reputation": 15,
+      "tests.test_milestone_6_task_6_4_submitter_attestation": 28,
+      "tests.test_milestone_6_task_6_5_dual_review": 19,
+      "tests.test_milestone_6_task_6_6_admission": 21,
+      "tests.test_milestone_6_task_6_8_post_mint_dispute": 14,
+      "tests.test_protocol_v1": 43,
+      "tests.test_protocol_v1_golden_vectors": 8,
+      "tests.test_protocol_v1_native_transfers": 15
+    },
+    "skips": []
+  },
+  "distinct_final_passes": 831,
+  "distinct_final_skips": 4,
+  "historical_warnings": 1,
+  "observations": {
+    "identical_original_competitors": {
+      "winners": 1,
+      "certifications": 1,
+      "blocks": 1,
+      "claims": 62,
+      "loser": "original_claim"
+    },
+    "exact_operation_retry": {
+      "additional_certifications": 0,
+      "additional_claims": 0,
+      "idempotent": true
+    },
+    "shared_certificate_candidates": {
+      "blocks": 2,
+      "certifications": 1,
+      "claims": 62
+    },
+    "independent_originals": {
+      "certifications": 2,
+      "participations": 14
+    },
+    "concurrent_epoch_quota": {
+      "existing_certifications": 4,
+      "attempts": 2,
+      "winners": 1,
+      "loser": "reviewer_epoch_quota",
+      "final_certifications": 5,
+      "final_participations": 35
+    },
+    "process_termination": {
+      "external_termination": true,
+      "pre_commit_stages": 3,
+      "pre_commit_recovered_certifications": 0,
+      "post_commit_recovered_certifications": 1,
+      "recovery_scans_per_case": 2,
+      "retry": "idempotent after committed interruption"
+    },
+    "storage_failures": [
+      "SQLite busy",
+      "actual SQLITE_FULL",
+      "injected OSError/I/O",
+      "unavailable worker outcome"
+    ],
+    "selection": "branch-owned claims change atomically; permanent issuance claims remain",
+    "finality": "retained selected ancestors and overlapping source snapshots cannot conflict",
+    "exact_recovery": [
+      "media bytes",
+      "canonical R",
+      "transaction indexes",
+      "certificate",
+      "claims",
+      "authenticated history"
+    ]
+  },
+  "classifications": [
+    "invalid admission/canonical",
+    "incomplete",
+    "conflict",
+    "local failure",
+    "persisted provisional"
+  ],
+  "source_sha256": {
+    "canonical_v3/atomic.py": "76675ed8f47cc017c12c5f720e3574a5afd73b8076d587d7881b543152e90c78",
+    "tests/test_milestone_7_task_7_16_atomic.py": "b3bc55546c52d5ef9067eff6afcab935b963fa199549eb47884b37d1d7d68970"
+  },
+  "readiness": "Ready for review and a later authorized commit as an isolated DELETE/EXTRA implementation; optional fixed-runtime WAL verification remains outstanding",
+  "production_ready": false
+}

@@ -50,6 +50,25 @@ class BlockConstructionBridge:
         require(type(adapter) is AdmissionAdapter, 'admission_adapter_required')
         self.adapter = adapter
 
+    def construct_issued(self, prepared, *, issuer, issued=MISSING, header,
+                         state=MISSING, native_transactions=MISSING):
+        """Offline issuer integration; reverify bytes/history before construction."""
+        from .issuance import EvidenceIssuer, IncompleteEvidence, VerifiedCertificate
+        self.adapter.verify_prepared(prepared)
+        if type(issuer) is not EvidenceIssuer or issuer.adapter is not self.adapter:
+            raise IntegrationError(Failure.INVALID_CANONICAL, 'issuer_adapter_mismatch')
+        if issued is MISSING:
+            return IncompleteConstruction(('v2_admission_evidence',))
+        if type(issued) is IncompleteEvidence:
+            return IncompleteConstruction(issued.missing)
+        if type(issued) is not VerifiedCertificate or issued.context != self.adapter.config.context:
+            raise IntegrationError(Failure.INVALID_CANONICAL, 'issued_evidence_context')
+        verified = issuer.verify(prepared, issued.certificate_bytes)
+        if type(verified) is IncompleteEvidence:
+            return IncompleteConstruction(verified.missing)
+        return self.construct(prepared, header=header, certificate=verified.certificate,
+                              state=state, native_transactions=native_transactions)
+
     def construct(self, prepared, *, header, certificate=MISSING, state=MISSING,
                   native_transactions=MISSING):
         self.adapter.verify_prepared(prepared)

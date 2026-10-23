@@ -2,6 +2,18 @@
 
 Date: 2026-10-22 (America/New_York).
 
+**Task 7.17A specification follow-up:** The
+[reviewer-history consensus decision](milestone-7-v2-reviewer-history-consensus-decision.md)
+now specifies proposed bootstrap authority, canonical event inventory, total
+ordering, historical eligibility/cutoff, prospective penalties, bounded evidence
+selection, logical state commitments and source-only recovery. Those design
+gates have concrete contracts for review. Implementation remains **BLOCKED**
+pending approval of the versioned block/evidence/signing amendments, admission
+and replay-ownership changes, finalized-parent semantics and authenticated
+validator-equivocation/proof authority. Resource and launch decisions remain.
+No Task 7.17 implementation or independent-node reproducibility is claimed;
+the original audit and verification record below are preserved.
+
 **Implementation stopped at the required historical-authority gate.** The
 repository does not contain a consensus-authenticated, complete and ordered
 acceptance/offense/issuance history from which independent nodes can reproduce

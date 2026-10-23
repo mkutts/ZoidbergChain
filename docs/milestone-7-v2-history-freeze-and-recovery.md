@@ -2,6 +2,18 @@
 
 Date: 2026-10-22 (America/New_York).
 
+**Task 7.17B amendment follow-up:** The
+[reviewer-history protocol amendment](milestone-7-v2-reviewer-history-protocol-amendment.md)
+specifies a noncircular atomic media/vote admission path, complete event
+extraction, journal/replay commitments, exact selection/penalties, self-contained
+finality-proof counting, versioned schemas and capacity/recovery contracts.
+These are reviewable recommendations, not approved consensus changes. Task
+7.17 remains **BLOCKED** by missing finality agreement/locking/round-change
+rules and approval of selection/cohort policy, finality/admission authority,
+history-block pacing, rational fork choice and schema amendments. No Task
+7.17 implementation or independent-node interoperability is claimed. The
+earlier proposal and original audit below remain historical records.
+
 **Task 7.17A specification follow-up:** The
 [reviewer-history consensus decision](milestone-7-v2-reviewer-history-consensus-decision.md)
 now specifies proposed bootstrap authority, canonical event inventory, total

@@ -1,5 +1,16 @@
 # Milestone 7 Task 7.17C — Current finality and reviewer-history dependency audit
 
+**Task 7.17D follow-up (2026-10-24):** The
+[finality safety and remediation decision](milestone-7-finality-safety-and-remediation-decision.md)
+defines trust-model alternatives, exact quorum/fault bounds, proposed safety and
+durable-signing contracts, local storage remedies, distributed-agreement gates
+and a bounded implementation/test roadmap. It recommends an initially static,
+independently operated permissioned BFT testnet for owner review; no model or
+agreement protocol is adopted. Local durability repair is ready to scope in a
+separate implementation task. Distributed finality and reviewer-history gates
+remain **BLOCKED**; Task 7.17 is not resumed. The original audit and findings
+below are preserved.
+
 Date: 2026-10-23 (America/New_York). **Decision: BLOCKED for independent-node
 reviewer-history implementation. Task 7.17 must not resume.** This is an audit
 of implementation at the HEAD below, not a new agreement protocol. Existing

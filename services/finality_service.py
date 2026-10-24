@@ -137,7 +137,7 @@ class FinalityService:
         locked = self._finalized_match(finalized_blocks, expected_height, expected_hash)
         if locked is False:
             raise FinalityAttestationError("A conflicting block is already finalized at this height.")
-        if any(candidate == checked for candidate in existing_attestations or []):
+        if any(candidate.get("message") == checked["message"] for candidate in existing_attestations or []):
             return {"attestation": checked, "status": "duplicate", "finalization": locked or None}
         updated = list(existing_attestations or []) + [checked]
         votes, equivocations = self.votes_for_block(updated, validator_set=validator_set, expected_network_id=expected_network_id, block_height=expected_height, block_hash=expected_hash)

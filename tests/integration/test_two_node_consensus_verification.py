@@ -459,9 +459,15 @@ def test_two_node_peer_block_mismatch_returns_sync_needed_without_corrupting_cha
     assert all(block.hash != forked_block.hash for block in blockchain.chain)
 
 
-def test_two_healthy_nodes_converge_on_quorum_finality_independent_of_attestation_order(blockchain, wallets):
+def test_two_healthy_nodes_converge_on_quorum_finality_independent_of_attestation_order(blockchain, wallets, tmp_path):
+    from storage import create_storage_backend
+
     node_a = blockchain
-    node_b = _matching_genesis_node(node_a, wallets)
+    # These are independent nodes, not two facades sharing the same vote DB.
+    # Shared-store writers correctly combine their first votes after 7.17E.
+    node_b = Blockchain(wallets["owner"], wallets["contributor_one"], wallets["contributor_two"],
+        storage_backend=create_storage_backend('sqlite', blockchain_file=str(tmp_path / 'peer.json'),
+            peers_file=str(tmp_path / 'peers.json'), sqlite_db_path=str(tmp_path / 'peer.db')))
     validators = [Account.create() for _ in range(3)]
     validator_set = tuple(sorted(account.address.lower() for account in validators))
     node_a.validator_set = validator_set

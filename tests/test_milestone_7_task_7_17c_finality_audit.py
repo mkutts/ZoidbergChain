@@ -1,7 +1,11 @@
-"""Task 7.17C diagnostics of CURRENT behavior, including known defects.
+"""Task 7.17C historical diagnostics, including the pre-7.17E defects.
 
 These passing assertions reproduce audit findings; they are not desired future
-consensus requirements. Structural tests assume authenticated votes by replacing
+consensus requirements. Task 7.17E preserves their assertions using the exact
+pre-repair facade method snapshot and explicitly bypasses its new storage guard.
+Current durability assertions live in the separate Task 7.17E suite. The service
+and cryptographic diagnostics still exercise the unchanged agreement semantics.
+Structural tests assume authenticated votes by replacing
 only signature recovery. They generate no keys/signatures, do not validate full
 media chains, and use synthetic chain targets. One separate test verifies the
 unchanged published v2 proof with real recovery. No production module is edited.
@@ -24,11 +28,18 @@ from services import FinalityAttestationError, FinalityService
 from services.canonical_reorg_service import CanonicalReorgService
 from services.peer_chain_sync_service import PeerChainSyncService
 from storage import create_storage_backend
+from finality_717c_baseline import HistoricalFinalityBlockchain
 
 
 FIXTURES = Path(__file__).parent / 'fixtures' / 'milestone_7_v3_v1'
 # Public identities only. No key material or real new signatures are used.
 VALIDATORS = tuple('0x' + digit * 40 for digit in '1234')
+
+
+@pytest.fixture(autouse=True)
+def historical_storage_boundary(monkeypatch):
+    """Reproduce the explicitly version-pinned OLD document-write contract."""
+    monkeypatch.setattr('storage._preserve_finality', lambda durable, replacement, **kwargs: replacement)
 
 
 @pytest.fixture
@@ -62,7 +73,7 @@ def collect(votes, validators, target='a' * 64, height=0):
 
 def facade(validators, storage=None, targets=('a' * 64,)):
     """Use real finality facade/save methods, stub unrelated chain/media work."""
-    node = Blockchain.__new__(Blockchain)
+    node = HistoricalFinalityBlockchain.__new__(HistoricalFinalityBlockchain)
     node.validator_set = validators
     node.finality_attestations, node.finalized_blocks = [], []
     node._finality_service = FinalityService()

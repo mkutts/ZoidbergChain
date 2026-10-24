@@ -29,10 +29,12 @@ from protocol_v1_submitter_attestation import (
 )
 import json
 import weakref
+import sqlite3
 from copy import deepcopy
 from decimal import Decimal
 from datetime import datetime, timezone
-from threading import Lock
+from threading import Lock, RLock, get_ident
+from functools import wraps
 from config import (
     ACTIVE_USER_LOOKBACK_DAYS,
     ACTIVE_USER_PERCENT_FOR_MIN_VOTES,
@@ -124,7 +126,7 @@ from protocol_v1_native_transfer import (
     looks_like_protocol_v1_native_transfer_message,
     resolve_protocol_v1_network_id,
 )
-from storage import SQLiteStorageBackend, StaleCanonicalHeadError, StorageUniquenessError, canonical_head_identity, create_storage_backend
+from storage import SQLiteStorageBackend, StaleCanonicalHeadError, StorageUniquenessError, StorageCorruptionError, FinalityStateConflictError, canonical_head_identity, create_storage_backend
 from protocol_v1 import PROTOCOL_VERSION, canonical_hash, resolve_network_id
 from milestone5_policy import APPROVAL_THRESHOLD_BPS, ESTABLISHED_MAX_VOTES_PER_EPOCH, MIN_ESTABLISHED_VOTES, MIN_VALID_VOTES, PROBATION_MAX_VOTES_PER_EPOCH, REVIEW_EPOCH_BLOCKS, REVIEWER_POLICY_VERSION, REPUTATION_RULE_VERSION, bootstrap_established_reviewers
 from protocol_v1_genesis import (
@@ -220,7 +222,38 @@ def _certified_commit_lock_for_storage(storage):
     else:
         identity = ("storage-object", id(storage))
     with _CERTIFIED_COMMIT_LOCKS_GUARD:
-        return _CERTIFIED_COMMIT_LOCKS.setdefault(identity, Lock())
+        return _CERTIFIED_COMMIT_LOCKS.setdefault(identity, RLock())
+
+
+def _finality_writer(method):
+    @wraps(method)
+    def serialized(self, *args, **kwargs):
+        with _certified_commit_lock_for_storage(self.storage):
+            return method(self, *args, **kwargs)
+    return serialized
+
+
+def _finality_cache(method):
+    @wraps(method)
+    def serialized(self, *args, **kwargs):
+        lock = self.__dict__.setdefault("_finality_cache_lock", RLock())
+        with lock:
+            return method(self, *args, **kwargs)
+    return serialized
+
+
+def _finality_recovery(method):
+    @wraps(method)
+    def recovering(self, *args, **kwargs):
+        self._finality_unavailable = True
+        self._finality_recovery_owner = get_ident()
+        try:
+            result = method(self, *args, **kwargs)
+            self._finality_unavailable = False
+            return result
+        finally:
+            self.__dict__.pop("_finality_recovery_owner", None)
+    return recovering
 
 
 def _short_public_key(public_key):
@@ -472,6 +505,7 @@ class Blockchain:
 
     def _restore_native_transaction_state(self, raw_transactions, raw_transfer_intents):
         return self._native_ledger_service.restore_native_transaction_state(raw_transactions, raw_transfer_intents)
+    @_finality_writer
     def save_blockchain(self):
         """Save blockchain state to disk, including wallets and transactions."""
         local_state = self._serialize_blockchain_state()
@@ -504,7 +538,9 @@ class Blockchain:
             return {**durable, **local_state,
                     "post_mint_disputes": deepcopy(durable.get("post_mint_disputes", {}) or {})}
 
-        self.storage.atomic_update_blockchain_document(reject_stale_reports)
+        document = self.storage.atomic_update_blockchain_document(reject_stale_reports)
+        self._publish_finality_cache(document)
+        self._set_report_reviewer_index(self._report_reviewer_index, rebuild=True)
         print("Debug: Blockchain and wallets saved successfully.")
 
     def _current_canonical_head(self):
@@ -623,6 +659,7 @@ class Blockchain:
             raise ValueError("Conflicting replay: existing certified block content ID does not match the request.")
         return block
 
+    @_finality_cache
     def _restore_blockchain_state_document(self, loaded_data):
         """Restore a durable state without running repair or persistence hooks.
 
@@ -630,6 +667,7 @@ class Blockchain:
         deliberately avoids load-time reconciliation because that would add
         unrequested mutations to the commit boundary.
         """
+        self._check_finality_cache_transition(loaded_data)
         tip = (loaded_data.get("chain") or [{}])[-1].get("index")
         configured = self._admission_activation_store.verify_document(loaded_data, chain_tip=tip)
         if configured != self.admission_activation_record:
@@ -692,8 +730,7 @@ class Blockchain:
         self.override_requests = list(loaded_data.get("override_requests", []) or [])
         self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
         self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
-        self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
-        self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+        self._publish_finality_cache(loaded_data)
         self.post_mint_disputes = deepcopy(loaded_data.get("post_mint_disputes", {}) or {})
         self._set_report_reviewer_index(loaded_data.get("report_reviewer_index"), rebuild=False)
         self._validate_persisted_finality_state()
@@ -1591,6 +1628,7 @@ class Blockchain:
 
     def _is_finalized_dispute_reference(self, height, block_hash):
         """Maintain an append-only finality membership projection for disputes."""
+        self._require_finality_available()
         records = self.finalized_blocks
         known = getattr(self, "_dispute_finality_index", set())
         length = getattr(self, "_dispute_finality_length", 0)
@@ -2008,16 +2046,21 @@ class Blockchain:
         self.reward_pool = self._reward_service.recompute_reward_pool_balance(self._reward_state(), self._reward_collaborators(), chain=chain)
         self.initial_reward_pool = float(REWARD_POOL_SUPPLY)
         return self.reward_pool
+    @_finality_writer
+    @_finality_recovery
     def load_blockchain(self):
         """Load blockchain state from disk if it exists, ensuring wallets persist."""
         try:
             loaded_data = self.storage.load_blockchain_state()
+            if loaded_data is None and self.finalized_blocks:
+                raise RuntimeError("Committed finality is missing from durable recovery state.")
 
             tip = (loaded_data.get("chain") or [{}])[-1].get("index") if isinstance(loaded_data, dict) else None
             self.admission_activation_record = self._admission_activation_store.verify_document(
                 loaded_data, chain_tip=tip)
 
             if isinstance(loaded_data, dict) and "chain" in loaded_data and "wallets" in loaded_data:
+                self._check_finality_cache_transition(loaded_data)
                 self.chain = [Block.from_dict(block_data) for block_data in loaded_data["chain"]]
 
                 self.wallets = {key: Wallet.from_dict(data) for key, data in loaded_data["wallets"].items()}
@@ -2055,8 +2098,7 @@ class Blockchain:
                 self.override_requests = list(loaded_data.get("override_requests", []) or [])
                 self.feedback_records = list(loaded_data.get("feedback_records", []) or [])
                 self.audit_logs = list(loaded_data.get("audit_logs", []) or [])
-                self.finality_attestations = list(loaded_data.get("finality_attestations", []) or [])
-                self.finalized_blocks = list(loaded_data.get("finalized_blocks", []) or [])
+                self._publish_finality_cache(loaded_data)
                 self.post_mint_disputes = deepcopy(loaded_data.get("post_mint_disputes", {}) or {})
                 self._validate_persisted_finality_state()
                 self.recompute_reward_pool_balance(chain=self.chain)
@@ -2113,6 +2155,8 @@ class Blockchain:
                 )
 
         except FileNotFoundError:
+            if self.finalized_blocks:
+                raise RuntimeError("Committed finality storage is missing; refusing empty recovery.")
             print("Debug: No saved blockchain found. Creating new blockchain.")
             self.chain = []
             self.wallets = {}
@@ -2142,6 +2186,10 @@ class Blockchain:
                 "Persisted blockchain state is not valid JSON. Reset the local node data explicitly before restarting.",
             ) from exc
         except GenesisValidationError:
+            raise
+        except (OSError, sqlite3.Error, RuntimeError):
+            # Storage outages/corruption and stale refreshes are operational
+            # failures, not evidence that media or consensus signatures are bad.
             raise
         except Exception as e:
             raise GenesisValidationError(
@@ -2448,7 +2496,9 @@ class Blockchain:
     def get_protocol_v1_block_for_certificate(self, certificate_id, *, chain=None):
         return self._finality_service.find_protocol_block(chain or self.chain, field_name="certificate_id", value=certificate_id, is_protocol_block=self.is_protocol_v1_block_payload)
 
+    @_finality_cache
     def get_block_chain_state(self, block_or_hash, *, chain=None) -> dict[str, object]:
+        self._require_finality_available()
         chain_dicts = self.chain_to_dicts(chain or self.chain)
         return self._finality_service.block_chain_state(
             block_or_hash,
@@ -2460,8 +2510,10 @@ class Blockchain:
             expected_network_id=self.protocol_v1_network_id(),
         )
 
+    @_finality_cache
     def get_finalized_head(self) -> dict[str, object] | None:
         """Return the highest persisted quorum-finalized block on the current chain."""
+        self._require_finality_available()
         canonical_by_height = {int(block.index): block for block in self.chain}
         candidates = [
             record for record in self.finalized_blocks
@@ -2592,6 +2644,7 @@ class Blockchain:
         )
 
     def is_finalized_canonical_reference(self, height, block_hash):
+        self._require_finality_available()
         if isinstance(height, bool) or not isinstance(height, int) or height < 0:
             return False
         normalized_hash = str(block_hash or "").strip().lower()
@@ -2773,12 +2826,14 @@ class Blockchain:
                         addresses.add(wallet)
         return [self.get_reviewer_status(address) for address in sorted(addresses)]
 
+    @_finality_cache
     def get_finality_evidence(self, block_or_hash):
         """Return durable quorum evidence for a canonical finalized block, if any."""
+        self._require_finality_available()
         block_hash = str(block_or_hash or "").strip() if isinstance(block_or_hash, str) else str(self._block_field(block_or_hash, "hash") or "").strip()
         for record in self.finalized_blocks:
             if isinstance(record, dict) and record.get("block_hash") == block_hash:
-                return dict(record)
+                return deepcopy(record)
         return None
 
     def _validate_persisted_finality_state(self):
@@ -2795,58 +2850,115 @@ class Blockchain:
             if canonical is None or canonical.hash != record["block_hash"]:
                 raise FinalityAttestationError("Persisted finality evidence does not match the canonical chain.")
 
-    def submit_validator_finality_attestations(self, attestations) -> list[dict]:
-        """Validate and durably apply one or more votes against one chain snapshot.
+    def _require_finality_available(self):
+        if getattr(self, "_finality_unavailable", False) and getattr(self, "_finality_recovery_owner", None) != get_ident():
+            raise RuntimeError("Finality storage outcome is unavailable; reload durable state before using finality.")
 
-        Batching is an operational optimization only: every attestation still
-        passes the existing canonical validator, signature, quorum, and
-        finalized-height checks.  A shared chain validation and one durable
-        checkpoint prevent a received quorum from doing duplicate full-chain
-        work and writes.
+    def _check_finality_cache_transition(self, document):
+        if ("finalized_blocks" in document) != ("finality_attestations" in document):
+            raise StorageCorruptionError("Incomplete finality storage sections; refusing empty recovery.")
+        proofs = document.get("finalized_blocks", []) or []
+        incoming = {r["block_height"]: r["block_hash"] for r in proofs}
+        if len(incoming) != len(proofs):
+            raise FinalityAttestationError("Persisted finality evidence has duplicate finalized heights.")
+        targets = {b["index"]: b["hash"] for b in document.get("chain", [])}
+        known = {r["block_height"]: r for r in getattr(self, "finalized_blocks", [])}
+        for proof in proofs:
+            if known.get(proof["block_height"]) != proof:
+                self._finality_service.validate_finalization_evidence(proof, expected_network_id=self.protocol_v1_network_id())
+            if targets.get(proof["block_height"]) != proof["block_hash"]:
+                raise FinalityAttestationError("Persisted finality evidence does not match the canonical chain.")
+        for record in getattr(self, "finalized_blocks", []):
+            if incoming.get(record["block_height"]) != record["block_hash"]:
+                raise FinalityStateConflictError("Stale refresh would regress committed finality; reload current durable state.")
+
+    @_finality_cache
+    def _publish_finality_cache(self, document):
+        self._check_finality_cache_transition(document)
+        # A late refresh of the same selected chain may not erase newer votes.
+        current_targets = {b.index: b.hash for b in self.chain}
+        targets = {b["index"]: b["hash"] for b in document.get("chain", [])}
+        incoming = list(document.get("finality_attestations", []) or [])
+        if current_targets == targets:
+            by_message = {v["message"]: v for v in incoming}
+            for vote in getattr(self, "finality_attestations", []):
+                if targets.get(vote["block_height"]) == vote["block_hash"]:
+                    by_message.setdefault(vote["message"], vote)
+            incoming = list(by_message.values())
+        self.finality_attestations = sorted(deepcopy(incoming), key=lambda v: (v["block_height"], v["block_hash"], v["validator_address"], v["signature"]))
+        self.finalized_blocks = deepcopy(document.get("finalized_blocks", []) or [])
+        if not hasattr(self, "_finality_recovery_owner"):
+            self._finality_unavailable = False
+
+    def _finality_fault(self, stage):
+        hook = getattr(self, "_finality_fault_injector", None)
+        if hook is not None:
+            hook(stage)
+
+    @_finality_writer
+    def submit_validator_finality_attestations(self, attestations) -> list[dict]:
+        """Read, authenticate, merge, count and promote under one durable lock.
+
+        The callback owns only a private document. No authoritative finality
+        cache, lifecycle notification or successful result precedes COMMIT.
         """
         if not isinstance(attestations, (list, tuple)) or not attestations:
             raise FinalityAttestationError("Finality attestations must be a non-empty list.")
-        if not self.is_chain_valid(self.chain_to_dicts(self.chain)):
-            raise FinalityAttestationError("Finality cannot be applied while canonical chain validation fails.")
-
-        updated_attestations = list(self.finality_attestations)
-        updated_finalized_blocks = list(self.finalized_blocks)
+        attestations = deepcopy(attestations)
+        validators = tuple(self.validator_set)
+        network = self.protocol_v1_network_id()
         results = []
-        canonical_by_height = {int(block.index): block.to_dict() for block in self.chain}
-        for attestation in attestations:
-            if not isinstance(attestation, dict):
-                raise FinalityAttestationError("Finality attestation must be an object.")
-            height = self._finality_service._height(attestation.get("block_height"))
-            canonical = canonical_by_height.get(height)
-            if canonical is None:
-                raise FinalityAttestationError("Finality attestation references a nonexistent canonical block.")
-            if canonical.get("hash") != self.calculate_hash_from_dict(canonical):
-                raise FinalityAttestationError("Finality attestation references a canonical block with an invalid stored hash.")
-            result = self._finality_service.process_attestation(
-                attestation,
-                validator_set=self.validator_set,
-                expected_network_id=self.protocol_v1_network_id(),
-                canonical_block=canonical,
-                existing_attestations=updated_attestations,
-                finalized_blocks=updated_finalized_blocks,
-            )
-            if result["status"] != "duplicate":
-                updated_attestations.append(result["attestation"])
-            if result["status"] != "duplicate" and result.get("finalization") is not None:
-                updated_finalized_blocks.append(result["finalization"])
-            results.append((result, canonical))
 
-        if any(result["status"] != "duplicate" for result, _ in results):
-            self.finality_attestations = sorted(
-                updated_attestations,
-                key=lambda value: (value["block_height"], value["block_hash"], value["validator_address"], value["signature"]),
-            )
-            self.finalized_blocks = sorted(
-                updated_finalized_blocks,
-                key=lambda value: (value["block_height"], value["block_hash"]),
-            )
+        def mutate(document):
+            chain = document.get("chain", []) or []
+            if not chain or not self.is_chain_valid(chain):
+                raise FinalityAttestationError("Finality cannot be applied while canonical chain validation fails.")
+            canonical_by_height = {int(block["index"]): block for block in chain}
+            retained = document.setdefault("finality_attestations", [])
+            proofs = document.setdefault("finalized_blocks", [])
+            for proof in proofs:
+                self._finality_service.validate_finalization_evidence(proof, expected_network_id=network)
+                if canonical_by_height.get(proof["block_height"], {}).get("hash") != proof["block_hash"]:
+                    raise FinalityAttestationError("Persisted finality evidence does not match the canonical chain.")
+            for attestation in attestations:
+                if not isinstance(attestation, dict):
+                    raise FinalityAttestationError("Finality attestation must be an object.")
+                height = self._finality_service._height(attestation.get("block_height"))
+                canonical = canonical_by_height.get(height)
+                if canonical is None:
+                    raise FinalityAttestationError("Finality attestation references a nonexistent canonical block.")
+                if canonical.get("hash") != self.calculate_hash_from_dict(canonical):
+                    raise FinalityAttestationError("Finality attestation references a canonical block with an invalid stored hash.")
+                result = self._finality_service.process_attestation(
+                    attestation, validator_set=validators, expected_network_id=network,
+                    canonical_block=canonical, existing_attestations=retained, finalized_blocks=proofs,
+                )
+                if result["status"] != "duplicate":
+                    retained.append(result["attestation"])
+                    if result.get("finalization") is not None:
+                        proofs.append(result["finalization"])
+                results.append((result, canonical))
+            self._finality_fault("before_commit")
+            return document
+
+        try:
+            document = self.storage.atomic_update_blockchain_document(mutate)
+            self._finality_fault("after_commit_before_publish")
+            self._restore_blockchain_state_document(document)
             self._set_report_reviewer_index(self._report_reviewer_index, rebuild=True)
-            self.save_blockchain()
+        except Exception:
+            # Includes an unknown COMMIT/ack outcome. Never infer rollback from
+            # the exception: reread on a new connection, then preserve the error.
+            try:
+                durable = self.storage.load_blockchain_document()
+                if not durable:
+                    raise RuntimeError("Finality durable state is missing.")
+                if not self.is_chain_valid(durable.get("chain", [])):
+                    raise RuntimeError("Durable chain could not be validated during finality recovery.")
+                self._restore_blockchain_state_document(durable)
+            except Exception:
+                self._finality_unavailable = True
+            raise
         for result, canonical in results:
             if result.get("finalization") is not None:
                 submission_id = canonical.get("submission_id")
@@ -5301,6 +5413,7 @@ class Blockchain:
         document = self.storage.atomic_update_blockchain_document(
             mutate,
             outbox_records=self._canonical_reorg_outbox_builder(outcome),
+            allow_vote_reorg=True,
         )
         self._reorg_fault("after_reorg_commit_before_publish")
         self._restore_blockchain_state_document(document)

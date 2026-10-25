@@ -1,5 +1,20 @@
 # Milestone 7 Task 7.17D — Finality safety and remediation decision
 
+**Task 7.17F follow-up (2026-10-24):** The
+[validator authority and quorum decision](milestone-7-validator-authority-and-quorum-decision.md)
+audits current configuration-based authority and specifies a candidate
+genesis-authenticated static membership commitment, epoch, quorum verification,
+historical recovery and emergency policy. It recommends `N=4,f=1,q=3` for owner
+review, with `7/2/5` evaluated; no launch configuration is approved. Separately
+committed Task 7.17E repaired the local received-finality durability gates
+R1a/R1b within its documented scope. Authority/quorum specification is advanced,
+but R0 approval/full agreement and R2 implementation remain open; safe signer
+transitions, agreement, proof synchronization, adversarial validation and
+reviewer-history/admission/clock gates remain **BLOCKED**. Signer specification
+can use this authority interface, but a BFT signer implementation still needs
+the complete approved agreement contract. The original 7.17D analysis below is
+preserved as historical pre-7.17E findings; Task 7.17 is not resumed.
+
 Date: 2026-10-24 (America/New_York).
 
 **Specification and security analysis only. No consensus implementation is

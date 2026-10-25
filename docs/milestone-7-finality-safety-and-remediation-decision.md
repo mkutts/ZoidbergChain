@@ -1,5 +1,22 @@
 # Milestone 7 Task 7.17D — Finality safety and remediation decision
 
+**Task 7.17G follow-up (2026-10-24):** The
+[distributed finality protocol decision](milestone-7-distributed-finality-protocol-decision.md)
+compares Tendermint, chained HotStuff, a CometBFT engine adapter and repair of
+the current signature tally. It recommends the precise Tendermint paper v3
+Algorithm 1, with static equal-power `N=4,f=1,q=3`, sequential finalized parents
+and one admitted media per decision, for owner review. It specifies reference
+lock/valid-value/round predicates, candidate signing/proof bytes, durable signer
+state, ancestry/sync rules and a bounded implementation/security roadmap.
+7.17E local durability remains reusable. No launch trust model or engine route
+is approved; complete G2/agreement/application schema and byte-vector freeze,
+fenced signer recovery, implementation, independent adversarial verification,
+and reviewer-history/admission/clock approvals remain **BLOCKED**. A durable
+signer contract can now be specified against a concrete reference; production
+signer implementation and Task 7.17 resumption are not ready or authorized.
+No agreement code, activation or subsequent task is begun. Earlier analysis and
+follow-ups below remain historical records.
+
 **Task 7.17F follow-up (2026-10-24):** The
 [validator authority and quorum decision](milestone-7-validator-authority-and-quorum-decision.md)
 audits current configuration-based authority and specifies a candidate

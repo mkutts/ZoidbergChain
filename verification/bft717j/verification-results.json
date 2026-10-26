@@ -1,0 +1,138 @@
+{
+  "task": "Milestone 7 Task 7.17J",
+  "date": "2026-10-26",
+  "timezone": "America/New_York",
+  "status": "PASS_BOUNDED_TEST_ONLY_SUBSET",
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "head": "54303b0a1aa2b13a1dd3a8f6f7a304e70dd7c9e2",
+  "initial": {
+    "index": "clean",
+    "tracked_worktree": "clean",
+    "untracked": []
+  },
+  "final": {
+    "index": "unchanged",
+    "tracked_worktree": "unchanged",
+    "new_files_only": true,
+    "commit_created": false
+  },
+  "tests": {
+    "passed": 381,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "runs": [
+      {
+        "group": "focused",
+        "junit": "temp/task717j-final.xml",
+        "passed": 125,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 55.386,
+        "by_module": {
+          "tests.test_milestone_7_task_7_17j_durable_signer": 125
+        }
+      },
+      {
+        "group": "durability-model-canonical",
+        "junit": "temp/task717j-regressions.xml",
+        "passed": 218,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 24.228,
+        "by_module": {
+          "tests.test_milestone_7_task_7_17e_finality_durability": 36,
+          "tests.test_milestone_7_task_7_17h_tendermint_model": 42,
+          "tests.test_milestone_7_task_7_10c_v3": 119,
+          "tests.test_protocol_v1_golden_vectors": 8,
+          "tests.test_protocol_v1_freeze_consistency": 5,
+          "tests.test_protocol_v1_originality_votes": 8
+        }
+      },
+      {
+        "group": "legacy-finality",
+        "junit": "temp/task717j-active-finality.xml",
+        "passed": 37,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 5.773,
+        "by_module": {
+          "tests.test_milestone_7_task_7_17c_finality_audit": 17,
+          "tests.blockchain.test_task_3_5_validator_quorum_finality": 12,
+          "tests.blockchain.test_task_3_6_public_finality_status": 3,
+          "tests.blockchain.test_protocol_v1_lifecycle_finality": 5
+        }
+      },
+      {
+        "group": "affected-wal-refusal",
+        "junit": "temp/task717j-wal-guard.xml",
+        "passed": 1,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "seconds": 2.061,
+        "by_module": {
+          "tests.test_milestone_7_task_7_16_atomic": 1
+        }
+      }
+    ]
+  },
+  "independent_vectors": {
+    "messages": 21,
+    "proofs": 5,
+    "language": "JavaScript",
+    "oracle": "verbatim Task 7.17I Appendix B",
+    "sha256": "match",
+    "keccak": "match",
+    "full_key_recovery": "match",
+    "high_s": "accepted",
+    "maximum_widths": "match"
+  },
+  "faults": {
+    "observed_cases": 44,
+    "results": "verification/bft717j/fault-results.json"
+  },
+  "sqlite": {
+    "runtime": "3.49.1",
+    "journal_mode": "delete",
+    "synchronous": "EXTRA (3)",
+    "foreign_keys": true,
+    "busy_timeout_ms": 30000,
+    "adversarial_busy_timeout_ms": 1,
+    "wal_enabled_by_signer": false
+  },
+  "supported_guards": [
+    "initial proposer START",
+    "initial non-proposer START",
+    "fresh-proposal L22",
+    "non-nil L36",
+    "nil-PV L44"
+  ],
+  "gates": [
+    "all new slots restricted to height 1 round 0",
+    "no timer/round/late-valid/height/finality adapter",
+    "symbolic block validity only",
+    "no production key loader or nonrollbackable custody",
+    "joint signer+witness rollback and copied custody/key are not prevented",
+    "no power-loss or distributed agreement guarantee"
+  ],
+  "preserved_negative_controls": [
+    "verification/tendermint717h/results/trace-removed_lock_check.json",
+    "verification/tendermint717h/results/trace-lost_signer_state.json"
+  ],
+  "artifact_sha256": {
+    "isolated_bft717j/__init__.py": "100e3e1eb950e60d561bb4b68db8f35a3c7fe8dc31bfc8a12ec20e9f419395f7",
+    "isolated_bft717j/custody.py": "cd588e0c39877aee45916aba715e2c4db8c1886d60c1acc4a6484066adda89e7",
+    "isolated_bft717j/reducer.py": "3050b51df692fd05ebedd0bc141dcce9169dbd9421b183c698cf300f6863fa83",
+    "isolated_bft717j/schema.sql": "0931937d795fba01a6cc3cb06f4cfbf4f624e8a33e85b8c48dca444b7a25b93f",
+    "isolated_bft717j/signer.py": "dc0b839a4b47f3144d803255da1b5c18221c71b59f17e171c57e549a51c70380",
+    "isolated_bft717j/wire.py": "1218ae736c833ee7e1f4231458d312375bd87c52a094227a951fa5e99edd7aa7",
+    "tests/fixtures/bft717j/vectors.json": "e9f5e0301ce31d329e6262193f124656766a2352f216f68079df7f3025c85e85",
+    "tests/test_milestone_7_task_7_17j_durable_signer.py": "8fd5f34587ff52b0b9eb5fadab256fb4c567c8debf83dfe567700dda830608eb",
+    "verification/bft717j/fault-results.json": "b265923cdecb8c669cce54741b99848d51b635cfff1d0b7907386c6a712ecc6d",
+    "verification/bft717j/oracle.cjs": "ca3d079472dc7f4f9dd5a91d77d0b907d1083bee46ac0fdf761ad4102c24eb1f"
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "sqlite": "3.49.1",
+  "journal_mode": "delete",
+  "synchronous": 3,
+  "busy_timeout_ms": 30000,
+  "scope": "test-only bounded reducer; no power-loss or multi-host assurance",
+  "cases": [
+    {
+      "case": "before_reservation_commit",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": true,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "after_reservation_commit",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": false,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "after_sign",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": false,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "before_signature_commit",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": false,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "after_signature_commit",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": false,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "before_release",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": false,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "after_publication",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": false,
+      "exact_retry": true,
+      "publication_observed": true
+    },
+    {
+      "case": "during_lock_update",
+      "mechanism": "parent terminated independent process",
+      "passed": true,
+      "precommit_rollback": true,
+      "exact_retry": true,
+      "publication_observed": false
+    },
+    {
+      "case": "lock_after_reservation_commit",
+      "passed": true,
+      "mechanism": "real process termination",
+      "lock_and_valid_survived": true
+    },
+    {
+      "case": "lock_after_sign",
+      "passed": true,
+      "mechanism": "real process termination",
+      "lock_and_valid_survived": true
+    },
+    {
+      "case": "lock_after_signature_commit",
+      "passed": true,
+      "mechanism": "real process termination",
+      "lock_and_valid_survived": true
+    },
+    {
+      "case": "process_owner_conflict_and_transfer",
+      "passed": true
+    },
+    {
+      "case": "two_process_duplicate",
+      "passed": true,
+      "successful_publishers": 1
+    },
+    {
+      "case": "two_process_conflict",
+      "passed": true,
+      "successful_publishers": 1
+    },
+    {
+      "case": "ambiguous_after_reservation_commit",
+      "passed": true,
+      "no_release_on_error": true
+    },
+    {
+      "case": "ambiguous_after_signature_commit",
+      "passed": true,
+      "no_release_on_error": true
+    },
+    {
+      "case": "sqlite_busy",
+      "passed": true
+    },
+    {
+      "case": "io_before_reservation_commit",
+      "passed": true,
+      "reservation_rolled_back": true,
+      "real_sqlite_error": false,
+      "sqlite_errorcode": null
+    },
+    {
+      "case": "io_before_signature_commit",
+      "passed": true,
+      "reservation_rolled_back": false,
+      "real_sqlite_error": false,
+      "sqlite_errorcode": null
+    },
+    {
+      "case": "full_before_reservation_commit",
+      "passed": true,
+      "reservation_rolled_back": true,
+      "real_sqlite_error": true,
+      "sqlite_errorcode": 13
+    },
+    {
+      "case": "full_before_signature_commit",
+      "passed": true,
+      "reservation_rolled_back": false,
+      "real_sqlite_error": true,
+      "sqlite_errorcode": 13
+    },
+    {
+      "case": "commit-denied_before_reservation_commit",
+      "passed": true,
+      "reservation_rolled_back": true,
+      "real_sqlite_error": true,
+      "sqlite_errorcode": 23
+    },
+    {
+      "case": "commit-denied_before_signature_commit",
+      "passed": true,
+      "reservation_rolled_back": false,
+      "real_sqlite_error": true,
+      "sqlite_errorcode": 23
+    },
+    {
+      "case": "commit-busy_before_reservation_commit",
+      "passed": true,
+      "reservation_rolled_back": true,
+      "real_sqlite_error": true,
+      "sqlite_errorcode": 5
+    },
+    {
+      "case": "commit-busy_before_signature_commit",
+      "passed": true,
+      "reservation_rolled_back": false,
+      "real_sqlite_error": true,
+      "sqlite_errorcode": 5
+    },
+    {
+      "case": "corrupt_blob",
+      "passed": true
+    },
+    {
+      "case": "corrupt_head",
+      "passed": true
+    },
+    {
+      "case": "corrupt_slot",
+      "passed": true
+    },
+    {
+      "case": "corrupt_outbox",
+      "passed": true
+    },
+    {
+      "case": "corrupt_event",
+      "passed": true
+    },
+    {
+      "case": "corrupt_state",
+      "passed": true
+    },
+    {
+      "case": "corrupt_missing-db",
+      "passed": true
+    },
+    {
+      "case": "corrupt_wrong-genesis",
+      "passed": true
+    },
+    {
+      "case": "corrupt_wal",
+      "passed": true
+    },
+    {
+      "case": "signer_only_rollback",
+      "detected": true,
+      "passed": true
+    },
+    {
+      "case": "joint_rollback",
+      "detected": false,
+      "expected_limitation": true,
+      "scope": "separate surviving nonrollbackable custody required",
+      "passed": true
+    },
+    {
+      "case": "crypto_failure",
+      "passed": true,
+      "classification": "CryptoFailure"
+    },
+    {
+      "case": "semantic_state_tamper_rehashed",
+      "passed": true
+    },
+    {
+      "case": "missing_authenticated_source",
+      "passed": true
+    },
+    {
+      "case": "height_round_lock_adapters",
+      "passed": true,
+      "outcome": "blocked before mutation; no height-transition crash claim"
+    },
+    {
+      "case": "witness_ack_and_revoked_generation",
+      "passed": true
+    },
+    {
+      "case": "pending_blocks_successors",
+      "passed": true,
+      "retained_sources_sufficient": true
+    },
+    {
+      "case": "rollback_failure_cleanup",
+      "passed": true,
+      "connection_closed": true
+    },
+    {
+      "case": "missing_witness_physical_corruption",
+      "passed": true
+    }
+  ]
+}

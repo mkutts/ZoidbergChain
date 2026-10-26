@@ -793,7 +793,8 @@ def test_missing_witness_and_physical_corruption_do_not_bootstrap(fixture, resul
 def test_no_active_runtime_imports_or_model_fixture_changes():
     tracked = subprocess.run(['git','ls-files','*.py'], cwd=ROOT, capture_output=True,
                              text=True, check=True).stdout.splitlines()
-    active = [ROOT/p for p in tracked if not p.startswith(('tests/','verification/'))]
+    # 7.17K is another explicitly inert test package, not an active node caller.
+    active = [ROOT/p for p in tracked if not p.startswith(('tests/','verification/','isolated_bft717k/'))]
     assert all('isolated_bft717j' not in p.read_text(encoding='utf-8') for p in active)
     paths = ['verification/tendermint717h', 'tests/test_milestone_7_task_7_17h_tendermint_model.py',
              'canonical_v3', 'wallet_signatures.py', 'storage.py', 'blockchain.py', 'services']

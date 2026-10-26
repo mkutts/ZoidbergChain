@@ -1,0 +1,595 @@
+{
+  "config": {
+    "blocks": [
+      {
+        "admission": true,
+        "canonical": true,
+        "height": 1,
+        "id": "X",
+        "original": true,
+        "parent": "genesis",
+        "protocol": true,
+        "resources": true,
+        "transactions": true
+      },
+      {
+        "admission": true,
+        "canonical": true,
+        "height": 1,
+        "id": "Y",
+        "original": true,
+        "parent": "genesis",
+        "protocol": true,
+        "resources": true,
+        "transactions": true
+      }
+    ],
+    "broken_locking": false,
+    "byzantine": [
+      3
+    ],
+    "decoder_unavailable": [],
+    "max_height": 1,
+    "max_round": 5,
+    "missing": [
+      [
+        0,
+        "X"
+      ],
+      [
+        0,
+        "Y"
+      ],
+      [
+        1,
+        "X"
+      ],
+      [
+        1,
+        "Y"
+      ],
+      [
+        2,
+        "X"
+      ],
+      [
+        2,
+        "Y"
+      ]
+    ],
+    "offline": [],
+    "retrievable": []
+  },
+  "expected": "no_progress_promise",
+  "final": [
+    {
+      "decisions": [],
+      "h": 1,
+      "id": 0,
+      "lock": [
+        "",
+        -1
+      ],
+      "phase": "propose",
+      "r": 0,
+      "valid": [
+        "",
+        -1
+      ]
+    },
+    {
+      "decisions": [],
+      "h": 1,
+      "id": 1,
+      "lock": [
+        "",
+        -1
+      ],
+      "phase": "prevote",
+      "r": 0,
+      "valid": [
+        "",
+        -1
+      ]
+    },
+    {
+      "decisions": [],
+      "h": 1,
+      "id": 2,
+      "lock": [
+        "",
+        -1
+      ],
+      "phase": "prevote",
+      "r": 0,
+      "valid": [
+        "",
+        -1
+      ]
+    }
+  ],
+  "final_digest": "240b3a2ab820c3b39e4a2b07524bb09e9523bb2dc86b9bb4bc117e719fa1f8a4",
+  "name": "missing_admission_evidence",
+  "trace": [
+    {
+      "action": "L10/start/0/none",
+      "digest": "0e057632997aa79293897099d1b890dfa9900f76e3fa5d5f129b37f598bcbb0f",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L10/start/1/none",
+      "digest": "ca94e0d6a2a2f5069d01a96de562ba4a448a470fc3e42cd53972458b52f189de",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L10/start/2/none",
+      "digest": "9e6e858e20220b7f65b0954311998919e54bbc00fe45fa3a19bbd5b8a81ec49a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L57/timeout/1",
+      "digest": "1e68919a5109407f68b578d194add9e481376338b9b56b023aec894457fe0324",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:0:1:nil:-1",
+      "digest": "88b3a50ca731d97e4973e0477fbf3a7c1f110a79f61b5002886cfedabbb5576d",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:0:1:nil:-1",
+      "digest": "4349d9e6bf8a0a75ae903a261b838465d49b5a5ed8181a4f3f9ed807621a5e0c",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L57/timeout/2",
+      "digest": "a16910f97a00d635528c455103e400009a4d4f0189a0207d4596032cf9a7eefd",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:0:2:nil:-1",
+      "digest": "e676b75eb63b9f8c20cb4c50b9675d5139a0a53298f5cb233a11d8f7055321e9",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:0:2:nil:-1",
+      "digest": "240b3a2ab820c3b39e4a2b07524bb09e9523bb2dc86b9bb4bc117e719fa1f8a4",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    }
+  ],
+  "transitions": 9,
+  "unique_states": 10,
+  "violations": []
+}

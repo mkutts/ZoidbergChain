@@ -1,0 +1,5689 @@
+{
+  "config": {
+    "blocks": [
+      {
+        "admission": true,
+        "canonical": true,
+        "height": 1,
+        "id": "X",
+        "original": true,
+        "parent": "genesis",
+        "protocol": true,
+        "resources": true,
+        "transactions": true
+      },
+      {
+        "admission": true,
+        "canonical": true,
+        "height": 1,
+        "id": "Y",
+        "original": true,
+        "parent": "genesis",
+        "protocol": true,
+        "resources": true,
+        "transactions": true
+      }
+    ],
+    "broken_locking": false,
+    "byzantine": [
+      3
+    ],
+    "decoder_unavailable": [],
+    "max_height": 1,
+    "max_round": 5,
+    "missing": [],
+    "offline": [],
+    "retrievable": [
+      "X",
+      "XX",
+      "Y",
+      "YY"
+    ]
+  },
+  "expected": "safe",
+  "final": [
+    {
+      "decisions": [
+        "Y"
+      ],
+      "h": 2,
+      "id": 0,
+      "lock": [
+        "",
+        -1
+      ],
+      "phase": "propose",
+      "r": 0,
+      "valid": [
+        "",
+        -1
+      ]
+    },
+    {
+      "decisions": [
+        "Y"
+      ],
+      "h": 2,
+      "id": 1,
+      "lock": [
+        "",
+        -1
+      ],
+      "phase": "propose",
+      "r": 0,
+      "valid": [
+        "",
+        -1
+      ]
+    },
+    {
+      "decisions": [
+        "Y"
+      ],
+      "h": 2,
+      "id": 2,
+      "lock": [
+        "",
+        -1
+      ],
+      "phase": "propose",
+      "r": 0,
+      "valid": [
+        "",
+        -1
+      ]
+    }
+  ],
+  "final_digest": "b9469d219b60479d14cb1ba7316dfe74b67d06f4be04e5307fec62aab719db66",
+  "name": "different_locks_valid_round_late_valid_learning",
+  "trace": [
+    {
+      "action": "L10/start/0/X",
+      "digest": "54dd2a664fd6c99cafd092545da93077f836df383a1403c44007d04c100178cb",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L10/start/1/none",
+      "digest": "7eb2ca44ea319d1a9cddcdfbd75563ceb8d5fc4c12bddb21942af6f84123fa76",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L10/start/2/none",
+      "digest": "4d515d6fa83735c26cfaa893787f270eb339d6e319f702ba3d5558080ff7b3bf",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/proposal:1:0:0:X:-1",
+      "digest": "ed03200dbf4391d42acffae1f119b58bdc3dcefbf2a2198723c3c27d5471cdc5",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/proposal:1:0:0:X:-1",
+      "digest": "e2ae64041699ef3f253cf466fcbe3f64f91ff61fd262f4c8cbe212f1b750fb4f",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L22/prevote/0/X",
+      "digest": "59bb6c103cf073db61934feeae3c1cbbe0575d4bce3f0d9289180b3d83128a6e",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L22/prevote/1/X",
+      "digest": "748f1405449dbb201c0fc27f92c63ff86bff8b03b4ae72206b734c535d3fbf15",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L22/prevote/2/X",
+      "digest": "2651ff663c55cbeb53223829cf3f29744dd74ba092f421dbccd8f920c5964827",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:0:1:X:-1",
+      "digest": "21cd51bbf7c9bdfa627876525c8e642f885624d3c154e9edeeebd455c1fe18a5",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:0:2:X:-1",
+      "digest": "05faf616ad5f7ac61355f3dd557c7a6a6b94211a084b00e82d16421e66264eea",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L36/polka/0/X",
+      "digest": "89153c6f7824ff420a73376474667f78e3726c9fbbf1e7d72cdabdc8052983bf",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:0:0:X:-1",
+      "digest": "c45b702d2655a4778a492b338d420993076ed6095bbc9f5d20bf0708b71c876b",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:0:1:X:-1",
+      "digest": "c45b702d2655a4778a492b338d420993076ed6095bbc9f5d20bf0708b71c876b",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:0:2:X:-1",
+      "digest": "f9098c252db9ed956b3a31335ef1e57f17741b6df379814b4464fafb3e38bc45",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L34/arm/1",
+      "digest": "7f922457d03b214dba3d4177bcbae803b546c07f65a9f3f6dd09dbaad642481b",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L61/timeout/1",
+      "digest": "59d6cf815ab73fd616e220b8170ac18d09f33ae0196c798018c4f3f7a9533cc1",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:0:0:X:-1",
+      "digest": "2858fc58c34f05d43f47bf0dfa31a98d2018dac3dfbbd0707def028b7d631f7b",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:0:1:X:-1",
+      "digest": "4fe7ab7e9dcf94d3b8451639b0f853e71871e5cda23a635012dab8d0982f8325",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:0:2:X:-1",
+      "digest": "4fe7ab7e9dcf94d3b8451639b0f853e71871e5cda23a635012dab8d0982f8325",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L34/arm/2",
+      "digest": "9152f90a6acc9db625ff5f57547ca6df037992e0507edacc858dc68add5f2b8a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L61/timeout/2",
+      "digest": "019f08edfb987337c066eaa2c11f4496eabe053c5aabeef06867dcbdf885d82a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "byzantine/precommit:1:0:3:nil:-1",
+      "digest": "0e9059d001af046bd4033bf09786ed32a8ca783adf97ca1a97c6702949332e15",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:0:1:nil:-1",
+      "digest": "a7b353ad76c80b8eebbab6565afe048b72329d95820907fd5fda044d19a96dcb",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:0:2:nil:-1",
+      "digest": "e99ea6a1b9534ed3531dea3ae250c85c2bf5821e98619f5382846a47e511524a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:0:3:nil:-1",
+      "digest": "aa59f87f6a3de9794a74b8e2df1f3f8347a8ac1ae31fcc3ebf969f7997e2dc01",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/0",
+      "digest": "2b077222b0c6d5a689b3eaa1184b197b53b3c5571c77560a95d1a38c13677dd9",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:0:1:nil:-1",
+      "digest": "2b077222b0c6d5a689b3eaa1184b197b53b3c5571c77560a95d1a38c13677dd9",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:0:2:nil:-1",
+      "digest": "82de6be0543bd5a7b4509c1c2c1b5c2196defe5babb79f6c83b57f09f08050d7",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:0:3:nil:-1",
+      "digest": "5401f3ed975c244f47243c6c8229c0fc8c4e93bf9afa9cef25ec8ff1b6a4f484",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/1",
+      "digest": "6b9d8d68253fefe9f28bbe30367edb3da88c0d074b89b564f52808bce27417da",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:0:1:nil:-1",
+      "digest": "18ea32de71b53711aa0a6a1c0917228ec8c377eabaaa6d4111c22300c0463bf8",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:0:2:nil:-1",
+      "digest": "18ea32de71b53711aa0a6a1c0917228ec8c377eabaaa6d4111c22300c0463bf8",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:0:3:nil:-1",
+      "digest": "d58a3e9ffd015532b16fa3c8390e0b3e5fe7bee8ebb83c112ece9b5cf3d3cd50",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/2",
+      "digest": "e76fbc550f40a292f8e81495a5ef9808fd89869d86cab33066eadd24cc4b145d",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L65/timeout/0/1",
+      "digest": "b14287269ae51a1c051232e5bee5be0db38ea71a84e05fb3cac9f4996469a56c",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L65/timeout/1/1",
+      "digest": "b595c90c259e620cd1eb23263486c275110def1837506142cac1468997710395",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L65/timeout/2/1",
+      "digest": "784ec2bf464de075c24d627fb4cb5215bdc459c0ea640ff5c31f6d4415ed1209",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/proposal:1:1:1:Y:-1",
+      "digest": "5d319527686932c66a87fb9a0f9a38c5ca858380250d559cc9161254ee5171e8",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/proposal:1:1:1:Y:-1",
+      "digest": "b6b8238ed4dd3ba8b438f8e273615557dd28d3509074d59b2e4c5442d7dcafae",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L22/prevote/0/Y",
+      "digest": "a3c55a2ca8f6f0d6da6458c8c31aea14b9b58a3efb9357f17f3eae6ddb95e602",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L22/prevote/1/Y",
+      "digest": "4d0b34791a716d74488b180f5404c4a241303db690f36bba91e68308c3d34326",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L22/prevote/2/Y",
+      "digest": "9d7d71f509af174fdfaea5c3c6427abf45fda73b7e6d3fc4d8ae14724dc1e5d4",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "byzantine/prevote:1:1:3:Y:-1",
+      "digest": "2bbef768ab04dadbbb936c075e1d04ede5446a23de946220ce00c77820b51c9a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:1:1:Y:-1",
+      "digest": "2bbef768ab04dadbbb936c075e1d04ede5446a23de946220ce00c77820b51c9a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:1:2:Y:-1",
+      "digest": "c2d2699f784d7a81f8ba228d5619fda3fab1ed58f1b06dbffe2e2c2277c27911",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:1:3:Y:-1",
+      "digest": "2c196b3ace4878820c013e88dcc8445bca252ac4ce432687b41eb94fab572a26",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:1:1:Y:-1",
+      "digest": "cfd37c1907945f60870e6ea0dc24d1d6bee3f58e13ebf38d11fabf8a406a11ed",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:1:2:Y:-1",
+      "digest": "cfd37c1907945f60870e6ea0dc24d1d6bee3f58e13ebf38d11fabf8a406a11ed",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:1:3:Y:-1",
+      "digest": "af0e53c24e5802ad5d264630daae736769ef8e98d7f11e1b7597300773536b2c",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L36/polka/1/Y",
+      "digest": "9f1b3030e6493b34ccda070a8a76d7488592e1fdb7bc90516ca971b0e1aecee3",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L34/arm/2",
+      "digest": "94dfc999eb62f181ad1601e7cc7f06a9a46d00a4d9b95e7660f5ff8bcecf675a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L61/timeout/2",
+      "digest": "4a35336c0ecc66170680b94b71db49578b8e85bf0008e6b1acf39a9e7e46b1a1",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L36/polka/2/Y",
+      "digest": "884788f77e68fa91db1e12a63787b0fe5b0349d657ba4d0f99b50dab2f956664",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "byzantine/precommit:1:1:3:nil:-1",
+      "digest": "9c3c510f1c46157989fbb2fa54530ad3cc5d0d0113ed5c9b367939b54ab5a425",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:1:1:Y:-1",
+      "digest": "599249eb5b1a6c2f7b4fa13fa3463232e4c8d5b19573634167ec1e466cab0abe",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:1:2:nil:-1",
+      "digest": "41cf735991733835285345bd799ad5a07d4aafba090fa540085bdd109feda4a3",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:1:3:nil:-1",
+      "digest": "9bfb00377f14d797b557056bc5c6126495d47e30308831ac445c0002b1129f94",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/0",
+      "digest": "1461d58992930a86b78cf790420db136ac35080f7efed69215f82dce25f74ded",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:1:1:Y:-1",
+      "digest": "1461d58992930a86b78cf790420db136ac35080f7efed69215f82dce25f74ded",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:1:2:nil:-1",
+      "digest": "83d27ac6eb17813be0f392fdffd59b02964ced0ed0c64668bb9cac55e48c8e3c",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:1:3:nil:-1",
+      "digest": "4283e5adfb01a7b9646f3b88af5a7d2b0f21bf912e151f0894ca64605c756285",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/1",
+      "digest": "bac806826ac431a3f1ddcb7b4d2f6a543e1492c2a0d8046311b7cdc5edee6795",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:1:1:Y:-1",
+      "digest": "374d1d6ec03884a3fe51867da8bb7a55ae9681fd9b4bab28bb0bd05f85976c98",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:1:2:nil:-1",
+      "digest": "374d1d6ec03884a3fe51867da8bb7a55ae9681fd9b4bab28bb0bd05f85976c98",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:1:3:nil:-1",
+      "digest": "fd9ea208841cb27b21cb48af0992e863eeb2ad4c99438a1bc5347734ced6c9b8",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/2",
+      "digest": "afaa54c057a375e7edb7180480ed8c515a5561d483a329494dddfe3491c9b831",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L65/timeout/0/2",
+      "digest": "67bf40be5062cf000c013be7783fec1a2d23c8b40d684022f91a8d747e147115",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L65/timeout/1/2",
+      "digest": "3d69e273b8cd0d993ad14de193a3cf3f2079d1f39dd91ff50f32d04e12619b56",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 1,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L65/timeout/2/2",
+      "digest": "dab44fd2b92e40792c91e7aeb113608fd7349b45dfc5810cbc2d9b969e3e8fd2",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/proposal:1:2:2:Y:1",
+      "digest": "b3d9bd359878ac9e8ed05b19a137ead2f6c48d24696f0d80590dcfb37f3d2ea0",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:1:1:Y:-1",
+      "digest": "f557bfae2f82229cb89e2c03235ec14e3b76a9d4fe5d423514677e5a67883c32",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:1:2:Y:-1",
+      "digest": "fd21d1450bf43654467921207556fb02fe640afbd197591b11282012e8b408c8",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:1:3:Y:-1",
+      "digest": "c8bc05106dcd0a88d20cadaad73f2539a107b91043226529c4577a1f9b6fb9b6",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L28/prevote/0/Y",
+      "digest": "a3e964f849a45c2c4ef35163a2e6723c67689bf8e3c14be3e129f6dfb37040d5",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:0:0:X:-1",
+      "digest": "7ac40ba534f29c2a4329eb2c862c0476279277ad277486bf62013e52188b179a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:1:0:nil:-1",
+      "digest": "284538a53527a2e0742dca3f4812bc18cf9ef934e884a8ee15e5a7e94633ed48",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:2:0:Y:-1",
+      "digest": "a80435b2187772dee7bd8d95453d80af08e066a5a2d3a64e760a996be96d4ef7",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/proposal:1:2:2:Y:1",
+      "digest": "c2eb6a8e69ce388bd500fe60bf0081af6961a0881c5ab316de68ae0038743c61",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L28/prevote/1/Y",
+      "digest": "e8b97c8cb9bbc74293f0ae0c919c02d09d019508bc06c1a88ff34e71e65659e0",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:2:1:Y:-1",
+      "digest": "fdcef6809a7523e7044113cf2d46a6bdd32652adedb65f1fd390adb0f5455bc4",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L28/prevote/2/Y",
+      "digest": "ca2d53ea339f319cc9861bdd5a2fd62ff1c7b9a583c6be74df2bd51c7e01533b",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/prevote:1:2:2:Y:-1",
+      "digest": "9ee92b7527dfc004ed64e6ffe51fc1dc5619ada3cc4345ce6cc91b6b3755b7dd",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L34/arm/0",
+      "digest": "d06c94a6c9aae316f801218be52ce9dcc0d4fd8de804dc7bdb2717c510f24449",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L36/polka/0/Y",
+      "digest": "e1866452af8904c591fb364302084b3a35366a08020c2521e26c12e35bab9e8e",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:2:0:Y:-1",
+      "digest": "c840fbc920c762deb0049faa370baf6f0a45c3de8a65454fc4d143c1bbba5f4a",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/prevote:1:2:2:Y:-1",
+      "digest": "8d8b52498a935cbed28203b779e1618ecce688c5e576f160db2e13d3740984b2",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L34/arm/1",
+      "digest": "a31d7f4d68ae4d1c9238e30632226026c7038f0f82920e91f9a931634fdb7440",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L36/polka/1/Y",
+      "digest": "87dd1e54ca793e32ecf72247cdadbaad7b4df4127128a06d8a2b71b019ca44cf",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:2:1:Y:-1",
+      "digest": "7f8bb91dfb812e3ba9e52dd0b71bd7abcda12fc271f152633395fe1cf0d68a52",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:0:0:X:-1",
+      "digest": "4a400ad62c1e4b286ead29eaf91b35758d84f64112dfcd16041c34fc497d9898",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:2:0:Y:-1",
+      "digest": "0a34fd72d41dc5d6912284fe5763dd365f21c84d7fae47f72413fcb1b54c9b3b",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/precommit:1:2:1:Y:-1",
+      "digest": "eb44e2b2d45366c62273ffe0f2d1772a8aa5f2e1bf0868b7881cbb6eb98a0d05",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:1:0:nil:-1",
+      "digest": "21ada09b2cc73e41855f03850c2ab55fbf113981d378a93e3c9bb6ce6b7186cb",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:2:0:Y:-1",
+      "digest": "2d29b4dc5d52d08bb7b3681741839bd28ccee68e03c2f4db04a5ba73c276b2d4",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/2/prevote:1:2:1:Y:-1",
+      "digest": "053ce66924ae9afa287c1f8057878fceeb1f4a7f2361ddcc6d38ac3667eff3d1",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L34/arm/2",
+      "digest": "618a9432bb3148539d9a4eb6affa824b43cbf66dc1b3b2a3fbfcf85dd96ca42d",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "Y",
+            1
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L36/polka/2/Y",
+      "digest": "021bd74a53a0c03b5614b62f06fde9babedc70c0f5ae9a87278571e7fef7e7d8",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/0/precommit:1:2:2:Y:-1",
+      "digest": "adc108b4376ee30be8f4b6ac1968243b547e8c236de5d2836bd9a6f9d07275b1",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/0",
+      "digest": "55175f8a8f7a057af7623ea3dfb55de88c5e6eccae453fe9245133dfbea7c5fd",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L49/decide/0/Y",
+      "digest": "4c26f119e8a1bfceb2f1219edbf2235ac736c13cc003f8f0bd3606acc9758f97",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "deliver/1/precommit:1:2:2:Y:-1",
+      "digest": "cc88052b8950d3d659d3e2ed5bced00376e7d214f6b6296f6f88a4c735a3d78e",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/1",
+      "digest": "3012c925e0c6e667ccfdde0e8d0d232f5bffcd32dac80323dc5ff98503f92a53",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L49/decide/1/Y",
+      "digest": "fb34bd020b90079a3c306b986e36d7d2e8685202f5134446f08698434747e8fa",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L47/arm/2",
+      "digest": "d5b0561e12eb54ee73ad119826c2f79ab1d670b00e6797b622b417d5ff335aa6",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        }
+      ],
+      "violations": []
+    },
+    {
+      "action": "L49/decide/2/Y",
+      "digest": "b9469d219b60479d14cb1ba7316dfe74b67d06f4be04e5307fec62aab719db66",
+      "outside_reference": false,
+      "state": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "violations": []
+    }
+  ],
+  "transitions": 105,
+  "unique_states": 98,
+  "violations": []
+}

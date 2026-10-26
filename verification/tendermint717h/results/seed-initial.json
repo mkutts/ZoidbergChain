@@ -1,0 +1,106 @@
+{
+  "config": {
+    "blocks": [
+      {
+        "admission": true,
+        "canonical": true,
+        "height": 1,
+        "id": "X",
+        "original": true,
+        "parent": "genesis",
+        "protocol": true,
+        "resources": true,
+        "transactions": true
+      },
+      {
+        "admission": true,
+        "canonical": true,
+        "height": 1,
+        "id": "Y",
+        "original": true,
+        "parent": "genesis",
+        "protocol": true,
+        "resources": true,
+        "transactions": true
+      }
+    ],
+    "broken_locking": false,
+    "byzantine": [
+      3
+    ],
+    "decoder_unavailable": [],
+    "max_height": 1,
+    "max_round": 1,
+    "missing": [],
+    "offline": [],
+    "retrievable": [
+      "X",
+      "XX",
+      "Y",
+      "YY"
+    ]
+  },
+  "state": {
+    "nodes": [
+      {
+        "data": [
+          "X",
+          "Y"
+        ],
+        "decisions": [],
+        "height": 1,
+        "identity": 0,
+        "locked": "",
+        "log": [],
+        "lr": -1,
+        "once": [],
+        "phase": "propose",
+        "round": 0,
+        "started": false,
+        "timers": [],
+        "valid": "",
+        "vr": -1
+      },
+      {
+        "data": [
+          "X",
+          "Y"
+        ],
+        "decisions": [],
+        "height": 1,
+        "identity": 1,
+        "locked": "",
+        "log": [],
+        "lr": -1,
+        "once": [],
+        "phase": "propose",
+        "round": 0,
+        "started": false,
+        "timers": [],
+        "valid": "",
+        "vr": -1
+      },
+      {
+        "data": [
+          "X",
+          "Y"
+        ],
+        "decisions": [],
+        "height": 1,
+        "identity": 2,
+        "locked": "",
+        "log": [],
+        "lr": -1,
+        "once": [],
+        "phase": "propose",
+        "round": 0,
+        "started": false,
+        "timers": [],
+        "valid": "",
+        "vr": -1
+      }
+    ],
+    "sent": []
+  },
+  "trace": []
+}

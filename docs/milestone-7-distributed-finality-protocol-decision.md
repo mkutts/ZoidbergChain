@@ -1,5 +1,21 @@
 # Milestone 7 Task 7.17G — Distributed BFT finality protocol decision
 
+**Task 7.17I follow-up (2026-10-26):** The
+[BFT wire and signer contract](milestone-7-bft-wire-and-signer-contract.md)
+specifies closed versioned proposal/prevote/precommit/nil, PV/Q4 and future-round
+evidence formats; exact EIP-191 signing bytes and typed hashes; Algorithm 1/model
+correspondence; durable slots, reservation/sign/store/release ordering and
+external fencing requirements. Independent Python/JavaScript synthetic vectors
+and capacity calculations support **PASS for the parameterized wire contract
+and specification readiness of an isolated test-identity signer prototype**.
+Neither prototype implementation nor subsequent tasks begin here. Production
+signer, production BFT engine, public-testnet activation and Task 7.17 reviewer
+history remain **BLOCKED** on implementation/adversarial review, enforceable
+nonrollbackable custody, full approved G2/policy/combined block schema and owner
+decisions. No launch membership, keys, genesis or activation is approved; bounded
+model success is not a formal proof. Earlier proposal/gate snapshots below are
+historical; the 7.17I matrix separates current specification and production gates.
+
 Date: 2026-10-24 (America/New_York). **Documentation proposal only; no protocol
 or launch approval, implementation, activation or subsequent task.**
 

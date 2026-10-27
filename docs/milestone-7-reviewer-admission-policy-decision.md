@@ -2,6 +2,16 @@
 
 Date: 2026-10-27 (America/New_York). **Specification for owner review only.**
 
+**Superseded recommendation — Task 7.17O, owner direction (2026-10-27).**
+The producer-selected certification subset recommended below is superseded by
+the owner's network-wide voting requirement: nodes gossip signed user votes,
+and every eligible vote authoritatively admitted before an agreed deterministic
+cutoff counts. Producers may not choose a favorable subset of that record.
+See the [network-wide review-voting protocol decision](milestone-7-network-wide-review-voting-protocol-decision.md)
+for the proposed authority, cutoff, evidence and remaining approval gates.
+The original proposal and its tradeoff analysis remain below as historical
+design work; this notice does not activate a replacement protocol.
+
 Recommend **A: a bounded, explicitly included signed certification cohort**, with
 eligibility evaluated at the immediate finalized parent and permanent participation
 only upon finalization of its one media block. No complete global offered-vote

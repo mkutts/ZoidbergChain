@@ -1,0 +1,92 @@
+[
+  {
+    "detected": true,
+    "expected": [
+      2,
+      2
+    ],
+    "name": "node_local_cutoff",
+    "trace": [
+      "deliver positive to A,B",
+      "delay negative to A",
+      "close each local queue"
+    ],
+    "weakened": [
+      1,
+      2
+    ]
+  },
+  {
+    "detected": true,
+    "expected": 0,
+    "name": "unfinalized_gossip",
+    "trace": [
+      "receive unsigned-position vote",
+      "no finalized VOTE"
+    ],
+    "weakened": 1
+  },
+  {
+    "detected": true,
+    "expected": "FAIL",
+    "name": "producer_positive_subset",
+    "trace": [
+      "finalize 5 positive and 3 negative",
+      "producer removes negative sources"
+    ],
+    "weakened": "PASS"
+  },
+  {
+    "detected": true,
+    "expected": 1,
+    "name": "duplicate_inflation",
+    "trace": [
+      "admit r0",
+      "relay exact vote five times"
+    ],
+    "weakened": 5
+  },
+  {
+    "detected": true,
+    "expected": "INCOMPLETE_HISTORY",
+    "name": "missing_evidence_accepted",
+    "trace": [
+      "verify certificate",
+      "delete VOTE body",
+      "unsafe skips inventory check"
+    ],
+    "weakened": "PASS"
+  },
+  {
+    "detected": true,
+    "expected": 0,
+    "name": "receipt_is_admission",
+    "trace": [
+      "local custody receipt",
+      "proposer withholds vote",
+      "CLOSE no VOTEs"
+    ],
+    "weakened": 1
+  },
+  {
+    "detected": true,
+    "expected": "INVALID",
+    "name": "CLOSE_omission",
+    "trace": [
+      "OPEN h1 K4",
+      "ticks h2,h3",
+      "blank h4"
+    ],
+    "weakened": "ACCEPTED_OPEN"
+  },
+  {
+    "detected": true,
+    "expected": "INVALID",
+    "name": "unauthenticated_checkpoint_substitution",
+    "trace": [
+      "foreign certificate",
+      "unsafe overwrites authority flags"
+    ],
+    "weakened": "ACCEPTED_H2"
+  }
+]

@@ -1,0 +1,1319 @@
+{
+  "authority": "trusted unique authenticated finalized journal abstraction",
+  "custody": {
+    "cases": [
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 3,
+        "permanent_losses": [],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 2,
+        "permanent_losses": [
+          0
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 2,
+        "permanent_losses": [
+          1
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 2,
+        "permanent_losses": [
+          2
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          0,
+          1
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          0,
+          2
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          1,
+          2
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 3,
+        "honest_sources_remaining": 0,
+        "permanent_losses": [
+          0,
+          1,
+          2
+        ],
+        "recovering_node": "INCOMPLETE_HISTORY",
+        "signers": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 2,
+        "permanent_losses": [],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          0
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          1
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          1,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 0,
+        "permanent_losses": [
+          0,
+          1
+        ],
+        "recovering_node": "INCOMPLETE_HISTORY",
+        "signers": [
+          0,
+          1,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 2,
+        "permanent_losses": [],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          0
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          2
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          0,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 0,
+        "permanent_losses": [
+          0,
+          2
+        ],
+        "recovering_node": "INCOMPLETE_HISTORY",
+        "signers": [
+          0,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 2,
+        "permanent_losses": [],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          1
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 1,
+        "permanent_losses": [
+          2
+        ],
+        "recovering_node": "AVAILABLE_IF_REACHABLE",
+        "signers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "honest_at_certification": 2,
+        "honest_sources_remaining": 0,
+        "permanent_losses": [
+          1,
+          2
+        ],
+        "recovering_node": "INCOMPLETE_HISTORY",
+        "signers": [
+          1,
+          2,
+          3
+        ]
+      }
+    ],
+    "failure_scenarios": [
+      {
+        "honest_durable": 0,
+        "name": "sign_before_complete_store",
+        "outcome": "UNSUPPORTED_CUSTODY_CLAIM"
+      },
+      {
+        "honest_durable": 2,
+        "name": "honest_crash_intact_disk",
+        "online": 0,
+        "outcome": "TEMPORARY_UNAVAILABILITY"
+      },
+      {
+        "honest_durable": 2,
+        "name": "restart_correct_disk",
+        "online": 2,
+        "outcome": "RECOVERABLE"
+      },
+      {
+        "honest_durable": 0,
+        "name": "permanent_disk_loss_both",
+        "outcome": "INCOMPLETE_HISTORY"
+      },
+      {
+        "name": "corrupt_archive_hash_mismatch",
+        "outcome": "INVALID_SOURCE_BYTES"
+      },
+      {
+        "name": "selective_withholding",
+        "outcome": "INCOMPLETE_HISTORY_UNTIL_OTHER_SOURCE"
+      },
+      {
+        "name": "pruning_without_handoff",
+        "outcome": "INCOMPLETE_HISTORY"
+      },
+      {
+        "name": "retirement_without_handoff",
+        "outcome": "INCOMPLETE_HISTORY"
+      },
+      {
+        "name": "new_node_only_has_root",
+        "outcome": "INCOMPLETE_HISTORY"
+      },
+      {
+        "name": "independent_archive_loss_after_validator_loss",
+        "outcome": "INCOMPLETE_HISTORY"
+      }
+    ],
+    "failure_subsets": 20,
+    "limitation": "set-theoretic custody model; no disk fault injection or permanent online guarantee",
+    "quorum_subsets": 4
+  },
+  "delivery_search": {
+    "delivery_mask_bits": 6,
+    "delivery_transitions": 192,
+    "gossip_states": 64,
+    "messages": 3,
+    "permutations_merged_only_at_identical_delivery_masks": true,
+    "recipients": 2,
+    "terminal_finalization_transitions": 216,
+    "terminal_worlds": 216,
+    "total_states": 280,
+    "total_transitions": 408,
+    "truncated": false
+  },
+  "fixtures": [
+    {
+      "actual": {
+        "decisive": 10,
+        "established": 1,
+        "negative": 3,
+        "outcome": "PASS",
+        "positive": 7,
+        "quorum": true,
+        "total": 10,
+        "unsure": 0
+      },
+      "expected": "PASS",
+      "name": "exactly_70"
+    },
+    {
+      "actual": {
+        "decisive": 9,
+        "established": 1,
+        "negative": 3,
+        "outcome": "FAIL",
+        "positive": 6,
+        "quorum": true,
+        "total": 9,
+        "unsure": 0
+      },
+      "expected": "FAIL",
+      "name": "below_70"
+    },
+    {
+      "actual": {
+        "decisive": 0,
+        "established": 1,
+        "negative": 0,
+        "outcome": "UNDECIDED",
+        "positive": 0,
+        "quorum": true,
+        "total": 5,
+        "unsure": 5
+      },
+      "expected": "UNDECIDED",
+      "name": "all_unsure"
+    },
+    {
+      "actual": {
+        "decisive": 0,
+        "established": 0,
+        "negative": 0,
+        "outcome": "UNDECIDED",
+        "positive": 0,
+        "quorum": false,
+        "total": 0,
+        "unsure": 0
+      },
+      "expected": "UNDECIDED",
+      "name": "no_votes"
+    },
+    {
+      "actual": {
+        "decisive": 5,
+        "established": 1,
+        "negative": 0,
+        "outcome": "PASS",
+        "positive": 5,
+        "quorum": true,
+        "total": 5,
+        "unsure": 0
+      },
+      "expected": "PASS",
+      "name": "five_positive"
+    },
+    {
+      "actual": {
+        "decisive": 5,
+        "established": 0,
+        "negative": 0,
+        "outcome": "UNDECIDED",
+        "positive": 5,
+        "quorum": false,
+        "total": 5,
+        "unsure": 0
+      },
+      "expected": "UNDECIDED",
+      "name": "missing_established"
+    },
+    {
+      "actual": {
+        "decisive": 4,
+        "established": 1,
+        "negative": 0,
+        "outcome": "UNDECIDED",
+        "positive": 4,
+        "quorum": false,
+        "total": 4,
+        "unsure": 0
+      },
+      "expected": "UNDECIDED",
+      "name": "insufficient_quorum"
+    },
+    {
+      "actual": {
+        "decisive": 1,
+        "established": 1,
+        "negative": 0,
+        "outcome": "PASS",
+        "positive": 1,
+        "quorum": true,
+        "total": 5,
+        "unsure": 4
+      },
+      "expected": "PASS",
+      "name": "one_decisive_positive"
+    },
+    {
+      "actual": {
+        "decisive": 5,
+        "established": 1,
+        "negative": 3,
+        "outcome": "FAIL",
+        "positive": 2,
+        "quorum": true,
+        "total": 5,
+        "unsure": 0
+      },
+      "expected": "FAIL",
+      "name": "majority_negative"
+    },
+    {
+      "actual": {
+        "decisive": 4,
+        "established": 1,
+        "negative": 1,
+        "outcome": "PASS",
+        "positive": 3,
+        "quorum": true,
+        "total": 5,
+        "unsure": 1
+      },
+      "expected": "PASS",
+      "name": "unsure_excluded_denominator"
+    }
+  ],
+  "negative_controls": [
+    {
+      "detected": true,
+      "expected": [
+        2,
+        2
+      ],
+      "name": "node_local_cutoff",
+      "trace": [
+        "deliver positive to A,B",
+        "delay negative to A",
+        "close each local queue"
+      ],
+      "weakened": [
+        1,
+        2
+      ]
+    },
+    {
+      "detected": true,
+      "expected": 0,
+      "name": "unfinalized_gossip",
+      "trace": [
+        "receive unsigned-position vote",
+        "no finalized VOTE"
+      ],
+      "weakened": 1
+    },
+    {
+      "detected": true,
+      "expected": "FAIL",
+      "name": "producer_positive_subset",
+      "trace": [
+        "finalize 5 positive and 3 negative",
+        "producer removes negative sources"
+      ],
+      "weakened": "PASS"
+    },
+    {
+      "detected": true,
+      "expected": 1,
+      "name": "duplicate_inflation",
+      "trace": [
+        "admit r0",
+        "relay exact vote five times"
+      ],
+      "weakened": 5
+    },
+    {
+      "detected": true,
+      "expected": "INCOMPLETE_HISTORY",
+      "name": "missing_evidence_accepted",
+      "trace": [
+        "verify certificate",
+        "delete VOTE body",
+        "unsafe skips inventory check"
+      ],
+      "weakened": "PASS"
+    },
+    {
+      "detected": true,
+      "expected": 0,
+      "name": "receipt_is_admission",
+      "trace": [
+        "local custody receipt",
+        "proposer withholds vote",
+        "CLOSE no VOTEs"
+      ],
+      "weakened": 1
+    },
+    {
+      "detected": true,
+      "expected": "INVALID",
+      "name": "CLOSE_omission",
+      "trace": [
+        "OPEN h1 K4",
+        "ticks h2,h3",
+        "blank h4"
+      ],
+      "weakened": "ACCEPTED_OPEN"
+    },
+    {
+      "detected": true,
+      "expected": "INVALID",
+      "name": "unauthenticated_checkpoint_substitution",
+      "trace": [
+        "foreign certificate",
+        "unsafe overwrites authority flags"
+      ],
+      "weakened": "ACCEPTED_H2"
+    }
+  ],
+  "production_ready": false,
+  "scenarios": [
+    {
+      "boundary_vote": "LATE",
+      "close_height": 257,
+      "interior_heights": 255,
+      "last_vote_height": 256,
+      "name": "W256_boundary_and_negative_preserved",
+      "open_height": 1,
+      "outcome": "PASS"
+    },
+    {
+      "name": "duplicate_and_equivocation_first_finalized_choice",
+      "outcome": "PASS"
+    },
+    {
+      "name": "crash_before_evidence_persistence",
+      "outcome": "INCOMPLETE_HISTORY",
+      "safe": {
+        "outcome": "INCOMPLETE_HISTORY",
+        "reason": "missing source evidence"
+      }
+    },
+    {
+      "boundary": "in-memory crash abstraction; no physical durability claim",
+      "name": "intact_restart_full_durable_evidence",
+      "outcome": "PASS"
+    },
+    {
+      "name": "recovering_node_missing_segment",
+      "outcome": "INCOMPLETE_HISTORY",
+      "safe": {
+        "outcome": "INCOMPLETE_HISTORY",
+        "reason": "missing journal segment"
+      }
+    },
+    {
+      "name": "delete_each_OPEN_CLOSE_source",
+      "outcome": "INCOMPLETE_HISTORY"
+    },
+    {
+      "name": "wrong_stream_checkpoint",
+      "outcome": "INVALID",
+      "safe": {
+        "outcome": "INVALID",
+        "reason": "untrusted journal authority"
+      }
+    },
+    {
+      "name": "journal_checkpoint_ahead_of_replay",
+      "outcome": "INCOMPLETE_HISTORY",
+      "safe": {
+        "outcome": "INCOMPLETE_HISTORY",
+        "reason": "checkpoint not replayed"
+      }
+    },
+    {
+      "name": "media_while_session_open",
+      "outcome": "INVALID",
+      "safe": {
+        "outcome": "INVALID",
+        "reason": "unfinalized/open review"
+      }
+    },
+    {
+      "finalized_choice": "trusted media BFT abstraction",
+      "first": "candidate-valid",
+      "later": {
+        "outcome": "INVALID",
+        "reason": "stale media parent"
+      },
+      "name": "two_media_candidates_same_review",
+      "outcome": "PASS",
+      "second": "candidate-valid"
+    },
+    {
+      "name": "checkpoint_ahead_of_local_media",
+      "outcome": "INCOMPLETE_HISTORY",
+      "safe": {
+        "outcome": "INCOMPLETE_HISTORY",
+        "reason": "journal anchor ahead of local media"
+      }
+    },
+    {
+      "name": "duplicate_media_anchor",
+      "outcome": "INVALID",
+      "safe": {
+        "outcome": "INVALID",
+        "reason": "stale media parent"
+      }
+    },
+    {
+      "name": "competing_original_sessions",
+      "outcome": "INVALID",
+      "safe": {
+        "outcome": "INVALID",
+        "reason": "original/submission identity"
+      }
+    },
+    {
+      "closes": 16,
+      "name": "sixteen_simultaneous_zero_vote_closes",
+      "outcome": "PASS"
+    },
+    {
+      "name": "seventeenth_open",
+      "outcome": "INVALID",
+      "safe": {
+        "outcome": "INVALID",
+        "reason": "OPEN close reservation"
+      }
+    },
+    {
+      "final_used": 5,
+      "name": "simultaneous_last_quota_and_paired_dimension",
+      "outcome": "PASS"
+    },
+    {
+      "cap": 5,
+      "closed_reviews_keep_charges": true,
+      "journal_height": 107,
+      "name": "idle_media_exhaustion_probationary",
+      "outcome": "LACK_OF_PROGRESS"
+    },
+    {
+      "cap": 25,
+      "closed_reviews_keep_charges": true,
+      "journal_height": 128,
+      "name": "idle_media_exhaustion_established",
+      "outcome": "LACK_OF_PROGRESS"
+    },
+    {
+      "name": "snapshot_promotion_and_live_prospective_penalty",
+      "outcome": "PASS"
+    },
+    {
+      "name": "post_close_penalty_no_rewrite",
+      "outcome": "PASS"
+    },
+    {
+      "assumptions": "eventual synchrony, complete inputs, fair proposer service, reviewed BFT engine",
+      "name": "partition_2",
+      "online": [
+        0,
+        1
+      ],
+      "outcome": "LACK_OF_PROGRESS"
+    },
+    {
+      "assumptions": "eventual synchrony, complete inputs, fair proposer service, reviewed BFT engine",
+      "name": "partition_3",
+      "online": [
+        0,
+        1,
+        2
+      ],
+      "outcome": "CONDITIONAL_PROGRESS"
+    },
+    {
+      "name": "rotation_recovers_censored_negative_before_K",
+      "outcome": "PASS",
+      "proposer_rounds": [
+        0,
+        1
+      ],
+      "semantics": "chosen schedule, not bounded inclusion guarantee"
+    },
+    {
+      "admitted": 0,
+      "name": "receipt_and_permanent_censorship_past_K",
+      "outcome": "CENSORSHIP",
+      "receipt": "custody only"
+    }
+  ],
+  "searches": [
+    {
+      "attempted_transitions": 1221,
+      "boundary": "configured finite histories through mandatory closing height; no fairness/liveness proof",
+      "cryptography_assumed": true,
+      "dimensions": 2,
+      "empty_tick_option": true,
+      "input_alphabet": 10,
+      "invalid_transition_rejections": 111,
+      "invariant_checks": 1111,
+      "max_height": 4,
+      "max_optional_events_batch": 1,
+      "nodes_replaying": 2,
+      "reviewers": 2,
+      "sessions": 1,
+      "state_limit": 30000,
+      "states": 1111,
+      "terminal_states": 1000,
+      "transitions": 1110,
+      "truncated": false,
+      "unique_prefix_assumed": true,
+      "window": 3
+    },
+    {
+      "attempted_transitions": 12221,
+      "boundary": "configured finite histories through mandatory closing height; no fairness/liveness proof",
+      "cryptography_assumed": true,
+      "dimensions": 2,
+      "empty_tick_option": true,
+      "input_alphabet": 10,
+      "invalid_transition_rejections": 1111,
+      "invariant_checks": 11111,
+      "max_height": 5,
+      "max_optional_events_batch": 1,
+      "nodes_replaying": 2,
+      "reviewers": 2,
+      "sessions": 1,
+      "state_limit": 30000,
+      "states": 11111,
+      "terminal_states": 10000,
+      "transitions": 11110,
+      "truncated": false,
+      "unique_prefix_assumed": true,
+      "window": 4
+    }
+  ],
+  "task": "7.17P",
+  "workload": {
+    "assumptions": {
+      "close_reserved_bytes": 32768,
+      "metadata_bytes": 1024,
+      "network_validators": 4,
+      "proof_mean_bytes": 4096,
+      "reserve_bytes": 33792,
+      "transport_and_indexes_excluded": true,
+      "years_days": 1095
+    },
+    "binding": {
+      "maximal_base64": 2796204,
+      "measured_canonical_maximum": false,
+      "media_limit": 3145728,
+      "proposed_limit": 8192,
+      "remaining_after_binding_and_native": 243028
+    },
+    "burst": {
+      "capacity_votes_minute": 288,
+      "clear_minutes": 53.191489361702125,
+      "normal_votes_minute": 100,
+      "same_session_burst_admissible_upper_bound": 6120,
+      "same_session_burst_at_least_late": 3880,
+      "session_window_votes": 6120,
+      "votes": 10000
+    },
+    "classification": "modeled projections, structural serialization measurements only",
+    "measurement": {
+      "payload_bytes": 1507,
+      "payload_sha256": "69213dedf3d2aed70609d6ca5ac093bb40a4d475f79662405d174b90e8b87740",
+      "signed_vote_bytes": 1701,
+      "vote_event_bytes": 1743
+    },
+    "sensitivities": [
+      {
+        "archive_daily_bytes": 2599833600.0,
+        "archive_three_year_bytes": 2846817792000.0,
+        "archive_year_bytes": 948939264000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 1560.0,
+        "clear_backlog_minutes": 642.8571428571429,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 66.66666666666667,
+        "four_validator_archive_three_year_bytes": 11387271168000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 2449440000,
+        "offered_vote_storage_three_year_bytes": 2682136800000,
+        "offered_vote_storage_year_bytes": 894045600000,
+        "outage_backlog_votes": 360000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 16.666666666666668,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 85050.0,
+        "replication_payload_daily_bytes": 7348320000,
+        "required_batches_second": 0.12833333333333333,
+        "required_journal_blocks_hour": 462,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": null,
+        "votes_per_full_batch": 130,
+        "votes_per_minute": 1000
+      },
+      {
+        "archive_daily_bytes": 11886393600.0,
+        "archive_three_year_bytes": 13015600992000.0,
+        "archive_year_bytes": 4338533664000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 42720.0,
+        "batch_bytes": 262144,
+        "byte_slots": 27,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 288.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 8192,
+        "four_node_signature_checks_second": 66.66666666666667,
+        "four_validator_archive_three_year_bytes": 52062403968000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 5898240000,
+        "offered_vote_storage_three_year_bytes": 6458572800000,
+        "offered_vote_storage_year_bytes": 2152857600000,
+        "outage_backlog_votes": 360000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 16.666666666666668,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 204800.0,
+        "replication_payload_daily_bytes": 17694720000,
+        "required_batches_second": 0.6944444444444444,
+        "required_journal_blocks_hour": 2500,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 4096,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 1000
+      },
+      {
+        "archive_daily_bytes": 118067673600.0,
+        "archive_three_year_bytes": 129284102592000.0,
+        "archive_year_bytes": 43094700864000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 580560.0,
+        "batch_bytes": 262144,
+        "byte_slots": 27,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 324.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 8192,
+        "four_node_signature_checks_second": 666.6666666666666,
+        "four_validator_archive_three_year_bytes": 517136410368000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 58982400000,
+        "offered_vote_storage_three_year_bytes": 64585728000000,
+        "offered_vote_storage_year_bytes": 21528576000000,
+        "outage_backlog_votes": 3600000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 166.66666666666666,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 2048000.0,
+        "replication_payload_daily_bytes": 176947200000,
+        "required_batches_second": 6.173055555555556,
+        "required_journal_blocks_hour": 22223,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 4096,
+        "vote_cap": null,
+        "votes_per_full_batch": 27,
+        "votes_per_minute": 10000
+      }
+    ],
+    "workloads": [
+      {
+        "archive_daily_bytes": 467481600.0,
+        "archive_three_year_bytes": 511892352000.0,
+        "archive_year_bytes": 170630784000.0,
+        "available_blocks_hour": 3600.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 1,
+        "capacity_votes_minute": 1440.0,
+        "clear_backlog_minutes": 2.5174825174825175,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 0.6666666666666666,
+        "four_validator_archive_three_year_bytes": 2047569408000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 26350977024000.0,
+        "offered_vote_storage_daily_bytes": 24494400,
+        "offered_vote_storage_three_year_bytes": 26821368000,
+        "offered_vote_storage_year_bytes": 8940456000,
+        "outage_backlog_votes": 3600,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 0.16666666666666666,
+        "planning_bft_phase_bytes_day": 2123366400.0,
+        "replication_payload_bytes_second": 850.5,
+        "replication_payload_daily_bytes": 73483200,
+        "required_batches_second": 0.006944444444444444,
+        "required_journal_blocks_hour": 25,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 10
+      },
+      {
+        "archive_daily_bytes": 693504000.0,
+        "archive_three_year_bytes": 759386880000.0,
+        "archive_year_bytes": 253128960000.0,
+        "available_blocks_hour": 3600.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 1,
+        "capacity_votes_minute": 1440.0,
+        "clear_backlog_minutes": 26.865671641791046,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 6.666666666666667,
+        "four_validator_archive_three_year_bytes": 3037547520000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 26350977024000.0,
+        "offered_vote_storage_daily_bytes": 244944000,
+        "offered_vote_storage_three_year_bytes": 268213680000,
+        "offered_vote_storage_year_bytes": 89404560000,
+        "outage_backlog_votes": 36000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 1.6666666666666667,
+        "planning_bft_phase_bytes_day": 2123366400.0,
+        "replication_payload_bytes_second": 8505.0,
+        "replication_payload_daily_bytes": 734832000,
+        "required_batches_second": 0.06944444444444445,
+        "required_journal_blocks_hour": 250,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 100
+      },
+      {
+        "archive_daily_bytes": 2953728000.0,
+        "archive_three_year_bytes": 3234332160000.0,
+        "archive_year_bytes": 1078110720000.0,
+        "available_blocks_hour": 3600.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 1,
+        "capacity_votes_minute": 1440.0,
+        "clear_backlog_minutes": 818.1818181818181,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 66.66666666666667,
+        "four_validator_archive_three_year_bytes": 12937328640000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 26350977024000.0,
+        "offered_vote_storage_daily_bytes": 2449440000,
+        "offered_vote_storage_three_year_bytes": 2682136800000,
+        "offered_vote_storage_year_bytes": 894045600000,
+        "outage_backlog_votes": 360000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 16.666666666666668,
+        "planning_bft_phase_bytes_day": 2123366400.0,
+        "replication_payload_bytes_second": 85050.0,
+        "replication_payload_daily_bytes": 7348320000,
+        "required_batches_second": 0.6944444444444444,
+        "required_journal_blocks_hour": 2500,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 1000
+      },
+      {
+        "archive_daily_bytes": 25555968000.0,
+        "archive_three_year_bytes": 27983784960000.0,
+        "archive_year_bytes": 9327928320000.0,
+        "available_blocks_hour": 3600.0,
+        "backlog_growth_votes_hour": 513600.0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 1,
+        "capacity_votes_minute": 1440.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 666.6666666666666,
+        "four_validator_archive_three_year_bytes": 111935139840000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 26350977024000.0,
+        "offered_vote_storage_daily_bytes": 24494400000,
+        "offered_vote_storage_three_year_bytes": 26821368000000,
+        "offered_vote_storage_year_bytes": 8940456000000,
+        "outage_backlog_votes": 3600000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 166.66666666666666,
+        "planning_bft_phase_bytes_day": 2123366400.0,
+        "replication_payload_bytes_second": 850500.0,
+        "replication_payload_daily_bytes": 73483200000,
+        "required_batches_second": 6.944444444444445,
+        "required_journal_blocks_hour": 25000,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 10000
+      },
+      {
+        "archive_daily_bytes": 113587200.0,
+        "archive_three_year_bytes": 124377984000.0,
+        "archive_year_bytes": 41459328000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 288.0,
+        "clear_backlog_minutes": 12.949640287769784,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 0.6666666666666666,
+        "four_validator_archive_three_year_bytes": 497511936000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 24494400,
+        "offered_vote_storage_three_year_bytes": 26821368000,
+        "offered_vote_storage_year_bytes": 8940456000,
+        "outage_backlog_votes": 3600,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 0.16666666666666666,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 850.5,
+        "replication_payload_daily_bytes": 73483200,
+        "required_batches_second": 0.006944444444444444,
+        "required_journal_blocks_hour": 25,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 10
+      },
+      {
+        "archive_daily_bytes": 339609600.0,
+        "archive_three_year_bytes": 371872512000.0,
+        "archive_year_bytes": 123957504000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 288.0,
+        "clear_backlog_minutes": 191.48936170212767,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 6.666666666666667,
+        "four_validator_archive_three_year_bytes": 1487490048000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 244944000,
+        "offered_vote_storage_three_year_bytes": 268213680000,
+        "offered_vote_storage_year_bytes": 89404560000,
+        "outage_backlog_votes": 36000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 1.6666666666666667,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 8505.0,
+        "replication_payload_daily_bytes": 734832000,
+        "required_batches_second": 0.06944444444444445,
+        "required_journal_blocks_hour": 250,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 100
+      },
+      {
+        "archive_daily_bytes": 2599833600.0,
+        "archive_three_year_bytes": 2846817792000.0,
+        "archive_year_bytes": 948939264000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 42720.0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 288.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 66.66666666666667,
+        "four_validator_archive_three_year_bytes": 11387271168000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 2449440000,
+        "offered_vote_storage_three_year_bytes": 2682136800000,
+        "offered_vote_storage_year_bytes": 894045600000,
+        "outage_backlog_votes": 360000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 16.666666666666668,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 85050.0,
+        "replication_payload_daily_bytes": 7348320000,
+        "required_batches_second": 0.6944444444444444,
+        "required_journal_blocks_hour": 2500,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 1000
+      },
+      {
+        "archive_daily_bytes": 25202073600.0,
+        "archive_three_year_bytes": 27596270592000.0,
+        "archive_year_bytes": 9198756864000.0,
+        "available_blocks_hour": 720.0,
+        "backlog_growth_votes_hour": 582720.0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 5,
+        "capacity_votes_minute": 288.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 666.6666666666666,
+        "four_validator_archive_three_year_bytes": 110385082368000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 5270195404800.0,
+        "offered_vote_storage_daily_bytes": 24494400000,
+        "offered_vote_storage_three_year_bytes": 26821368000000,
+        "offered_vote_storage_year_bytes": 8940456000000,
+        "outage_backlog_votes": 3600000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 166.66666666666666,
+        "planning_bft_phase_bytes_day": 424673280.0,
+        "replication_payload_bytes_second": 850500.0,
+        "replication_payload_daily_bytes": 73483200000,
+        "required_batches_second": 6.944444444444445,
+        "required_journal_blocks_hour": 25000,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 10000
+      },
+      {
+        "archive_daily_bytes": 69350400.0,
+        "archive_three_year_bytes": 75938688000.0,
+        "archive_year_bytes": 25312896000.0,
+        "available_blocks_hour": 360.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 10,
+        "capacity_votes_minute": 144.0,
+        "clear_backlog_minutes": 26.865671641791046,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 0.6666666666666666,
+        "four_validator_archive_three_year_bytes": 303754752000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 2635097702400.0,
+        "offered_vote_storage_daily_bytes": 24494400,
+        "offered_vote_storage_three_year_bytes": 26821368000,
+        "offered_vote_storage_year_bytes": 8940456000,
+        "outage_backlog_votes": 3600,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 0.16666666666666666,
+        "planning_bft_phase_bytes_day": 212336640.0,
+        "replication_payload_bytes_second": 850.5,
+        "replication_payload_daily_bytes": 73483200,
+        "required_batches_second": 0.006944444444444444,
+        "required_journal_blocks_hour": 25,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 10
+      },
+      {
+        "archive_daily_bytes": 295372800.0,
+        "archive_three_year_bytes": 323433216000.0,
+        "archive_year_bytes": 107811072000.0,
+        "available_blocks_hour": 360.0,
+        "backlog_growth_votes_hour": 0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 10,
+        "capacity_votes_minute": 144.0,
+        "clear_backlog_minutes": 818.1818181818181,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 6.666666666666667,
+        "four_validator_archive_three_year_bytes": 1293732864000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 2635097702400.0,
+        "offered_vote_storage_daily_bytes": 244944000,
+        "offered_vote_storage_three_year_bytes": 268213680000,
+        "offered_vote_storage_year_bytes": 89404560000,
+        "outage_backlog_votes": 36000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 1.6666666666666667,
+        "planning_bft_phase_bytes_day": 212336640.0,
+        "replication_payload_bytes_second": 8505.0,
+        "replication_payload_daily_bytes": 734832000,
+        "required_batches_second": 0.06944444444444445,
+        "required_journal_blocks_hour": 250,
+        "reserve_bytes": 33792,
+        "stable": true,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 100
+      },
+      {
+        "archive_daily_bytes": 2555596800.0,
+        "archive_three_year_bytes": 2798378496000.0,
+        "archive_year_bytes": 932792832000.0,
+        "available_blocks_hour": 360.0,
+        "backlog_growth_votes_hour": 51360.0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 10,
+        "capacity_votes_minute": 144.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 66.66666666666667,
+        "four_validator_archive_three_year_bytes": 11193513984000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 2635097702400.0,
+        "offered_vote_storage_daily_bytes": 2449440000,
+        "offered_vote_storage_three_year_bytes": 2682136800000,
+        "offered_vote_storage_year_bytes": 894045600000,
+        "outage_backlog_votes": 360000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 16.666666666666668,
+        "planning_bft_phase_bytes_day": 212336640.0,
+        "replication_payload_bytes_second": 85050.0,
+        "replication_payload_daily_bytes": 7348320000,
+        "required_batches_second": 0.6944444444444444,
+        "required_journal_blocks_hour": 2500,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 1000
+      },
+      {
+        "archive_daily_bytes": 25157836800.0,
+        "archive_three_year_bytes": 27547831296000.0,
+        "archive_year_bytes": 9182610432000.0,
+        "available_blocks_hour": 360.0,
+        "backlog_growth_votes_hour": 591360.0,
+        "batch_bytes": 262144,
+        "byte_slots": 130,
+        "cadence_seconds": 10,
+        "capacity_votes_minute": 144.0,
+        "clear_backlog_minutes": null,
+        "event_bytes": 1743,
+        "four_node_signature_checks_second": 666.6666666666666,
+        "four_validator_archive_three_year_bytes": 110191325184000.0,
+        "full_cap_body_and_16k_proof_three_year_bytes": 2635097702400.0,
+        "offered_vote_storage_daily_bytes": 24494400000,
+        "offered_vote_storage_three_year_bytes": 26821368000000,
+        "offered_vote_storage_year_bytes": 8940456000000,
+        "outage_backlog_votes": 3600000,
+        "outage_hours": 6,
+        "per_node_signature_checks_second": 166.66666666666666,
+        "planning_bft_phase_bytes_day": 212336640.0,
+        "replication_payload_bytes_second": 850500.0,
+        "replication_payload_daily_bytes": 73483200000,
+        "required_batches_second": 6.944444444444445,
+        "required_journal_blocks_hour": 25000,
+        "reserve_bytes": 33792,
+        "stable": false,
+        "vote_bytes": 1701,
+        "vote_cap": 24,
+        "votes_per_full_batch": 24,
+        "votes_per_minute": 10000
+      }
+    ]
+  }
+}

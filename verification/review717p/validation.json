@@ -1,0 +1,4302 @@
+{
+  "artifacts": {
+    "docs/milestone-7-network-wide-review-journal-feasibility.md": "7c0bd3b388a8ed11c5e1f39740179202b8632e4fe22503b426a6361bd90fd300",
+    "docs/milestone-7-network-wide-review-voting-protocol-decision.md": "6246fa38478971b18115897af0d91f7530f177afe11f67cf3d8db63408193688",
+    "tests/fixtures/review717p_v1/cases.json": "09e8802ba07ecec03d0810e40bc0cbe42ff24b984db5054ff1c3020f3cff010a",
+    "tests/test_milestone_7_task_7_17p_review_journal.py": "13d01f26e7138c8cd77dfddba8d2da96c6f1d8741eb17a4feeab5f3f6dd49a65",
+    "verification/review717p/__init__.py": "cbb7893a2c0cc5da4d050e892eec9c151e0dbe9a7f0b257b82f198ebfd21a304",
+    "verification/review717p/audit.py": "f1a41bb68712bc92d532c0d23ba76eaf478fbb12088c647eae7b693054956467",
+    "verification/review717p/check.py": "f8206ff3e8d661f4605c6e9f3ac769bedc59d0104b42bf4a6dff2cb086287221",
+    "verification/review717p/model.py": "20c9307865c69877c0f4a7a237964b477302dca0131d3cf0b306051f6762e8ba",
+    "verification/review717p/negative-control-traces.json": "7ba94576553b97f11cf103cb0d5333152f2bf130c33a1891d4c0248faeb93a3f",
+    "verification/review717p/oracle.py": "cecc9808c756e414acef67873b20d3a9903997bac86ea047fbb37707f98a0fb6",
+    "verification/review717p/results.json": "5220c7fc310c02097b134cc1887e1e3bf449ca5703d59ab9b1181533833fbc83",
+    "verification/review717p/workload.py": "402d64d26fde4852b31df428ed98a58ea6c08dc7744e545a15c037243e231566"
+  },
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "checks": [
+    "branch/HEAD unchanged",
+    "index empty",
+    "only O tracked file modified",
+    "all named JUnit cases passing",
+    "local Markdown links",
+    "UTF-8 without BOM, final newline, no trailing spaces",
+    "git diff --check"
+  ],
+  "existing_tracked_code_and_fixtures_unchanged": true,
+  "final_git_state": "only named unstaged Task 7.17P artifacts; index unchanged",
+  "final_head": "a3ea45556308baa3331f5cda724139abb1f993eb",
+  "initial_git_state": "clean including untracked files",
+  "initial_head": "a3ea45556308baa3331f5cda724139abb1f993eb",
+  "python": "3.13.5",
+  "suites": [
+    {
+      "junit": "temp/task717p-focused-release.xml",
+      "passed": 80,
+      "seconds": 10.395,
+      "tests": [
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_bounded_exhaustive_search_reproduces[3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_bounded_exhaustive_search_reproduces[4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_adversarial_delivery_exploration_reproduces",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_selected_adverse_schedules_reproduce",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[exactly_70]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[below_70]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[all_unsure]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[no_votes]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[five_positive]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[missing_established]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[insufficient_quorum]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[one_decisive_positive]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[majority_negative]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_independently_authored_tally_fixtures[unsure_excluded_denominator]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[node_local_cutoff]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[unfinalized_gossip]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[producer_positive_subset]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[duplicate_inflation]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[missing_evidence_accepted]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[receipt_is_admission]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[CLOSE_omission]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unsafe_variant_has_counterexample[unauthenticated_checkpoint_substitution]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation9]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_checkpoint_cannot_substitute_authority[mutation10]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes0-WRONG_CONTEXT]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes1-WRONG_CONTEXT]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes2-WRONG_SESSION]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes3-WRONG_BINDING]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes4-WRONG_BINDING]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes5-WRONG_BINDING]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes6-WRONG_BINDING]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes7-WRONG_BINDING]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes8-WRONG_BINDING]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes9-WRONG_DIMENSION_OR_CHOICE]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_signed_contexts_do_not_count[changes10-WRONG_DIMENSION_OR_CHOICE]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_unauthenticated_vote_invalidates_batch_without_mutation",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_window_is_fixed_by_policy_not_proposer",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_source_loss_recovery_is_incomplete[OPEN]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_source_loss_recovery_is_incomplete[VOTE]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_source_loss_recovery_is_incomplete[CLOSE]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_corrupt_vote_bytes_fail_old_certificate",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_finalized_sources_do_not_alias_mutable_experiment_inputs",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_close_is_mandatory_exact_and_first[omit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_close_is_mandatory_exact_and_first[reorder]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_close_is_mandatory_exact_and_first[alter]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_close_is_mandatory_exact_and_first[extra]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_close_is_mandatory_exact_and_first[early]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_cross_reference_requires_full_compatible_finality[changes7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_five_media_anchors_reset_epoch_and_do_not_erase_charges",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_quota_failure_close_has_no_refund",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_delayed_undecided_retry_keeps_lifetime_charge",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_retry_restrictions[too_early]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_retry_restrictions[terminal_negative]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_retry_restrictions[usable_pass]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_retry_restrictions[identity_change]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_media_anchor_makes_other_session_stale_without_rewrite",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_recovery_rollback_and_conflicting_checkpoint[candidate0-True-True-INVALID]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_recovery_rollback_and_conflicting_checkpoint[candidate1-True-True-CONFLICTING_FINALITY]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_recovery_rollback_and_conflicting_checkpoint[candidate2-False-True-INVALID]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_recovery_rollback_and_conflicting_checkpoint[candidate3-True-False-INCOMPLETE_HISTORY]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_recovery_accepts_only_descendant_for_further_replay",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_custody_threshold_is_not_permanent_availability",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_sizes_and_workload_arithmetic",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17p_review_journal",
+          "name": "test_no_production_module_imports_verification_package",
+          "outcome": "passed"
+        }
+      ],
+      "total": 80
+    },
+    {
+      "junit": "temp/task717p-regression.xml",
+      "passed": 770,
+      "seconds": 117.961,
+      "tests": [
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_frozen_L_golden_bytes_hashes_and_semantic_boundary",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[duplicate-reviewer]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[malformed-reviewer]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[noncanonical-newline]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[null-reviewers]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[self-consistent-foreign-root]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[tampered-policy-version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[unknown-field]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[wrong-manifest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[wrong-network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unchanged_L_negative_vectors[wrong-validator-epoch]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_pin_missing_wrong_or_peer_supplied",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-genesis_version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-index]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-previous_hash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-application]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-initial_block_version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-consensus_message_version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-validator_manifest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-validator_set_commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-agreement_descriptor]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-agreement_profile_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-policy_registry]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-policy_registry_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-reviewer_bootstrap]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-reviewer_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-native_bootstrap]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-native_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[missing-history_bootstrap]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-genesis_version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-index]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-previous_hash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-application]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-initial_block_version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-consensus_message_version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-validator_manifest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-validator_set_commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-agreement_descriptor]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-agreement_profile_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-policy_registry]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-policy_registry_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-reviewer_bootstrap]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-reviewer_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-native_bootstrap]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-native_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_all_17_fields_required_and_nonnull[null-history_bootstrap]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path9]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_closed_schema_at_every_G2_object[path10]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[newline]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[bom]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[utf8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[nested-duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[float]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[exponent]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[nan]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[infinity]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[negative-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[escape]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[spaces]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[order]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[trailing]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[surrogate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[unicode]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[depth]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[huge-integer]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_lexical_and_resource_rejections[wrong-input-type]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path9]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[True-path10]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path9]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[1-path10]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path9]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_no_version_coercion_or_negotiation[99-path10]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_component_mismatch[validator_set_commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_component_mismatch[agreement_profile_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_component_mismatch[policy_registry_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_component_mismatch[reviewer_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_component_mismatch[native_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_changed_source_changes_G_even_after_internal_rebinding[reviewer]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_changed_source_changes_G_even_after_internal_rebinding[native]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_changed_source_changes_G_even_after_internal_rebinding[policy]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_changed_source_changes_G_even_after_internal_rebinding[manifest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_changed_source_changes_G_even_after_internal_rebinding[application]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_changed_source_changes_G_even_after_internal_rebinding[network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_tampered_included_content_without_rehash[manifest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_tampered_included_content_without_rehash[reviewer]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_tampered_included_content_without_rehash[native]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_tampered_included_content_without_rehash[policy]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7B7D]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[0x7b7d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[zz]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[None]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[20]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[5b5d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b2278223a312c2278223a317d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b2278223a312e307d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b7d0a]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[ff]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b2278223a225c7564383030227d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b2278223a225c7530306539227d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b305d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_strict_embedded_policy_bytes[7b2278223a2261616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161227d]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_unicode_source_retains_exact_scalars_and_no_semantic_approval",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[genesis_hash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[agreement_profile_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[initial_state_commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[policy_registry_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[reviewer_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[native_bootstrap_digest]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[bootstrap_history_commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_explicit_circular_dependencies_reject[finalized_ref]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_opaque_policy_field_is_never_interpreted_as_signature_authority",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[unsorted]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[malformed]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[uppercase]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[too-many]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[status]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_reviewer_bootstrap[usage]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[unsorted]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[negative]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[trailing-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[float]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[nonce-int]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[nonce-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[nonce-two]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[supply]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[over-supply]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[recipient-key]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[too-many]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_native_bootstrap[extra]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_N1_exact_money_conservation_and_clean_history",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_static_manifest_rejects_large_duplicate_offcurve_and_duplicate_ID",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_maximum_list_source_and_global_size_boundaries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_registry_exact_total_cap_and_one_over",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_component_cross_bindings_and_history_commitments",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_adapter_exact_membership_quorum_and_cache_never_overrides_pin",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_local_IO_and_resource_failure_distinct",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_bounded_read_and_permission_failure",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_manifest_and_adapter_resource_failure_not_invalid_data",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_source_network_application_and_registry_order",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_source_depth_exactly_32_and_over",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_independent_JS_construction_and_unchanged_literal_vectors",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17m_g2_genesis",
+          "name": "test_production_sources_and_historical_fixtures_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_frozen_commitment_and_all_authoring_orders",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[unknown]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[missing]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[bool]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[float]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[str-int]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[epoch]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[membership-version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[profile]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[protocol]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[domain]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[fault-budget]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[quorum]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[count]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[order]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[duplicate-key]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[unicode]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[short-network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[long-network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[bad-network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[null-keys]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[duplicate-json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[whitespace]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[exponent]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[negative-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[depth]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[oversize]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[bom]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_manifest_adversarial_schema[escape]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[041111111111111111111111111111111111111111111111111111111111111111]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[0x021111111111111111111111111111111111111111111111111111111111111111]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[02ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[020000000000000000000000000000000000000000000000000000000000000000]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[001111111111111111111111111111111111111111111111111111111111111111]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[None]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[123]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_bad_public_key_representations[0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_duplicate_identity_collision_defense",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_wrong_claimed_context[network_id-peer-test]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_wrong_claimed_context[genesis_hash-2222222222222222222222222222222222222222222222222222222222222222]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_wrong_claimed_context[validator_set_commitment-2222222222222222222222222222222222222222222222222222222222222222]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_wrong_claimed_context[agreement_profile_digest-2222222222222222222222222222222222222222222222222222222222222222]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_self_declared_peer_genesis_and_roster_cannot_authorize",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_only_test_networks_and_static_epoch",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[proposal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[precommit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[nil-prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[nil-precommit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[round-one-prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_authenticated_messages[justified-proposal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_quorum_proofs[pv]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_quorum_proofs[q4-x]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_quorum_proofs[q4-y]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_frozen_quorum_proofs[q4-x-four]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_insufficient_quorum_even_with_valid_signatures[0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_insufficient_quorum_even_with_valid_signatures[1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_insufficient_quorum_even_with_valid_signatures[2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[high-s-duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[contradictory]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[unordered]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[unauthorized]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[mixed-round]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[mixed-epoch]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[wrong-phase]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[nil]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[tamper]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[bad-v]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[genesis]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[protocol]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[profile]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[set]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[parent]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[height]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[hash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[wrong-proposer]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[proposal-round]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[extra-roster]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[unknown]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[oversize]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[depth]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[too-many]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[bad-commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[bool-commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[wrong-proof-version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_adversarial_quorum[duplicate-json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_nil_and_phase_semantics",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_missing_signed_proposal_is_incomplete[absent]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_missing_signed_proposal_is_incomplete[null]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_equivocation_does_not_rewrite_authority_or_existing_qc",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_registered_id_requires_exact_full_key_and_high_s_has_no_extra_weight",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_conflicting_apparent_certificates_require_both_authentic_proofs",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_history_and_parent_boundary",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_cache_reopen_in_fresh_process_and_independent_pins",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[truncated]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[oversize]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[missing]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[genesis]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[roster]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[commitment]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[unknown]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[epoch]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_corrupt_local_cache_fails_closed[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_storage_and_resource_failures_are_not_invalidity",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_cache_recomputed_self_consistency_cannot_replace_independent_membership",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_cache_replace_failure_preserves_previous_file",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_signer_gate_replay_and_h1_r0_nonregression",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_max_width_valid_signed_quorums",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "name": "test_isolation_and_frozen_contract_files_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[proposal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[precommit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[nil-prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[nil-precommit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[round-one-prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[justified-proposal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[network-b]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[genesis-b]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[set-b]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[conflicting-prevote]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[conflicting-proposal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[precommit-key-2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[precommit-key-3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[precommit-key-4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[conflicting-precommit-key-1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[conflicting-precommit-key-2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[conflicting-precommit-key-3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[prevote-key-2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[prevote-key-3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_frozen_signing_vectors[prevote-key-4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_five_frozen_proof_objects[pv]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_five_frozen_proof_objects[q4-x]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_five_frozen_proof_objects[q4-y]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_five_frozen_proof_objects[q4-x-four]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_five_frozen_proof_objects[re]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_independent_javascript_oracle_is_the_frozen_contract_source",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[whitespace]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[float]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[bool]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[missing]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[extra]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[null]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[negative-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[exponent]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[unicode]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[escape]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[bom]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[depth]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[oversize]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[purpose]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[genesis]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[epoch]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[set]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[profile]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[identity]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[parent]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_closed_canonical_rejections[integer-overflow]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_high_s_and_no_fallback",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_proposal_and_durable_identical_retry",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_lock_pv_and_recovery",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_nil_vote_paths_and_missing_data",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_authenticated_evidence_required[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_authenticated_evidence_required[signature]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_authenticated_evidence_required[mixed]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_authenticated_evidence_required[few]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_authenticated_evidence_required[nil]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_authenticated_evidence_required[other-value]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_unavailable_agreement_context[round]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_unavailable_agreement_context[height]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_unavailable_agreement_context[unjustified]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_unavailable_agreement_context[identity]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_concurrent_identical_and_conflicting_connections",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[before_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[after_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[after_sign]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[before_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[after_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[before_release]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[after_publication]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_real_process_crash_windows[during_lock_update]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_crash_preserves_committed_lock_and_valid_pair[after_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_crash_preserves_committed_lock_and_valid_pair[after_sign]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_crash_preserves_committed_lock_and_valid_pair[after_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_exclusive_owner_processes_and_reacquisition",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_two_process_signing_attempts[False]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_two_process_signing_attempts[True]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_ambiguous_commit_acknowledgement[after_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_ambiguous_commit_acknowledgement[after_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_busy_and_unavailable_until_recovery",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[io-before_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[io-before_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[full-before_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[full-before_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[commit-denied-before_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[commit-denied-before_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[commit-busy-before_reservation_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_storage_faults_before_commit[commit-busy-before_signature_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[blob]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[head]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[slot]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[outbox]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[event]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[state]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[missing-db]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[wrong-genesis]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_tamper_and_missing_store_refuse[wal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_stale_backup_and_joint_rollback_limit",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_crypto_failure_distinct_from_sqlite",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_semantic_tampering_even_with_recomputed_hashes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_missing_support_source_and_foreign_keys",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_height_and_round_transitions_are_gated_without_writes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_witness_failure_and_generation_revocation",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_same_key_namespace_switch_and_missing_witness_refused",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_proposal_nil_and_boundaries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_local_witness_joint_rollback_cannot_downgrade_live_owner",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_pending_reservation_blocks_successor_and_uses_retained_evidence",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_signed_retry_never_invokes_key_and_does_not_mutate_history",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_mutated_parsed_fixture_cannot_authorize_validity",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_rollback_failure_still_closes_connection_and_releases_writer",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_restored_authority_context_cannot_be_rebound[network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_restored_authority_context_cannot_be_rebound[genesis]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_restored_authority_context_cannot_be_rebound[set]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_restored_authority_context_cannot_be_rebound[profile]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_manifest_requires_exact_static_authority[unsorted]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_manifest_requires_exact_static_authority[duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_manifest_requires_exact_static_authority[point]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_manifest_requires_exact_static_authority[bool]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_manifest_requires_exact_static_authority[extra]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_missing_witness_and_physical_corruption_do_not_bootstrap",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_no_active_runtime_imports_or_model_fixture_changes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "name": "test_sqlite_configuration_and_initialization_refusal",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_all_adversarial_scenarios_and_expected_progress",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_hidden_commit_retains_lock_across_nil_and_intact_restart",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_different_locks_are_reachable_and_later_justification_switches",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_byzantine_proposer_equivocation_preserves_honest_slots",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_valid_value_learning_after_nil_precommit_is_not_lock",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_actual_valid_round_proof_needed",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_stale_justification_cannot_override_newer_different_lock",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_equal_lock_round_is_accepted_by_line_29",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_late_old_round_decision_after_advance",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_abstract_validity_component_rejected[protocol]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_abstract_validity_component_rejected[canonical]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_abstract_validity_component_rejected[original]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_abstract_validity_component_rejected[admission]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_abstract_validity_component_rejected[transactions]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_abstract_validity_component_rejected[resources]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_correct_parent_height_and_unknown_data_are_distinct",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_duplicate_and_equivocated_byzantine_messages_count_one_identity",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_one_byzantine_cannot_force_round_catchup_by_multiple_phases",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_quorum_of_nil_precommits_does_not_decide",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_qc_alone_cannot_decide_contents[unknown_proposal]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_qc_alone_cannot_decide_contents[incomplete_data]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_qc_alone_cannot_decide_contents[decoder_unavailable]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_stale_timers_do_not_sign_or_advance",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_once_guards_and_timer_arming",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_two_consecutive_heights_use_decided_parent_and_reset_lock",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_fault_budget_and_collision_free_identifier_assumptions",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_checker_detects_mutated_proofs_and_decisions",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_checker_detects_honest_double_vote_and_unlock",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_bfs_counts_deterministically_and_exposes_cutoffs",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_bfs_detects_invalid_initial_state",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_negative_controls_are_not_correct_reference_executions",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_all_schedules_replay_and_tamper_is_detected",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "name": "test_retained_results_match_sources_and_all_trace_prefixes_replay",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-sqlite]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-sqlite]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_alternate_valid_signature_is_one_logical_vote",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[sqlite]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-sqlite]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-sqlite]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_failed_write_and_duplicate_retry_never_publish_uncommitted_finality",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_commit_succeeded_but_response_failed_rereads_durable_outcome",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_unknown_outcome_and_failed_reload_withholds_finality_queries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_failed_chain_validation_cannot_republish_available_finality_during_recovery",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_busy_is_operational_and_leaves_no_partial_state",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_real_sqlite_full_rolls_back_vote_and_certificate",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-denied]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-busy]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_conflicting_vote_invalid_batch_and_forged_duplicate_do_not_overwrite",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_settings_connection_ownership_and_nested_begin",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_stale_refresh_cannot_regress_committed_cache",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_gapped_finality_and_guarded_unfinalized_reorg_preserve_existing_semantics",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[json]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[sqlite]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_stale_truncation_cannot_discard_a_nonfinalized_vote",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_stale_real_facade_save_refreshes_derived_report_finality_head",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_missing_one_finality_section_is_not_reinitialized",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_real_facade_load_outage_is_operational_not_invalid_evidence[failure0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_real_facade_load_outage_is_operational_not_invalid_evidence[failure1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_reorg_and_finality_race_in_both_commit_orders[finality]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_reorg_and_finality_race_in_both_commit_orders[reorg]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_separate_process_vote_writers[False]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_separate_process_vote_writers[True]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_actual_process_termination_before_and_after_commit[before_commit]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "name": "test_actual_process_termination_before_and_after_commit[after_commit_before_publish]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_frozen_inventory_and_published_oracles",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[identity]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[zstd]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-message]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-aggregate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-unicode]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-unicode-aggregate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-high-s]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-identity]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-zstd]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-high-s]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-5-7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-1-3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-0-1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-1-1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-15-16]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-unreduced]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-zero-alias]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-zero-votes]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-negative]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-float]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-bool]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[ratio-bad-too-large]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-unsupported]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-pad-bits]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-oversize-text]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-size-bool]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-unknown]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-base64-whitespace]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-checksum]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[media-bad-hash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-missing-memo]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-wrong-network]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-old-version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-legacy-signature]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-unsigned]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-wrong-genesis]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[native-bad-tampered-signature]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-double-reward]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-reward-signature]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-reward-recipient]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-genesis-reward]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-vote-order]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-status-tamper]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-evidence-extra]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-attestation-signature]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-summary-tamper]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-native-duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-text-caption]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-circular-finality]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[block-bad-bool-version]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-duplicate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-surrogate]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-negative-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-nan]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-unicode-escape]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-bom]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[json-bad-depth]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[unicode]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[finality]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[finality-proof]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[tally-zero-votes]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[tally-all-unsure]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[tally-defined-zero]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_versioned_golden_vectors[tally-one-third]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_encodings_commit_differently_and_reconstruct_without_encoder",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_producer_uses_full_descriptor_size_and_default_profile",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[timeout]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[oom]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[crash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[cancelled]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[saturated]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[cleanup_failure]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_local_failure_propagates_and_producer_withholds_descriptor[unsupported_platform]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_closed_worker_and_no_decoder_injection",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_producer_falls_back_to_verified_identity_for_encoder_failure[None]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_producer_falls_back_to_verified_identity_for_encoder_failure[broken frame]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_compressed_producer_local_failure_is_not_masked",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_signature_variant_same_id_different_aggregate_and_block_and_duplicate_rejected",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_explicit_trusted_context[changes0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_explicit_trusted_context[changes1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_explicit_trusted_context[changes2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_unicode_j_vs_native_a_and_missing_null",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_all_ratio_inputs_and_pairwise_comparisons",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[01]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[+1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[-0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[1.0_0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[1e0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[NaN]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[Infinity]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[1.0000001]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[True]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_negatives[1.0_1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_decimal_time_and_signature_boundaries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_closed_schemas_all_required_fields_and_unknown_fields",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_typed_booleans_and_vote_snapshot_restrictions",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_size_formula_complete_limit_and_child_budgets",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_portable_canonical_preimages_without_crypto_dependencies",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_original_and_encoded_size_boundaries[text/plain-262144]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_original_and_encoded_size_boundaries[image/png-2097152]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_text_canonicality_controls_and_no_silent_repair",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_json_scalar_depth_and_wire_canonicality",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_finality_uses_trusted_external_context_and_cannot_rewrite_record",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_active_runtime_does_not_import_isolated_package",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path0-zoidberg-signing-other-v2-bb46f35d4d03946220e5427aa800d0947260b06c1093cfeeb405e9bc6711d4e7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path1-1-8540d7ac175fdee3667841c07c33c506f7c3e4424e647dc0efdac71a11f9cf0e]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path2-1-e3642ab311b8e334120c35fd964700c6cf2da30b41a3826313feb331654a2999]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path3-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-cb35653050fa50bcbb4c7a8ffeaac0479a4cc6caac38b3fa21f88a23549f2a31]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path4-meme_mining_reward-12d023aed3372fe39a3b0bbcfb68314aa2342c7e57a18a9e88f060d4e849d609]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path5-zoidbergchain/finality-attestation/v2-73405126a94a1d6239017af1a5f40019577b0b300ccaa7ea039baced051ef396]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_published_domain_mutation_preimages_reject_signature_replay[path6-finality-attestation-721dd317f136a21d0ef38655616b8691099e9d625b706e52d2eac11a5e155795]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_nonce_memo_and_record_count_limits",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_complete_record_at_max_image_and_caption_size_with_real_signatures",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_complete_record_at_max_text_size",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_7_task_7_10c_v3",
+          "name": "test_ten_signed_transfers_and_intrinsic_nonce_order",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_independent_outcomes[original-admissible-True]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_independent_outcomes[original-not_admissible-False]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_independent_outcomes[not_original-admissible-False]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_independent_outcomes[not_original-not_admissible-False]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_one_dimension_resolved_and_all_unsure_unresolved",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_unsure_quorum_and_threshold_boundary[originality-original]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_unsure_quorum_and_threshold_boundary[admissibility-admissible]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_exact_seventy_percent_boundary_and_ineligible_vote[originality-original-not_original]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_exact_seventy_percent_boundary_and_ineligible_vote[admissibility-admissible-not_admissible]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_legacy_votes_do_not_become_dual_votes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_signature_message_binds_dimension_and_choice",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_dual_review_policy_and_signed_vote_golden_vector",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_challenge_rejects_cross_dimension_and_replay",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_sqlite_accepts_one_vote_per_dimension_and_survives_restart",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_existing_sqlite_vote_table_upgrades_additively_and_idempotently",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_concurrent_same_dimension_votes_have_one_durable_winner",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_peer_reconstructs_dimension_bound_message",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_independent_nodes_tally_signed_peer_votes_in_any_arrival_order",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_6_task_6_5_dual_review",
+          "name": "test_equivocation_is_scoped_to_one_dimension",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_policy_v1_constants_serialization_digest_and_epoch_boundaries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_creator_wallet_age_finality_and_duplicate_counting",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_zoid_and_mixed_paths_exclude_pending_or_self_transfer_representations",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_probation_rate_promotion_restart_and_snapshot_determinism",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_rejected_vote_does_not_consume_quota_and_state_is_idempotent",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_time_alone_does_not_promote_and_cooldown_is_respected",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_two_nodes_match_and_unfinalized_changes_do_not_change_snapshot",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_versioned_bootstrap_grant_becomes_established_without_legacy_allowlist",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility",
+          "name": "test_sqlite_epoch_limit_is_atomic_and_replay_safe",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_protocol_identity_constants_are_explicit",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_network_id_normalization_and_resolution_are_explicit",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_network_id_rejects_invalid_values",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[hello-\"hello\"]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[-\"\"]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[hello\\nworld-\"hello\\\\nworld\"]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[cafe-\"cafe\"]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[caf\\xe9-\"caf\\xe9\"]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[0-0]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[1-1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[-1--1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[1208925819614629174706176-1208925819614629174706176]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[True-true]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[False-false]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_primitive_determinism[None-null]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_dictionary_insertion_order_does_not_change_bytes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_nested_dictionary_insertion_order_does_not_change_bytes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_list_order_remains_significant",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[1.5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[nan]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[inf]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[-inf]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[value4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[value5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[value6]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[value7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_unsupported_or_unsafe_values_fail_loudly[value8]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_bytes_are_deterministic_and_round_trip",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_empty_bytes_are_supported",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_non_utf8_bytes_are_supported",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_reserved_bytes_shape_is_rejected_for_raw_dictionaries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_reserved_bytes_shape_does_not_collide_with_actual_bytes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_domain_envelope_binds_protocol_version_network_object_type_and_payload",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_domain_separation_changes_bytes_and_hashes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_payload_mutation_changes_domain_hash",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_foundation_golden_hash_vectors",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_stability_repeated_serialization_and_hashing",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_legacy_vote_message_remains_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_legacy_transfer_message_and_tx_id_remain_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_legacy_certificate_id_remains_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_legacy_peer_signature_payload_remains_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_legacy_block_hash_remains_unchanged",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1",
+          "name": "test_protocol_v1_block_golden_vectors_are_literal_and_stable",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_protocol_v1_golden_fixture_matches_protocol_identity",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_canonical_serialization_vectors_match_runtime",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_block_vectors_match_runtime",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_vote_and_certificate_vectors_match_runtime",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_native_transfer_vectors_match_runtime",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_peer_message_vectors_match_runtime",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_genesis_vectors_match_runtime",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_golden_vectors",
+          "name": "test_legacy_control_vectors_remain_distinct_from_protocol_v1_vectors",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_freeze_consistency",
+          "name": "test_freeze_report_matches_runtime_constants",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_freeze_consistency",
+          "name": "test_freeze_report_domains_match_protocol_domains_and_fixture",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_freeze_consistency",
+          "name": "test_authoritative_spec_exists_and_contains_required_frozen_identity",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_freeze_consistency",
+          "name": "test_per_area_docs_and_readme_defer_to_authoritative_spec",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_freeze_consistency",
+          "name": "test_freeze_report_records_model_a_and_legacy_boundaries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_payload_vector_is_literal",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_signing_payload_message_hash_and_tx_id_vectors_are_literal",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_signature_recovery_vector_is_literal",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_network_domain_and_protocol_hash_vectors_are_literal",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_mutation_vectors_change_tx_id_and_invalidate_signature[nonce-8-a1779807b5c5e7b7fe8f3c6c14b52ee6f89e5dd8aaab4f6e8ebe9e0a40240ac7]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_mutation_vectors_change_tx_id_and_invalidate_signature[amount-2-e6dfbb58b54ccdadad8ea869422e003f2cb90f7f5361e83f5e536f0d4467dc2e]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_mutation_vectors_change_tx_id_and_invalidate_signature[fee-0.25-4a5b12f9706682c6025370794cd9317387646036b7d78ab043202f4085876726]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_mutation_vectors_change_tx_id_and_invalidate_signature[memo-native transfer vector updated-edf4715c0a55d7fdf45b51bc95e7da0f4da7d7f7b96c265456ab7a48afd4b93a]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transfer_message_requires_expected_network",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_native_transaction_shape_accepts_literal_vector",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_transaction_id_is_signature_independent_but_field_sensitive",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_amount_normalization_is_canonical_and_rejects_scientific_notation",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_transaction_rejects_legacy_signing_message",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_message_without_explicit_version_never_falls_back_to_legacy",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.test_protocol_v1_native_transfers",
+          "name": "test_protocol_v1_transfer_message_cannot_validate_as_vote_domain",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_media_fixture_preserves_recovered_legacy_bytes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_block_zero_reconstructs_original_meme",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_golden_vectors_match_literals",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_network_binding_and_mutation_hashes_are_literal_and_distinct",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_construction_is_repeatable",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_is_independent_of_clock_and_wallet_inputs",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_is_independent_of_local_filesystem_and_node_identity",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_fresh_node_restart_preserves_canonical_genesis_across_backends[_json_backend]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_fresh_node_restart_preserves_canonical_genesis_across_backends[_sqlite_backend]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_fresh_json_and_sqlite_nodes_share_the_same_literal_genesis",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_json_to_sqlite_migration_preserves_canonical_genesis",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_loading_legacy_genesis_requires_explicit_reset_and_does_not_delete_data",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_loading_mutated_public_testnet_v1_genesis_fails_closed_without_deleting_data",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_old_media_less_public_testnet_v1_genesis_requires_explicit_prelaunch_reset",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_missing_media_fields[media_hash]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_missing_media_fields[media_bytes]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_missing_media_fields[mime_type]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_missing_media_fields[content_type]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_media_byte_mutation",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_rehashed_foreign_media",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_declared_media_hash_mutation",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_mime_type_mutation",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_public_testnet_v1_genesis_rejects_same_record_under_alternate_network",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_genesis",
+          "name": "test_mutated_public_testnet_v1_genesis_record_fails_against_frozen_hash",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_minted_block_embeds_media_and_recovers_without_content_cache",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_block_validation_rejects_modified_embedded_media_without_content_cache",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_block_validation_rejects_modified_declared_media_hash",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_block_validation_rejects_modified_declared_content_hash",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_block_round_trip_preserves_hash_and_media[_json_backend]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_block_round_trip_preserves_hash_and_media[_sqlite_backend]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_duplicate_certified_submission_guard_blocks_double_mint",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_block_format",
+          "name": "test_protocol_v1_mint_rejects_certificate_content_hash_mismatch",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[1-1]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[2-2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[3-2]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[4-3]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[5-4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[6-4]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[7-5]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_validator_configuration_normalizes_duplicates_and_rejects_malformed_entries",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_quorum_finality_is_authoritative_durable_and_idempotent",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_attestation_rejects_unknown_bad_domain_bad_signature_and_noncanonical_target",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_equivocation_is_detected_and_never_counts_for_both_hashes",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "name": "test_finalized_anchor_cannot_be_replaced_by_a_conflicting_chain",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_6_public_finality_status",
+          "name": "test_public_status_distinguishes_accepted_confirmation_and_quorum_finality",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_6_public_finality_status",
+          "name": "test_confirmation_depth_does_not_finalize_without_validator_quorum",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_task_3_6_public_finality_status",
+          "name": "test_public_finality_status_survives_reload",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "name": "test_protocol_v1_lifecycle_happy_path_depth_confirms_without_quorum_finality",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "name": "test_invalid_protocol_v1_candidate_block_does_not_mutate_chain_or_rewards",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "name": "test_protocol_v1_duplicate_mint_after_restart_keeps_single_creator_reward[_json_backend]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "name": "test_protocol_v1_duplicate_mint_after_restart_keeps_single_creator_reward[_sqlite_backend]",
+          "outcome": "passed"
+        },
+        {
+          "classname": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "name": "test_reconcile_submission_canonical_state_restores_mint_eligible_status_after_block_disappears",
+          "outcome": "passed"
+        }
+      ],
+      "total": 770
+    }
+  ],
+  "task": "7.17P",
+  "total_passed": 850
+}

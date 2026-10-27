@@ -1,5 +1,21 @@
 # Milestone 7 Task 7.17O — Network-wide reviewer voting protocol decision
 
+**Task 7.17P verification follow-up (2026-10-27):** The
+[journal safety and feasibility report](milestone-7-network-wide-review-journal-feasibility.md)
+adds an isolated application model over an explicitly trusted finalized-journal
+abstraction, reproducible bounded replay/admission/quota searches, adversarial
+schedules, eight detected unsafe controls and a workload calculator. It does not
+verify a new BFT implementation or extend J's height1/round0 signer. Mandatory
+close-first transitions preserve cutoff safety; +256 guarantees no minimum human
+time. The proposed 24-vote/five-second profile caps admission at 288 signed
+votes/minute; q3 does not permanently guarantee two online evidence sources, and
+media-based quota epochs can stall while journal ticks continue. P is a reviewable
+verification artifact, not approval of these settings. Production journal and
+Task 7.17 remain **BLOCKED** on owner policy/architecture decisions, complete
+two-stream/G2/signing/media schemas, independent implementation/availability
+review and measurements. The original O proposal and execution record below
+remain historical; no production implementation or activation is authorized.
+
 Date: 2026-10-27 (America/New_York). **Protocol design only; inactive proposal.**
 
 The owner has directed network-wide signed user voting, independent node tallies,

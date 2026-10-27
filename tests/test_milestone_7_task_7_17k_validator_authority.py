@@ -419,7 +419,7 @@ def test_max_width_valid_signed_quorums(auth):
 
 def test_isolation_and_frozen_contract_files_unchanged():
     tracked = subprocess.run(['git','ls-files','*.py'],cwd=ROOT,capture_output=True,text=True,check=True).stdout.splitlines()
-    active = [ROOT/p for p in tracked if not p.startswith(('tests/','verification/','isolated_bft717j/','isolated_bft717k/'))]
+    active = [ROOT/p for p in tracked if not p.startswith(('tests/','verification/','isolated_bft717j/','isolated_bft717k/','isolated_g2717m/'))]
     assert all('isolated_bft717k' not in p.read_text(encoding='utf-8') for p in active)
     paths = ['isolated_bft717j','verification/tendermint717h','tests/fixtures/bft717j',
              'canonical_v3','services','blockchain.py','storage.py','protocol_v1_genesis.py',

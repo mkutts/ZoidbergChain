@@ -2,6 +2,23 @@
 
 Date: 2026-10-22 (America/New_York).
 
+**Task 7.17N policy-decision follow-up (2026-10-27):** The
+[reviewer admission policy decision](milestone-7-reviewer-admission-policy-decision.md)
+recommends a bounded included signed cohort, finalized-parent eligibility and
+finalized-media-only participation/issuance, with zero-decisive reviews unresolved.
+It explicitly seeks owner approval for producer subset/censorship discretion,
+loss of unminted participation credit, largely inactive 5/25 quotas, limited
+canonical offense coverage and media-only stalls. It does not inherit this
+document's unapproved earliest-established-plus-fifteen selection, control blocks,
+unminted acceptance or old finality-policy authority. The later G/I/K/L/M work
+specifies or implements isolated portions of the finality/authority/genesis
+foundation; it does not approve the combined application policy or supply a live
+agreement engine. **Task 7.17 remains BLOCKED** pending owner decisions, exact
+combined policy/schema freeze, independent replay vectors and remaining finality
+integration. Task 7.17N is a decision package, not approval or authorization to
+implement reviewer history. Earlier proposals and gate snapshots below remain
+historical and unchanged.
+
 **Reviewable amendment, not approval or implementation. Task 7.17 remains
 BLOCKED.** Recommend a genesis-authenticated bootstrap, a complete in-block
 event journal, deterministic replay, and atomic admission of a media submission

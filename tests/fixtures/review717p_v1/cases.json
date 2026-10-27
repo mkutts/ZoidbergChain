@@ -1,0 +1,16 @@
+{
+  "fixture_version": 1,
+  "provenance": "Manually authored expected outcomes; symbolic identities only; not signing vectors",
+  "tally_cases": [
+    {"name": "exactly_70", "p": 7, "n": 3, "u": 0, "e": 1, "expected": "PASS"},
+    {"name": "below_70", "p": 6, "n": 3, "u": 0, "e": 1, "expected": "FAIL"},
+    {"name": "all_unsure", "p": 0, "n": 0, "u": 5, "e": 1, "expected": "UNDECIDED"},
+    {"name": "no_votes", "p": 0, "n": 0, "u": 0, "e": 0, "expected": "UNDECIDED"},
+    {"name": "five_positive", "p": 5, "n": 0, "u": 0, "e": 1, "expected": "PASS"},
+    {"name": "missing_established", "p": 5, "n": 0, "u": 0, "e": 0, "expected": "UNDECIDED"},
+    {"name": "insufficient_quorum", "p": 4, "n": 0, "u": 0, "e": 1, "expected": "UNDECIDED"},
+    {"name": "one_decisive_positive", "p": 1, "n": 0, "u": 4, "e": 1, "expected": "PASS"},
+    {"name": "majority_negative", "p": 2, "n": 3, "u": 0, "e": 1, "expected": "FAIL"},
+    {"name": "unsure_excluded_denominator", "p": 3, "n": 1, "u": 1, "e": 1, "expected": "PASS"}
+  ]
+}

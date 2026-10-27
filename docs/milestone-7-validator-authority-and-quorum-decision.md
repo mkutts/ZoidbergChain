@@ -1,5 +1,19 @@
 # Milestone 7 Task 7.17F — Validator authority and quorum decision
 
+**Task 7.17L follow-up (2026-10-26):** The
+[G2 genesis and bootstrap contract](milestone-7-g2-genesis-and-bootstrap-contract.md)
+specifies a closed proposed outer genesis envelope, noncircular M/C and
+policy/D/A bindings, clean reviewer/native bootstrap commitments, independent
+release-pin rules and conditional historical recovery. Exact Python/JavaScript
+envelope vectors do not authenticate an approved launch genesis. Current gates:
+**PASS** for I/K's isolated N4 manifest canonicalization; **PARTIAL** for proposed
+G2 serialization/authentication; **BLOCKED** for complete application bootstrap,
+fresh-node recovery, production deployment and Task 7.17 resumption. K still
+returns `INCOMPLETE_AUTHORITY`. Inner policy/combined-history schemas, owner
+approval and launch distribution remain unresolved. No production genesis,
+consensus, roster, policy activation or implementation changes occur here. The
+original F analysis/status below remains a historical proposal.
+
 Date: 2026-10-24 (America/New_York).
 
 **Specification for owner review, not an approved launch configuration or an

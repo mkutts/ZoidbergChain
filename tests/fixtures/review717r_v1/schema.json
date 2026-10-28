@@ -1,0 +1,889 @@
+{
+  "enums": {
+    "bit": [
+      1,
+      0,
+      1
+    ],
+    "choice": [
+      1,
+      0,
+      2
+    ],
+    "dimension": [
+      1,
+      0,
+      1
+    ],
+    "outcome": [
+      1,
+      0,
+      2
+    ],
+    "result": [
+      1,
+      0,
+      9
+    ],
+    "round": [
+      4,
+      0,
+      2147483647
+    ],
+    "sourcekind": [
+      1,
+      0,
+      6
+    ],
+    "status": [
+      1,
+      0,
+      2
+    ],
+    "step": [
+      1,
+      0,
+      2
+    ],
+    "u16": [
+      2,
+      0,
+      65535
+    ],
+    "u32": [
+      4,
+      0,
+      4294967295
+    ],
+    "u64": [
+      8,
+      0,
+      9007199254740991
+    ],
+    "u8": [
+      1,
+      0,
+      255
+    ],
+    "unsupported": [
+      1,
+      255,
+      255
+    ],
+    "v1": [
+      2,
+      1,
+      1
+    ],
+    "validator": [
+      1,
+      0,
+      3
+    ],
+    "vr": [
+      4,
+      -1,
+      2147483647
+    ],
+    "zero64": [
+      8,
+      0,
+      0
+    ],
+    "zero8": [
+      1,
+      0,
+      0
+    ]
+  },
+  "kinds": {
+    "ADMISSION": 4,
+    "CHECKPOINT": 17,
+    "CLOCK": 12,
+    "CLOSE": 5,
+    "DATA": 9,
+    "EPOCH": 7,
+    "HEADER": 13,
+    "INVENTORY": 21,
+    "MEDIA": 18,
+    "MEDIA_ANCHOR": 20,
+    "MESSAGE": 14,
+    "OPEN": 1,
+    "PARTICIPATION": 6,
+    "POLICY": 8,
+    "PROOF": 16,
+    "PV": 15,
+    "REFERENCE": 10,
+    "START": 2,
+    "TALLY": 19,
+    "TIME_SAMPLE": 11,
+    "VOTE": 3
+  },
+  "maxima": {
+    "ADMISSION": 528,
+    "CHECKPOINT": 275,
+    "CLOCK": 231,
+    "CLOSE": 219,
+    "DATA": 8182,
+    "EPOCH": 56,
+    "HEADER": 544,
+    "INVENTORY": 2529,
+    "MEDIA": 862,
+    "MEDIA_ANCHOR": 104,
+    "MESSAGE": 383,
+    "OPEN": 530,
+    "PARTICIPATION": 88,
+    "POLICY": 65,
+    "PROOF": 1533,
+    "PV": 1150,
+    "REFERENCE": 79,
+    "START": 80,
+    "TALLY": 65,
+    "TIME_SAMPLE": 74,
+    "VOTE": 508
+  },
+  "schemas": {
+    "ADMISSION": [
+      [
+        "vote",
+        "VOTE"
+      ],
+      [
+        "result",
+        "result"
+      ],
+      [
+        "first_height",
+        "u64"
+      ],
+      [
+        "first_index",
+        "u16"
+      ],
+      [
+        "status",
+        "status"
+      ],
+      [
+        "charged_epoch",
+        "u64"
+      ]
+    ],
+    "CHECKPOINT": [
+      [
+        "network",
+        "nid"
+      ],
+      [
+        "genesis",
+        32
+      ],
+      [
+        "protocol",
+        "v1"
+      ],
+      [
+        "instance",
+        32
+      ],
+      [
+        "validators",
+        32
+      ],
+      [
+        "membership",
+        "zero64"
+      ],
+      [
+        "policy",
+        32
+      ],
+      [
+        "height",
+        "u64"
+      ],
+      [
+        "batch",
+        32
+      ],
+      [
+        "proof",
+        32
+      ]
+    ],
+    "CLOCK": [
+      [
+        "sequence",
+        "u64"
+      ],
+      [
+        "samples",
+        [
+          "array",
+          "TIME_SAMPLE",
+          3,
+          3
+        ]
+      ]
+    ],
+    "CLOSE": [
+      [
+        "sid",
+        32
+      ],
+      [
+        "deadline",
+        "u64"
+      ],
+      [
+        "freeze_height",
+        "u64"
+      ],
+      [
+        "count",
+        "u64"
+      ],
+      [
+        "fold",
+        32
+      ],
+      [
+        "originality",
+        "TALLY"
+      ],
+      [
+        "admissibility",
+        "TALLY"
+      ],
+      [
+        "outcome",
+        "outcome"
+      ]
+    ],
+    "DATA": [
+      [
+        "object_id",
+        32
+      ],
+      [
+        "total",
+        "u32"
+      ],
+      [
+        "offset",
+        "u32"
+      ],
+      [
+        "chunk",
+        "chunk"
+      ]
+    ],
+    "EPOCH": [
+      [
+        "previous",
+        "u64"
+      ],
+      [
+        "current",
+        "u64"
+      ],
+      [
+        "lower",
+        "u64"
+      ],
+      [
+        "time_id",
+        32
+      ]
+    ],
+    "HEADER": [
+      [
+        "network",
+        "nid"
+      ],
+      [
+        "genesis",
+        32
+      ],
+      [
+        "protocol",
+        "v1"
+      ],
+      [
+        "instance",
+        32
+      ],
+      [
+        "validators",
+        32
+      ],
+      [
+        "membership",
+        "zero64"
+      ],
+      [
+        "policy",
+        32
+      ],
+      [
+        "height",
+        "u64"
+      ],
+      [
+        "parent",
+        32
+      ],
+      [
+        "previous_state",
+        32
+      ],
+      [
+        "events_root",
+        32
+      ],
+      [
+        "event_count",
+        "u16"
+      ],
+      [
+        "event_bytes",
+        "u32"
+      ],
+      [
+        "clock",
+        "CLOCK"
+      ]
+    ],
+    "INVENTORY": [
+      [
+        "entries",
+        [
+          "array",
+          "REFERENCE",
+          1,
+          32
+        ]
+      ]
+    ],
+    "MEDIA": [
+      [
+        "network",
+        "nid"
+      ],
+      [
+        "genesis",
+        32
+      ],
+      [
+        "protocol",
+        "v1"
+      ],
+      [
+        "instance",
+        32
+      ],
+      [
+        "validators",
+        32
+      ],
+      [
+        "membership",
+        "zero64"
+      ],
+      [
+        "policy",
+        32
+      ],
+      [
+        "checkpoint",
+        "CHECKPOINT"
+      ],
+      [
+        "sid",
+        32
+      ],
+      [
+        "close_height",
+        "u64"
+      ],
+      [
+        "close_batch",
+        32
+      ],
+      [
+        "close_index",
+        "u16"
+      ],
+      [
+        "close_id",
+        32
+      ],
+      [
+        "submission",
+        16
+      ],
+      [
+        "original",
+        32
+      ],
+      [
+        "creator",
+        20
+      ],
+      [
+        "media_height",
+        "u64"
+      ],
+      [
+        "media_parent",
+        32
+      ],
+      [
+        "count",
+        "u64"
+      ],
+      [
+        "fold",
+        32
+      ],
+      [
+        "originality",
+        "TALLY"
+      ],
+      [
+        "admissibility",
+        "TALLY"
+      ]
+    ],
+    "MEDIA_ANCHOR": [
+      [
+        "height",
+        "u64"
+      ],
+      [
+        "media_hash",
+        32
+      ],
+      [
+        "parent",
+        32
+      ],
+      [
+        "proof",
+        32
+      ]
+    ],
+    "MESSAGE": [
+      [
+        "network",
+        "nid"
+      ],
+      [
+        "genesis",
+        32
+      ],
+      [
+        "protocol",
+        "v1"
+      ],
+      [
+        "instance",
+        32
+      ],
+      [
+        "validators",
+        32
+      ],
+      [
+        "membership",
+        "zero64"
+      ],
+      [
+        "policy",
+        32
+      ],
+      [
+        "height",
+        "u64"
+      ],
+      [
+        "parent",
+        32
+      ],
+      [
+        "round",
+        "round"
+      ],
+      [
+        "value",
+        32
+      ],
+      [
+        "nil",
+        "bit"
+      ],
+      [
+        "step",
+        "step"
+      ],
+      [
+        "validator",
+        "validator"
+      ],
+      [
+        "valid_round",
+        "vr"
+      ],
+      [
+        "justification",
+        32
+      ],
+      [
+        "signature",
+        65
+      ]
+    ],
+    "OPEN": [
+      [
+        "network",
+        "nid"
+      ],
+      [
+        "genesis",
+        32
+      ],
+      [
+        "protocol",
+        "v1"
+      ],
+      [
+        "instance",
+        32
+      ],
+      [
+        "validators",
+        32
+      ],
+      [
+        "membership",
+        "zero64"
+      ],
+      [
+        "policy",
+        32
+      ],
+      [
+        "submission",
+        16
+      ],
+      [
+        "original",
+        32
+      ],
+      [
+        "creator",
+        20
+      ],
+      [
+        "key",
+        33
+      ],
+      [
+        "media_height",
+        "u64"
+      ],
+      [
+        "media_hash",
+        32
+      ],
+      [
+        "base_height",
+        "u64"
+      ],
+      [
+        "base_hash",
+        32
+      ],
+      [
+        "eligibility_root",
+        32
+      ],
+      [
+        "inventory",
+        32
+      ],
+      [
+        "nonce",
+        16
+      ],
+      [
+        "attempt",
+        "zero8"
+      ],
+      [
+        "signature",
+        65
+      ]
+    ],
+    "PARTICIPATION": [
+      [
+        "wallet",
+        20
+      ],
+      [
+        "submission",
+        16
+      ],
+      [
+        "epoch",
+        "u64"
+      ],
+      [
+        "status",
+        "status"
+      ],
+      [
+        "first_height",
+        "u64"
+      ],
+      [
+        "first_index",
+        "u16"
+      ],
+      [
+        "used_after",
+        "u8"
+      ],
+      [
+        "cause",
+        32
+      ]
+    ],
+    "POLICY": [
+      [
+        "old",
+        32
+      ],
+      [
+        "new",
+        32
+      ],
+      [
+        "result",
+        "unsupported"
+      ]
+    ],
+    "PROOF": [
+      [
+        "proposal",
+        "MESSAGE"
+      ],
+      [
+        "precommits",
+        [
+          "array",
+          "MESSAGE",
+          3,
+          3
+        ]
+      ]
+    ],
+    "PV": [
+      [
+        "votes",
+        [
+          "array",
+          "MESSAGE",
+          3,
+          3
+        ]
+      ]
+    ],
+    "REFERENCE": [
+      [
+        "kind",
+        "sourcekind"
+      ],
+      [
+        "object_id",
+        32
+      ],
+      [
+        "length",
+        "u32"
+      ],
+      [
+        "height",
+        "u64"
+      ],
+      [
+        "batch",
+        32
+      ],
+      [
+        "index",
+        "u16"
+      ]
+    ],
+    "START": [
+      [
+        "sid",
+        32
+      ],
+      [
+        "open_height",
+        "u64"
+      ],
+      [
+        "deadline",
+        "u64"
+      ],
+      [
+        "time_id",
+        32
+      ]
+    ],
+    "TALLY": [
+      [
+        "positive",
+        "u64"
+      ],
+      [
+        "negative",
+        "u64"
+      ],
+      [
+        "unsure",
+        "u64"
+      ],
+      [
+        "established",
+        "u64"
+      ],
+      [
+        "total",
+        "u64"
+      ],
+      [
+        "decisive",
+        "u64"
+      ],
+      [
+        "numerator",
+        "u64"
+      ],
+      [
+        "denominator",
+        "u64"
+      ],
+      [
+        "outcome",
+        "outcome"
+      ]
+    ],
+    "TIME_SAMPLE": [
+      [
+        "validator",
+        "validator"
+      ],
+      [
+        "reading",
+        "u64"
+      ],
+      [
+        "signature",
+        65
+      ]
+    ],
+    "VOTE": [
+      [
+        "network",
+        "nid"
+      ],
+      [
+        "genesis",
+        32
+      ],
+      [
+        "protocol",
+        "v1"
+      ],
+      [
+        "instance",
+        32
+      ],
+      [
+        "validators",
+        32
+      ],
+      [
+        "membership",
+        "zero64"
+      ],
+      [
+        "policy",
+        32
+      ],
+      [
+        "sid",
+        32
+      ],
+      [
+        "submission",
+        16
+      ],
+      [
+        "original",
+        32
+      ],
+      [
+        "creator",
+        20
+      ],
+      [
+        "key",
+        33
+      ],
+      [
+        "media_height",
+        "u64"
+      ],
+      [
+        "media_hash",
+        32
+      ],
+      [
+        "base_height",
+        "u64"
+      ],
+      [
+        "base_hash",
+        32
+      ],
+      [
+        "deadline",
+        "u64"
+      ],
+      [
+        "dimension",
+        "dimension"
+      ],
+      [
+        "choice",
+        "choice"
+      ],
+      [
+        "nonce",
+        16
+      ],
+      [
+        "sequence",
+        "zero8"
+      ],
+      [
+        "signature",
+        65
+      ]
+    ]
+  }
+}

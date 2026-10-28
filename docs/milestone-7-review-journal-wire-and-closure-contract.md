@@ -2,6 +2,17 @@
 
 Date: 2026-10-27, America/New_York. **Inactive specification and verification only.**
 
+**Task 7.17S follow-up (2026-10-28):** The
+[isolated cryptographic verification report](milestone-7-review-journal-cryptographic-verification.md)
+adds real disposable public OPEN/VOTE, time and consensus signatures for this
+laboratory profile, independent Python/JavaScript verification and static test
+membership/quorum checks. Its complete laboratory transcript still returns
+INCOMPLETE_HISTORY; signature validity does not establish authoritative finalized
+history, physical-clock trust or Tendermint execution. This closes the isolated
+new-domain signature-vector gap only. Production G2 journal authority, source
+policies, schema approval, clock trust and two-stream agreement/custody remain
+blocked. R's historical fixtures and placeholder signatures are unchanged.
+
 R717 is a proposed, closed **laboratory binary profile**, not a production version
 assignment or permission to activate a journal. It specifies a separate BFT review
 history, authenticated-time deadlines, bounded mandatory closure pages, and exact

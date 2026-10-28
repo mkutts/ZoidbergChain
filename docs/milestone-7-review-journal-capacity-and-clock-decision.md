@@ -1,5 +1,16 @@
 # Milestone 7 Task 7.17Q — Review journal capacity, clock and node economics
 
+**Task 7.17R specification follow-up (2026-10-27):** The
+[test-only wire and closure contract](milestone-7-review-journal-wire-and-closure-contract.md)
+adds closed laboratory binary schemas, an explicit authenticated-time assumption,
+logical cutoff before bounded mandatory CLOSE pages, deterministic work/byte
+budgets, cross-history verification rules and independently checked structural
+vectors. The isolated byte/closure experiment is reviewable; full cryptographic
+prototype, production journal, public testnet and reviewer-history Task 7.17 stay
+**BLOCKED** on the named policy, clock-trust, source-verifier, G2/media, signing,
+agreement, availability and operating approvals/measurements. Q's JSON sizes and
+historical findings below remain unchanged; no recommendation is activated.
+
 Date: 2026-10-27, America/New_York. **Focused verification and architecture
 recommendations only. Every new parameter below is unapproved.**
 

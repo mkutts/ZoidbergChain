@@ -1,0 +1,37 @@
+{
+  "corpus_id": "zoidbergchain-media-benchmark-v1",
+  "image_statistics": {
+    "by_mime": {
+      "image/gif": {
+        "bytes": 874256,
+        "count": 6,
+        "maximum_bytes": 802666
+      },
+      "image/jpeg": {
+        "bytes": 2500693,
+        "count": 7,
+        "maximum_bytes": 1530684
+      },
+      "image/png": {
+        "bytes": 1795174,
+        "count": 7,
+        "maximum_bytes": 1772761
+      },
+      "image/webp": {
+        "bytes": 904502,
+        "count": 7,
+        "maximum_bytes": 625250
+      }
+    },
+    "excluded_by_encoded_media_limit_count": 5,
+    "excluded_by_original_media_limit_count": 5,
+    "image_count": 27,
+    "maximum_bytes": 1772761,
+    "p50_bytes": 10474,
+    "p95_bytes": 1530684,
+    "p99_bytes": 1772761,
+    "requires_block_overhead_measurement": true
+  },
+  "verification_scope": "source identity, order, schema and pinned encoder environment; historical admission observations are not replayed",
+  "verified": true
+}

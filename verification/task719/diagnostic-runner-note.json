@@ -1,0 +1,11 @@
+{
+  "event": "Initial Task 7.19 standalone socketpair diagnostic runner aborted during cleanup",
+  "source": "Captured tool output during this task; this note is a description, not a reconstructed raw log",
+  "argv": [".venv/Scripts/python.exe", "-B", "verification/task719/run.py", "api"],
+  "child": "verification/task719/api_probe.py loopback",
+  "timeout_seconds": 15,
+  "trace_location": "socket.py:627 _fallback_socketpair -> socket.py:295 accept",
+  "cleanup_result": "taskkill returned ERROR: The user name or password is incorrect; parent wait then exceeded its 10-second cleanup bound",
+  "followup": "A host-account process inventory matched no remaining task719/api_probe.py processes. Added a 12-second in-process watchdog and direct-handle kill fallback. Subsequent bounded diagnostics are retained in api_execution.json and api_control_execution.json.",
+  "counting": "This preliminary diagnostic attempt is additional to the two Task 7.18 API timeouts and to the retained Task 7.19 restricted API/control pair. It is not a test pass or skip."
+}

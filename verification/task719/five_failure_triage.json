@@ -1,0 +1,92 @@
+[
+  {
+    "action": "Left assertions unchanged under task constraint; explicit outstanding test debt",
+    "baseline_detail": "tests\\test_milestone_7_task_7_3_corpus.py:22: in test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory\n    assert manifest == corpus.make_manifest()\nE   AssertionError: assert {'corpus_id':... 262144}, ...} == {'corpus_id':... 262144}, ...}\nE     \nE     Omitting 5 identical items, use -vv to show\nE     Differing items:\nE     {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]} != {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]}\nE     Use -v to get more diff",
+    "cause": "Obsolete whole-manifest equality assertion, including mutable historical validator observations",
+    "compression_correctness_defect": false,
+    "consensus_or_canonical_hash_defect": false,
+    "current_detail": "tests\\test_milestone_7_task_7_3_corpus.py:22: in test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory\n    assert manifest == corpus.make_manifest()\nE   AssertionError: assert {'corpus_id':... 262144}, ...} == {'corpus_id':... 262144}, ...}\nE     \nE     Omitting 5 identical items, use -vv to show\nE     Differing items:\nE     {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]} != {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]}\nE     Use -v to get more diff",
+    "current_outcome": "failed",
+    "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory",
+    "observed_before_task718": "No retained earlier failed execution found; assertions/wrappers predate 7.18; underlying environment issue and repair documented by 7.3 and 7.12.",
+    "original_acceptance_effect": "Blocks an all-green legacy measurement selection; does not contradict direct source/roundtrip/measurement checks",
+    "prior_documentation": [
+      "docs/milestone-7-corpus.md",
+      "docs/milestone-7-image-admission-regression.md"
+    ],
+    "reproduced_before_repair": true,
+    "windows_environment_related": true
+  },
+  {
+    "action": "Left assertions unchanged under task constraint; explicit outstanding test debt",
+    "baseline_detail": "tests\\test_milestone_7_task_7_3_corpus.py:97: in test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure\n    with pytest.raises(TechnicalMediaValidationError) as exc_info:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'media_technical_validation.TechnicalMediaValidationError'>",
+    "cause": "Obsolete expectation that valid frozen JPEG raises MALFORMED_MEDIA after the image-worker repair",
+    "compression_correctness_defect": false,
+    "consensus_or_canonical_hash_defect": false,
+    "current_detail": "tests\\test_milestone_7_task_7_3_corpus.py:97: in test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure\n    with pytest.raises(TechnicalMediaValidationError) as exc_info:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'media_technical_validation.TechnicalMediaValidationError'>",
+    "current_outcome": "failed",
+    "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure",
+    "observed_before_task718": "No retained earlier failed execution found; assertions/wrappers predate 7.18; underlying environment issue and repair documented by 7.3 and 7.12.",
+    "original_acceptance_effect": "Blocks an all-green legacy measurement selection; does not contradict direct source/roundtrip/measurement checks",
+    "prior_documentation": [
+      "docs/milestone-7-corpus.md",
+      "docs/milestone-7-image-admission-regression.md"
+    ],
+    "reproduced_before_repair": true,
+    "windows_environment_related": true
+  },
+  {
+    "action": "Repaired measurement verification wrapper only",
+    "baseline_detail": "tests\\test_milestone_7_task_7_4a_image_evaluation.py:14: in test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements\n    result = evaluation.run(json.loads(evaluation.CONFIG.read_text(encoding=\"utf-8\")))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nscripts\\milestone_7_task_7_4a_image_evaluation.py:82: in run\n    raise ValueError(\"versioned corpus no longer regenerates\")\nE   ValueError: versioned corpus no longer regenerates",
+    "cause": "Reproduction wrapper compared historical validator observations as corpus identity",
+    "compression_correctness_defect": false,
+    "consensus_or_canonical_hash_defect": false,
+    "current_detail": null,
+    "current_outcome": "passed",
+    "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements",
+    "observed_before_task718": "No retained earlier failed execution found; assertions/wrappers predate 7.18; underlying environment issue and repair documented by 7.3 and 7.12.",
+    "original_acceptance_effect": "Resolved original-scope reproduction blocker",
+    "prior_documentation": [
+      "docs/milestone-7-corpus.md",
+      "docs/milestone-7-image-admission-regression.md"
+    ],
+    "reproduced_before_repair": true,
+    "windows_environment_related": true
+  },
+  {
+    "action": "Repaired measurement verification wrapper only",
+    "baseline_detail": "tests\\test_milestone_7_task_7_7_block_composition.py:8: in test_component_accounting_reconciles_every_constructed_block\n    rows = composition.build_rows(config)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nscripts\\milestone_7_task_7_7_block_composition.py:256: in build_rows\n    raise ValueError(\"corpus manifest does not regenerate; refusing measurement\")\nE   ValueError: corpus manifest does not regenerate; refusing measurement",
+    "cause": "Reproduction wrapper compared historical validator observations as corpus identity",
+    "compression_correctness_defect": false,
+    "consensus_or_canonical_hash_defect": false,
+    "current_detail": null,
+    "current_outcome": "passed",
+    "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_component_accounting_reconciles_every_constructed_block",
+    "observed_before_task718": "No retained earlier failed execution found; assertions/wrappers predate 7.18; underlying environment issue and repair documented by 7.3 and 7.12.",
+    "original_acceptance_effect": "Resolved original-scope reproduction blocker",
+    "prior_documentation": [
+      "docs/milestone-7-corpus.md",
+      "docs/milestone-7-image-admission-regression.md"
+    ],
+    "reproduced_before_repair": true,
+    "windows_environment_related": true
+  },
+  {
+    "action": "Repaired measurement verification wrapper only",
+    "baseline_detail": "tests\\test_milestone_7_task_7_7_block_composition.py:26: in test_projected_adaptive_mode_never_exceeds_its_identity_projection\n    rows = composition.build_rows(config)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nscripts\\milestone_7_task_7_7_block_composition.py:256: in build_rows\n    raise ValueError(\"corpus manifest does not regenerate; refusing measurement\")\nE   ValueError: corpus manifest does not regenerate; refusing measurement",
+    "cause": "Reproduction wrapper compared historical validator observations as corpus identity",
+    "compression_correctness_defect": false,
+    "consensus_or_canonical_hash_defect": false,
+    "current_detail": null,
+    "current_outcome": "passed",
+    "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_projected_adaptive_mode_never_exceeds_its_identity_projection",
+    "observed_before_task718": "No retained earlier failed execution found; assertions/wrappers predate 7.18; underlying environment issue and repair documented by 7.3 and 7.12.",
+    "original_acceptance_effect": "Resolved original-scope reproduction blocker",
+    "prior_documentation": [
+      "docs/milestone-7-corpus.md",
+      "docs/milestone-7-image-admission-regression.md"
+    ],
+    "reproduced_before_repair": true,
+    "windows_environment_related": true
+  }
+]

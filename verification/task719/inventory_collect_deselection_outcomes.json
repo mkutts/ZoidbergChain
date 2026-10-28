@@ -1,0 +1,85 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_valid_admission_preserves_exact_bytes_and_cleans_worker[JPEG-image/jpeg]",
+      "line": 65
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_valid_admission_preserves_exact_bytes_and_cleans_worker[PNG-image/png]",
+      "line": 65
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_valid_admission_preserves_exact_bytes_and_cleans_worker[WEBP-image/webp]",
+      "line": 65
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_valid_admission_preserves_exact_bytes_and_cleans_worker[GIF-image/gif]",
+      "line": 65
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_truncated_rejected[JPEG]",
+      "line": 76
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_truncated_rejected[PNG]",
+      "line": 76
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_truncated_rejected[WEBP]",
+      "line": 76
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_truncated_rejected[GIF]",
+      "line": 76
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_corrupt_stream_rejected_inside_worker",
+      "line": 84
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_mime_mismatch_skips_worker",
+      "line": 95
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_real_worker_local_failures_are_not_media_verdicts[_permission_worker-PermissionError]",
+      "line": 102
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_real_worker_local_failures_are_not_media_verdicts[_crash_worker-BrokenProcessPool]",
+      "line": 102
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_real_worker_timeout_is_local_and_cleanup_waits_for_exit",
+      "line": 113
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_temp_setup_failure_is_local",
+      "line": 122
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_os_errors_during_decode_are_not_wrapped_as_malformed[13]",
+      "line": 131
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_os_errors_during_decode_are_not_wrapped_as_malformed[5]",
+      "line": 131
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_cleanup_failure_withholds_acceptance",
+      "line": 145
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_process_and_empty_directory_isolation",
+      "line": 158
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing",
+      "line": 174
+    }
+  ],
+  "deselected": [
+    "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing"
+  ],
+  "reports": [],
+  "exitstatus": 0
+}

@@ -1,0 +1,52 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "verification/task719/api_probe.py",
+        "loopback"
+      ],
+      "elapsed_seconds": 12.086,
+      "exit_code": 124,
+      "log": "api_loopback.txt",
+      "name": "loopback",
+      "pid": 14656,
+      "timed_out": true,
+      "timeout_seconds": 15
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing",
+        "-vv",
+        "-s",
+        "-o",
+        "faulthandler_timeout=10",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-api-5377075542a04d2b9b38831ab50688d5\\api_case"
+      ],
+      "elapsed_seconds": 35.054,
+      "exit_code": null,
+      "log": "api_api_case.txt",
+      "name": "api_case",
+      "pid": 35180,
+      "timed_out": true,
+      "timeout_seconds": 35
+    }
+  ],
+  "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-api-5377075542a04d2b9b38831ab50688d5",
+    "TMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-api-5377075542a04d2b9b38831ab50688d5"
+  },
+  "phase": "api",
+  "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-api-5377075542a04d2b9b38831ab50688d5"
+}

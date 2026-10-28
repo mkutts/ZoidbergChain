@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_4_benchmark.py", line 175, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_4_benchmark.py", line 169, in main
+    result = run(config)
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_4_benchmark.py", line 118, in run
+    raise ValueError("corpus manifest does not regenerate; refusing benchmark")
+ValueError: corpus manifest does not regenerate; refusing benchmark

@@ -1,0 +1,460 @@
+{
+  "current_environment": {
+    "jpeg_codec": "8.0",
+    "pillow": "12.3.0",
+    "python": "3.13.5",
+    "webp_codec": "1.6.0"
+  },
+  "differences": [
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "jpeg-flat-small"
+    },
+    {
+      "current": 3530,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "jpeg-flat-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "jpeg-flat-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "jpeg-text-poster"
+    },
+    {
+      "current": 56015,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "jpeg-text-poster"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "jpeg-text-poster"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "jpeg-photo-small"
+    },
+    {
+      "current": 97649,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "jpeg-photo-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "jpeg-photo-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "jpeg-mixed-medium"
+    },
+    {
+      "current": 57251,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "jpeg-mixed-medium"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "jpeg-mixed-medium"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "jpeg-text-large"
+    },
+    {
+      "current": 66371,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "jpeg-text-large"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "jpeg-text-large"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "png-flat-small"
+    },
+    {
+      "current": 638,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "png-flat-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "png-flat-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "png-illustrated-medium"
+    },
+    {
+      "current": 3550,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "png-illustrated-medium"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "png-illustrated-medium"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "png-text-poster"
+    },
+    {
+      "current": 5337,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "png-text-poster"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "png-text-poster"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "png-photo-small"
+    },
+    {
+      "current": 4314,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "png-photo-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "png-photo-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "png-mixed-medium"
+    },
+    {
+      "current": 3671,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "png-mixed-medium"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "png-mixed-medium"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "png-text-large"
+    },
+    {
+      "current": 4903,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "png-text-large"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "png-text-large"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "webp-flat-small"
+    },
+    {
+      "current": 376,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "webp-flat-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "webp-flat-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "webp-illustrated-medium"
+    },
+    {
+      "current": 10992,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "webp-illustrated-medium"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "webp-illustrated-medium"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "webp-photo-like"
+    },
+    {
+      "current": 215346,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "webp-photo-like"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "webp-photo-like"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "webp-photo-small"
+    },
+    {
+      "current": 31762,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "webp-photo-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "webp-photo-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "webp-mixed-medium"
+    },
+    {
+      "current": 10302,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "webp-mixed-medium"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "webp-mixed-medium"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "webp-text-large"
+    },
+    {
+      "current": 10474,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "webp-text-large"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "webp-text-large"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "gif-flat-small"
+    },
+    {
+      "current": 652,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "gif-flat-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "gif-flat-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "gif-animated-illustrated"
+    },
+    {
+      "current": 6200,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "gif-animated-illustrated"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "gif-animated-illustrated"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "gif-photo-small"
+    },
+    {
+      "current": 55720,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "gif-photo-small"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "gif-photo-small"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "gif-text-medium"
+    },
+    {
+      "current": 4057,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "gif-text-medium"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "gif-text-medium"
+    },
+    {
+      "current": [],
+      "field": "current_validator_reason_codes",
+      "frozen": [
+        "MALFORMED_MEDIA"
+      ],
+      "sample_id": "gif-mixed-large"
+    },
+    {
+      "current": 4961,
+      "field": "accepted_byte_size",
+      "frozen": null,
+      "sample_id": "gif-mixed-large"
+    },
+    {
+      "current": "accepted",
+      "field": "current_validator_status",
+      "frozen": "rejected_environment_isolation",
+      "sample_id": "gif-mixed-large"
+    }
+  ],
+  "frozen_environment": {
+    "jpeg_codec": "8.0",
+    "pillow": "12.3.0",
+    "python": "3.13.5",
+    "webp_codec": "1.6.0"
+  },
+  "original_bytes": 6093917,
+  "sample_count": 36,
+  "source_hashes_sizes_order_exact": true,
+  "top_level_differences": []
+}

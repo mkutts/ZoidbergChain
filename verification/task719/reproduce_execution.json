@@ -1,0 +1,123 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_3_corpus.py",
+        "--verify"
+      ],
+      "elapsed_seconds": 17.713,
+      "exit_code": 0,
+      "log": "reproduce_corpus.txt",
+      "name": "corpus",
+      "pid": 10728,
+      "timed_out": false,
+      "timeout_seconds": 100
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_4_benchmark.py",
+        "--output",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\codec.json"
+      ],
+      "elapsed_seconds": 14.967,
+      "exit_code": 0,
+      "log": "reproduce_codec.txt",
+      "name": "codec",
+      "pid": 33280,
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_7_block_composition.py",
+        "--output",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\composition.json"
+      ],
+      "elapsed_seconds": 23.691,
+      "exit_code": 1,
+      "log": "reproduce_composition.txt",
+      "name": "composition",
+      "pid": 41988,
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_8_node_economics.py",
+        "--output",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\economics.json",
+        "--csv",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\economics.csv"
+      ],
+      "elapsed_seconds": 0.219,
+      "exit_code": 0,
+      "log": "reproduce_economics.txt",
+      "name": "economics",
+      "pid": 35176,
+      "timed_out": false,
+      "timeout_seconds": 60
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_11_storage.py",
+        "--output",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\storage.json"
+      ],
+      "elapsed_seconds": 98.924,
+      "exit_code": 0,
+      "log": "reproduce_storage.txt",
+      "name": "storage",
+      "pid": 36132,
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "verification/task719/checks.py",
+        "media"
+      ],
+      "elapsed_seconds": 52.567,
+      "exit_code": 0,
+      "log": "reproduce_adaptive_roundtrip_metadata.txt",
+      "name": "adaptive_roundtrip_metadata",
+      "pid": 30652,
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "verification/task719/checks.py",
+        "compare"
+      ],
+      "elapsed_seconds": 0.342,
+      "exit_code": 0,
+      "log": "reproduce_comparisons.txt",
+      "name": "comparisons",
+      "pid": 38976,
+      "timed_out": false,
+      "timeout_seconds": 60
+    }
+  ],
+  "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-reproduce-af28b7a99d7f4bcc81ff08d47907f95e",
+    "TMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-reproduce-af28b7a99d7f4bcc81ff08d47907f95e"
+  },
+  "phase": "reproduce",
+  "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-reproduce-af28b7a99d7f4bcc81ff08d47907f95e"
+}

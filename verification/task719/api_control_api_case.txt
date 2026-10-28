@@ -1,0 +1,15 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- C:\Users\mattk\ZoidbergChain\.venv\Scripts\python.exe
+rootdir: C:\Users\mattk\ZoidbergChain
+configfile: pyproject.toml
+plugins: anyio-4.14.0, cov-6.2.1
+collecting ... collected 1 item
+
+tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing Debug: No valid blockchain found. Creating Genesis blockchain...
+Debug: Loaded frozen Public Testnet v1 genesis block.
+Debug: Blockchain and wallets saved successfully.
+Debug: Registered Wallets - ['03762f9803...7a0bea7a', '037ef410e9...d8e51e1e', '020b6a39c6...777fd5c7']
+Debug: Public key 03762f980342c342e1c762cfc9cf8b7d26dbf4b13d0e9946f560bb56be7a0bea7a format valid: True, registered: True
+PASSED
+
+============================== 1 passed in 0.90s ==============================

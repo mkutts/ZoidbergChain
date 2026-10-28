@@ -1,0 +1,1 @@
+72 exact source roundtrips; 36 adaptive accepted-byte roundtrips; metadata matches Task 7.18

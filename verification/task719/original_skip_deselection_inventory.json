@@ -1,0 +1,1209 @@
+{
+  "absent_reasons": {
+    "expensive_manual": 0,
+    "missing_credentials_services": 0,
+    "optional_dependencies": 0,
+    "other": 0
+  },
+  "acceptance": {
+    "linux": "Includes exact-corpus reconstruction plus Linux containment/lifecycle tests. Windows equivalents and 72 source roundtrips pass; skipped Linux behavior is not established on this host.",
+    "wal": "Atomic crash durability, not compression selection, exact-byte reconstruction, metadata measurement or economics. No safety-gate override."
+  },
+  "deselected": [
+    {
+      "current_control": "passed unchanged outside restricted account",
+      "necessary_original_compression_economics": false,
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing",
+      "reason": "explicit -k not public_upload in Task 7.18 image_recheck"
+    }
+  ],
+  "groups": {
+    "platform_linux": [
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_parent_never_decodes",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-3]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-4]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-at-A-B]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-high-ratio-at-A]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-default]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-level9]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-raw]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-rle]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs4]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs8]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-multi-fcs2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-multi-fcs4]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-multi-fcs8]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[window-below]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[window-at]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[blocks-64-empty]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[blocks-64-one-byte]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[blocks-65]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[invalid-magic]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[magicless]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[checksum-corrupt]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-16]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-8]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-3]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-1-0]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-1-13]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-2-0]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-2-13]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-4-0]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-4-13]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[checksum-missing]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[content-size-missing]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[content-size-false]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[hash-wrong]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[window-over]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[single-window-over]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a50]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a51]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a52]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a53]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a54]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a55]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a56]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a57]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a58]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a59]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5a]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5b]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5c]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5d]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5e]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5f]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[concatenated]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[concatenated-empty]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[trailing-zero]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[trailing-garbage]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-suffix]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-3]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-4]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-5]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-6]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-7]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-8]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-9]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-10]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-11]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-12]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-13]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-14]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-15]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-16]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-17]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-18]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-19]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[reserved-block]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-block-over]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[last-block-missing]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bad-treeless-literals]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bad-literals-length]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bad-sequence-tables]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[output-overrun]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[output-overrun-rle]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[output-underrun]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[regenerated-block-over-window]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bomb-over-A]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bomb-lying-size]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unadvertised-raw-dictionary]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unknown-codec]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unknown-profile]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unknown-encoding]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[encoded-over-B]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[empty-original]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[empty-payload]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[boolean-int]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[float-int]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[string-int]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[null-int]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[mime-alias]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[hash-uppercase]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[extra-field]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-short]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-newline]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-url]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-pad-bits]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[stored-size-false]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-size-false]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[missing-field]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-exceeds-declared-window]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[valid-cross-window-compressed]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-127]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-128]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-32511]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-32512]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-43690]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-at-frame-A]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[nonminimal-sequence-count]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-fse-max-logs]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-fse-log-over-6]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-fse-log-over-9]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-over-block]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-tables-across-raw]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-offset-reordering]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-offset-minus-one]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-offset-minus-one-zero]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-1024]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-1025]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-262144]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-262145]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-table-missing]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-reserved-bits]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-rle-symbol-overflow]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[fse-log-overflow]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[fse-zero-run-overflow]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-stop-bit-missing]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-unused-bits]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-count-3byte-truncated]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-count-over-output]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-literals-width-1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[rle-literals-width-1]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-literals-width-2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[rle-literals-width-2]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-literals-width-3]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[rle-literals-width-3]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_corpus_exact_reconstruction",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[filesystem-worker_filesystem_denied]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[network-worker_network_denied]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[spawn_child-worker_child_denied]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[privilege-worker_privilege_denied]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[descriptors-worker_descriptors_closed]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[limits-worker_limits_sealed]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[allocate-worker_memory_limit_confirmed]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[allocate_native-worker_native_memory_denied]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[missing_seccomp-linux_seccomp_unavailable]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[crash]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[oversized]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[truncated]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[malformed]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[duplicate]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[unknown_status]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_id]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_request]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_hash]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_size]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[excess_body]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[extra_field]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[trailing]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[exit_after_reply]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_hang_watchdogs[hang-timeout]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_hang_watchdogs[startup_hang-startup_timeout]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_hang_watchdogs[close_then_hang-timeout]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_cpu_budget_and_native_accounting",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_kernel_cpu_limit_without_coordinator_sampling",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_kernel_state_before_any_request",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_explicit_termination[cancel]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_explicit_termination[terminate]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_explicit_termination[close]",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_concurrency_saturation_and_recovery",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_repeated_recovery_and_no_retries",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_cleanup_uncertainty_quarantines_capacity",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_parent_death_kills_confined_worker",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_bootstrap_parent_race_exits_before_ready",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_bootstrap_dead_creator_thread_exits_before_ready",
+        "reason": "requires an actual Linux kernel"
+      },
+      {
+        "current_outcome": "skipped",
+        "historical_source": "verification/task718/tests_codec.txt",
+        "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_oversized_request_is_rejected_in_confined_worker",
+        "reason": "requires an actual Linux kernel"
+      }
+    ],
+    "sqlite_wal_safety": [
+      {
+        "current_outcome": "not rerun; collected only; unchanged runtime gate",
+        "historical_source": "verification/task718/admission_history_atomic_recheck.txt",
+        "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[before_claims-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      },
+      {
+        "current_outcome": "not rerun; collected only; unchanged runtime gate",
+        "historical_source": "verification/task718/admission_history_atomic_recheck.txt",
+        "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_claims-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      },
+      {
+        "current_outcome": "not rerun; collected only; unchanged runtime gate",
+        "historical_source": "verification/task718/admission_history_atomic_recheck.txt",
+        "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_block-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      },
+      {
+        "current_outcome": "not rerun; collected only; unchanged runtime gate",
+        "historical_source": "verification/task718/admission_history_atomic_recheck.txt",
+        "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_commit-WAL]",
+        "reason": "WAL crash verification requires a SQLite runtime with the WAL-reset fix"
+      }
+    ]
+  },
+  "total_historical_skipped": 197
+}

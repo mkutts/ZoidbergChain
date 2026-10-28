@@ -1,0 +1,96 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_3_corpus.py",
+        "--verify"
+      ],
+      "elapsed_seconds": 16.819,
+      "exit_code": 1,
+      "log": "baseline_corpus.txt",
+      "name": "corpus",
+      "timed_out": false,
+      "timeout_seconds": 100
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_4_benchmark.py",
+        "--output",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\codec.json"
+      ],
+      "elapsed_seconds": 9.108,
+      "exit_code": 1,
+      "log": "baseline_codec.txt",
+      "name": "codec",
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "scripts/milestone_7_task_7_7_block_composition.py",
+        "--output",
+        "C:\\Users\\mattk\\ZoidbergChain\\verification\\task719\\composition.json"
+      ],
+      "elapsed_seconds": 20.596,
+      "exit_code": 1,
+      "log": "baseline_composition.txt",
+      "name": "composition",
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_3_corpus.py",
+        "tests/test_milestone_7_task_7_4_benchmark.py",
+        "tests/test_milestone_7_task_7_4a_image_evaluation.py",
+        "tests/test_milestone_7_task_7_7_block_composition.py",
+        "tests/test_milestone_7_task_7_8_node_economics.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-baseline-46ad8d85843a42759b987409ae4df272\\measurements"
+      ],
+      "elapsed_seconds": 37.582,
+      "exit_code": 1,
+      "log": "baseline_measurements.txt",
+      "name": "measurements",
+      "timed_out": false,
+      "timeout_seconds": 150
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "verification/task719/checks.py",
+        "manifest"
+      ],
+      "elapsed_seconds": 10.163,
+      "exit_code": 0,
+      "log": "baseline_manifest_differences.txt",
+      "name": "manifest_differences",
+      "timed_out": false,
+      "timeout_seconds": 100
+    }
+  ],
+  "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-baseline-46ad8d85843a42759b987409ae4df272",
+    "TMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-baseline-46ad8d85843a42759b987409ae4df272"
+  },
+  "phase": "baseline",
+  "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-baseline-46ad8d85843a42759b987409ae4df272"
+}

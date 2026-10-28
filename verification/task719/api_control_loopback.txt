@@ -1,0 +1,2 @@
+Creating stdlib default socketpair (no API, database or temporary files)
+Default socketpair succeeded

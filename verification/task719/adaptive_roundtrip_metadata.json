@@ -1,0 +1,1391 @@
+{
+  "boundary": "Existing inactive format laboratory; public fixture test keys only; original source and canonicalized accepted text explicitly distinguished.",
+  "canonical_metadata_percent": {
+    "p50": 85.97236981934113,
+    "p95": 99.60380586487379,
+    "worst": 99.85557394313224
+  },
+  "rows": [
+    {
+      "accepted_bytes": 35,
+      "accepted_sha256": "50fcc121b40c2ecb9a571fa860f238456e8bcab95bfd7d2eb7a5c0f289c6d1fb",
+      "canonical_metadata_percent": 99.85557394313224,
+      "codec": "identity",
+      "descriptor_bytes": 269,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 269,
+      "metadata_bytes": 33187,
+      "parts": {
+        "certificate_bytes": 31577,
+        "complete_serialized_block_bytes": 33148,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32871,
+        "nonmedia_metadata_percent": 99.16435380716784,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 277,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33235,
+      "sample_id": "text-caption-small",
+      "source_bytes": 36,
+      "source_sha256": "633d1db519b6651029acf84edfb87fc09fe482805c38151b6321ebb49cc6195f",
+      "stored_bytes": 35
+    },
+    {
+      "accepted_bytes": 398,
+      "accepted_sha256": "129132822207044b005dee760524fea5b987f6347fb2904e0a14a27e5dfb6566",
+      "canonical_metadata_percent": 98.9150521609538,
+      "codec": "zstd",
+      "descriptor_bytes": 583,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 755,
+      "metadata_bytes": 33186,
+      "parts": {
+        "certificate_bytes": 31578,
+        "complete_serialized_block_bytes": 33463,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32872,
+        "nonmedia_metadata_percent": 98.23387024474793,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 591,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33550,
+      "sample_id": "text-story-medium",
+      "source_bytes": 399,
+      "source_sha256": "a1e8db6a92cb0c98617f406a06658ac1fb5b507a694124a359c5d5be3fce3928",
+      "stored_bytes": 272
+    },
+    {
+      "accepted_bytes": 2852,
+      "accepted_sha256": "d5e4b3633a397fbb35d06ef8a40c659fe8c6d5288355a06fe8739bdc9f0c7acb",
+      "canonical_metadata_percent": 98.98592221426867,
+      "codec": "zstd",
+      "descriptor_bytes": 560,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 4029,
+      "metadata_bytes": 33188,
+      "parts": {
+        "certificate_bytes": 31579,
+        "complete_serialized_block_bytes": 33441,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32873,
+        "nonmedia_metadata_percent": 98.30148619957538,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 568,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33528,
+      "sample_id": "text-audit-log-large",
+      "source_bytes": 2852,
+      "source_sha256": "d5e4b3633a397fbb35d06ef8a40c659fe8c6d5288355a06fe8739bdc9f0c7acb",
+      "stored_bytes": 253
+    },
+    {
+      "accepted_bytes": 109,
+      "accepted_sha256": "21f775301f1037ee38869ad3f94d3c8f152435d35faecc1415b1a996917efd92",
+      "canonical_metadata_percent": 99.60380586487379,
+      "codec": "zstd",
+      "descriptor_bytes": 350,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 371,
+      "metadata_bytes": 33185,
+      "parts": {
+        "certificate_bytes": 31578,
+        "complete_serialized_block_bytes": 33230,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32872,
+        "nonmedia_metadata_percent": 98.92266024676498,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 358,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33317,
+      "sample_id": "text-json-pretty",
+      "source_bytes": 110,
+      "source_sha256": "e811ae217c543c5960e90cce0f910ad7dbb0208add743a82fc4715e4d6dafb1f",
+      "stored_bytes": 98
+    },
+    {
+      "accepted_bytes": 2947,
+      "accepted_sha256": "e0aafa7803f0f807eb9b0de8df34d3d53b6719c6b825c836eb8cb9fea1562601",
+      "canonical_metadata_percent": 98.70330716155128,
+      "codec": "zstd",
+      "descriptor_bytes": 656,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 4157,
+      "metadata_bytes": 33188,
+      "parts": {
+        "certificate_bytes": 31579,
+        "complete_serialized_block_bytes": 33537,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32873,
+        "nonmedia_metadata_percent": 98.02009720607091,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 664,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33624,
+      "sample_id": "text-json-minified",
+      "source_bytes": 2947,
+      "source_sha256": "e0aafa7803f0f807eb9b0de8df34d3d53b6719c6b825c836eb8cb9fea1562601",
+      "stored_bytes": 325
+    },
+    {
+      "accepted_bytes": 11813,
+      "accepted_sha256": "eef5816fecea582d39244e2c48820311f7a29ed5b9e839495de0db43cc3ec78e",
+      "canonical_metadata_percent": 96.97306141529832,
+      "codec": "zstd",
+      "descriptor_bytes": 1257,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 15979,
+      "metadata_bytes": 33190,
+      "parts": {
+        "certificate_bytes": 31580,
+        "complete_serialized_block_bytes": 34139,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32874,
+        "nonmedia_metadata_percent": 96.29456047335891,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 1265,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 34226,
+      "sample_id": "text-json-peer-snapshot-large",
+      "source_bytes": 11814,
+      "source_sha256": "8d1872e9e28086fdd9fbb78b3a8bd0d6a1e96db090bc29b229186dfd799341e7",
+      "stored_bytes": 776
+    },
+    {
+      "accepted_bytes": 125,
+      "accepted_sha256": "067e9db27cd5f991011c9b2eec2fc14f342bbbc08e91b0a6448ea2cea18c6036",
+      "canonical_metadata_percent": 99.56795679567956,
+      "codec": "zstd",
+      "descriptor_bytes": 363,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 391,
+      "metadata_bytes": 33186,
+      "parts": {
+        "certificate_bytes": 31578,
+        "complete_serialized_block_bytes": 33243,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32872,
+        "nonmedia_metadata_percent": 98.88397557380502,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 371,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33330,
+      "sample_id": "text-source-code",
+      "source_bytes": 126,
+      "source_sha256": "bcedb68696197cc02ca3a71036ac9e019bcf773fdaf2591186ebb5d7140d5eba",
+      "stored_bytes": 108
+    },
+    {
+      "accepted_bytes": 462,
+      "accepted_sha256": "cf20ecc2b9c83ae8a0708db7a399526bca4af6f3fd6fe2eaa4397a6bb64633cc",
+      "canonical_metadata_percent": 99.04494717364054,
+      "codec": "zstd",
+      "descriptor_bytes": 539,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 839,
+      "metadata_bytes": 33186,
+      "parts": {
+        "certificate_bytes": 31578,
+        "complete_serialized_block_bytes": 33419,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32872,
+        "nonmedia_metadata_percent": 98.363206559143,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 547,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33506,
+      "sample_id": "text-source-admission-model",
+      "source_bytes": 463,
+      "source_sha256": "117ef4d39a4ec47ce2ca336b1b4d211a1dddca23b8faa20afdcddecdf5b577aa",
+      "stored_bytes": 238
+    },
+    {
+      "accepted_bytes": 544,
+      "accepted_sha256": "3ac06ede2afa2be24ac1584e6bc37d32aab9ad127ae68182de336000c32bf779",
+      "canonical_metadata_percent": 98.66801450912767,
+      "codec": "zstd",
+      "descriptor_bytes": 667,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 951,
+      "metadata_bytes": 33186,
+      "parts": {
+        "certificate_bytes": 31578,
+        "complete_serialized_block_bytes": 33547,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 237,
+        "nonmedia_metadata_bytes": 32872,
+        "nonmedia_metadata_percent": 97.98789757653441,
+        "remaining_structural_metadata_bytes": 638,
+        "serialized_media_representation_bytes": 675,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33634,
+      "sample_id": "text-source-snapshot-cli",
+      "source_bytes": 545,
+      "source_sha256": "7628d60d857d577f0ca03b6cbc118acbe2696ee2e04a242fdf6516f1be980b2c",
+      "stored_bytes": 336
+    },
+    {
+      "accepted_bytes": 3530,
+      "accepted_sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6",
+      "canonical_metadata_percent": 95.12432959531935,
+      "codec": "zstd",
+      "descriptor_bytes": 1921,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 4933,
+      "metadata_bytes": 33167,
+      "parts": {
+        "certificate_bytes": 31555,
+        "complete_serialized_block_bytes": 34780,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32851,
+        "nonmedia_metadata_percent": 94.45370902817712,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 1929,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 34867,
+      "sample_id": "jpeg-flat-small",
+      "source_bytes": 3530,
+      "source_sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6",
+      "stored_bytes": 1275
+    },
+    {
+      "accepted_bytes": 56015,
+      "accepted_sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed",
+      "canonical_metadata_percent": 53.965542486212115,
+      "codec": "zstd",
+      "descriptor_bytes": 28519,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 74915,
+      "metadata_bytes": 33171,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 61380,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 53.523949169110466,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 28527,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 61467,
+      "sample_id": "jpeg-text-poster",
+      "source_bytes": 56015,
+      "source_sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed",
+      "stored_bytes": 21220
+    },
+    {
+      "accepted_bytes": 689193,
+      "accepted_sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e",
+      "canonical_metadata_percent": 12.56157728730514,
+      "codec": "zstd",
+      "descriptor_bytes": 231149,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 919153,
+      "metadata_bytes": 33175,
+      "parts": {
+        "certificate_bytes": 31559,
+        "complete_serialized_block_bytes": 264012,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32855,
+        "nonmedia_metadata_percent": 12.444510098025848,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 231157,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 264099,
+      "sample_id": "jpeg-photo-like",
+      "source_bytes": 689193,
+      "source_sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e",
+      "stored_bytes": 173191
+    },
+    {
+      "accepted_bytes": 1530684,
+      "accepted_sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616",
+      "canonical_metadata_percent": 1.5998310587658997,
+      "codec": "identity",
+      "descriptor_bytes": 2041143,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 2041143,
+      "metadata_bytes": 33182,
+      "parts": {
+        "certificate_bytes": 31560,
+        "complete_serialized_block_bytes": 2074007,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32856,
+        "nonmedia_metadata_percent": 1.584179802671833,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 2041151,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 2074094,
+      "sample_id": "jpeg-noise-capacity",
+      "source_bytes": 1530684,
+      "source_sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616",
+      "stored_bytes": 1530684
+    },
+    {
+      "accepted_bytes": 97649,
+      "accepted_sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f",
+      "canonical_metadata_percent": 38.010931967410365,
+      "codec": "zstd",
+      "descriptor_bytes": 54319,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 130427,
+      "metadata_bytes": 33171,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 87180,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 37.68410185822436,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 54327,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 87267,
+      "sample_id": "jpeg-photo-small",
+      "source_bytes": 97649,
+      "source_sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f",
+      "stored_bytes": 40570
+    },
+    {
+      "accepted_bytes": 57251,
+      "accepted_sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909",
+      "canonical_metadata_percent": 72.59794265703655,
+      "codec": "zstd",
+      "descriptor_bytes": 12742,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 76563,
+      "metadata_bytes": 33170,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 45603,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 72.04131307150845,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 12750,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 45690,
+      "sample_id": "jpeg-mixed-medium",
+      "source_bytes": 57251,
+      "source_sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909",
+      "stored_bytes": 9390
+    },
+    {
+      "accepted_bytes": 66371,
+      "accepted_sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93",
+      "canonical_metadata_percent": 65.35582000157616,
+      "codec": "zstd",
+      "descriptor_bytes": 17807,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 88723,
+      "metadata_bytes": 33172,
+      "parts": {
+        "certificate_bytes": 31558,
+        "complete_serialized_block_bytes": 50669,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32854,
+        "nonmedia_metadata_percent": 64.84043497996804,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 17815,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 50756,
+      "sample_id": "jpeg-text-large",
+      "source_bytes": 66371,
+      "source_sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93",
+      "stored_bytes": 13187
+    },
+    {
+      "accepted_bytes": 638,
+      "accepted_sha256": "661c37d971f8727953face7d0b8da6663ce8a1985c7ea9fab8c14aa079280632",
+      "canonical_metadata_percent": 99.24580253194864,
+      "codec": "zstd",
+      "descriptor_bytes": 470,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 1074,
+      "metadata_bytes": 33161,
+      "parts": {
+        "certificate_bytes": 31552,
+        "complete_serialized_block_bytes": 33326,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32848,
+        "nonmedia_metadata_percent": 98.56568445057913,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 478,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33413,
+      "sample_id": "png-flat-small",
+      "source_bytes": 638,
+      "source_sha256": "661c37d971f8727953face7d0b8da6663ce8a1985c7ea9fab8c14aa079280632",
+      "stored_bytes": 188
+    },
+    {
+      "accepted_bytes": 3550,
+      "accepted_sha256": "a085bd399617bff4a0a989f95c25a5089cf33b5db5f78ae927379a9a7012c2bd",
+      "canonical_metadata_percent": 93.94917990991756,
+      "codec": "zstd",
+      "descriptor_bytes": 2356,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 4960,
+      "metadata_bytes": 33165,
+      "parts": {
+        "certificate_bytes": 31554,
+        "complete_serialized_block_bytes": 35214,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32850,
+        "nonmedia_metadata_percent": 93.28676094735049,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 2364,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 35301,
+      "sample_id": "png-illustrated-medium",
+      "source_bytes": 3550,
+      "source_sha256": "a085bd399617bff4a0a989f95c25a5089cf33b5db5f78ae927379a9a7012c2bd",
+      "stored_bytes": 1601
+    },
+    {
+      "accepted_bytes": 5337,
+      "accepted_sha256": "574feb77cf23bc7984f04d97f355c7eab2fcc47dfaa2336bc669c58fec8aad79",
+      "canonical_metadata_percent": 92.62693403340222,
+      "codec": "zstd",
+      "descriptor_bytes": 2860,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 7340,
+      "metadata_bytes": 33166,
+      "parts": {
+        "certificate_bytes": 31555,
+        "complete_serialized_block_bytes": 35719,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32851,
+        "nonmedia_metadata_percent": 91.97065987289677,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 2868,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 35806,
+      "sample_id": "png-text-poster",
+      "source_bytes": 5337,
+      "source_sha256": "574feb77cf23bc7984f04d97f355c7eab2fcc47dfaa2336bc669c58fec8aad79",
+      "stored_bytes": 1980
+    },
+    {
+      "accepted_bytes": 1772761,
+      "accepted_sha256": "4fe5ab20eb591bddbbb8f54adca02fffb7f453c342b2171a25b811be91274da8",
+      "canonical_metadata_percent": 1.384226542871471,
+      "codec": "identity",
+      "descriptor_bytes": 2363914,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 2363914,
+      "metadata_bytes": 33178,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 2396775,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 1.3707169008354976,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 2363922,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 2396862,
+      "sample_id": "png-noise-capacity",
+      "source_bytes": 1772761,
+      "source_sha256": "4fe5ab20eb591bddbbb8f54adca02fffb7f453c342b2171a25b811be91274da8",
+      "stored_bytes": 1772761
+    },
+    {
+      "accepted_bytes": 4314,
+      "accepted_sha256": "36218ec3e027ecfd779dc5037a43acf26522a99f3b9473de475c951e687e44a5",
+      "canonical_metadata_percent": 87.11812761039165,
+      "codec": "zstd",
+      "descriptor_bytes": 5124,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 5976,
+      "metadata_bytes": 33165,
+      "parts": {
+        "certificate_bytes": 31554,
+        "complete_serialized_block_bytes": 37982,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32850,
+        "nonmedia_metadata_percent": 86.4883365804855,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 5132,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 38069,
+      "sample_id": "png-photo-small",
+      "source_bytes": 4314,
+      "source_sha256": "36218ec3e027ecfd779dc5037a43acf26522a99f3b9473de475c951e687e44a5",
+      "stored_bytes": 3678
+    },
+    {
+      "accepted_bytes": 3671,
+      "accepted_sha256": "8d39f6a5a686cd61f14b308f38792d7edbdb153b30a2cd671ff714abbdcce122",
+      "canonical_metadata_percent": 93.93853561818439,
+      "codec": "zstd",
+      "descriptor_bytes": 2360,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 5120,
+      "metadata_bytes": 33165,
+      "parts": {
+        "certificate_bytes": 31554,
+        "complete_serialized_block_bytes": 35218,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32850,
+        "nonmedia_metadata_percent": 93.27616559713783,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 2368,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 35305,
+      "sample_id": "png-mixed-medium",
+      "source_bytes": 3671,
+      "source_sha256": "8d39f6a5a686cd61f14b308f38792d7edbdb153b30a2cd671ff714abbdcce122",
+      "stored_bytes": 1604
+    },
+    {
+      "accepted_bytes": 4903,
+      "accepted_sha256": "d1740689d0b649c9689eed37b09909c931b8e183e11db86baca0462cdd7da4b9",
+      "canonical_metadata_percent": 92.95924659454005,
+      "codec": "zstd",
+      "descriptor_bytes": 2732,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 6764,
+      "metadata_bytes": 33166,
+      "parts": {
+        "certificate_bytes": 31555,
+        "complete_serialized_block_bytes": 35591,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32851,
+        "nonmedia_metadata_percent": 92.30142451743419,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 2740,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 35678,
+      "sample_id": "png-text-large",
+      "source_bytes": 4903,
+      "source_sha256": "d1740689d0b649c9689eed37b09909c931b8e183e11db86baca0462cdd7da4b9",
+      "stored_bytes": 1883
+    },
+    {
+      "accepted_bytes": 376,
+      "accepted_sha256": "7c4d1d04659178703a09cefaba52891133ae279e56cf4750514347cc8eeff562",
+      "canonical_metadata_percent": 98.50302958298681,
+      "codec": "zstd",
+      "descriptor_bytes": 723,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 727,
+      "metadata_bytes": 33164,
+      "parts": {
+        "certificate_bytes": 31554,
+        "complete_serialized_block_bytes": 33581,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32850,
+        "nonmedia_metadata_percent": 97.82317381852833,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 731,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 33668,
+      "sample_id": "webp-flat-small",
+      "source_bytes": 376,
+      "source_sha256": "7c4d1d04659178703a09cefaba52891133ae279e56cf4750514347cc8eeff562",
+      "stored_bytes": 376
+    },
+    {
+      "accepted_bytes": 10992,
+      "accepted_sha256": "0c369277d296429346bff9c32325bfd741377e109b41780be28101a08d401de5",
+      "canonical_metadata_percent": 70.67433684883349,
+      "codec": "zstd",
+      "descriptor_bytes": 13987,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 14883,
+      "metadata_bytes": 33171,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 46848,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 70.12679303278688,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 13995,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 46935,
+      "sample_id": "webp-illustrated-medium",
+      "source_bytes": 10992,
+      "source_sha256": "0c369277d296429346bff9c32325bfd741377e109b41780be28101a08d401de5",
+      "stored_bytes": 10322
+    },
+    {
+      "accepted_bytes": 215346,
+      "accepted_sha256": "b377ca497c100b4dc0c8fe17ca1f5b82628721e580f4990d5404e09ddff42fd9",
+      "canonical_metadata_percent": 10.834740407131497,
+      "codec": "zstd",
+      "descriptor_bytes": 273241,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 287357,
+      "metadata_bytes": 33175,
+      "parts": {
+        "certificate_bytes": 31559,
+        "complete_serialized_block_bytes": 306104,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32855,
+        "nonmedia_metadata_percent": 10.733280192352925,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 273249,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 306191,
+      "sample_id": "webp-photo-like",
+      "source_bytes": 215346,
+      "source_sha256": "b377ca497c100b4dc0c8fe17ca1f5b82628721e580f4990d5404e09ddff42fd9",
+      "stored_bytes": 204761
+    },
+    {
+      "accepted_bytes": 625250,
+      "accepted_sha256": "427f84db03cb6e822e6bda8f81acfa6e92bc13d5c2c9948d88caa369e63c5951",
+      "canonical_metadata_percent": 3.8275497290756038,
+      "codec": "identity",
+      "descriptor_bytes": 833897,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 833897,
+      "metadata_bytes": 33179,
+      "parts": {
+        "certificate_bytes": 31559,
+        "complete_serialized_block_bytes": 866760,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32855,
+        "nonmedia_metadata_percent": 3.7905533250265355,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 833905,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 866847,
+      "sample_id": "webp-noise-capacity",
+      "source_bytes": 625250,
+      "source_sha256": "427f84db03cb6e822e6bda8f81acfa6e92bc13d5c2c9948d88caa369e63c5951",
+      "stored_bytes": 625250
+    },
+    {
+      "accepted_bytes": 31762,
+      "accepted_sha256": "06060be99cab89545df668540d1d04b941c58cc73266bea0090c991f4fae5083",
+      "canonical_metadata_percent": 43.92468918400042,
+      "codec": "identity",
+      "descriptor_bytes": 42579,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 42579,
+      "metadata_bytes": 33175,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 75440,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 43.54851537645811,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 42587,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 75527,
+      "sample_id": "webp-photo-small",
+      "source_bytes": 31762,
+      "source_sha256": "06060be99cab89545df668540d1d04b941c58cc73266bea0090c991f4fae5083",
+      "stored_bytes": 31762
+    },
+    {
+      "accepted_bytes": 10302,
+      "accepted_sha256": "9f4af322753ebb1a6da69f2268861e76ddf6c0bc45f52034fc24420deece555a",
+      "canonical_metadata_percent": 75.24613220815752,
+      "codec": "zstd",
+      "descriptor_bytes": 11134,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 13963,
+      "metadata_bytes": 33170,
+      "parts": {
+        "certificate_bytes": 31557,
+        "complete_serialized_block_bytes": 43995,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32853,
+        "nonmedia_metadata_percent": 74.6743948175929,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 11142,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 44082,
+      "sample_id": "webp-mixed-medium",
+      "source_bytes": 10302,
+      "source_sha256": "9f4af322753ebb1a6da69f2268861e76ddf6c0bc45f52034fc24420deece555a",
+      "stored_bytes": 8184
+    },
+    {
+      "accepted_bytes": 10474,
+      "accepted_sha256": "d7252f0af8737478312c0ea693d495338847daa380da2997e6620f8e08c17b2d",
+      "canonical_metadata_percent": 74.57006047254008,
+      "codec": "zstd",
+      "descriptor_bytes": 11534,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 14195,
+      "metadata_bytes": 33171,
+      "parts": {
+        "certificate_bytes": 31558,
+        "complete_serialized_block_bytes": 44396,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32854,
+        "nonmedia_metadata_percent": 74.0021623569691,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 11542,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 44483,
+      "sample_id": "webp-text-large",
+      "source_bytes": 10474,
+      "source_sha256": "d7252f0af8737478312c0ea693d495338847daa380da2997e6620f8e08c17b2d",
+      "stored_bytes": 8484
+    },
+    {
+      "accepted_bytes": 652,
+      "accepted_sha256": "01b2d4d1d2e48f350e65f6df08edc808df08770e37f204aff1cc32dea6c2d90f",
+      "canonical_metadata_percent": 97.43808208714046,
+      "codec": "identity",
+      "descriptor_bytes": 1094,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 1094,
+      "metadata_bytes": 33165,
+      "parts": {
+        "certificate_bytes": 31552,
+        "complete_serialized_block_bytes": 33950,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32848,
+        "nonmedia_metadata_percent": 96.7540500736377,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 1102,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 34037,
+      "sample_id": "gif-flat-small",
+      "source_bytes": 652,
+      "source_sha256": "01b2d4d1d2e48f350e65f6df08edc808df08770e37f204aff1cc32dea6c2d90f",
+      "stored_bytes": 652
+    },
+    {
+      "accepted_bytes": 6200,
+      "accepted_sha256": "d5941c77e3b6a8800357def61aacded0c5993f219ccf2a6f3159c930ffbe7a9f",
+      "canonical_metadata_percent": 80.04681806115308,
+      "codec": "identity",
+      "descriptor_bytes": 8492,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 8492,
+      "metadata_bytes": 33169,
+      "parts": {
+        "certificate_bytes": 31554,
+        "complete_serialized_block_bytes": 41350,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32850,
+        "nonmedia_metadata_percent": 79.44377267230955,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 8500,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 41437,
+      "sample_id": "gif-animated-illustrated",
+      "source_bytes": 6200,
+      "source_sha256": "d5941c77e3b6a8800357def61aacded0c5993f219ccf2a6f3159c930ffbe7a9f",
+      "stored_bytes": 6200
+    },
+    {
+      "accepted_bytes": 802666,
+      "accepted_sha256": "4cc496487f2497ec3d3ac18f212f10ca1d51204785c99664bdc261af47d4f590",
+      "canonical_metadata_percent": 3.2153814091224127,
+      "codec": "zstd",
+      "descriptor_bytes": 998688,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 1070452,
+      "metadata_bytes": 33171,
+      "parts": {
+        "certificate_bytes": 31556,
+        "complete_serialized_block_bytes": 1031548,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32852,
+        "nonmedia_metadata_percent": 3.1847281949070716,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 998696,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 1031635,
+      "sample_id": "gif-noise-capacity",
+      "source_bytes": 802666,
+      "source_sha256": "4cc496487f2497ec3d3ac18f212f10ca1d51204785c99664bdc261af47d4f590",
+      "stored_bytes": 748847
+    },
+    {
+      "accepted_bytes": 55720,
+      "accepted_sha256": "83add893b06499e9a8b0f1e31a60562b0b9bbd18af51abae923891382c5f3d51",
+      "canonical_metadata_percent": 30.86686269401124,
+      "codec": "identity",
+      "descriptor_bytes": 74522,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 74522,
+      "metadata_bytes": 33172,
+      "parts": {
+        "certificate_bytes": 31555,
+        "complete_serialized_block_bytes": 107381,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32851,
+        "nonmedia_metadata_percent": 30.592935435505353,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 74530,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 107468,
+      "sample_id": "gif-photo-small",
+      "source_bytes": 55720,
+      "source_sha256": "83add893b06499e9a8b0f1e31a60562b0b9bbd18af51abae923891382c5f3d51",
+      "stored_bytes": 55720
+    },
+    {
+      "accepted_bytes": 4057,
+      "accepted_sha256": "34c04be3b66e05d07192e9cb7cf948c4d9e03b6b2c0043ccea316651b25ab0e6",
+      "canonical_metadata_percent": 85.97236981934113,
+      "codec": "identity",
+      "descriptor_bytes": 5636,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 5636,
+      "metadata_bytes": 33169,
+      "parts": {
+        "certificate_bytes": 31554,
+        "complete_serialized_block_bytes": 38494,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32850,
+        "nonmedia_metadata_percent": 85.33797474931158,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 5644,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 38581,
+      "sample_id": "gif-text-medium",
+      "source_bytes": 4057,
+      "source_sha256": "34c04be3b66e05d07192e9cb7cf948c4d9e03b6b2c0043ccea316651b25ab0e6",
+      "stored_bytes": 4057
+    },
+    {
+      "accepted_bytes": 4961,
+      "accepted_sha256": "e3d088d4244f059769684ec47713c1eae7b617caddd9f6e360d2bbd1cf521613",
+      "canonical_metadata_percent": 83.37103503745035,
+      "codec": "identity",
+      "descriptor_bytes": 6840,
+      "exact_accepted_roundtrip": true,
+      "identity_descriptor_bytes": 6840,
+      "metadata_bytes": 33170,
+      "parts": {
+        "certificate_bytes": 31555,
+        "complete_serialized_block_bytes": 39699,
+        "delimiter_bytes": 19,
+        "envelope_bytes": 145,
+        "header_bytes": 238,
+        "nonmedia_metadata_bytes": 32851,
+        "nonmedia_metadata_percent": 82.75019521902315,
+        "remaining_structural_metadata_bytes": 639,
+        "serialized_media_representation_bytes": 6848,
+        "signature_bytes_subset": 2004,
+        "transaction_record_bytes": 255
+      },
+      "record_bytes": 39786,
+      "sample_id": "gif-mixed-large",
+      "source_bytes": 4961,
+      "source_sha256": "e3d088d4244f059769684ec47713c1eae7b617caddd9f6e360d2bbd1cf521613",
+      "stored_bytes": 4961
+    }
+  ],
+  "selected": {
+    "identity": 10,
+    "zstd": 26
+  },
+  "strict_source_roundtrips": [
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-caption-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-caption-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-story-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-story-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-audit-log-large"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-audit-log-large"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-json-pretty"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-json-pretty"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-json-minified"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-json-minified"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-json-peer-snapshot-large"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-json-peer-snapshot-large"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-source-code"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-source-code"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-source-admission-model"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-source-admission-model"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-source-snapshot-cli"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "text-source-snapshot-cli"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-flat-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-flat-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-text-poster"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-text-poster"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-photo-like"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-photo-like"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-noise-capacity"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-noise-capacity"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-photo-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-photo-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-mixed-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-mixed-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-text-large"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "jpeg-text-large"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-flat-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-flat-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-illustrated-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-illustrated-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-text-poster"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-text-poster"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-noise-capacity"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-noise-capacity"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-photo-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-photo-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-mixed-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-mixed-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-text-large"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "png-text-large"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-flat-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-flat-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-illustrated-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-illustrated-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-photo-like"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-photo-like"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-noise-capacity"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-noise-capacity"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-photo-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-photo-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-mixed-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-mixed-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-text-large"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "webp-text-large"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-flat-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-flat-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-animated-illustrated"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-animated-illustrated"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-noise-capacity"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-noise-capacity"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-photo-small"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-photo-small"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-text-medium"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-text-medium"
+    },
+    {
+      "codec": "identity",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-mixed-large"
+    },
+    {
+      "codec": "zstd",
+      "exact_bytes_and_hash": true,
+      "sample_id": "gif-mixed-large"
+    }
+  ],
+  "totals": {
+    "accepted_bytes": 6093910,
+    "metadata_bytes": 1194277,
+    "record_bytes": 8241301,
+    "source_bytes": 6093917,
+    "stored_bytes": 5285229
+  }
+}

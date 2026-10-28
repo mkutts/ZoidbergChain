@@ -1,0 +1,285 @@
+{
+  "additional_environment": {
+    "dbstat_compiled": false,
+    "libzstd": [
+      1,
+      5,
+      7
+    ],
+    "node": "v22.17.0",
+    "packages": {
+      "anyio": "4.14.0",
+      "fastapi": "0.138.0",
+      "httpx2": "2.5.0",
+      "starlette": "1.3.1"
+    },
+    "zlib_compile": "1.3.1",
+    "zlib_runtime": "1.3.1",
+    "zstandard_backend": "cext"
+  },
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "codec_size_mismatches": 0,
+  "commands": [
+    {
+      "elapsed": 17.136,
+      "log": "corpus.txt",
+      "name": "corpus",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "FAIL"
+    },
+    {
+      "elapsed": 9.012,
+      "log": "codec.txt",
+      "name": "codec",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "FAIL"
+    },
+    {
+      "elapsed": 20.621,
+      "log": "composition.txt",
+      "name": "composition",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "FAIL"
+    },
+    {
+      "elapsed": 0.196,
+      "log": "economics.txt",
+      "name": "economics",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 89.73,
+      "log": "storage.txt",
+      "name": "storage",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 41.231,
+      "log": "tests_measurements.txt",
+      "name": "tests_measurements",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 5,
+        "passed": 17,
+        "skipped": 0
+      },
+      "status": "FAIL"
+    },
+    {
+      "elapsed": 41.211,
+      "log": "tests_codec.txt",
+      "name": "tests_codec",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 476,
+        "skipped": 193
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 480.014,
+      "log": "tests_v3.txt",
+      "name": "tests_v3",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "TIMEOUT"
+    },
+    {
+      "elapsed": 41.951,
+      "log": "tests_717s.txt",
+      "name": "tests_717s",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 154,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 20.264,
+      "log": "tests_legacy.txt",
+      "name": "tests_legacy",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 115,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 45.023,
+      "log": "api_diagnostic.txt",
+      "name": "api_diagnostic",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "TIMEOUT"
+    },
+    {
+      "elapsed": 83.075,
+      "log": "format_storage_recheck.txt",
+      "name": "format_storage_recheck",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 172,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 6.139,
+      "log": "image_recheck.txt",
+      "name": "image_recheck",
+      "outcomes": {
+        "deselected": 1,
+        "failed": 0,
+        "passed": 18,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 249.976,
+      "log": "admission_history_atomic_recheck.txt",
+      "name": "admission_history_atomic_recheck",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 250,
+        "skipped": 4
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 62.092,
+      "log": "supplemental.txt",
+      "name": "supplemental",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "elapsed": 61.48,
+      "log": "supplemental_recheck.txt",
+      "name": "supplemental_recheck",
+      "outcomes": {
+        "deselected": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0
+      },
+      "status": "PASS"
+    }
+  ],
+  "completed_test_counts": {
+    "deselected": 1,
+    "failed": 5,
+    "passed": 1202,
+    "skipped": 197
+  },
+  "economics_csv_byte_exact": true,
+  "economics_json_exact": true,
+  "final_git_status": "?? docs/milestone-7-original-scope-completion-audit.md\n?? verification/task718/admission_history_atomic_recheck.txt\n?? verification/task718/api_diagnostic.txt\n?? verification/task718/codec.txt\n?? verification/task718/composition.txt\n?? verification/task718/corpus.txt\n?? verification/task718/economics.csv\n?? verification/task718/economics.json\n?? verification/task718/economics.txt\n?? verification/task718/execution.json\n?? verification/task718/followup.json\n?? verification/task718/followup.py\n?? verification/task718/format_storage_recheck.txt\n?? verification/task718/image_recheck.txt\n?? verification/task718/run_audit.py\n?? verification/task718/storage.json\n?? verification/task718/storage.txt\n?? verification/task718/summarize.py\n?? verification/task718/summary.json\n?? verification/task718/supplemental.json\n?? verification/task718/supplemental.py\n?? verification/task718/supplemental.txt\n?? verification/task718/supplemental_recheck.json\n?? verification/task718/supplemental_recheck.txt\n?? verification/task718/tests_717s.txt\n?? verification/task718/tests_codec.txt\n?? verification/task718/tests_legacy.txt\n?? verification/task718/tests_measurements.txt\n?? verification/task718/tests_v3.txt\n?? verification/task718/v3_collection.txt\n",
+  "frozen_metadata": {
+    "canonical_metadata_percent": {
+      "p50": 85.97236981934113,
+      "p95": 99.60380586487379,
+      "worst": 99.85557394313224
+    },
+    "historical_definition_percent": {
+      "p50": 85.37103755734688,
+      "p95": 98.92547348200618,
+      "worst": 99.16654129682564
+    },
+    "original_relative_metadata_percent": {
+      "p50": 621.4352632565111,
+      "p95": 30444.954128440368,
+      "worst": 94820.0
+    }
+  },
+  "frozen_totals": {
+    "accepted_original": 6093910,
+    "base64_characters": 7047024,
+    "canonical_record": 8241301,
+    "descriptor_and_media_field_framing": 8291,
+    "encoded": 5285229,
+    "native_array_bytes": 72,
+    "nonmedia_metadata": 1185986,
+    "protocol_metadata_including_descriptor": 1194277,
+    "reviewer_evidence_bytes": 923364,
+    "signature_characters_subset": 71280
+  },
+  "head": "2752e0eb7b7a89cace6c9adf61a38a12dad61883",
+  "index_changed": false,
+  "initial_status": "clean",
+  "manifest_difference_count": 22,
+  "original_acceptance": "INCOMPLETE",
+  "preexisting_tracked_file_changes": [],
+  "production_readiness": "BLOCKED",
+  "requirements": {
+    "A": "PARTIAL",
+    "B": "PARTIAL",
+    "C": "FAIL",
+    "D": "PARTIAL",
+    "E": "PARTIAL",
+    "F": "FAIL",
+    "MODEL_A": "PASS",
+    "addition_6": "PARTIAL",
+    "addition_7": "PASS",
+    "addition_8": "PARTIAL",
+    "addition_9": "PARTIAL",
+    "scope_1": "PARTIAL",
+    "scope_2": "PARTIAL",
+    "scope_3": "PARTIAL",
+    "scope_4": "PASS",
+    "scope_5": "PARTIAL"
+  },
+  "storage_equal_excluding_environment": true,
+  "timeouts": [
+    "tests_v3",
+    "api_diagnostic"
+  ],
+  "worker_roundtrips": 72
+}

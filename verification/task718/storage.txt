@@ -1,0 +1,2 @@
+Built 36 signed corpus records; measuring isolated SQLite
+Wrote C:\Users\mattk\ZoidbergChain\verification\task718\storage.json; 36 corpus records, exact bytes verified

@@ -1,5 +1,19 @@
 # Milestone 7 Task 7.17P — Network-wide review journal safety and feasibility
 
+**Task 7.17Q follow-up (2026-10-27):** The
+[capacity, clock and economics decision](milestone-7-review-journal-capacity-and-clock-decision.md)
+reconciles the explicit 24-vote model cap, conditional maximum vote bytes,
+byte/work batching, fixed-tick archive cost and corrected workload projections.
+It recommends an unapproved bounded hybrid with authenticated time/epoch policy;
+height+256 alone supplies no human-time minimum. Time-based recovery can make
+more than16 closes due together, requiring a separately frozen deterministic
+freeze/paging or global reservation rule. Owner clock/window/epoch/archive
+decisions, complete stream/G2/signing/media/control bounds and independent
+implementation/availability/benchmark evidence remain readiness gates. P's
+model, fixtures, results and eight negative controls are unchanged; historical
+parameters below remain unapproved. Production journal and Task7.17 remain
+**BLOCKED**. No active schema, signer or consensus is changed by Q.
+
 Date: 2026-10-27 (America/New_York). **Isolated verification and planning only.**
 
 The proposed ordered journal can make every eligible **authoritatively admitted**

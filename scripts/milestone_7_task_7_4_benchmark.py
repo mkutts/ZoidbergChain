@@ -114,8 +114,7 @@ def _aggregate(rows: list[dict[str, Any]], members: list[dict[str, Any]]) -> dic
 
 def run(config: dict[str, Any]) -> dict[str, Any]:
     manifest = json.loads((PROJECT_ROOT / config["corpus_manifest"]).read_text(encoding="utf-8"))
-    if corpus.make_manifest() != manifest:
-        raise ValueError("corpus manifest does not regenerate; refusing benchmark")
+    corpus.verify_manifest(manifest)
     generated = {sample["id"]: sample for sample in corpus.build_samples()}
     rows: list[dict[str, Any]] = []
     profiles: list[dict[str, Any]] = []

@@ -78,8 +78,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def run(config: dict[str, Any]) -> dict[str, Any]:
     manifest_path = ROOT / config["corpus_manifest"]
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if corpus.make_manifest() != manifest:
-        raise ValueError("versioned corpus no longer regenerates")
+    corpus.verify_manifest(manifest)
     baseline_path = ROOT / config["baseline_results"]
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     rows = [row for row in baseline["per_sample"] if row["candidate_id"] == config["baseline_candidate"] and row["mime_type"].startswith("image/")]

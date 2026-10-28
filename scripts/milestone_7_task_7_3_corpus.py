@@ -273,7 +273,20 @@ def write_corpus(destination: Path, manifest: dict[str, Any]) -> None:
 
 def verify_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     actual = make_manifest()
-    if manifest != actual:
+    # These three values are historical admission observations, not source
+    # identity. Task 7.12 repaired image-worker admission after this manifest
+    # was frozen. Preserve every key (including the observation-field schema),
+    # sample order, source hash/size and pinned encoder environment exactly.
+    # Never emit a new historical manifest just because admission now succeeds.
+    observation_fields = {"current_validator_status", "current_validator_reason_codes", "accepted_byte_size"}
+
+    def identity(value: dict[str, Any]) -> dict[str, Any]:
+        return value | {"samples": [
+            {key: None if key in observation_fields else item for key, item in record.items()}
+            for record in value["samples"]
+        ]}
+
+    if identity(manifest) != identity(actual):
         raise ValueError("Manifest does not match regenerated deterministic corpus or pinned environment.")
     for record in manifest["samples"]:
         if record["current_validator_status"] == "rejected_policy" and not record["capacity_analysis"]:
@@ -294,7 +307,9 @@ def main() -> None:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     if args.verify:
         statistics = verify_manifest(manifest)
-        print(json.dumps({"corpus_id": manifest["corpus_id"], "verified": True, "image_statistics": statistics}, indent=2, sort_keys=True))
+        print(json.dumps({"corpus_id": manifest["corpus_id"], "verified": True,
+                          "verification_scope": "source identity, order, schema and pinned encoder environment; historical admission observations are not replayed",
+                          "image_statistics": statistics}, indent=2, sort_keys=True))
     if args.output:
         write_corpus(args.output, manifest)
 

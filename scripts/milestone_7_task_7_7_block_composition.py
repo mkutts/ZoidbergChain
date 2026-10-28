@@ -252,8 +252,7 @@ def _v3_storage_record(envelope: bytes) -> dict[str, Any]:
 
 def build_rows(config: dict[str, Any]) -> list[dict[str, Any]]:
     manifest = json.loads((PROJECT_ROOT / config["corpus_manifest"]).read_text(encoding="utf-8"))
-    if corpus.make_manifest() != manifest:
-        raise ValueError("corpus manifest does not regenerate; refusing measurement")
+    corpus.verify_manifest(manifest)
     samples = {sample["id"]: sample for sample in corpus.build_samples()}
     compressor = zstandard.ZstdCompressor(compression_params=zstandard.ZstdCompressionParameters.from_level(
         config["zstd_level"], window_log=config["zstd_window_log"], write_checksum=1,

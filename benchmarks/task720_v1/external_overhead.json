@@ -1,0 +1,111 @@
+{
+  "database": {
+    "corpus": {
+      "after_checkpoint": {
+        "main_bytes": 8376320,
+        "shm_bytes": 32768,
+        "wal_bytes": 0
+      },
+      "after_vacuum": {
+        "main_bytes": 8372224,
+        "shm_bytes": 32768,
+        "wal_bytes": 0
+      },
+      "backup_bytes": 8376320,
+      "baseline": {
+        "main_bytes": 49152,
+        "shm_bytes": 32768,
+        "wal_bytes": 0
+      },
+      "before_checkpoint": {
+        "main_bytes": 49152,
+        "shm_bytes": 32768,
+        "wal_bytes": 9377152
+      },
+      "blocks": 36,
+      "canonical_blob_bytes": 8241301,
+      "canonical_serialized_bytes": 8241301,
+      "checkpoint_result": [
+        0,
+        0,
+        0
+      ],
+      "dbstat_after_checkpoint": {
+        "available": false,
+        "index_bytes": null
+      },
+      "logical_block_index_value_bytes": 7200,
+      "observations": [
+        {
+          "allocated_page_bytes": 81920,
+          "blocks": 1,
+          "canonical_bytes": 33235,
+          "main_bytes": 49152,
+          "shm_bytes": 32768,
+          "wal_bytes": 57712
+        },
+        {
+          "allocated_page_bytes": 212992,
+          "blocks": 5,
+          "canonical_bytes": 167254,
+          "main_bytes": 49152,
+          "shm_bytes": 32768,
+          "wal_bytes": 288432
+        },
+        {
+          "allocated_page_bytes": 2936832,
+          "blocks": 15,
+          "canonical_bytes": 2869434,
+          "main_bytes": 49152,
+          "shm_bytes": 32768,
+          "wal_bytes": 3291912
+        },
+        {
+          "allocated_page_bytes": 8376320,
+          "blocks": 36,
+          "canonical_bytes": 8241301,
+          "main_bytes": 49152,
+          "shm_bytes": 32768,
+          "wal_bytes": 9364792
+        }
+      ],
+      "redundant_full_media_copies": 0,
+      "temporary_headroom": {
+        "measured_backup_copy_bytes": 8376320,
+        "measured_wal_peak_at_observation_bytes": 9377152,
+        "modeled_additional_bytes": 26129792,
+        "modeled_vacuum_working_copy_allowance_bytes": 8376320,
+        "note": "Observation-point WAL peak, not a filesystem high-water trace. VACUUM working copy is a planning allowance; filesystem temp peak was not measured. SHM is reported separately."
+      },
+      "vacuum_before_checkpoint": {
+        "main_bytes": 8376320,
+        "shm_bytes": 32768,
+        "wal_bytes": 8421312
+      },
+      "verification": {
+        "blocks": 36,
+        "finality_proofs": 0,
+        "native_transaction_references": 0,
+        "selected_blocks": 36
+      }
+    },
+    "historical_reference": "benchmarks/milestone_7_task_7_11_results.json",
+    "new_measurement": false,
+    "note": "Historical 7.11 observations only; no WAL replay or fresh physical/index attribution. Not included in R.",
+    "sha256": "33750a785afbcd8e0808ec04b3f38b1a2fe931c6e2f40f0e7de4c65510e8c86e"
+  },
+  "finality": {
+    "frozen_examples": {
+      "finality-proof.json": {
+        "bytes": 1194,
+        "sha256": "efdf7aabccb1b7ec8436a57a1eca1b1e38f72695ea746a009384e44430d9f483"
+      },
+      "finality.json": {
+        "bytes": 880,
+        "sha256": "989e2d026c536d62ce07856e920f89821a7781df4598d43baee114bee1116010"
+      }
+    },
+    "note": "Separate canonical objects; examples, not measured finality distribution or universal per-block constant"
+  },
+  "future_review_journal": "Unapproved future commitments excluded; no implementation or invented byte allowance"
+}

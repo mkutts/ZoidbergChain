@@ -1,0 +1,14 @@
+{
+  "canonical_rows": 70,
+  "codec_rows": 238,
+  "exact_ledger_rows": 78,
+  "input_sha256": {
+    "codecs.json": "f048b3d8c689cd6f04feb5c0955966d7255a1b5cdfe6972be8a3974c254917d5",
+    "manifest.json": "f0f9a374f6e13c6cb38edf8b8d6ebe68d1a451dfaa756964040189aa2cee61a5",
+    "metrics.json": "960ac0a6cba0e6a9bb809a3d3c098c6f5f5b2466269e743716df04f56aec8485",
+    "records.json": "7346afcc73defafb7a617e030b3bfd91c7e7ee4e3040fd17c18314df6831fef8"
+  },
+  "percentile": "independent math.ceil nearest rank",
+  "sensitivity_rows": 8,
+  "status": "PASS"
+}

@@ -1,0 +1,67 @@
+{
+  "acceptance": {
+    "A": "PARTIAL",
+    "B": "PARTIAL",
+    "C": "PASS (isolated)",
+    "D": "PASS (measured)",
+    "E": "PASS (frozen v3)",
+    "F": "FAIL",
+    "G": "PASS (pinned Windows)"
+  },
+  "activation": false,
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "head": "681e74863a2985b706138a95956d4bd885d062cd",
+  "historical_records": 36,
+  "metadata": {
+    "below_15_percent": 12,
+    "canonical_byte_weighted_metadata_percent": 7.140173816436257,
+    "metadata_bytes_over_original_bytes_percent": 9.791103554389432,
+    "metadata_over_original_percent": {
+      "equal_record_mean": 8776.013561782807,
+      "p50": 101.29398480178229,
+      "p95": 69139.58333333333,
+      "worst": 77102.32558139534
+    },
+    "metadata_percent": {
+      "equal_record_mean": 53.05443986523766,
+      "p50": 54.70901564999423,
+      "p95": 99.80752458572674,
+      "worst": 99.81935328475944
+    },
+    "objects": 34,
+    "original_byte_weighted_mean_metadata_percent": 5.5559545982728755,
+    "partition": {
+      "certificate_bytes": 1073154,
+      "delimiter_bytes": 646,
+      "envelope_bytes": 4930,
+      "header_bytes": 8083,
+      "portable_wrapper_bytes": 2958,
+      "remaining_structural_metadata_bytes": 21714,
+      "serialized_media_representation_bytes": 14678466,
+      "transaction_record_bytes": 8670
+    },
+    "totals": {
+      "base64_media_bytes": 14670572,
+      "encoded_bytes": 11002892,
+      "nonmedia_bytes": 1128049,
+      "original_bytes": 11521163,
+      "record_bytes": 15798621,
+      "source_bytes": 11521163
+    }
+  },
+  "milestone_complete": false,
+  "native_codec_rows": 238,
+  "owner_review_ready": true,
+  "production_like_records": 34,
+  "profile": "task720-production-like-v1",
+  "replay_exact_nontiming": true,
+  "sensitivity_records": 8,
+  "strict_invalid_candidates": 1,
+  "strict_valid_source_trials": 139,
+  "task": "7.20",
+  "tests": {
+    "failed": 0,
+    "passed": 631,
+    "skipped": 193
+  }
+}

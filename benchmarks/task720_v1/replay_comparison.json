@@ -1,0 +1,32 @@
+{
+  "admission.json": {
+    "exact_nontiming": true,
+    "reference_sha256": "9ed06d32d50438264215375f6c1e399e809bb87af7cddbf5a9b827402b486762",
+    "replay_sha256": "9ed06d32d50438264215375f6c1e399e809bb87af7cddbf5a9b827402b486762"
+  },
+  "codecs.json": {
+    "exact_nontiming": true,
+    "reference_sha256": "b53d1e7b72f185eecd919a76833870fa74d18135554c9aaf0e9ee6530e4f43b1",
+    "replay_sha256": "f048b3d8c689cd6f04feb5c0955966d7255a1b5cdfe6972be8a3974c254917d5"
+  },
+  "historical_audit.json": {
+    "exact_nontiming": true,
+    "reference_sha256": "b1cbbe330deccda5b76e5f46c538b1a549460697d7eeeaa00c9da10053c6064b",
+    "replay_sha256": "b1cbbe330deccda5b76e5f46c538b1a549460697d7eeeaa00c9da10053c6064b"
+  },
+  "manifest.json": {
+    "exact_nontiming": true,
+    "reference_sha256": "f0f9a374f6e13c6cb38edf8b8d6ebe68d1a451dfaa756964040189aa2cee61a5",
+    "replay_sha256": "f0f9a374f6e13c6cb38edf8b8d6ebe68d1a451dfaa756964040189aa2cee61a5"
+  },
+  "metrics.json": {
+    "exact_nontiming": true,
+    "reference_sha256": "960ac0a6cba0e6a9bb809a3d3c098c6f5f5b2466269e743716df04f56aec8485",
+    "replay_sha256": "960ac0a6cba0e6a9bb809a3d3c098c6f5f5b2466269e743716df04f56aec8485"
+  },
+  "records.json": {
+    "exact_nontiming": true,
+    "reference_sha256": "280b709a99400e05e0103c4ae2ba7c19de072dd028bc499412b38418e06fc9fc",
+    "replay_sha256": "7346afcc73defafb7a617e030b3bfd91c7e7ee4e3040fd17c18314df6831fef8"
+  }
+}

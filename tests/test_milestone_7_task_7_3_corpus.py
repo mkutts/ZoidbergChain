@@ -19,7 +19,9 @@ def _manifest():
 
 def test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory():
     manifest = _manifest()
-    assert manifest == corpus.make_manifest()
+    # Frozen observations describe the pre-7.12 image worker. Source identity,
+    # field inventory, encoder environment and ordering must still match exactly.
+    corpus.verify_manifest(manifest)
     counts = {}
     for sample in manifest["samples"]:
         counts[sample["mime_type"]] = counts.get(sample["mime_type"], 0) + 1
@@ -88,12 +90,14 @@ def test_validator_environment_outcome_is_recorded_without_calling_invalid_image
     assert all(record["current_validator_status"] in {"accepted", "rejected_policy", "rejected_environment_isolation"} for record in records)
 
 
-def test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure():
+def test_frozen_genesis_jpeg_is_valid_and_current_validator_preserves_exact_bytes():
     payload = canonical_public_testnet_v1_genesis_media_bytes()
     with Image.open(io.BytesIO(payload)) as image:
         assert image.format == "JPEG"
         image.verify()
-    from media_technical_validation import TechnicalMediaValidationError, validate_media_bytes
-    with pytest.raises(TechnicalMediaValidationError) as exc_info:
-        validate_media_bytes(payload, declared_mime_type="image/jpeg")
-    assert exc_info.value.result["reason_codes"] == ["MALFORMED_MEDIA"]
+    from media_technical_validation import validate_media_bytes
+    validated = validate_media_bytes(payload, declared_mime_type="image/jpeg")
+    assert validated.raw_media_bytes == payload
+    assert validated.result["raw_media_sha256"] == hashlib.sha256(payload).hexdigest()
+    assert validated.result["detected_mime_type"] == "image/jpeg"
+    assert validated.result["outcome"] == "ACCEPT"

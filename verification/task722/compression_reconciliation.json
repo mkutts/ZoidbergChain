@@ -1,0 +1,295 @@
+{
+  "groups": {
+    "all-78-records": {
+      "per_record_totals": {
+        "base64_bytes": 27337892,
+        "base64_expansion": 6834557,
+        "certificate_key_bytes": 1872,
+        "certificate_member_bytes": 2461572,
+        "certificate_value_bytes": 2459700,
+        "complete_record_bytes": 30073688,
+        "descriptor_framing": 18035,
+        "encoded_bytes": 20503335,
+        "media_representation_bytes": 27355927,
+        "original_bytes": 21887471
+      },
+      "per_unique_object_totals": {
+        "base64_bytes": {
+          "max": 21717596,
+          "min": 21717596
+        },
+        "base64_expansion": {
+          "max": 5429475,
+          "min": 5429475
+        },
+        "certificate_key_bytes": {
+          "max": 1680,
+          "min": 1680
+        },
+        "certificate_member_bytes": {
+          "max": 2238398,
+          "min": 2180010
+        },
+        "certificate_value_bytes": {
+          "max": 2236718,
+          "min": 2178330
+        },
+        "complete_record_bytes": {
+          "max": 24217312,
+          "min": 24010562
+        },
+        "descriptor_framing": {
+          "max": 16185,
+          "min": 16185
+        },
+        "encoded_bytes": {
+          "max": 16288121,
+          "min": 16288121
+        },
+        "media_representation_bytes": {
+          "max": 21733781,
+          "min": 21733781
+        },
+        "original_bytes": {
+          "max": 17615073,
+          "min": 17615073
+        }
+      },
+      "records": 78,
+      "unique_objects": 70
+    },
+    "historical": {
+      "per_record_totals": {
+        "base64_bytes": 7047024,
+        "base64_expansion": 1761795,
+        "certificate_key_bytes": 864,
+        "certificate_member_bytes": 1136216,
+        "certificate_value_bytes": 1135352,
+        "complete_record_bytes": 8241301,
+        "descriptor_framing": 8291,
+        "encoded_bytes": 5285229,
+        "media_representation_bytes": 7055315,
+        "original_bytes": 6093910
+      },
+      "per_unique_object_totals": {
+        "base64_bytes": {
+          "max": 7047024,
+          "min": 7047024
+        },
+        "base64_expansion": {
+          "max": 1761795,
+          "min": 1761795
+        },
+        "certificate_key_bytes": {
+          "max": 864,
+          "min": 864
+        },
+        "certificate_member_bytes": {
+          "max": 1136216,
+          "min": 1136216
+        },
+        "certificate_value_bytes": {
+          "max": 1135352,
+          "min": 1135352
+        },
+        "complete_record_bytes": {
+          "max": 8241301,
+          "min": 8241301
+        },
+        "descriptor_framing": {
+          "max": 8291,
+          "min": 8291
+        },
+        "encoded_bytes": {
+          "max": 5285229,
+          "min": 5285229
+        },
+        "media_representation_bytes": {
+          "max": 7055315,
+          "min": 7055315
+        },
+        "original_bytes": {
+          "max": 6093910,
+          "min": 6093910
+        }
+      },
+      "records": 36,
+      "unique_objects": 36
+    },
+    "long-metadata": {
+      "per_record_totals": {
+        "base64_bytes": 2810148,
+        "base64_expansion": 702541,
+        "certificate_key_bytes": 96,
+        "certificate_member_bytes": 155295,
+        "certificate_value_bytes": 155199,
+        "complete_record_bytes": 3120258,
+        "descriptor_framing": 925,
+        "encoded_bytes": 2107607,
+        "media_representation_bytes": 2811073,
+        "original_bytes": 2136199
+      },
+      "per_unique_object_totals": {
+        "base64_bytes": {
+          "max": 2810148,
+          "min": 2810148
+        },
+        "base64_expansion": {
+          "max": 702541,
+          "min": 702541
+        },
+        "certificate_key_bytes": {
+          "max": 96,
+          "min": 96
+        },
+        "certificate_member_bytes": {
+          "max": 155295,
+          "min": 155295
+        },
+        "certificate_value_bytes": {
+          "max": 155199,
+          "min": 155199
+        },
+        "complete_record_bytes": {
+          "max": 3120258,
+          "min": 3120258
+        },
+        "descriptor_framing": {
+          "max": 925,
+          "min": 925
+        },
+        "encoded_bytes": {
+          "max": 2107607,
+          "min": 2107607
+        },
+        "media_representation_bytes": {
+          "max": 2811073,
+          "min": 2811073
+        },
+        "original_bytes": {
+          "max": 2136199,
+          "min": 2136199
+        }
+      },
+      "records": 4,
+      "unique_objects": 4
+    },
+    "production-like": {
+      "per_record_totals": {
+        "base64_bytes": 14670572,
+        "base64_expansion": 3667680,
+        "certificate_key_bytes": 816,
+        "certificate_member_bytes": 1073154,
+        "certificate_value_bytes": 1072338,
+        "complete_record_bytes": 15798621,
+        "descriptor_framing": 7894,
+        "encoded_bytes": 11002892,
+        "media_representation_bytes": 14678466,
+        "original_bytes": 11521163
+      },
+      "per_unique_object_totals": {
+        "base64_bytes": {
+          "max": 14670572,
+          "min": 14670572
+        },
+        "base64_expansion": {
+          "max": 3667680,
+          "min": 3667680
+        },
+        "certificate_key_bytes": {
+          "max": 816,
+          "min": 816
+        },
+        "certificate_member_bytes": {
+          "max": 1073154,
+          "min": 1073154
+        },
+        "certificate_value_bytes": {
+          "max": 1072338,
+          "min": 1072338
+        },
+        "complete_record_bytes": {
+          "max": 15798621,
+          "min": 15798621
+        },
+        "descriptor_framing": {
+          "max": 7894,
+          "min": 7894
+        },
+        "encoded_bytes": {
+          "max": 11002892,
+          "min": 11002892
+        },
+        "media_representation_bytes": {
+          "max": 14678466,
+          "min": 14678466
+        },
+        "original_bytes": {
+          "max": 11521163,
+          "min": 11521163
+        }
+      },
+      "records": 34,
+      "unique_objects": 34
+    },
+    "ten-votes": {
+      "per_record_totals": {
+        "base64_bytes": 2810148,
+        "base64_expansion": 702541,
+        "certificate_key_bytes": 96,
+        "certificate_member_bytes": 96907,
+        "certificate_value_bytes": 96811,
+        "complete_record_bytes": 2913508,
+        "descriptor_framing": 925,
+        "encoded_bytes": 2107607,
+        "media_representation_bytes": 2811073,
+        "original_bytes": 2136199
+      },
+      "per_unique_object_totals": {
+        "base64_bytes": {
+          "max": 2810148,
+          "min": 2810148
+        },
+        "base64_expansion": {
+          "max": 702541,
+          "min": 702541
+        },
+        "certificate_key_bytes": {
+          "max": 96,
+          "min": 96
+        },
+        "certificate_member_bytes": {
+          "max": 96907,
+          "min": 96907
+        },
+        "certificate_value_bytes": {
+          "max": 96811,
+          "min": 96811
+        },
+        "complete_record_bytes": {
+          "max": 2913508,
+          "min": 2913508
+        },
+        "descriptor_framing": {
+          "max": 925,
+          "min": 925
+        },
+        "encoded_bytes": {
+          "max": 2107607,
+          "min": 2107607
+        },
+        "media_representation_bytes": {
+          "max": 2811073,
+          "min": 2811073
+        },
+        "original_bytes": {
+          "max": 2136199,
+          "min": 2136199
+        }
+      },
+      "records": 4,
+      "unique_objects": 4
+    }
+  },
+  "status": "PASS"
+}

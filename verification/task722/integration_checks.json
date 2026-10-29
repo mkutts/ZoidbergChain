@@ -1,0 +1,27 @@
+{
+  "activated": false,
+  "application_choices": {
+    "identity": 18,
+    "zstd": 40
+  },
+  "consensus_authority": "INCOMPLETE",
+  "format_choices": {
+    "identity": 27,
+    "zstd": 43
+  },
+  "fresh_exercise": true,
+  "index_rebuild": {
+    "blocks": 128,
+    "finality_proofs": 0,
+    "native_transaction_references": 0,
+    "selected_blocks": 0
+  },
+  "journal": "DELETE",
+  "status": "PASS",
+  "synchronous": "EXTRA",
+  "tracked_and_fresh": {
+    "admissible": 58,
+    "format": 70,
+    "recovered": 128
+  }
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "name": "historical_corpus",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "scripts/milestone_7_task_7_3_corpus.py",
+      "--verify"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-0b7e459f27a647a0b0482484a2613c2b",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 17.80183990020305,
+    "log_tail": [
+      "        \"maximum_bytes\": 802666",
+      "      },",
+      "      \"image/jpeg\": {",
+      "        \"bytes\": 2500693,",
+      "        \"count\": 7,",
+      "        \"maximum_bytes\": 1530684",
+      "      },",
+      "      \"image/png\": {",
+      "        \"bytes\": 1795174,",
+      "        \"count\": 7,",
+      "        \"maximum_bytes\": 1772761",
+      "      },",
+      "      \"image/webp\": {",
+      "        \"bytes\": 904502,",
+      "        \"count\": 7,",
+      "        \"maximum_bytes\": 625250",
+      "      }",
+      "    },",
+      "    \"excluded_by_encoded_media_limit_count\": 5,",
+      "    \"excluded_by_original_media_limit_count\": 5,",
+      "    \"image_count\": 27,",
+      "    \"maximum_bytes\": 1772761,",
+      "    \"p50_bytes\": 10474,",
+      "    \"p95_bytes\": 1530684,",
+      "    \"p99_bytes\": 1772761,",
+      "    \"requires_block_overhead_measurement\": true",
+      "  },",
+      "  \"verification_scope\": \"source identity, order, schema and pinned encoder environment; historical admission observations are not replayed\",",
+      "  \"verified\": true",
+      "}"
+    ]
+  },
+  {
+    "name": "historical_codec",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "scripts/milestone_7_task_7_4_benchmark.py",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-0b7e459f27a647a0b0482484a2613c2b\\codec.json"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-0b7e459f27a647a0b0482484a2613c2b",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 15.109172400087118,
+    "log_tail": [
+      "wrote C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-0b7e459f27a647a0b0482484a2613c2b\\codec.json (252 per-sample rows)"
+    ]
+  }
+]

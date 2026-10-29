@@ -1,0 +1,14 @@
+{
+  "backups": "K = retained_full_copies * .95 P; four uploads/month, retain four, all conservatively priced at current P; .95 compression assumption",
+  "bandwidth": "in=1.38 monthly_R; peer_out=11.52 monthly_R (8 peers); backup_out=4 P; one bootstrap=1.2 C; reference serves 1 bootstrap/year and 1 backup restore/year as expected monthly fractions",
+  "canonical": "C = cumulative_blocks * (mean_R + extra_evidence)",
+  "cumulative": "sum of each modeled monthly bill, 36 months; no discounts, taxes or inflation",
+  "headroom": "H = .20 P + 1.45 * monthly_R * 1.25 + 5 GiB; rollback/write workspace allowance; no WAL enabled or claimed measured",
+  "ingress": "assumed uncharged; bytes retained; provider-specific ingress/allowances not quoted",
+  "limitations": "No invoices, tier feasibility, IOPS/burst/restore throughput or separate dbstat measurements. 0 extra archive nodes means none required by this media-only one-node model, not free journal capacity. Snapshot frequency with unchanged retention changes write work, not full-copy capacity; CPU/IO cost unmeasured.",
+  "local": "L=P+H+S+W; extra disk=ceil(max(0,L/GiB-included_GiB)), 1 GiB illustrative increments, no assumed physical tier cap",
+  "primary": "P = 1 GiB + C + 0.10 C index/pages + 0.15 C fragmentation (analytical split, not measured)",
+  "recovery": "W = P, additional primary-sized restore/VACUUM working copy provisioned throughout each month; conservative simultaneous peak reserve",
+  "snapshots": "S = retained_snapshot_count * P; reference daily refresh, retain one local full snapshot, no dedup credit",
+  "total": "compute + extra_disk * marginal_disk_rate + K/GiB * backup_rate + (peer_out+backup_out+bootstrap_out+restore_egress)/GiB * egress_rate"
+}

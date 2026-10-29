@@ -1,0 +1,17 @@
+{
+  "base64_identity": 140,
+  "base64_selected": 140,
+  "encoded_bytes": 105,
+  "encoded_sha256": "53064015dc15950906ea5a54ecd1fb1ea0776ad3efc2f10c14a42ff4733669cc",
+  "explanation": "Normal native encoder selected E=105 > M=104. Both base64 strings are 140 bytes; zstd codec_id is four bytes shorter than identity. Canonical descriptor/record shrink by four bytes.",
+  "identity_binary_plus_descriptor": 327,
+  "identity_descriptor": 363,
+  "identity_record": 33330,
+  "original_ascii": "bmozvaibkgjhevxdmqzukt0c328pqlcgchkq90vew8mgc394iojl7lc8ycj3kn2fdjeaiphe490948m1tbb577bbqbm52hfmpftgkea0",
+  "original_bytes": 104,
+  "original_sha256": "7ab951a3e2a1eb039ea25cd7ef1393c05c4fbdc0f4a6b6a2c22ffcfb17b9daca",
+  "selected_binary_plus_descriptor": 324,
+  "selected_descriptor": 359,
+  "selected_record": 33326,
+  "strict_reconstruction": "VALID exact SHA-256"
+}

@@ -1,0 +1,9 @@
+{
+  "codec_nontiming_differences": [],
+  "codec_rows": 252,
+  "composition_exact_excluding_environment_sqlite": true,
+  "composition_rows": 180,
+  "economics_csv_exact": true,
+  "economics_json_exact": true,
+  "historical_sqlite_replay": "NOT RUN: historical WAL initializer prohibited; use tracked measurements only"
+}

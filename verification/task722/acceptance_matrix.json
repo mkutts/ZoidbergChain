@@ -1,0 +1,215 @@
+{
+  "original": [
+    {
+      "id": "MODEL A",
+      "requirement": "Complete originals recoverable from canonical on-chain representation",
+      "status": "PASS",
+      "category": "demonstrated in isolation",
+      "evidence": "bridge_recovery.json: 128 fresh-process exact originals; no cache or recompression; integration_checks.json"
+    },
+    {
+      "id": "1",
+      "requirement": "Benchmark Zstd, Brotli and suitable lossless alternatives across text/metadata/code/media",
+      "status": "PARTIAL",
+      "category": "measurement",
+      "evidence": "252 historical + 238 new exact codec trials; replay comparisons PASS. All five supported MIME types; synthetic-only corpus cannot establish real deployment representativeness."
+    },
+    {
+      "id": "2",
+      "requirement": "Retain algorithm, original/stored sizes, MIME and original-byte hash",
+      "status": "PARTIAL",
+      "category": "demonstrated in isolation",
+      "evidence": "canonical_v3/media.py eight-field descriptor; 70 format + 58 application records persist/recover. Active application remains v1/v2."
+    },
+    {
+      "id": "3",
+      "requirement": "Guarantee byte-exact original reconstruction",
+      "status": "PARTIAL",
+      "category": "demonstrated in isolation",
+      "evidence": "All selected measured records exact SHA-256, strict decoder/bridge tests pass; no active compressed-media path or universal native-security proof."
+    },
+    {
+      "id": "4",
+      "requirement": "Three years at 100/1000/10000 blocks/day",
+      "status": "PASS",
+      "category": "demonstrated",
+      "evidence": "historical_replay_comparison.json: exact 7.8 JSON/CSV; economic_scenarios.json: 27 corrected cases, 1095 days."
+    },
+    {
+      "id": "5",
+      "requirement": "Measure primary DB, media, indexes, snapshots/backups and bandwidth",
+      "status": "PARTIAL",
+      "category": "measurement",
+      "evidence": "Historical 7.7/7.11 physical DB/backup measurements preserved; exact media ledger. Separate physical index pages, actual snapshot footprint and production traffic remain unmeasured; forecasts identify analytical allowances."
+    },
+    {
+      "id": "6",
+      "requirement": "Apply adaptive compression by MIME/content type",
+      "status": "PARTIAL",
+      "category": "demonstrated in isolation",
+      "evidence": "media.produce MIME allowlist/size caps and descriptor comparison; 43 Zstd/27 identity format cases; bridge not production active."
+    },
+    {
+      "id": "7",
+      "requirement": "Realistic expectations for JPEG/WebP/video/already-compressed data",
+      "status": "PASS",
+      "category": "demonstrated",
+      "evidence": "New raw Zstd-3 image reductions 0.088% JPEG, 0.006% PNG, -0.006% WebP; expansions/fallback retained; unsupported video receives no invented ratio."
+    },
+    {
+      "id": "8",
+      "requirement": "Report representative p50/p95/worst metadata overhead",
+      "status": "PARTIAL",
+      "category": "measurement",
+      "evidence": "metadata_reconciliation.json reproduces exact primary percentiles; all MIME/size strata included. Deployment-wide distribution not established."
+    },
+    {
+      "id": "9",
+      "requirement": "Account for backup/snapshot/network-transfer costs",
+      "status": "PASS",
+      "category": "demonstrated analytical accounting",
+      "evidence": "cost_formulas.json and all 27 corrected cases charge backups, snapshots, headroom, recovery, expected bootstrap/restore and peer egress. Prices/tier feasibility remain conditional."
+    },
+    {
+      "id": "A",
+      "requirement": "Roughly 60\u201380% reduction on realistic compressible content where feasible",
+      "status": "PARTIAL",
+      "category": "measurement",
+      "evidence": "New source suite 65.09446%; code weighted 62.88359%, median 54.79520%; prose/JSON weighted 87.55131/81.35711%. Examples demonstrate feasibility, not a representative deployment-wide claim."
+    },
+    {
+      "id": "B",
+      "requirement": "Normal adaptive producer never selects an increased relevant stored representation",
+      "status": "PARTIAL",
+      "category": "demonstrated in isolation / owner interpretation",
+      "evidence": "PASS versus identity for complete descriptor/media member/fixed-context R; all 78 measured rows. Raw E<=M is FAIL: natural 104->105 counterexample. Physical allocation savings not guaranteed; active producer absent."
+    },
+    {
+      "id": "C",
+      "requirement": "Measure metadata and attain below 15% per-record representative target",
+      "status": "FAIL",
+      "category": "measured missed target",
+      "evidence": "New n=34: p50 54.70902%, p95 99.80752%, worst 99.81935%; 12/34 individually below target. Byte-weighted 7.14017% is not a pass."
+    },
+    {
+      "id": "D",
+      "requirement": "Explicitly support or transparently miss below $100/month at year three",
+      "status": "PASS",
+      "category": "demonstrated analytical accounting",
+      "evidence": "Reference 34: all profiles pass conditionally at 100/day; all miss at 1000/10000. Frozen historical-v3 corpus at 1000/day passes budget/storage, misses cloud. No quoted universal price claim."
+    },
+    {
+      "id": "E",
+      "requirement": "Every selected compressed media reconstructs exactly with original hash",
+      "status": "PARTIAL",
+      "category": "demonstrated in isolation",
+      "evidence": "70 format + 58 admissible + 128 fresh recoveries PASS, selected codec/native comparisons exact. Activation/security qualification separate; no vacuous production pass."
+    },
+    {
+      "id": "F",
+      "requirement": "Reproducible corpus, commands, environment, raw data and reports",
+      "status": "PASS",
+      "category": "supported pinned Windows scope",
+      "evidence": "36/34 source identities exact; 252/238 codec results exact except observational timing; 78 canonical ledgers exact; historical economics exact JSON/CSV; focused tests below. Historical WAL replay intentionally unverified."
+    }
+  ],
+  "readiness": [
+    {
+      "item": "Isolated codec/format validity",
+      "status": "PASS",
+      "evidence": "70 selected format records exact; strict workers and frozen parser."
+    },
+    {
+      "item": "Disabled application interface integration",
+      "status": "PASS",
+      "evidence": "58 admissible constructors, 128 persistent/recovered records, real upload-service/cache-deletion tests."
+    },
+    {
+      "item": "Active production v3 compression",
+      "status": "BLOCKED",
+      "evidence": "No production registration/import/version transition; current path supports raw versions 1/2."
+    },
+    {
+      "item": "Approved network protocol version/activation",
+      "status": "BLOCKED",
+      "evidence": "Frozen isolated v3 is not an approved network transition."
+    },
+    {
+      "item": "Complete BFT/reviewer-history authority",
+      "status": "NOT VERIFIED",
+      "evidence": "Trusted explicit test snapshots do not establish full historical consensus authority."
+    },
+    {
+      "item": "Independent native decoder security review",
+      "status": "NOT VERIFIED",
+      "evidence": "Functional adversarial tests and process containment are not independent native review."
+    },
+    {
+      "item": "Linux/platform qualification",
+      "status": "NOT VERIFIED",
+      "evidence": "193 tests skipped on Windows; historical paired evidence is not a fresh platform qualification."
+    },
+    {
+      "item": "Historical WAL measurement replay",
+      "status": "NOT VERIFIED",
+      "evidence": "Not run; historical initializer enables WAL; safety gate retained."
+    },
+    {
+      "item": "Review-journal implementation/economics",
+      "status": "NOT VERIFIED",
+      "evidence": "Outside original scope and not authorized; combined affordability unproven."
+    }
+  ],
+  "remaining_minimal_acceptance_work": [
+    {
+      "id": "R1",
+      "criterion": "C (mandatory FAIL)",
+      "type": "owner decision / implementation if redesign selected",
+      "resolution": "Explicit owner-approved metadata exception or revised acceptance policy; otherwise separately authorize a format design that preserves all signed evidence and media semantics and remeasure. Current frozen format cannot meet <15% for tiny media. No waiver is granted here.",
+      "consensus_format_change": "No for explicit criterion exception; yes for canonical encoding changes.",
+      "without_bft_journal": true,
+      "owner_waiver_or_policy": "Required if retaining current format and claiming completion despite failed target."
+    },
+    {
+      "id": "R2",
+      "criterion": "1 / 8 / A: representative-content evidence",
+      "type": "measurement",
+      "resolution": "One bounded separately versioned provenance-cleared sample of real media, substantive independent code and human/structured text; publish actual population/size/MIME statistics. Keep tiny valid media and existing results. No invented traffic weights.",
+      "consensus_format_change": "No",
+      "without_bft_journal": true,
+      "owner_waiver_or_policy": "Only if owner accepts limited synthetic coverage instead of the required representativeness; not an automatic exception."
+    },
+    {
+      "id": "R3",
+      "criterion": "2 / 3 / 6 / B / E: disabled versus application acceptance",
+      "type": "owner decision / implementation",
+      "resolution": "Owner explicitly decides whether the original milestone accepts the demonstrated disabled service boundary. If active accepted-media behavior is required, separately authorize the smallest reviewed versioned application producer/validator/store/retrieval integration; audit cannot activate it.",
+      "consensus_format_change": "Disabled acceptance decision: no. Active support requires an approved version boundary; do not alter frozen v3 merely to force acceptance.",
+      "without_bft_journal": true,
+      "owner_waiver_or_policy": "Explicit scope interpretation required to accept disabled implementation; active network policy approval required before activation."
+    },
+    {
+      "id": "R4",
+      "criterion": "5: physical index/snapshot/backup/network measurement coverage",
+      "type": "measurement / economic accounting",
+      "resolution": "Bounded DELETE/EXTRA storage/index allocation and consistent snapshot/backup/recovery measurement on a supported instrumentation build, plus measured media-only transfer workload. Replace analytical splits with evidence where required; retain historical WAL data unchanged.",
+      "consensus_format_change": "No",
+      "without_bft_journal": true,
+      "owner_waiver_or_policy": "Only if owner accepts the clearly disclosed analytical attribution/transfer coverage instead of a strict measurement requirement."
+    },
+    {
+      "id": "R5",
+      "criterion": "B only if owner requires raw payload or raw-original storage comparison",
+      "type": "owner decision / implementation",
+      "resolution": "Record accounting baseline explicitly. Canonical descriptor/R versus identity already passes in isolation. Raw-payload interpretation fails 104->105; adding E<=M would be a separately authorized local-producer change. A demand for serialized R<=raw M is incompatible with tiny originals and mandatory evidence.",
+      "consensus_format_change": "No for a stronger local producer preference; yes if changing canonical representation/consensus rules.",
+      "without_bft_journal": true,
+      "owner_waiver_or_policy": "Accounting interpretation must be explicit; a measured failing mandatory interpretation needs resolution or explicit exception."
+    }
+  ],
+  "verdicts": {
+    "original_milestone": "INCOMPLETE",
+    "production_network": "BLOCKED"
+  },
+  "owner_exceptions_granted": []
+}

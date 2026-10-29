@@ -1,0 +1,8 @@
+{
+  "phase": "Initial replay orchestration",
+  "outcome": "ERROR after historical corpus and codec commands exited 0",
+  "error": "ImportError: cannot import name ROOT from scripts.milestone_7_task_7_4_benchmark",
+  "cause": "Unused import in newly added Task 7.22 runner; historical script defines a different root constant.",
+  "resolution": "Removed the unnecessary import from the new runner and reran the full replay. No preexisting file changed.",
+  "credit": "No complete-replay acceptance credit for this initial attempt. Completed command records retained in initial_replay_attempt.json."
+}

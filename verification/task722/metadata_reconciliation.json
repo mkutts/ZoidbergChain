@@ -1,0 +1,301 @@
+{
+  "break_even": "N/R < .15 iff B > 17*N/3. For fixed N and E/M=q, M approximately > 17*N/(4*q).",
+  "historical": {
+    "all": {
+      "below15": 6,
+      "canonical_byte_share": 14.491364894935884,
+      "equal_record_mean": 70.81240990762088,
+      "n": 36,
+      "p50": 85.97236981934113,
+      "p95": 99.60380586487379,
+      "worst": 99.85557394313224
+    },
+    "base64_expansion": 1761795,
+    "by_mime": {
+      "image/gif": {
+        "below15": 1,
+        "canonical_byte_share": 15.392468660668985,
+        "equal_record_mean": 63.48509151803645,
+        "n": 6,
+        "p50": 80.04681806115308,
+        "p95": 97.43808208714046,
+        "worst": 97.43808208714046
+      },
+      "image/jpeg": {
+        "below15": 2,
+        "canonical_byte_share": 8.868858469811782,
+        "equal_record_mean": 48.4594250076608,
+        "n": 7,
+        "p50": 53.965542486212115,
+        "p95": 95.12432959531935,
+        "worst": 95.12432959531935
+      },
+      "image/png": {
+        "below15": 1,
+        "canonical_byte_share": 8.893770154694584,
+        "equal_record_mean": 80.17457897732228,
+        "n": 7,
+        "p50": 92.95924659454005,
+        "p95": 99.24580253194864,
+        "worst": 99.24580253194864
+      },
+      "image/webp": {
+        "below15": 2,
+        "canonical_byte_share": 16.378612898197332,
+        "equal_record_mean": 53.94007691896077,
+        "n": 7,
+        "p50": 70.67433684883349,
+        "p95": 98.50302958298681,
+        "worst": 98.50302958298681
+      },
+      "text/plain": {
+        "below15": 0,
+        "canonical_byte_share": 98.9177016062262,
+        "equal_record_mean": 98.92418235983621,
+        "n": 9,
+        "p50": 98.98592221426867,
+        "p95": 99.85557394313224,
+        "worst": 99.85557394313224
+      }
+    },
+    "by_original_size_band": {
+      "1-16KiB": {
+        "below15": 0,
+        "canonical_byte_share": 87.03394040314286,
+        "equal_record_mean": 88.01729310668995,
+        "n": 15,
+        "p50": 92.62693403340222,
+        "p95": 98.98592221426867,
+        "worst": 98.98592221426867
+      },
+      "1-2MiB": {
+        "below15": 2,
+        "canonical_byte_share": 1.4842463222630686,
+        "equal_record_mean": 1.4920288008186855,
+        "n": 2,
+        "p50": 1.384226542871471,
+        "p95": 1.5998310587658997,
+        "worst": 1.5998310587658997
+      },
+      "16-256KiB": {
+        "below15": 1,
+        "canonical_byte_share": 31.61992793784026,
+        "equal_record_mean": 45.07950419962548,
+        "n": 7,
+        "p50": 43.92468918400042,
+        "p95": 72.59794265703655,
+        "worst": 72.59794265703655
+      },
+      "256KiB-1MiB": {
+        "below15": 3,
+        "canonical_byte_share": 4.602139758002128,
+        "equal_record_mean": 6.534836141834385,
+        "n": 3,
+        "p50": 3.8275497290756038,
+        "p95": 12.56157728730514,
+        "worst": 12.56157728730514
+      },
+      "<1KiB": {
+        "below15": 0,
+        "canonical_byte_share": 98.9777586264046,
+        "equal_record_mean": 98.98247384994261,
+        "n": 9,
+        "p50": 99.04494717364054,
+        "p95": 99.85557394313224,
+        "worst": 99.85557394313224
+      }
+    },
+    "byte_totals": {
+      "base64_media_bytes": 7047024,
+      "certificate_value_bytes": 1135352,
+      "encoded_bytes": 5285229,
+      "nonmedia_bytes": 1194277,
+      "original_bytes": 6093910,
+      "record_bytes": 8241301,
+      "signature_token_bytes_subset": 72360
+    },
+    "codec_counts": {
+      "identity": 10,
+      "zstd": 26
+    },
+    "descriptor_framing": 8291,
+    "partition_totals": {
+      "certificate_bytes": 1136216,
+      "delimiter_bytes": 684,
+      "envelope_bytes": 5220,
+      "header_bytes": 8559,
+      "portable_wrapper_bytes": 3132,
+      "remaining_structural_metadata_bytes": 22995,
+      "serialized_media_representation_bytes": 7055315,
+      "transaction_record_bytes": 9180
+    }
+  },
+  "historical_projected_7_7": {
+    "current_v1:identity": {
+      "byte_weighted_aggregate": 0.6449261346969478,
+      "p50": 15.133147177007423,
+      "p95": 84.0702947845805,
+      "p99": 91.79012345679011,
+      "worst": 91.79012345679011
+    },
+    "current_v2:identity": {
+      "byte_weighted_aggregate": 4.358540824052317,
+      "p50": 57.74121166791324,
+      "p95": 98.12014985282312,
+      "p99": 99.10413579415331,
+      "worst": 99.10413579415331
+    },
+    "projected_v3:adaptive": {
+      "byte_weighted_aggregate": 7.193472296908363,
+      "p50": 72.84841487468128,
+      "p95": 97.57337490679862,
+      "p99": 98.11769502582224,
+      "worst": 98.11769502582224
+    },
+    "projected_v3:identity": {
+      "byte_weighted_aggregate": 6.2998529123086415,
+      "p50": 66.27501376904719,
+      "p95": 97.43468255042642,
+      "p99": 98.11769502582224,
+      "worst": 98.11769502582224
+    },
+    "projected_v3:zstd_candidate": {
+      "byte_weighted_aggregate": 7.193222498858262,
+      "p50": 72.80638492235204,
+      "p95": 97.57337490679862,
+      "p99": 98.011132229161,
+      "worst": 98.011132229161
+    }
+  },
+  "method": "Each full primary population; equal record nearest rank ceil(n*p); N=R-B, denominator R. No tiny media excluded. Sensitivities not primary samples.",
+  "production-like": {
+    "all": {
+      "below15": 12,
+      "canonical_byte_share": 7.140173816436257,
+      "equal_record_mean": 53.05443986523766,
+      "n": 34,
+      "p50": 54.70901564999423,
+      "p95": 99.80752458572674,
+      "worst": 99.81935328475944
+    },
+    "base64_expansion": 3667680,
+    "by_mime": {
+      "image/gif": {
+        "below15": 3,
+        "canonical_byte_share": 5.408066296931272,
+        "equal_record_mean": 43.64452490613842,
+        "n": 6,
+        "p50": 9.26784292359918,
+        "p95": 99.81935328475944,
+        "worst": 99.81935328475944
+      },
+      "image/jpeg": {
+        "below15": 3,
+        "canonical_byte_share": 4.320056925309233,
+        "equal_record_mean": 33.67760835404669,
+        "n": 5,
+        "p50": 8.759682963792184,
+        "p95": 98.15275310834814,
+        "worst": 98.15275310834814
+      },
+      "image/png": {
+        "below15": 3,
+        "canonical_byte_share": 4.0385412889678625,
+        "equal_record_mean": 38.32084853926716,
+        "n": 5,
+        "p50": 8.694079723248683,
+        "p95": 99.72327498044878,
+        "worst": 99.72327498044878
+      },
+      "image/webp": {
+        "below15": 3,
+        "canonical_byte_share": 5.550991222536613,
+        "equal_record_mean": 41.31745031519666,
+        "n": 6,
+        "p50": 13.693507779933139,
+        "p95": 99.735298541134,
+        "worst": 99.735298541134
+      },
+      "text/plain": {
+        "below15": 0,
+        "canonical_byte_share": 67.85655871769708,
+        "equal_record_mean": 77.84056830195838,
+        "n": 12,
+        "p50": 84.7682288341208,
+        "p95": 99.80752458572674,
+        "worst": 99.80752458572674
+      }
+    },
+    "by_original_size_band": {
+      "1-16KiB": {
+        "below15": 0,
+        "canonical_byte_share": 80.03197970942574,
+        "equal_record_mean": 81.79928410447117,
+        "n": 7,
+        "p50": 78.51529211248935,
+        "p95": 98.34064240843902,
+        "worst": 98.34064240843902
+      },
+      "1-2MiB": {
+        "below15": 4,
+        "canonical_byte_share": 1.1746609682726663,
+        "equal_record_mean": 1.1746627889197125,
+        "n": 4,
+        "p50": 1.1732256456135761,
+        "p95": 1.1762971029288323,
+        "worst": 1.1762971029288323
+      },
+      "16-256KiB": {
+        "below15": 5,
+        "canonical_byte_share": 18.362870832814526,
+        "equal_record_mean": 38.97572096455726,
+        "n": 12,
+        "p50": 33.597174003259205,
+        "p95": 84.7682288341208,
+        "worst": 84.7682288341208
+      },
+      "256KiB-1MiB": {
+        "below15": 3,
+        "canonical_byte_share": 7.343302344779659,
+        "equal_record_mean": 15.758150126084363,
+        "n": 4,
+        "p50": 6.098471062683122,
+        "p95": 43.838981483927206,
+        "worst": 43.838981483927206
+      },
+      "<1KiB": {
+        "below15": 0,
+        "canonical_byte_share": 99.39892886040508,
+        "equal_record_mean": 99.40229477886841,
+        "n": 7,
+        "p50": 99.72327498044878,
+        "p95": 99.81935328475944,
+        "worst": 99.81935328475944
+      }
+    },
+    "byte_totals": {
+      "base64_media_bytes": 14670572,
+      "certificate_value_bytes": 1072338,
+      "encoded_bytes": 11002892,
+      "nonmedia_bytes": 1128049,
+      "original_bytes": 11521163,
+      "record_bytes": 15798621,
+      "signature_token_bytes_subset": 68340
+    },
+    "codec_counts": {
+      "identity": 17,
+      "zstd": 17
+    },
+    "descriptor_framing": 7894,
+    "partition_totals": {
+      "certificate_bytes": 1073154,
+      "delimiter_bytes": 646,
+      "envelope_bytes": 4930,
+      "header_bytes": 8083,
+      "portable_wrapper_bytes": 2958,
+      "remaining_structural_metadata_bytes": 21714,
+      "serialized_media_representation_bytes": 14678466,
+      "transaction_record_bytes": 8670
+    }
+  }
+}

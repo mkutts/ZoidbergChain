@@ -1,0 +1,14 @@
+{
+  "max_capacity_byte_error": "0.00284578125000",
+  "max_cumulative_usd_error": "3.30607652169E-10",
+  "max_monthly_usd_error": "1.00334576061E-11",
+  "methodology": "Decimal closed-form capacity/billing recomputed independently, no simulator imports",
+  "months_per_scenario": 36,
+  "scenarios": 225,
+  "status": "PASS",
+  "tolerance": {
+    "capacity_bytes": ".1",
+    "cumulative_usd": "1e-6",
+    "month_usd": "1e-7"
+  }
+}

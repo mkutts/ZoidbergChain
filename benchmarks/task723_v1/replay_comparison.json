@@ -1,0 +1,48 @@
+{
+  "status": "PASS",
+  "fresh_output": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task723-fresh-replay",
+  "comparisons": [
+    {
+      "file": "manifest.json",
+      "deterministic_fields_equal": true
+    },
+    {
+      "file": "codecs.json",
+      "deterministic_fields_equal": true
+    },
+    {
+      "file": "records.json",
+      "deterministic_fields_equal": true
+    },
+    {
+      "file": "candidates.json",
+      "deterministic_fields_equal": true
+    },
+    {
+      "file": "economics.json",
+      "deterministic_fields_equal": true
+    },
+    {
+      "file": "baseline.json",
+      "deterministic_fields_equal": true
+    },
+    {
+      "file": "crosscheck.json",
+      "deterministic_fields_equal": true
+    }
+  ],
+  "excluded_observations": [
+    "cpu_batch_iterations",
+    "decode_cpu_ns",
+    "decode_wall_ns",
+    "encode_cpu_ns",
+    "encode_wall_ns",
+    "python_traced_peak_bytes",
+    "strict_verification_wall_ns",
+    "strict_worker_metrics",
+    "verification_wall_ns",
+    "worker_metrics",
+    "worker_peak_commit_bytes"
+  ],
+  "source": "Full fresh original generation, all native profiles, selected and alternate complete signed records, independent arithmetic"
+}

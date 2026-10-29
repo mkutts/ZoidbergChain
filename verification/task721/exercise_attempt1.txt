@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "C:\Users\mattk\ZoidbergChain\verification\task721\exercise.py", line 111, in <module>
+    output=exercise()
+  File "C:\Users\mattk\ZoidbergChain\verification\task721\exercise.py", line 32, in exercise
+    samples = [dict(id=s['sample_id'], raw=s['bytes'], mime=s['mime_type'], population='historical') for s in old]
+                       ~^^^^^^^^^^^^^
+KeyError: 'sample_id'

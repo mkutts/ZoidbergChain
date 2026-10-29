@@ -1,0 +1,759 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_protocol_v1_golden_fixture_matches_protocol_identity",
+      "line": 84
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_canonical_serialization_vectors_match_runtime",
+      "line": 93
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_block_vectors_match_runtime",
+      "line": 108
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_vote_and_certificate_vectors_match_runtime",
+      "line": 180
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_native_transfer_vectors_match_runtime",
+      "line": 272
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_peer_message_vectors_match_runtime",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_genesis_vectors_match_runtime",
+      "line": 354
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_legacy_control_vectors_remain_distinct_from_protocol_v1_vectors",
+      "line": 394
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_freeze_report_matches_runtime_constants",
+      "line": 43
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_freeze_report_domains_match_protocol_domains_and_fixture",
+      "line": 67
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_authoritative_spec_exists_and_contains_required_frozen_identity",
+      "line": 81
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_per_area_docs_and_readme_defer_to_authoritative_spec",
+      "line": 94
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_freeze_report_records_model_a_and_legacy_boundaries",
+      "line": 101
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_minted_block_embeds_media_and_recovers_without_content_cache",
+      "line": 78
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_validation_rejects_modified_embedded_media_without_content_cache",
+      "line": 106
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_validation_rejects_modified_declared_media_hash",
+      "line": 128
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_validation_rejects_modified_declared_content_hash",
+      "line": 141
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_round_trip_preserves_hash_and_media[_json_backend]",
+      "line": 154
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_round_trip_preserves_hash_and_media[_sqlite_backend]",
+      "line": 154
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_duplicate_certified_submission_guard_blocks_double_mint",
+      "line": 179
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_mint_rejects_certificate_content_hash_mismatch",
+      "line": 197
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_finalized_block_verifies_and_reconstructs_by_every_identity[json]",
+      "line": 36
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_finalized_block_verifies_and_reconstructs_by_every_identity[sqlite]",
+      "line": 36
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_canonical_binary_encoding_is_lossless_and_malformed_encoding_fails",
+      "line": 71
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_bit_truncation_append_reorder_and_cross_block_swap_fail",
+      "line": 87
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_hash_and_block_commitment_tampering_fails[media_hash]",
+      "line": 113
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_hash_and_block_commitment_tampering_fails[content_hash]",
+      "line": 113
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_admission_and_technical_evidence_tampering_fails[<lambda>0]",
+      "line": 125
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_admission_and_technical_evidence_tampering_fails[<lambda>1]",
+      "line": 125
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_admission_and_technical_evidence_tampering_fails[<lambda>2]",
+      "line": 125
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_noncanonical_text_bytes_fail_even_when_canonical_digest_is_retained",
+      "line": 144
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_same_looking_metadata_recompression_and_format_conversion_are_different_media",
+      "line": 160
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_portable_export_import_preserves_exact_block_bytes[json]",
+      "line": 197
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_portable_export_import_preserves_exact_block_bytes[sqlite]",
+      "line": 197
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_export_import_and_migration_reject_altered_media",
+      "line": 224
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_json_to_sqlite_migration_preserves_exact_media",
+      "line": 247
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_peer_receive_and_retransmission_preserve_exact_bytes",
+      "line": 262
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_report_and_dispute_overlays_do_not_change_block_or_integrity",
+      "line": 314
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_media_api_is_derived_and_returns_exact_binary_bytes",
+      "line": 330
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_chain_record_validator_ignores_legacy_and_fails_current_corruption",
+      "line": 351
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-json]",
+      "line": 107
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-sqlite]",
+      "line": 107
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-json]",
+      "line": 107
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-sqlite]",
+      "line": 107
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_alternate_valid_signature_is_one_logical_vote",
+      "line": 124
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[json]",
+      "line": 138
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[sqlite]",
+      "line": 138
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-json]",
+      "line": 152
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-sqlite]",
+      "line": 152
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-json]",
+      "line": 152
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-sqlite]",
+      "line": 152
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_failed_write_and_duplicate_retry_never_publish_uncommitted_finality",
+      "line": 175
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_commit_succeeded_but_response_failed_rereads_durable_outcome",
+      "line": 201
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_unknown_outcome_and_failed_reload_withholds_finality_queries",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_failed_chain_validation_cannot_republish_available_finality_during_recovery",
+      "line": 240
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_busy_is_operational_and_leaves_no_partial_state",
+      "line": 255
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_real_sqlite_full_rolls_back_vote_and_certificate",
+      "line": 273
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-denied]",
+      "line": 298
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-busy]",
+      "line": 298
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_vote_invalid_batch_and_forged_duplicate_do_not_overwrite",
+      "line": 332
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_settings_connection_ownership_and_nested_begin",
+      "line": 351
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_refresh_cannot_regress_committed_cache",
+      "line": 371
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_gapped_finality_and_guarded_unfinalized_reorg_preserve_existing_semantics",
+      "line": 384
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[json]",
+      "line": 407
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[sqlite]",
+      "line": 407
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_truncation_cannot_discard_a_nonfinalized_vote",
+      "line": 441
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_real_facade_save_refreshes_derived_report_finality_head",
+      "line": 454
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_missing_one_finality_section_is_not_reinitialized",
+      "line": 471
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_real_facade_load_outage_is_operational_not_invalid_evidence[failure0]",
+      "line": 484
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_real_facade_load_outage_is_operational_not_invalid_evidence[failure1]",
+      "line": 484
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_reorg_and_finality_race_in_both_commit_orders[finality]",
+      "line": 495
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_reorg_and_finality_race_in_both_commit_orders[reorg]",
+      "line": 495
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_separate_process_vote_writers[False]",
+      "line": 552
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_separate_process_vote_writers[True]",
+      "line": 552
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_process_termination_before_and_after_commit[before_commit]",
+      "line": 575
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_process_termination_before_and_after_commit[after_commit_before_publish]",
+      "line": 575
+    }
+  ],
+  "deselected": [
+    "tests/test_milestone_6_task_6_9_media_integrity.py::test_media_api_is_derived_and_returns_exact_binary_bytes",
+    "tests/test_milestone_7_task_7_17e_finality_durability.py::test_settings_connection_ownership_and_nested_begin"
+  ],
+  "reports": [
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_protocol_v1_golden_fixture_matches_protocol_identity",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_canonical_serialization_vectors_match_runtime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_block_vectors_match_runtime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_vote_and_certificate_vectors_match_runtime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_native_transfer_vectors_match_runtime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_peer_message_vectors_match_runtime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_genesis_vectors_match_runtime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_golden_vectors.py::test_legacy_control_vectors_remain_distinct_from_protocol_v1_vectors",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_freeze_report_matches_runtime_constants",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_freeze_report_domains_match_protocol_domains_and_fixture",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_authoritative_spec_exists_and_contains_required_frozen_identity",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_per_area_docs_and_readme_defer_to_authoritative_spec",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_protocol_v1_freeze_consistency.py::test_freeze_report_records_model_a_and_legacy_boundaries",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_minted_block_embeds_media_and_recovers_without_content_cache",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_validation_rejects_modified_embedded_media_without_content_cache",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_validation_rejects_modified_declared_media_hash",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_validation_rejects_modified_declared_content_hash",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_round_trip_preserves_hash_and_media[_json_backend]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_block_round_trip_preserves_hash_and_media[_sqlite_backend]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_duplicate_certified_submission_guard_blocks_double_mint",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/blockchain/test_protocol_v1_block_format.py::test_protocol_v1_mint_rejects_certificate_content_hash_mismatch",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_finalized_block_verifies_and_reconstructs_by_every_identity[json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_finalized_block_verifies_and_reconstructs_by_every_identity[sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_canonical_binary_encoding_is_lossless_and_malformed_encoding_fails",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_bit_truncation_append_reorder_and_cross_block_swap_fail",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_hash_and_block_commitment_tampering_fails[media_hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_hash_and_block_commitment_tampering_fails[content_hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_admission_and_technical_evidence_tampering_fails[<lambda>0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_admission_and_technical_evidence_tampering_fails[<lambda>1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_admission_and_technical_evidence_tampering_fails[<lambda>2]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_noncanonical_text_bytes_fail_even_when_canonical_digest_is_retained",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_same_looking_metadata_recompression_and_format_conversion_are_different_media",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_portable_export_import_preserves_exact_block_bytes[json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_portable_export_import_preserves_exact_block_bytes[sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_export_import_and_migration_reject_altered_media",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_json_to_sqlite_migration_preserves_exact_media",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_peer_receive_and_retransmission_preserve_exact_bytes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_report_and_dispute_overlays_do_not_change_block_or_integrity",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_6_task_6_9_media_integrity.py::test_chain_record_validator_ignores_legacy_and_fails_current_corruption",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_alternate_valid_signature_is_one_logical_vote",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_failed_write_and_duplicate_retry_never_publish_uncommitted_finality",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_commit_succeeded_but_response_failed_rereads_durable_outcome",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_unknown_outcome_and_failed_reload_withholds_finality_queries",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_failed_chain_validation_cannot_republish_available_finality_during_recovery",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_busy_is_operational_and_leaves_no_partial_state",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_real_sqlite_full_rolls_back_vote_and_certificate",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-denied]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-busy]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_conflicting_vote_invalid_batch_and_forged_duplicate_do_not_overwrite",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_refresh_cannot_regress_committed_cache",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_gapped_finality_and_guarded_unfinalized_reorg_preserve_existing_semantics",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[sqlite]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_truncation_cannot_discard_a_nonfinalized_vote",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_stale_real_facade_save_refreshes_derived_report_finality_head",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_missing_one_finality_section_is_not_reinitialized",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_real_facade_load_outage_is_operational_not_invalid_evidence[failure0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_real_facade_load_outage_is_operational_not_invalid_evidence[failure1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_reorg_and_finality_race_in_both_commit_orders[finality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_reorg_and_finality_race_in_both_commit_orders[reorg]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_separate_process_vote_writers[False]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_separate_process_vote_writers[True]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_process_termination_before_and_after_commit[before_commit]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_17e_finality_durability.py::test_actual_process_termination_before_and_after_commit[after_commit_before_publish]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

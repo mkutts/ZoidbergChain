@@ -1,0 +1,2 @@
+focused 0
+active_safe 0

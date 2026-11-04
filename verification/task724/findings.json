@@ -1,0 +1,375 @@
+{
+  "balanced": {
+    "analytic_complete_bound": 1028096,
+    "base64_bound": 700416,
+    "complete_bytes": 1048576,
+    "complete_headroom": 20480,
+    "encoded_bytes": 525312,
+    "gif_original_bytes": 524288,
+    "static_original_bytes": 262144,
+    "status": "PROVISIONAL; production activation unapproved",
+    "text_original_bytes": 16384
+  },
+  "counts": {
+    "above_cap_originals": [
+      {
+        "id": "jpeg-texture-1280",
+        "original_bytes": 2242286
+      },
+      {
+        "id": "png-texture-1280",
+        "original_bytes": 3594660
+      }
+    ],
+    "balanced_size_only_admitted": 41,
+    "diagnostic_originals": 1,
+    "identity": 25,
+    "legal_selected_records": 56,
+    "primary_native_trials": 406,
+    "primary_originals": 58,
+    "total_native_trials": 413,
+    "zstd": 31
+  },
+  "decisions": {
+    "canonical_finality": "Separate authenticated chain anchor and historical proof requirements",
+    "metadata_target": "FAIL; explicit owner-approved exception",
+    "model_a": "Block-local complete lossless media reconstruction; node retention may differ",
+    "resolved": [
+      "R1 metadata exception",
+      "R5 canonical no-expansion interpretation"
+    ],
+    "unresolved": [
+      "R2 representative-content evidence",
+      "R3 disabled application acceptance boundary",
+      "R4 separate physical storage/real-transfer measurements"
+    ]
+  },
+  "documentation_checks": {
+    "checked": [
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task724/preflight.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "zoidbergchain-distributed-complete-block-archiving-proposal.md"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../benchmarks/milestone_7_task_7_8_results.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../benchmarks/milestone_7_task_7_8_monthly.csv"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task722/economic_scenarios.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task722/cost_formulas.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task722/month36_costs.csv"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task722/historical_economics.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task722/sensitivity_scenarios.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../benchmarks/task723_v1/economics.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task722/acceptance_matrix.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task724/findings.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "zoidbergchain-distributed-complete-block-archiving-proposal.md"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "roadmap.md#task-12---content-compression-storage-strategy-and-chain-bloat-prevention"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "milestone-7-meme-first-launch-sizing-recommendation.md#9-future-community-codec-framework--proposed-inactive"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task724/README.md"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task724/findings.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task724/tests.json"
+      },
+      {
+        "source": "docs/milestone-7-final-closeout-and-owner-decisions.md",
+        "target": "../verification/task724/preservation.json"
+      },
+      {
+        "source": "docs/zoidbergchain-distributed-complete-block-archiving-proposal.md",
+        "target": "milestone-7-final-closeout-and-owner-decisions.md"
+      },
+      {
+        "source": "docs/zoidbergchain-distributed-complete-block-archiving-proposal.md",
+        "target": "milestone-7-bft-validator-authority-implementation.md"
+      },
+      {
+        "source": "docs/zoidbergchain-distributed-complete-block-archiving-proposal.md",
+        "target": "milestone-7-g2-genesis-verifier-implementation.md"
+      },
+      {
+        "source": "docs/zoidbergchain-distributed-complete-block-archiving-proposal.md",
+        "target": "milestone-7-review-journal-cryptographic-verification.md"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "preflight.json"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "findings.json"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "tests.json"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "tests.txt"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "preservation.json"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "checksums.sha256"
+      },
+      {
+        "source": "verification/task724/README.md",
+        "target": "verify.py"
+      }
+    ],
+    "distributed_tests_executed": 0,
+    "future_acceptance_tests": 12,
+    "limitation": "Local file targets and document inventory checked; architectural correctness requires future review/testing.",
+    "local_links": 30,
+    "status": "PASS",
+    "work_packages": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K"
+    ]
+  },
+  "fresh_analytical_tests": {
+    "archive_implementation_tests": 0,
+    "deselected": 0,
+    "failed": 0,
+    "passed": 14,
+    "skipped": 0,
+    "status": "PASS"
+  },
+  "future_archive": {
+    "executed_distributed_tests": 0,
+    "node_ids_equal_operators": false,
+    "post_delete_custody_required": true,
+    "provisional_independent_copies": 3,
+    "status": "INACTIVE NOT IMPLEMENTED",
+    "underreplication_stops_pruning": true
+  },
+  "historical_checksum_manifests": [
+    {
+      "entries_verified": 61,
+      "manifest": "verification/task719/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries_verified": 41,
+      "manifest": "benchmarks/task720_v1/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries_verified": 38,
+      "manifest": "verification/task721/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries_verified": 40,
+      "manifest": "verification/task722/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries_verified": 30,
+      "manifest": "benchmarks/task723_v1/checksums.sha256",
+      "status": "PASS"
+    }
+  ],
+  "independent_723_checker": {
+    "candidates": 108,
+    "checks": "Original identities, exact ledgers, base64, coverage, percentile ranks, component-budget bounds, complete codec records and independent Decimal costs",
+    "codec_trials": 413,
+    "decimal_month_checks": 1350,
+    "diagnostic_records": 1,
+    "metadata_target": "FAIL retained",
+    "primary_records": 58,
+    "status": "PASS"
+  },
+  "metadata": {
+    "balanced41": {
+      "below15": 6,
+      "mean": 61.524256953569754,
+      "measurement_status": "FAIL",
+      "n": 41,
+      "owner_exception": true,
+      "p50": 77.28691924134395,
+      "p95": 99.4605448497018,
+      "worst": 99.96385215531524
+    },
+    "primary_legal56": {
+      "below15": 19,
+      "mean": 48.46197982088052,
+      "measurement_status": "FAIL",
+      "n": 56,
+      "owner_exception": true,
+      "p50": 57.32356397318034,
+      "p95": 99.4605448497018,
+      "worst": 99.96385215531524
+    }
+  },
+  "no_expansion": {
+    "interpretation": "complete canonical record vs same original, same-context identity",
+    "measured_selected_status": "PASS in isolation",
+    "physical_monotonicity": "NOT VERIFIED",
+    "raw_universal_status": "FAIL retained",
+    "task723_counterexample": {
+      "D_identity": 363,
+      "D_selected": 359,
+      "E": 105,
+      "M": 104,
+      "R_identity": 33331,
+      "R_selected": 33327
+    }
+  },
+  "scope": "Documentation and bounded read-only evidence verification; no archive implementation",
+  "status": "PASS",
+  "three_year_economics": {
+    "balanced": [
+      {
+        "blocks_per_day": 100,
+        "canonical_gib": 12.129024840982222,
+        "full_three_year_usd": 741.7219670310503,
+        "host": "budget_vps",
+        "local_capacity_gib": 57.338473412561484,
+        "month36_usd": 21.0794090584411,
+        "under100": true
+      },
+      {
+        "blocks_per_day": 100,
+        "canonical_gib": 12.129024840982222,
+        "full_three_year_usd": 1630.6931490998584,
+        "host": "mainstream_cloud",
+        "local_capacity_gib": 57.338473412561484,
+        "month36_usd": 49.46903005399123,
+        "under100": true
+      },
+      {
+        "blocks_per_day": 100,
+        "canonical_gib": 12.129024840982222,
+        "full_three_year_usd": 1641.7219670310506,
+        "host": "storage_focused",
+        "local_capacity_gib": 57.338473412561484,
+        "month36_usd": 46.0794090584411,
+        "under100": true
+      },
+      {
+        "blocks_per_day": 1000,
+        "canonical_gib": 121.29024840982223,
+        "full_three_year_usd": 1139.0659703105034,
+        "host": "budget_vps",
+        "local_capacity_gib": 499.5847341256148,
+        "month36_usd": 47.221765584410996,
+        "under100": true
+      },
+      {
+        "blocks_per_day": 1000,
+        "canonical_gib": 121.29024840982223,
+        "full_three_year_usd": 3611.322990998581,
+        "host": "mainstream_cloud",
+        "local_capacity_gib": 499.5847341256148,
+        "month36_usd": 163.67617553991232,
+        "under100": false
+      },
+      {
+        "blocks_per_day": 1000,
+        "canonical_gib": 121.29024840982223,
+        "full_three_year_usd": 1816.6159703105034,
+        "host": "storage_focused",
+        "local_capacity_gib": 499.5847341256148,
+        "month36_usd": 55.221765584410996,
+        "under100": true
+      },
+      {
+        "blocks_per_day": 10000,
+        "canonical_gib": 1212.9024840982222,
+        "full_three_year_usd": 6984.606003105034,
+        "host": "budget_vps",
+        "local_capacity_gib": 4922.047341256148,
+        "month36_usd": 359.7953308441099,
+        "under100": false
+      },
+      {
+        "blocks_per_day": 10000,
+        "canonical_gib": 1212.9024840982222,
+        "full_three_year_usd": 27161.821409985812,
+        "host": "mainstream_cloud",
+        "local_capacity_gib": 4922.047341256148,
+        "month36_usd": 1408.047630399123,
+        "under100": false
+      },
+      {
+        "blocks_per_day": 10000,
+        "canonical_gib": 1212.9024840982222,
+        "full_three_year_usd": 5058.2960031050325,
+        "host": "storage_focused",
+        "local_capacity_gib": 4922.047341256148,
+        "month36_usd": 235.10533084410994,
+        "under100": false
+      }
+    ],
+    "current_price_refresh": false,
+    "days": 1095,
+    "distributed_savings_measured": false,
+    "journal_costs_included": false,
+    "retention": "Full historical retention per modeled node"
+  },
+  "verdicts": {
+    "original_milestone7": "INCOMPLETE",
+    "production_network": "BLOCKED",
+    "task724_documentation": "COMPLETE"
+  }
+}

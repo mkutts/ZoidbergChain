@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "benchmarks/task723_v1/test_study.py"
+  ],
+  "timeout_seconds": 120,
+  "elapsed_seconds": 3.4360018000006676,
+  "exit_code": 0,
+  "timed_out": false,
+  "counts": {
+    "passed": 14
+  },
+  "status": "PASS",
+  "scope": "Existing Task 7.23 analytical tests only; no application/database/network or archive implementation tests",
+  "excluded_by_this_run": [],
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

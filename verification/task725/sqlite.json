@@ -1,0 +1,2554 @@
+{
+  "layout": "Actual inherited V3Store insert/get schema via existing Task 7.21 DELETE/EXTRA initializer. Candidate storage only; selected/finality tables empty. No WAL.",
+  "occupancy": "Live allocated pages = (page_count-freelist_count)*page_size; not exact filled-cell bytes. File length, filesystem allocation and live pages are separate.",
+  "populations": {
+    "balanced41": {
+      "file_differences": {
+        "full_minus_minimal": 901120,
+        "full_minus_no_secondary": 548864,
+        "note": "Full-minus-minimal includes settings, derived tables and fixed schema, not pure indexes. Full-minus-no_secondary preserves uniqueness/FK/immutability semantics; nonunique query indexes only are omitted."
+      },
+      "full": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 1312,
+          "block_media_idx": 1312,
+          "block_previous_idx": 1312,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 49152,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 49152,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 90112,
+            "blocks": 1,
+            "canonical_bytes": 41126,
+            "compressed": false,
+            "database_overhead_bytes": 48986,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 90112,
+            "logical_bytes": 90112,
+            "marginal_bytes_per_block": 40960.0,
+            "marginal_overhead_bytes_per_block": -166.0,
+            "page_count": 22,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 311296,
+            "blocks": 5,
+            "canonical_bytes": 254529,
+            "compressed": false,
+            "database_overhead_bytes": 56767,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 311296,
+            "logical_bytes": 311296,
+            "marginal_bytes_per_block": 55296.0,
+            "marginal_overhead_bytes_per_block": 1945.25,
+            "page_count": 76,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 5017600,
+            "blocks": 41,
+            "canonical_bytes": 4876357,
+            "compressed": false,
+            "database_overhead_bytes": 141243,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 5017600,
+            "logical_bytes": 5017600,
+            "marginal_bytes_per_block": 130730.66666666667,
+            "marginal_overhead_bytes_per_block": 2346.5555555555557,
+            "page_count": 1225,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 9990144,
+            "blocks": 82,
+            "canonical_bytes": 9752722,
+            "compressed": false,
+            "database_overhead_bytes": 237422,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 9990144,
+            "logical_bytes": 9990144,
+            "marginal_bytes_per_block": 121281.56097560975,
+            "marginal_overhead_bytes_per_block": 2345.829268292683,
+            "page_count": 2439,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 19931136,
+            "blocks": 164,
+            "canonical_bytes": 19505521,
+            "compressed": false,
+            "database_overhead_bytes": 425615,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 19931136,
+            "logical_bytes": 19931136,
+            "marginal_bytes_per_block": 121231.60975609756,
+            "marginal_overhead_bytes_per_block": 2295.0365853658536,
+            "page_count": 4866,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 39800832,
+            "blocks": 328,
+            "canonical_bytes": 39011145,
+            "compressed": false,
+            "database_overhead_bytes": 789687,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 39800832,
+            "logical_bytes": 39800832,
+            "marginal_bytes_per_block": 121156.68292682926,
+            "marginal_overhead_bytes_per_block": 2219.951219512195,
+            "page_count": 9717,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 79556608,
+            "blocks": 656,
+            "canonical_bytes": 78022393,
+            "compressed": false,
+            "database_overhead_bytes": 1534215,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 79556608,
+            "logical_bytes": 79556608,
+            "marginal_bytes_per_block": 121206.63414634146,
+            "marginal_overhead_bytes_per_block": 2269.9024390243903,
+            "page_count": 19423,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 159113216,
+            "blocks": 1312,
+            "canonical_bytes": 156045206,
+            "compressed": false,
+            "database_overhead_bytes": 3068010,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 159113216,
+            "logical_bytes": 159113216,
+            "marginal_bytes_per_block": 121275.31707317074,
+            "marginal_overhead_bytes_per_block": 2338.1021341463415,
+            "page_count": 38846,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            842944.0,
+            783691.0,
+            817655.0,
+            885375.0,
+            882310.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              54,
+              "SEARCH block_index USING COVERING INDEX block_height_idx (height=?)"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            4030006.25,
+            4645037.5,
+            4014465.625,
+            4406434.375,
+            4135671.875
+          ]
+        }
+      },
+      "minimal": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {},
+        "observations": [
+          {
+            "allocated_bytes": 8192,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 8192,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8192,
+            "logical_bytes": 8192,
+            "page_count": 2,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 49152,
+            "blocks": 1,
+            "canonical_bytes": 41126,
+            "compressed": false,
+            "database_overhead_bytes": 8026,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "marginal_bytes_per_block": 40960.0,
+            "marginal_overhead_bytes_per_block": -166.0,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 270336,
+            "blocks": 5,
+            "canonical_bytes": 254529,
+            "compressed": false,
+            "database_overhead_bytes": 15807,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 270336,
+            "logical_bytes": 270336,
+            "marginal_bytes_per_block": 55296.0,
+            "marginal_overhead_bytes_per_block": 1945.25,
+            "page_count": 66,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 4947968,
+            "blocks": 41,
+            "canonical_bytes": 4876357,
+            "compressed": false,
+            "database_overhead_bytes": 71611,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 4947968,
+            "logical_bytes": 4947968,
+            "marginal_bytes_per_block": 129934.22222222222,
+            "marginal_overhead_bytes_per_block": 1550.111111111111,
+            "page_count": 1208,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 9895936,
+            "blocks": 82,
+            "canonical_bytes": 9752722,
+            "compressed": false,
+            "database_overhead_bytes": 143214,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 9895936,
+            "logical_bytes": 9895936,
+            "marginal_bytes_per_block": 120682.14634146342,
+            "marginal_overhead_bytes_per_block": 1746.4146341463415,
+            "page_count": 2416,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 19787776,
+            "blocks": 164,
+            "canonical_bytes": 19505521,
+            "compressed": false,
+            "database_overhead_bytes": 282255,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 19787776,
+            "logical_bytes": 19787776,
+            "marginal_bytes_per_block": 120632.19512195123,
+            "marginal_overhead_bytes_per_block": 1695.621951219512,
+            "page_count": 4831,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 39550976,
+            "blocks": 328,
+            "canonical_bytes": 39011145,
+            "compressed": false,
+            "database_overhead_bytes": 539831,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 39550976,
+            "logical_bytes": 39550976,
+            "marginal_bytes_per_block": 120507.31707317074,
+            "marginal_overhead_bytes_per_block": 1570.5853658536585,
+            "page_count": 9656,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 79089664,
+            "blocks": 656,
+            "canonical_bytes": 78022393,
+            "compressed": false,
+            "database_overhead_bytes": 1067271,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 79089664,
+            "logical_bytes": 79089664,
+            "marginal_bytes_per_block": 120544.78048780488,
+            "marginal_overhead_bytes_per_block": 1608.0487804878048,
+            "page_count": 19309,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 158212096,
+            "blocks": 1312,
+            "canonical_bytes": 156045206,
+            "compressed": false,
+            "database_overhead_bytes": 2166890,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 158212096,
+            "logical_bytes": 158212096,
+            "marginal_bytes_per_block": 120613.46341463414,
+            "marginal_overhead_bytes_per_block": 1676.248475609756,
+            "page_count": 38626,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "primary_key_ns_per_get": [
+            4250746.875,
+            4485968.75,
+            4410471.875,
+            4430606.25,
+            4455371.875
+          ]
+        }
+      },
+      "no_secondary": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 1312,
+          "block_media_idx": 1312,
+          "block_previous_idx": 1312,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 32768,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 32768,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 32768,
+            "logical_bytes": 32768,
+            "page_count": 8,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 73728,
+            "blocks": 1,
+            "canonical_bytes": 41126,
+            "compressed": false,
+            "database_overhead_bytes": 32602,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 73728,
+            "logical_bytes": 73728,
+            "marginal_bytes_per_block": 40960.0,
+            "marginal_overhead_bytes_per_block": -166.0,
+            "page_count": 18,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 294912,
+            "blocks": 5,
+            "canonical_bytes": 254529,
+            "compressed": false,
+            "database_overhead_bytes": 40383,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 294912,
+            "logical_bytes": 294912,
+            "marginal_bytes_per_block": 55296.0,
+            "marginal_overhead_bytes_per_block": 1945.25,
+            "page_count": 72,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 4984832,
+            "blocks": 41,
+            "canonical_bytes": 4876357,
+            "compressed": false,
+            "database_overhead_bytes": 108475,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 4984832,
+            "logical_bytes": 4984832,
+            "marginal_bytes_per_block": 130275.55555555556,
+            "marginal_overhead_bytes_per_block": 1891.4444444444443,
+            "page_count": 1217,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 9940992,
+            "blocks": 82,
+            "canonical_bytes": 9752722,
+            "compressed": false,
+            "database_overhead_bytes": 188270,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 9940992,
+            "logical_bytes": 9940992,
+            "marginal_bytes_per_block": 120881.9512195122,
+            "marginal_overhead_bytes_per_block": 1946.219512195122,
+            "page_count": 2427,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 19849216,
+            "blocks": 164,
+            "canonical_bytes": 19505521,
+            "compressed": false,
+            "database_overhead_bytes": 343695,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 19849216,
+            "logical_bytes": 19849216,
+            "marginal_bytes_per_block": 120832.0,
+            "marginal_overhead_bytes_per_block": 1895.4268292682927,
+            "page_count": 4846,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 39657472,
+            "blocks": 328,
+            "canonical_bytes": 39011145,
+            "compressed": false,
+            "database_overhead_bytes": 646327,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 39657472,
+            "logical_bytes": 39657472,
+            "marginal_bytes_per_block": 120782.0487804878,
+            "marginal_overhead_bytes_per_block": 1845.3170731707316,
+            "page_count": 9682,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 79282176,
+            "blocks": 656,
+            "canonical_bytes": 78022393,
+            "compressed": false,
+            "database_overhead_bytes": 1259783,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 79282176,
+            "logical_bytes": 79282176,
+            "marginal_bytes_per_block": 120807.0243902439,
+            "marginal_overhead_bytes_per_block": 1870.2926829268292,
+            "page_count": 19356,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 158564352,
+            "blocks": 1312,
+            "canonical_bytes": 156045206,
+            "compressed": false,
+            "database_overhead_bytes": 2519146,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 158564352,
+            "logical_bytes": 158564352,
+            "marginal_bytes_per_block": 120856.9756097561,
+            "marginal_overhead_bytes_per_block": 1919.7606707317073,
+            "page_count": 38712,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            1247360.0,
+            1247984.0,
+            1359240.0,
+            1168303.0,
+            1275958.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              216,
+              "SCAN block_index"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            4044140.625,
+            3898556.25,
+            3865562.5,
+            3919243.75,
+            3733884.375
+          ]
+        }
+      },
+      "secondary_pages": {
+        "method": "Direct marginal releasable pages on test copy; no dbstat; includes any sqlite_schema page release. WITHOUT ROWID primary trees remain inseparable from table bytes.",
+        "rows": [
+          {
+            "bytes": 110592,
+            "freed_pages": 27,
+            "name": "block_height_idx"
+          },
+          {
+            "bytes": 212992,
+            "freed_pages": 52,
+            "name": "block_previous_idx"
+          },
+          {
+            "bytes": 221184,
+            "freed_pages": 54,
+            "name": "block_media_idx"
+          },
+          {
+            "bytes": 4096,
+            "freed_pages": 1,
+            "name": "transaction_id_idx"
+          }
+        ],
+        "secondary_allocation_bytes": 548864
+      }
+    },
+    "historical36": {
+      "file_differences": {
+        "full_minus_minimal": 135168,
+        "full_minus_no_secondary": 77824,
+        "note": "Full-minus-minimal includes settings, derived tables and fixed schema, not pure indexes. Full-minus-no_secondary preserves uniqueness/FK/immutability semantics; nonunique query indexes only are omitted."
+      },
+      "full": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 144,
+          "block_media_idx": 144,
+          "block_previous_idx": 144,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 49152,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 49152,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 81920,
+            "blocks": 1,
+            "canonical_bytes": 33235,
+            "compressed": false,
+            "database_overhead_bytes": 48685,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 81920,
+            "logical_bytes": 81920,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -467.0,
+            "page_count": 20,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 212992,
+            "blocks": 5,
+            "canonical_bytes": 167254,
+            "compressed": false,
+            "database_overhead_bytes": 45738,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 212992,
+            "logical_bytes": 212992,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -736.75,
+            "page_count": 52,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 8376320,
+            "blocks": 36,
+            "canonical_bytes": 8241301,
+            "compressed": false,
+            "database_overhead_bytes": 135019,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8376320,
+            "logical_bytes": 8376320,
+            "marginal_bytes_per_block": 263333.1612903226,
+            "marginal_overhead_bytes_per_block": 2880.032258064516,
+            "page_count": 2045,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 16711680,
+            "blocks": 72,
+            "canonical_bytes": 16482611,
+            "compressed": false,
+            "database_overhead_bytes": 229069,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 16711680,
+            "logical_bytes": 16711680,
+            "marginal_bytes_per_block": 231537.77777777778,
+            "marginal_overhead_bytes_per_block": 2612.5,
+            "page_count": 4080,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 33374208,
+            "blocks": 144,
+            "canonical_bytes": 32965276,
+            "compressed": false,
+            "database_overhead_bytes": 408932,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 33374208,
+            "logical_bytes": 33374208,
+            "marginal_bytes_per_block": 231424.0,
+            "marginal_overhead_bytes_per_block": 2498.097222222222,
+            "page_count": 8148,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            765762.0,
+            748165.0,
+            864276.0,
+            721325.0,
+            784310.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              54,
+              "SEARCH block_index USING COVERING INDEX block_height_idx (height=?)"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            14176309.375,
+            13702378.125,
+            13707462.5,
+            13769931.25,
+            10873831.25
+          ]
+        }
+      },
+      "minimal": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {},
+        "observations": [
+          {
+            "allocated_bytes": 8192,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 8192,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8192,
+            "logical_bytes": 8192,
+            "page_count": 2,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 40960,
+            "blocks": 1,
+            "canonical_bytes": 33235,
+            "compressed": false,
+            "database_overhead_bytes": 7725,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 40960,
+            "logical_bytes": 40960,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -467.0,
+            "page_count": 10,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 172032,
+            "blocks": 5,
+            "canonical_bytes": 167254,
+            "compressed": false,
+            "database_overhead_bytes": 4778,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 172032,
+            "logical_bytes": 172032,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -736.75,
+            "page_count": 42,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 8310784,
+            "blocks": 36,
+            "canonical_bytes": 8241301,
+            "compressed": false,
+            "database_overhead_bytes": 69483,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8310784,
+            "logical_bytes": 8310784,
+            "marginal_bytes_per_block": 262540.3870967742,
+            "marginal_overhead_bytes_per_block": 2087.2580645161293,
+            "page_count": 2029,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 16621568,
+            "blocks": 72,
+            "canonical_bytes": 16482611,
+            "compressed": false,
+            "database_overhead_bytes": 138957,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 16621568,
+            "logical_bytes": 16621568,
+            "marginal_bytes_per_block": 230855.11111111112,
+            "marginal_overhead_bytes_per_block": 1929.8333333333333,
+            "page_count": 4058,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 33239040,
+            "blocks": 144,
+            "canonical_bytes": 32965276,
+            "compressed": false,
+            "database_overhead_bytes": 273764,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 33239040,
+            "logical_bytes": 33239040,
+            "marginal_bytes_per_block": 230798.22222222222,
+            "marginal_overhead_bytes_per_block": 1872.3194444444443,
+            "page_count": 8115,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "primary_key_ns_per_get": [
+            16188187.5,
+            15913484.375,
+            14869446.875,
+            13683362.5,
+            12476296.875
+          ]
+        }
+      },
+      "no_secondary": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 144,
+          "block_media_idx": 144,
+          "block_previous_idx": 144,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 32768,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 32768,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 32768,
+            "logical_bytes": 32768,
+            "page_count": 8,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 65536,
+            "blocks": 1,
+            "canonical_bytes": 33235,
+            "compressed": false,
+            "database_overhead_bytes": 32301,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 65536,
+            "logical_bytes": 65536,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -467.0,
+            "page_count": 16,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 196608,
+            "blocks": 5,
+            "canonical_bytes": 167254,
+            "compressed": false,
+            "database_overhead_bytes": 29354,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 196608,
+            "logical_bytes": 196608,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -736.75,
+            "page_count": 48,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 8343552,
+            "blocks": 36,
+            "canonical_bytes": 8241301,
+            "compressed": false,
+            "database_overhead_bytes": 102251,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8343552,
+            "logical_bytes": 8343552,
+            "marginal_bytes_per_block": 262804.6451612903,
+            "marginal_overhead_bytes_per_block": 2351.516129032258,
+            "page_count": 2037,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 16662528,
+            "blocks": 72,
+            "canonical_bytes": 16482611,
+            "compressed": false,
+            "database_overhead_bytes": 179917,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 16662528,
+            "logical_bytes": 16662528,
+            "marginal_bytes_per_block": 231082.66666666666,
+            "marginal_overhead_bytes_per_block": 2157.3888888888887,
+            "page_count": 4068,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 33296384,
+            "blocks": 144,
+            "canonical_bytes": 32965276,
+            "compressed": false,
+            "database_overhead_bytes": 331108,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 33296384,
+            "logical_bytes": 33296384,
+            "marginal_bytes_per_block": 231025.77777777778,
+            "marginal_overhead_bytes_per_block": 2099.875,
+            "page_count": 8129,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            936760.0,
+            934163.0,
+            967629.0,
+            876156.0,
+            915485.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              216,
+              "SCAN block_index"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            15589671.875,
+            15605656.25,
+            15485106.25,
+            15098546.875,
+            14844128.125
+          ]
+        }
+      },
+      "secondary_pages": {
+        "method": "Direct marginal releasable pages on test copy; no dbstat; includes any sqlite_schema page release. WITHOUT ROWID primary trees remain inseparable from table bytes.",
+        "rows": [
+          {
+            "bytes": 16384,
+            "freed_pages": 4,
+            "name": "block_height_idx"
+          },
+          {
+            "bytes": 28672,
+            "freed_pages": 7,
+            "name": "block_previous_idx"
+          },
+          {
+            "bytes": 28672,
+            "freed_pages": 7,
+            "name": "block_media_idx"
+          },
+          {
+            "bytes": 4096,
+            "freed_pages": 1,
+            "name": "transaction_id_idx"
+          }
+        ],
+        "secondary_allocation_bytes": 77824
+      }
+    },
+    "meme58": {
+      "file_differences": {
+        "full_minus_minimal": 180224,
+        "full_minus_no_secondary": 102400,
+        "note": "Full-minus-minimal includes settings, derived tables and fixed schema, not pure indexes. Full-minus-no_secondary preserves uniqueness/FK/immutability semantics; nonunique query indexes only are omitted."
+      },
+      "full": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 224,
+          "block_media_idx": 224,
+          "block_previous_idx": 224,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 49152,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 49152,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 90112,
+            "blocks": 1,
+            "canonical_bytes": 41126,
+            "compressed": false,
+            "database_overhead_bytes": 48986,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 90112,
+            "logical_bytes": 90112,
+            "marginal_bytes_per_block": 40960.0,
+            "marginal_overhead_bytes_per_block": -166.0,
+            "page_count": 22,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 311296,
+            "blocks": 5,
+            "canonical_bytes": 254529,
+            "compressed": false,
+            "database_overhead_bytes": 56767,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 311296,
+            "logical_bytes": 311296,
+            "marginal_bytes_per_block": 55296.0,
+            "marginal_overhead_bytes_per_block": 1945.25,
+            "page_count": 76,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 26611712,
+            "blocks": 56,
+            "canonical_bytes": 26413907,
+            "compressed": false,
+            "database_overhead_bytes": 197805,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 26611712,
+            "logical_bytes": 26611712,
+            "marginal_bytes_per_block": 515694.43137254904,
+            "marginal_overhead_bytes_per_block": 2765.450980392157,
+            "page_count": 6497,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 53190656,
+            "blocks": 112,
+            "canonical_bytes": 52827837,
+            "compressed": false,
+            "database_overhead_bytes": 362819,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 53190656,
+            "logical_bytes": 53190656,
+            "marginal_bytes_per_block": 474624.0,
+            "marginal_overhead_bytes_per_block": 2946.6785714285716,
+            "page_count": 12986,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 106311680,
+            "blocks": 224,
+            "canonical_bytes": 105655779,
+            "compressed": false,
+            "database_overhead_bytes": 655901,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 106311680,
+            "logical_bytes": 106311680,
+            "marginal_bytes_per_block": 474294.85714285716,
+            "marginal_overhead_bytes_per_block": 2616.8035714285716,
+            "page_count": 25955,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            849351.0,
+            844981.0,
+            864325.0,
+            803418.0,
+            834108.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              54,
+              "SEARCH block_index USING COVERING INDEX block_height_idx (height=?)"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            31934559.375,
+            32658593.75,
+            29604690.625,
+            29621621.875,
+            30411009.375
+          ]
+        }
+      },
+      "minimal": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {},
+        "observations": [
+          {
+            "allocated_bytes": 8192,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 8192,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8192,
+            "logical_bytes": 8192,
+            "page_count": 2,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 49152,
+            "blocks": 1,
+            "canonical_bytes": 41126,
+            "compressed": false,
+            "database_overhead_bytes": 8026,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "marginal_bytes_per_block": 40960.0,
+            "marginal_overhead_bytes_per_block": -166.0,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 270336,
+            "blocks": 5,
+            "canonical_bytes": 254529,
+            "compressed": false,
+            "database_overhead_bytes": 15807,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 270336,
+            "logical_bytes": 270336,
+            "marginal_bytes_per_block": 55296.0,
+            "marginal_overhead_bytes_per_block": 1945.25,
+            "page_count": 66,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 26542080,
+            "blocks": 56,
+            "canonical_bytes": 26413907,
+            "compressed": false,
+            "database_overhead_bytes": 128173,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 26542080,
+            "logical_bytes": 26542080,
+            "marginal_bytes_per_block": 515132.23529411765,
+            "marginal_overhead_bytes_per_block": 2203.2549019607845,
+            "page_count": 6480,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 53071872,
+            "blocks": 112,
+            "canonical_bytes": 52827837,
+            "compressed": false,
+            "database_overhead_bytes": 244035,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 53071872,
+            "logical_bytes": 53071872,
+            "marginal_bytes_per_block": 473746.28571428574,
+            "marginal_overhead_bytes_per_block": 2068.964285714286,
+            "page_count": 12957,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 106131456,
+            "blocks": 224,
+            "canonical_bytes": 105655779,
+            "compressed": false,
+            "database_overhead_bytes": 475677,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 106131456,
+            "logical_bytes": 106131456,
+            "marginal_bytes_per_block": 473746.28571428574,
+            "marginal_overhead_bytes_per_block": 2068.2321428571427,
+            "page_count": 25911,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "primary_key_ns_per_get": [
+            25573056.25,
+            27219018.75,
+            27628156.25,
+            27476059.375,
+            27211750.0
+          ]
+        }
+      },
+      "no_secondary": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 224,
+          "block_media_idx": 224,
+          "block_previous_idx": 224,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 32768,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 32768,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 32768,
+            "logical_bytes": 32768,
+            "page_count": 8,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 73728,
+            "blocks": 1,
+            "canonical_bytes": 41126,
+            "compressed": false,
+            "database_overhead_bytes": 32602,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 73728,
+            "logical_bytes": 73728,
+            "marginal_bytes_per_block": 40960.0,
+            "marginal_overhead_bytes_per_block": -166.0,
+            "page_count": 18,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 294912,
+            "blocks": 5,
+            "canonical_bytes": 254529,
+            "compressed": false,
+            "database_overhead_bytes": 40383,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 294912,
+            "logical_bytes": 294912,
+            "marginal_bytes_per_block": 55296.0,
+            "marginal_overhead_bytes_per_block": 1945.25,
+            "page_count": 72,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 26578944,
+            "blocks": 56,
+            "canonical_bytes": 26413907,
+            "compressed": false,
+            "database_overhead_bytes": 165037,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 26578944,
+            "logical_bytes": 26578944,
+            "marginal_bytes_per_block": 515373.17647058825,
+            "marginal_overhead_bytes_per_block": 2444.1960784313724,
+            "page_count": 6489,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 53125120,
+            "blocks": 112,
+            "canonical_bytes": 52827837,
+            "compressed": false,
+            "database_overhead_bytes": 297283,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 53125120,
+            "logical_bytes": 53125120,
+            "marginal_bytes_per_block": 474038.85714285716,
+            "marginal_overhead_bytes_per_block": 2361.535714285714,
+            "page_count": 12970,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 106209280,
+            "blocks": 224,
+            "canonical_bytes": 105655779,
+            "compressed": false,
+            "database_overhead_bytes": 553501,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 106209280,
+            "logical_bytes": 106209280,
+            "marginal_bytes_per_block": 473965.71428571426,
+            "marginal_overhead_bytes_per_block": 2287.660714285714,
+            "page_count": 25930,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            801614.0,
+            880303.0,
+            906303.0,
+            834297.0,
+            875351.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              216,
+              "SCAN block_index"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            29415565.625,
+            29835328.125,
+            32564518.75,
+            29186887.5,
+            28914515.625
+          ]
+        }
+      },
+      "secondary_pages": {
+        "method": "Direct marginal releasable pages on test copy; no dbstat; includes any sqlite_schema page release. WITHOUT ROWID primary trees remain inseparable from table bytes.",
+        "rows": [
+          {
+            "bytes": 24576,
+            "freed_pages": 6,
+            "name": "block_height_idx"
+          },
+          {
+            "bytes": 36864,
+            "freed_pages": 9,
+            "name": "block_previous_idx"
+          },
+          {
+            "bytes": 36864,
+            "freed_pages": 9,
+            "name": "block_media_idx"
+          },
+          {
+            "bytes": 4096,
+            "freed_pages": 1,
+            "name": "transaction_id_idx"
+          }
+        ],
+        "secondary_allocation_bytes": 102400
+      }
+    },
+    "native_index_control": {
+      "file_differences": {
+        "full_minus_minimal": 81920,
+        "full_minus_no_secondary": 40960,
+        "note": "Full-minus-minimal includes settings, derived tables and fixed schema, not pure indexes. Full-minus-no_secondary preserves uniqueness/FK/immutability semantics; nonunique query indexes only are omitted."
+      },
+      "full": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 32,
+          "block_media_idx": 32,
+          "block_previous_idx": 32,
+          "transaction_id_idx": 32
+        },
+        "observations": [
+          {
+            "allocated_bytes": 49152,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 49152,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 86016,
+            "blocks": 1,
+            "canonical_bytes": 34588,
+            "compressed": false,
+            "database_overhead_bytes": 51428,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 86016,
+            "logical_bytes": 86016,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 21,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 122880,
+            "blocks": 2,
+            "canonical_bytes": 69176,
+            "compressed": false,
+            "database_overhead_bytes": 53704,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 122880,
+            "logical_bytes": 122880,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 30,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 196608,
+            "blocks": 4,
+            "canonical_bytes": 138352,
+            "compressed": false,
+            "database_overhead_bytes": 58256,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 196608,
+            "logical_bytes": 196608,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 48,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 233472,
+            "blocks": 5,
+            "canonical_bytes": 172940,
+            "compressed": false,
+            "database_overhead_bytes": 60532,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 233472,
+            "logical_bytes": 233472,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 57,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 1286144,
+            "blocks": 32,
+            "canonical_bytes": 1106839,
+            "compressed": false,
+            "database_overhead_bytes": 179305,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 1286144,
+            "logical_bytes": 1286144,
+            "marginal_bytes_per_block": 38987.851851851854,
+            "marginal_overhead_bytes_per_block": 4399.0,
+            "page_count": 314,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            810815.0,
+            858713.0,
+            822092.0,
+            779983.0,
+            722677.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              54,
+              "SEARCH block_index USING COVERING INDEX block_height_idx (height=?)"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            617818.75,
+            559081.25,
+            666350.0,
+            630334.375,
+            1350487.5
+          ]
+        }
+      },
+      "minimal": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {},
+        "observations": [
+          {
+            "allocated_bytes": 8192,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 8192,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8192,
+            "logical_bytes": 8192,
+            "page_count": 2,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 45056,
+            "blocks": 1,
+            "canonical_bytes": 34588,
+            "compressed": false,
+            "database_overhead_bytes": 10468,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 45056,
+            "logical_bytes": 45056,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 11,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 81920,
+            "blocks": 2,
+            "canonical_bytes": 69176,
+            "compressed": false,
+            "database_overhead_bytes": 12744,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 81920,
+            "logical_bytes": 81920,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 20,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 155648,
+            "blocks": 4,
+            "canonical_bytes": 138352,
+            "compressed": false,
+            "database_overhead_bytes": 17296,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 155648,
+            "logical_bytes": 155648,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 38,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 192512,
+            "blocks": 5,
+            "canonical_bytes": 172940,
+            "compressed": false,
+            "database_overhead_bytes": 19572,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 192512,
+            "logical_bytes": 192512,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 47,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 1204224,
+            "blocks": 32,
+            "canonical_bytes": 1106839,
+            "compressed": false,
+            "database_overhead_bytes": 97385,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 1204224,
+            "logical_bytes": 1204224,
+            "marginal_bytes_per_block": 37470.81481481482,
+            "marginal_overhead_bytes_per_block": 2881.962962962963,
+            "page_count": 294,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "primary_key_ns_per_get": [
+            1644696.875,
+            1480350.0,
+            1435096.875,
+            1613553.125,
+            1641184.375
+          ]
+        }
+      },
+      "no_secondary": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 32,
+          "block_media_idx": 32,
+          "block_previous_idx": 32,
+          "transaction_id_idx": 32
+        },
+        "observations": [
+          {
+            "allocated_bytes": 32768,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 32768,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 32768,
+            "logical_bytes": 32768,
+            "page_count": 8,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 69632,
+            "blocks": 1,
+            "canonical_bytes": 34588,
+            "compressed": false,
+            "database_overhead_bytes": 35044,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 69632,
+            "logical_bytes": 69632,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 17,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 106496,
+            "blocks": 2,
+            "canonical_bytes": 69176,
+            "compressed": false,
+            "database_overhead_bytes": 37320,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 106496,
+            "logical_bytes": 106496,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 26,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 180224,
+            "blocks": 4,
+            "canonical_bytes": 138352,
+            "compressed": false,
+            "database_overhead_bytes": 41872,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 180224,
+            "logical_bytes": 180224,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 44,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 217088,
+            "blocks": 5,
+            "canonical_bytes": 172940,
+            "compressed": false,
+            "database_overhead_bytes": 44148,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 217088,
+            "logical_bytes": 217088,
+            "marginal_bytes_per_block": 36864.0,
+            "marginal_overhead_bytes_per_block": 2276.0,
+            "page_count": 53,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 1245184,
+            "blocks": 32,
+            "canonical_bytes": 1106839,
+            "compressed": false,
+            "database_overhead_bytes": 138345,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 1245184,
+            "logical_bytes": 1245184,
+            "marginal_bytes_per_block": 38077.62962962963,
+            "marginal_overhead_bytes_per_block": 3488.777777777778,
+            "page_count": 304,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            872562.0,
+            907830.0,
+            825154.0,
+            1026992.0,
+            1003464.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              216,
+              "SCAN block_index"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            1271121.875,
+            1429571.875,
+            1612381.25,
+            1281762.5,
+            1263306.25
+          ]
+        }
+      },
+      "secondary_pages": {
+        "method": "Direct marginal releasable pages on test copy; no dbstat; includes any sqlite_schema page release. WITHOUT ROWID primary trees remain inseparable from table bytes.",
+        "rows": [
+          {
+            "bytes": 4096,
+            "freed_pages": 1,
+            "name": "block_height_idx"
+          },
+          {
+            "bytes": 12288,
+            "freed_pages": 3,
+            "name": "block_previous_idx"
+          },
+          {
+            "bytes": 12288,
+            "freed_pages": 3,
+            "name": "block_media_idx"
+          },
+          {
+            "bytes": 12288,
+            "freed_pages": 3,
+            "name": "transaction_id_idx"
+          }
+        ],
+        "secondary_allocation_bytes": 40960
+      }
+    },
+    "production34": {
+      "file_differences": {
+        "full_minus_minimal": 131072,
+        "full_minus_no_secondary": 69632,
+        "note": "Full-minus-minimal includes settings, derived tables and fixed schema, not pure indexes. Full-minus-no_secondary preserves uniqueness/FK/immutability semantics; nonunique query indexes only are omitted."
+      },
+      "full": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 136,
+          "block_media_idx": 136,
+          "block_previous_idx": 136,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 49152,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 49152,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 49152,
+            "logical_bytes": 49152,
+            "page_count": 12,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 81920,
+            "blocks": 1,
+            "canonical_bytes": 33251,
+            "compressed": false,
+            "database_overhead_bytes": 48669,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 81920,
+            "logical_bytes": 81920,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -483.0,
+            "page_count": 20,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 270336,
+            "blocks": 5,
+            "canonical_bytes": 215402,
+            "compressed": false,
+            "database_overhead_bytes": 54934,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 270336,
+            "logical_bytes": 270336,
+            "marginal_bytes_per_block": 47104.0,
+            "marginal_overhead_bytes_per_block": 1566.25,
+            "page_count": 66,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 15945728,
+            "blocks": 34,
+            "canonical_bytes": 15798621,
+            "compressed": false,
+            "database_overhead_bytes": 147107,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 15945728,
+            "logical_bytes": 15945728,
+            "marginal_bytes_per_block": 540530.7586206896,
+            "marginal_overhead_bytes_per_block": 3178.3793103448274,
+            "page_count": 3893,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 31850496,
+            "blocks": 68,
+            "canonical_bytes": 31597251,
+            "compressed": false,
+            "database_overhead_bytes": 253245,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 31850496,
+            "logical_bytes": 31850496,
+            "marginal_bytes_per_block": 467787.29411764705,
+            "marginal_overhead_bytes_per_block": 3121.705882352941,
+            "page_count": 7776,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 63639552,
+            "blocks": 136,
+            "canonical_bytes": 63194548,
+            "compressed": false,
+            "database_overhead_bytes": 445004,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 63639552,
+            "logical_bytes": 63639552,
+            "marginal_bytes_per_block": 467486.1176470588,
+            "marginal_overhead_bytes_per_block": 2819.985294117647,
+            "page_count": 15537,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            851869.0,
+            988957.0,
+            954317.0,
+            1167409.0,
+            821051.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              54,
+              "SEARCH block_index USING COVERING INDEX block_height_idx (height=?)"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            20030303.125,
+            19082837.5,
+            20084287.5,
+            19114734.375,
+            18962515.625
+          ]
+        }
+      },
+      "minimal": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {},
+        "observations": [
+          {
+            "allocated_bytes": 8192,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 8192,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 8192,
+            "logical_bytes": 8192,
+            "page_count": 2,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 40960,
+            "blocks": 1,
+            "canonical_bytes": 33251,
+            "compressed": false,
+            "database_overhead_bytes": 7709,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 40960,
+            "logical_bytes": 40960,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -483.0,
+            "page_count": 10,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 229376,
+            "blocks": 5,
+            "canonical_bytes": 215402,
+            "compressed": false,
+            "database_overhead_bytes": 13974,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 229376,
+            "logical_bytes": 229376,
+            "marginal_bytes_per_block": 47104.0,
+            "marginal_overhead_bytes_per_block": 1566.25,
+            "page_count": 56,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 15880192,
+            "blocks": 34,
+            "canonical_bytes": 15798621,
+            "compressed": false,
+            "database_overhead_bytes": 81571,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 15880192,
+            "logical_bytes": 15880192,
+            "marginal_bytes_per_block": 539683.3103448276,
+            "marginal_overhead_bytes_per_block": 2330.9310344827586,
+            "page_count": 3877,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 31760384,
+            "blocks": 68,
+            "canonical_bytes": 31597251,
+            "compressed": false,
+            "database_overhead_bytes": 163133,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 31760384,
+            "logical_bytes": 31760384,
+            "marginal_bytes_per_block": 467064.4705882353,
+            "marginal_overhead_bytes_per_block": 2398.8823529411766,
+            "page_count": 7754,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 63508480,
+            "blocks": 136,
+            "canonical_bytes": 63194548,
+            "compressed": false,
+            "database_overhead_bytes": 313932,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 63508480,
+            "logical_bytes": 63508480,
+            "marginal_bytes_per_block": 466883.76470588235,
+            "marginal_overhead_bytes_per_block": 2217.6323529411766,
+            "page_count": 15505,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "primary_key_ns_per_get": [
+            36445940.625,
+            21969740.625,
+            21651200.0,
+            34416225.0,
+            19400831.25
+          ]
+        }
+      },
+      "no_secondary": {
+        "constraints": {
+          "blob_type": true,
+          "duplicate_hash": true,
+          "immutable_delete": true,
+          "immutable_update": true
+        },
+        "dbstat_available": false,
+        "index_entries": {
+          "block_height_idx": 136,
+          "block_media_idx": 136,
+          "block_previous_idx": 136,
+          "transaction_id_idx": 0
+        },
+        "observations": [
+          {
+            "allocated_bytes": 32768,
+            "blocks": 0,
+            "canonical_bytes": 0,
+            "compressed": false,
+            "database_overhead_bytes": 32768,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 32768,
+            "logical_bytes": 32768,
+            "page_count": 8,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 65536,
+            "blocks": 1,
+            "canonical_bytes": 33251,
+            "compressed": false,
+            "database_overhead_bytes": 32285,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 65536,
+            "logical_bytes": 65536,
+            "marginal_bytes_per_block": 32768.0,
+            "marginal_overhead_bytes_per_block": -483.0,
+            "page_count": 16,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 253952,
+            "blocks": 5,
+            "canonical_bytes": 215402,
+            "compressed": false,
+            "database_overhead_bytes": 38550,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 253952,
+            "logical_bytes": 253952,
+            "marginal_bytes_per_block": 47104.0,
+            "marginal_overhead_bytes_per_block": 1566.25,
+            "page_count": 62,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 15912960,
+            "blocks": 34,
+            "canonical_bytes": 15798621,
+            "compressed": false,
+            "database_overhead_bytes": 114339,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 15912960,
+            "logical_bytes": 15912960,
+            "marginal_bytes_per_block": 539965.7931034482,
+            "marginal_overhead_bytes_per_block": 2613.4137931034484,
+            "page_count": 3885,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 31801344,
+            "blocks": 68,
+            "canonical_bytes": 31597251,
+            "compressed": false,
+            "database_overhead_bytes": 204093,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 31801344,
+            "logical_bytes": 31801344,
+            "marginal_bytes_per_block": 467305.4117647059,
+            "marginal_overhead_bytes_per_block": 2639.823529411765,
+            "page_count": 7764,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          },
+          {
+            "allocated_bytes": 63569920,
+            "blocks": 136,
+            "canonical_bytes": 63194548,
+            "compressed": false,
+            "database_overhead_bytes": 375372,
+            "free_pages": 0,
+            "journal_mode": "delete",
+            "live_allocated_page_bytes": 63569920,
+            "logical_bytes": 63569920,
+            "marginal_bytes_per_block": 467184.9411764706,
+            "marginal_overhead_bytes_per_block": 2518.8088235294117,
+            "page_count": 15520,
+            "page_size": 4096,
+            "reparse_point": false,
+            "sparse": false,
+            "sqlite_version": "3.49.1",
+            "synchronous": 3
+          }
+        ],
+        "retrieval": {
+          "cache": "warm, five batches, up to 32 hashes; includes BLOB fetch; observational only",
+          "height_ns_per_get": [
+            991203.0,
+            1076717.0,
+            997381.0,
+            844310.0,
+            1047308.0
+          ],
+          "height_query_plan": [
+            [
+              2,
+              0,
+              216,
+              "SCAN block_index"
+            ]
+          ],
+          "primary_key_ns_per_get": [
+            21214265.625,
+            20115509.375,
+            20571668.75,
+            21847343.75,
+            20261656.25
+          ]
+        }
+      },
+      "secondary_pages": {
+        "method": "Direct marginal releasable pages on test copy; no dbstat; includes any sqlite_schema page release. WITHOUT ROWID primary trees remain inseparable from table bytes.",
+        "rows": [
+          {
+            "bytes": 16384,
+            "freed_pages": 4,
+            "name": "block_height_idx"
+          },
+          {
+            "bytes": 24576,
+            "freed_pages": 6,
+            "name": "block_previous_idx"
+          },
+          {
+            "bytes": 24576,
+            "freed_pages": 6,
+            "name": "block_media_idx"
+          },
+          {
+            "bytes": 4096,
+            "freed_pages": 1,
+            "name": "transaction_id_idx"
+          }
+        ],
+        "secondary_allocation_bytes": 69632
+      }
+    }
+  },
+  "synthetic_growth": "Additional cycles change only unsigned header index and canonical block hash; media/certificates are reused. Valid independent format records, not a selected chain or independent production originals.",
+  "version": 1
+}

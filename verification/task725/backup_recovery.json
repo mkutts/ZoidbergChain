@@ -1,0 +1,251 @@
+{
+  "note": "Backup/snapshot ratio is measured for uncompressed full copies. Frequency/retention and remote upload durability are modeled, not measured operator practice.",
+  "populations": {
+    "balanced41": {
+      "backing": "Independent file IDs and streaming full backup/restore writes. SQLite online backup snapshot is self-contained. Same-volume copies share device failure domain; no remote durability claim.",
+      "backup": {
+        "additional_workspace_bytes": 159113216,
+        "allocated_bytes": 159113216,
+        "baseline_directory_bytes": 159113216,
+        "bytes": 159113216,
+        "compressed": false,
+        "logical_bytes": 159113216,
+        "observation_points": 152,
+        "peak_directory_bytes": 318226432,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "backup_ratio": 1.0,
+      "elapsed_seconds": 784.1413606000133,
+      "peak_including_live_source_bytes": 636452864,
+      "peak_scope": "Exact monotone full-copy file-length high water after each fsynced chunk; excludes RAM/OS buffers. Restore writes one destination directly, no decompressor/temp stage. Snapshot+backup+restored coexist; live source separate.",
+      "recovery": {
+        "additional_workspace_bytes": 159113216,
+        "allocated_bytes": 159113216,
+        "baseline_directory_bytes": 318226432,
+        "bytes": 159113216,
+        "compressed": false,
+        "logical_bytes": 159113216,
+        "observation_points": 152,
+        "peak_directory_bytes": 477339648,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "retained_four_backups_bytes": 636452864,
+      "snapshot": {
+        "allocated_bytes": 159113216,
+        "compressed": false,
+        "logical_bytes": 159113216,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "snapshot_ratio": 1.0,
+      "source": {
+        "allocated_bytes": 159113216,
+        "compressed": false,
+        "logical_bytes": 159113216,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "verification": {
+        "blocks": 1312,
+        "canonical_bytes_sha256": true,
+        "canonical_identity": true,
+        "fresh_process": true,
+        "integrity": {
+          "blocks": 1312,
+          "finality_proofs": 0,
+          "native_transaction_references": 0,
+          "selected_blocks": 0
+        },
+        "oracle": "Hashes/sizes only; no original media files or other DB paths supplied",
+        "original_commitments": true
+      }
+    },
+    "historical36": {
+      "backing": "Independent file IDs and streaming full backup/restore writes. SQLite online backup snapshot is self-contained. Same-volume copies share device failure domain; no remote durability claim.",
+      "backup": {
+        "additional_workspace_bytes": 33374208,
+        "allocated_bytes": 33374208,
+        "baseline_directory_bytes": 33374208,
+        "bytes": 33374208,
+        "compressed": false,
+        "logical_bytes": 33374208,
+        "observation_points": 32,
+        "peak_directory_bytes": 66748416,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "backup_ratio": 1.0,
+      "elapsed_seconds": 96.81379480008036,
+      "peak_including_live_source_bytes": 133496832,
+      "peak_scope": "Exact monotone full-copy file-length high water after each fsynced chunk; excludes RAM/OS buffers. Restore writes one destination directly, no decompressor/temp stage. Snapshot+backup+restored coexist; live source separate.",
+      "recovery": {
+        "additional_workspace_bytes": 33374208,
+        "allocated_bytes": 33374208,
+        "baseline_directory_bytes": 66748416,
+        "bytes": 33374208,
+        "compressed": false,
+        "logical_bytes": 33374208,
+        "observation_points": 32,
+        "peak_directory_bytes": 100122624,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "retained_four_backups_bytes": 133496832,
+      "snapshot": {
+        "allocated_bytes": 33374208,
+        "compressed": false,
+        "logical_bytes": 33374208,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "snapshot_ratio": 1.0,
+      "source": {
+        "allocated_bytes": 33374208,
+        "compressed": false,
+        "logical_bytes": 33374208,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "verification": {
+        "blocks": 144,
+        "canonical_bytes_sha256": true,
+        "canonical_identity": true,
+        "fresh_process": true,
+        "integrity": {
+          "blocks": 144,
+          "finality_proofs": 0,
+          "native_transaction_references": 0,
+          "selected_blocks": 0
+        },
+        "oracle": "Hashes/sizes only; no original media files or other DB paths supplied",
+        "original_commitments": true
+      }
+    },
+    "meme58": {
+      "backing": "Independent file IDs and streaming full backup/restore writes. SQLite online backup snapshot is self-contained. Same-volume copies share device failure domain; no remote durability claim.",
+      "backup": {
+        "additional_workspace_bytes": 106311680,
+        "allocated_bytes": 106311680,
+        "baseline_directory_bytes": 106311680,
+        "bytes": 106311680,
+        "compressed": false,
+        "logical_bytes": 106311680,
+        "observation_points": 102,
+        "peak_directory_bytes": 212623360,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "backup_ratio": 1.0,
+      "elapsed_seconds": 194.48541130009107,
+      "peak_including_live_source_bytes": 425246720,
+      "peak_scope": "Exact monotone full-copy file-length high water after each fsynced chunk; excludes RAM/OS buffers. Restore writes one destination directly, no decompressor/temp stage. Snapshot+backup+restored coexist; live source separate.",
+      "recovery": {
+        "additional_workspace_bytes": 106311680,
+        "allocated_bytes": 106311680,
+        "baseline_directory_bytes": 212623360,
+        "bytes": 106311680,
+        "compressed": false,
+        "logical_bytes": 106311680,
+        "observation_points": 102,
+        "peak_directory_bytes": 318935040,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "retained_four_backups_bytes": 425246720,
+      "snapshot": {
+        "allocated_bytes": 106311680,
+        "compressed": false,
+        "logical_bytes": 106311680,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "snapshot_ratio": 1.0,
+      "source": {
+        "allocated_bytes": 106311680,
+        "compressed": false,
+        "logical_bytes": 106311680,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "verification": {
+        "blocks": 224,
+        "canonical_bytes_sha256": true,
+        "canonical_identity": true,
+        "fresh_process": true,
+        "integrity": {
+          "blocks": 224,
+          "finality_proofs": 0,
+          "native_transaction_references": 0,
+          "selected_blocks": 0
+        },
+        "oracle": "Hashes/sizes only; no original media files or other DB paths supplied",
+        "original_commitments": true
+      }
+    },
+    "production34": {
+      "backing": "Independent file IDs and streaming full backup/restore writes. SQLite online backup snapshot is self-contained. Same-volume copies share device failure domain; no remote durability claim.",
+      "backup": {
+        "additional_workspace_bytes": 63639552,
+        "allocated_bytes": 63639552,
+        "baseline_directory_bytes": 63639552,
+        "bytes": 63639552,
+        "compressed": false,
+        "logical_bytes": 63639552,
+        "observation_points": 61,
+        "peak_directory_bytes": 127279104,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "backup_ratio": 1.0,
+      "elapsed_seconds": 112.43536269990727,
+      "peak_including_live_source_bytes": 254558208,
+      "peak_scope": "Exact monotone full-copy file-length high water after each fsynced chunk; excludes RAM/OS buffers. Restore writes one destination directly, no decompressor/temp stage. Snapshot+backup+restored coexist; live source separate.",
+      "recovery": {
+        "additional_workspace_bytes": 63639552,
+        "allocated_bytes": 63639552,
+        "baseline_directory_bytes": 127279104,
+        "bytes": 63639552,
+        "compressed": false,
+        "logical_bytes": 63639552,
+        "observation_points": 61,
+        "peak_directory_bytes": 190918656,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "retained_four_backups_bytes": 254558208,
+      "snapshot": {
+        "allocated_bytes": 63639552,
+        "compressed": false,
+        "logical_bytes": 63639552,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "snapshot_ratio": 1.0,
+      "source": {
+        "allocated_bytes": 63639552,
+        "compressed": false,
+        "logical_bytes": 63639552,
+        "reparse_point": false,
+        "sparse": false
+      },
+      "verification": {
+        "blocks": 136,
+        "canonical_bytes_sha256": true,
+        "canonical_identity": true,
+        "fresh_process": true,
+        "integrity": {
+          "blocks": 136,
+          "finality_proofs": 0,
+          "native_transaction_references": 0,
+          "selected_blocks": 0
+        },
+        "oracle": "Hashes/sizes only; no original media files or other DB paths supplied",
+        "original_commitments": true
+      }
+    }
+  },
+  "settings": "DELETE/EXTRA only",
+  "version": 1
+}

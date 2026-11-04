@@ -1,0 +1,148 @@
+{
+  "counts": {
+    "failed": 0,
+    "passed": 594,
+    "skipped": 0
+  },
+  "deliberately_not_selected": [
+    "Legacy 7.11 V3Store WAL initializer/storage tests",
+    "WAL crash tests",
+    "Live API/consensus/network activation or future archiving tests"
+  ],
+  "deselected": 0,
+  "groups": [
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_10c_v3.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-tests-81mstewi\\canonical"
+      ],
+      "counts": {
+        "passed": 119
+      },
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "deselected": 0,
+      "elapsed_seconds": 35.03678820002824,
+      "exit": 0,
+      "group": "canonical",
+      "timeout_seconds": 360
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_6_decoder.py",
+        "tests/test_milestone_7_task_7_6a_sequences.py",
+        "tests/test_milestone_7_task_7_6c_isolation.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-tests-81mstewi\\codecs"
+      ],
+      "counts": {
+        "passed": 386
+      },
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "deselected": 0,
+      "elapsed_seconds": 55.99569150013849,
+      "exit": 0,
+      "group": "codecs",
+      "timeout_seconds": 360
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "verification/task721/test_bridge.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-tests-81mstewi\\persistence"
+      ],
+      "counts": {
+        "passed": 43
+      },
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "deselected": 0,
+      "elapsed_seconds": 84.51611909992062,
+      "exit": 0,
+      "group": "persistence",
+      "timeout_seconds": 360
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_8_node_economics.py",
+        "verification/task719/test_reproduction_guards.py",
+        "benchmarks/task723_v1/test_study.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-tests-81mstewi\\historical_arithmetic"
+      ],
+      "counts": {
+        "passed": 33
+      },
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "deselected": 0,
+      "elapsed_seconds": 13.537208700086921,
+      "exit": 0,
+      "group": "historical_arithmetic",
+      "timeout_seconds": 360
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "verification/task725/test_measurements.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-tests-c8ly10ec\\physical"
+      ],
+      "counts": {
+        "failed": 0,
+        "passed": 13,
+        "skipped": 0
+      },
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "deselected": 0,
+      "elapsed_seconds": 6.77628290001303,
+      "exit": 0,
+      "group": "physical",
+      "timeout_seconds": 360
+    }
+  ],
+  "timeouts": 0,
+  "unsupported_platform_cases": "Windows reference only; Linux/macOS not exercised. Skipped node IDs, if any, are in outcome files; not passes."
+}

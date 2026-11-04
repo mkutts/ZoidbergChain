@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "initial_checks": [
+    {
+      "kind": "guidance inventory",
+      "outcome": "Canceled overbroad recursive directory read; completed bounded rg and ancestor checks; no AGENTS.md found"
+    },
+    {
+      "kind": "loopback precheck",
+      "argv": ".venv/Scripts/python.exe -B -m pytest verification/task725/test_measurements.py::test_real_loopback_transfer_and_invalid_block_control -q --tb=short -p no:cacheprovider --basetemp=temp/task725-loopback-precheck",
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0,
+      "deselected": 0,
+      "timeout": false,
+      "reason": "Windows default restriction refused outbound loopback connection, WinError 10013; no payload transmitted"
+    },
+    {
+      "kind": "permitted loopback precheck",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "deselected": 0,
+      "timeout": false,
+      "reason": "Identical test with permission for explicitly requested local-only connection passed in 2.11 s"
+    },
+    {
+      "kind": "focused physical controls after implementation changes",
+      "argv": ".venv/Scripts/python.exe -B -m pytest verification/task725/test_measurements.py -k \"real_streaming or real_loopback\" -q --tb=short -p no:cacheprovider --basetemp=temp/task725-physical-controls",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "deselected": 10,
+      "timeout": false,
+      "elapsed_seconds": 4.72,
+      "permission": "Allowed local-only sockets; real identity/Zstd backup/restore corruption controls and loopback invalid-block control passed"
+    },
+    {
+      "kind": "frozen and transfer byte accounting after measured transfer completion",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "deselected": 0,
+      "timeout": false,
+      "elapsed_seconds": 0.59,
+      "argv": ".venv/Scripts/python.exe -B -m pytest verification/task725/test_measurements.py::test_frozen_records_hashes_and_coverage verification/task725/test_measurements.py::test_transfer_octets_add_up_and_unknown_packets_remain_unknown -q --tb=short -p no:cacheprovider --basetemp=temp/task725-byte-accounting"
+    }
+  ],
+  "recovery_method": "Fresh process observes actual isolated decoder outcome produced by inherited V3Store.get for each record, checks original commitment, canonical checksum, SQLite/index/orphan integrity; parent compares exact canonical bytes via read-only SQL without a second decode. No decoder cache or validation bypass.",
+  "platforms_not_exercised": [
+    "Linux",
+    "macOS"
+  ],
+  "sqlite_safety": "3.49.1 DELETE/EXTRA only; no WAL initializer or crash tests",
+  "permitted_transfer_execution": {
+    "argv": ".venv/Scripts/python.exe -B verification/task725/transfer.py",
+    "exit": 0,
+    "exchanges": 346,
+    "workloads": [
+      "balanced41",
+      "historical36",
+      "meme58",
+      "production34"
+    ],
+    "scope": "127.0.0.1 only; original frozen records already present in first storage cycle; read-only SQL fetch while later independent storage cycles continue",
+    "timeout": "30 seconds per request; fixed corpus counts",
+    "application_failures": 0,
+    "public_peers": false
+  },
+  "sqlite_completed": {
+    "population_maximum_blocks": {
+      "historical36": 144,
+      "production34": 136,
+      "meme58": 224,
+      "balanced41": 1312,
+      "native_index_control": 32
+    },
+    "all_delete_extra": true,
+    "dbstat": false,
+    "index_probe": "DROP on separate disposable copies; full-minus-no-secondary agrees exactly with reclaimed pages at endpoints in this run",
+    "native_control_scope": "One transfer repeated across format-valid independent fixture candidates; no native ledger/chain acceptance claimed"
+  },
+  "measurement_continuation": {
+    "initial_argv": ".venv/Scripts/python.exe -B verification/task725/measure.py",
+    "initial_outcome": "Author-interrupted after all five SQLite/schema series and first full historical recovery passed; no failure or timeout",
+    "reason": "Removed redundant parent get/strict-decode pass. Fresh child still executes actual inherited get and real decoder for EVERY recovered record. Parent compares canonical bytes directly through read-only SQL.",
+    "resume_argv": ".venv/Scripts/python.exe -B verification/task725/measure.py --copies-only",
+    "retained": "All completed raw SQLite observations, source databases, corpus identities and successful permitted transfer measurements; first historical fresh-process result retained in original scratch",
+    "fresh_recovery_bound_seconds": 1200
+  },
+  "arithmetic_precheck": {
+    "status": "PASS",
+    "scope": "Nine Balanced host/rate scenarios; all four staged formulas and cost component sums evaluated against observed copy sizes while final Balanced recovery was still pending. No projection evidence or acceptance emitted early.",
+    "actual_vs_assumed": "Measured file/canonical/network quantities; inherited prices, headroom, fragmentation and traffic policy assumptions"
+  }
+}

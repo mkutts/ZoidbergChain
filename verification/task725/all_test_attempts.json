@@ -1,0 +1,62 @@
+{
+  "all_attempt_counts": {
+    "deselected": 10,
+    "failed": 1,
+    "passed": 600,
+    "skipped": 0,
+    "timeouts": 0
+  },
+  "final_suite": {
+    "counts": {
+      "failed": 0,
+      "passed": 594,
+      "skipped": 0
+    },
+    "deselected": 0,
+    "timeouts": 0
+  },
+  "note": "All-attempt counts include repeated node executions. The one initial loopback environment failure is preserved and resolved by permitted reruns; final selected suite counts are separate.",
+  "supplemental": [
+    {
+      "argv": ".venv/Scripts/python.exe -B -m pytest verification/task725/test_measurements.py::test_real_loopback_transfer_and_invalid_block_control -q --tb=short -p no:cacheprovider --basetemp=temp/task725-loopback-precheck",
+      "deselected": 0,
+      "failed": 1,
+      "kind": "loopback precheck",
+      "passed": 0,
+      "reason": "Windows default restriction refused outbound loopback connection, WinError 10013; no payload transmitted",
+      "skipped": 0,
+      "timeout": false
+    },
+    {
+      "deselected": 0,
+      "failed": 0,
+      "kind": "permitted loopback precheck",
+      "passed": 1,
+      "reason": "Identical test with permission for explicitly requested local-only connection passed in 2.11 s",
+      "skipped": 0,
+      "timeout": false
+    },
+    {
+      "argv": ".venv/Scripts/python.exe -B -m pytest verification/task725/test_measurements.py -k \"real_streaming or real_loopback\" -q --tb=short -p no:cacheprovider --basetemp=temp/task725-physical-controls",
+      "deselected": 10,
+      "elapsed_seconds": 4.72,
+      "failed": 0,
+      "kind": "focused physical controls after implementation changes",
+      "passed": 3,
+      "permission": "Allowed local-only sockets; real identity/Zstd backup/restore corruption controls and loopback invalid-block control passed",
+      "skipped": 0,
+      "timeout": false
+    },
+    {
+      "argv": ".venv/Scripts/python.exe -B -m pytest verification/task725/test_measurements.py::test_frozen_records_hashes_and_coverage verification/task725/test_measurements.py::test_transfer_octets_add_up_and_unknown_packets_remain_unknown -q --tb=short -p no:cacheprovider --basetemp=temp/task725-byte-accounting",
+      "deselected": 0,
+      "elapsed_seconds": 0.59,
+      "failed": 0,
+      "kind": "frozen and transfer byte accounting after measured transfer completion",
+      "passed": 2,
+      "skipped": 0,
+      "timeout": false
+    }
+  ],
+  "version": 1
+}

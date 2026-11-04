@@ -1,0 +1,338 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_block_arithmetic_and_monthly_accumulation",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_storage_backup_network_and_costs_are_accounted",
+      "line": 21
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_threshold_status_sensitivity_and_reproducibility",
+      "line": 32
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[0-small_media-budget_vps]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-bad-budget_vps]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-small_media-bad]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_malformed_config_rejected",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_current_observations_are_not_historical_corpus_identity",
+      "line": 15
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sha256]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[original_byte_size]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[id]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[category]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[dimensions]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sample_order]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_sample]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[environment]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[schema]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[extra_field]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_observation]",
+      "line": 21
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_independent_evidence_and_decimal_costs",
+      "line": 8
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[131072]",
+      "line": 12
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[262144]",
+      "line": 12
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[524288]",
+      "line": 12
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[1048576]",
+      "line": 12
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[2097152]",
+      "line": 12
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_nearest_rank_small_population_and_tiny_media_metadata_failure",
+      "line": 20
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_admission_inclusive_at_boundary_and_separate_by_mime",
+      "line": 27
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_diagnostic_does_not_reweight_primary_population",
+      "line": 36
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_overflow_controls_stay_in_denominators_without_fabricated_records",
+      "line": 43
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_encoded_headroom_preserves_real_raw_expansion_control",
+      "line": 53
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_native_success_is_distinct_from_strict_profile_acceptance",
+      "line": 66
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_lower_ceiling_with_fixed_accepted_average_does_not_reduce_cost",
+      "line": 75
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_near_limit_gif_block_count_rejection_keeps_existing_identity_fallback",
+      "line": 86
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_block_arithmetic_and_monthly_accumulation",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_storage_backup_network_and_costs_are_accounted",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_threshold_status_sensitivity_and_reproducibility",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[0-small_media-budget_vps]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-bad-budget_vps]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-small_media-bad]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_malformed_config_rejected",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_current_observations_are_not_historical_corpus_identity",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sha256]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[original_byte_size]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[id]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[category]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[dimensions]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sample_order]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_sample]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[environment]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[schema]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[extra_field]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_observation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_independent_evidence_and_decimal_costs",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[131072]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[262144]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[524288]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[1048576]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_all_candidates_reserve_full_security_and_transaction_budgets[2097152]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_nearest_rank_small_population_and_tiny_media_metadata_failure",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_admission_inclusive_at_boundary_and_separate_by_mime",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_diagnostic_does_not_reweight_primary_population",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_overflow_controls_stay_in_denominators_without_fabricated_records",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_encoded_headroom_preserves_real_raw_expansion_control",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_native_success_is_distinct_from_strict_profile_acceptance",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_lower_ceiling_with_fixed_accepted_average_does_not_reduce_cost",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task723_v1/test_study.py::test_near_limit_gif_block_count_rejection_keeps_existing_identity_fallback",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

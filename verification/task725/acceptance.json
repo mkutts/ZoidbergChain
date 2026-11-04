@@ -1,0 +1,64 @@
+{
+  "authority": "Current Task 7.25 Step 10 explicitly accepts disabled integration for development completion and retains real-world qualification as a public-launch requirement; Task 7.24 approves metadata exception and complete-canonical comparison.",
+  "findings": [
+    {
+      "finding": "Below-15% metadata target stays measured FAIL; no evidence removed.",
+      "id": "R1",
+      "status": "FAIL WITH OWNER-APPROVED EXCEPTION"
+    },
+    {
+      "finding": "Synthetic coverage only; real-world content qualification remains required before public launch.",
+      "id": "R2",
+      "status": "DEVELOPMENT LIMITATION ACCEPTED; LAUNCH REQUIREMENT OPEN"
+    },
+    {
+      "finding": "Disabled adaptive integration accepted by current instruction; no active v3 protocol.",
+      "id": "R3",
+      "status": "ACCEPTED DEVELOPMENT BOUNDARY"
+    },
+    {
+      "finding": "Actual isolated SQLite/schema/index allocation, full-copy snapshot/backup/recovery, byte-exact records/original commitments and real-framed simulated loopback transfer measured. No production P2P qualification.",
+      "id": "R4",
+      "status": "RESOLVED FOR BOUNDED DEVELOPMENT EVIDENCE"
+    },
+    {
+      "finding": "Complete canonical selected-vs-identity comparison; no raw or disk monotonic guarantee.",
+      "id": "R5",
+      "status": "OWNER-APPROVED INTERPRETATION"
+    },
+    {
+      "finding": "Updated costs include measured two-copy recovery workspace. Some scenarios exceed $100, permitted by original acceptance contract. Prices, traffic mix and service tiers remain assumptions.",
+      "id": "cost",
+      "status": "CONDITIONAL; MISSES DISCLOSED"
+    }
+  ],
+  "milestone7_development_can_close_with_documented_limitations": true,
+  "new_failures_waived": false,
+  "original_milestone": "COMPLETE WITH OWNER-APPROVED LIMITATIONS",
+  "owner_decisions": {
+    "balanced_caps": "PROVISIONAL INACTIVE: static 262144; animated GIF 524288; text 16384; encoded 525312; complete 1048576",
+    "disabled_integration": "Accepted for development completion by current Task 7.25 request",
+    "distributed_archiving": "Future, unstarted",
+    "metadata": "FAIL, approved exception",
+    "no_expansion": "Complete canonical representation vs same identity context",
+    "protocol_activation": "BLOCKED",
+    "real_world": "Required for public launch"
+  },
+  "production_network": "BLOCKED",
+  "task725_ready_for_owner_review_and_commit": true,
+  "tests": {
+    "failed": 0,
+    "passed": 594,
+    "skipped": 0
+  },
+  "timeouts": 0,
+  "unresolved_production": [
+    "Independent security and supported-platform historical decoder qualification",
+    "Real-world provenance-cleared content/traffic pilot and operational throughput/restore SLA",
+    "Approved v3 protocol limits/version/height and authenticated history/finality/reviewer interfaces",
+    "Actual regional host, disk/IOPS, backup/transfer tier and capacity quotation",
+    "Existing whole-history JSON/response.json boundary exceeds the assumed 8-GiB memory at projected history sizes; bounded retrieval needs separate implementation and qualification",
+    "Production P2P protocol qualification; TCP/TLS/packet overhead and loss remain unmeasured"
+  ],
+  "version": 1
+}

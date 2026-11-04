@@ -1,0 +1,3718 @@
+{
+  "context": "Exact frozen public test signatures; independent candidates, not authenticated selected/finalized history",
+  "rows": {
+    "balanced41": [
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "f6b70ebebfec9f9b431004d1faae768433fa323cdfdb5f5e5273c40c579a7387",
+        "codec": "zstd",
+        "encoded_bytes": 5968,
+        "id": "jpeg-caption-320",
+        "mime": "image/jpeg",
+        "original_bytes": 8666,
+        "original_sha256": "fbf06612d6fb95950d173d9492daf46a964f858789df1f38f9a523598f346da5",
+        "record_bytes": 41126,
+        "record_sha256": "73d1a397ea39c75b7d0285b61af1e053c671437d484a761adc15f700c488123d",
+        "source_bytes": 8666,
+        "source_sha256": "fbf06612d6fb95950d173d9492daf46a964f858789df1f38f9a523598f346da5",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "79762f8479ee914f07e6f742521f97d9bb482aa983a97cc647931a7022b3c6f1",
+        "codec": "zstd",
+        "encoded_bytes": 16199,
+        "id": "jpeg-caption-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 52173,
+        "original_sha256": "a4aafc5eaa6fa7f797263f240b83ec9f7483aeb558fded5c7869a41eb18387d3",
+        "record_bytes": 54772,
+        "record_sha256": "63f75bb8a7387efb380857526dab8adaae0182ae35a29fc91779eb444cd3f746",
+        "source_bytes": 52173,
+        "source_sha256": "a4aafc5eaa6fa7f797263f240b83ec9f7483aeb558fded5c7869a41eb18387d3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "60e0d0250ec2d1bdb78ec3a6d22cc3ab434d4b1813166c243dbda7b4dcef9002",
+        "codec": "zstd",
+        "encoded_bytes": 22213,
+        "id": "jpeg-screenshot-320",
+        "mime": "image/jpeg",
+        "original_bytes": 24337,
+        "original_sha256": "8373f7107c74144b0f408d2e3b4931c13598c87d5e134675e367a4095d10e71a",
+        "record_bytes": 62789,
+        "record_sha256": "bf1134a556b782e135c497436542372bfe918fade64cf8ffceab9f3f5e13f7c6",
+        "source_bytes": 24337,
+        "source_sha256": "8373f7107c74144b0f408d2e3b4931c13598c87d5e134675e367a4095d10e71a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "dd813134bc24aac8929019fb5cc953df2ecd872065cfc4cb354a68dad1760481",
+        "codec": "zstd",
+        "encoded_bytes": 18522,
+        "id": "jpeg-screenshot-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 59749,
+        "original_sha256": "dd8dc8277e879702511e149b456481da0659a6a9b2b078a62aa09f891470a3b6",
+        "record_bytes": 57868,
+        "record_sha256": "ef91e0732b0602fe9ecadadd35e2df2b1396760c6188fd16bd0b8f1e879cfa44",
+        "source_bytes": 59749,
+        "source_sha256": "dd8dc8277e879702511e149b456481da0659a6a9b2b078a62aa09f891470a3b6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "bc15a14f62e897ffcb76cd39b43ceb6b73e6f1d7126ce44b51001b5540ca306d",
+        "codec": "zstd",
+        "encoded_bytes": 3606,
+        "id": "jpeg-macro-320",
+        "mime": "image/jpeg",
+        "original_bytes": 6583,
+        "original_sha256": "c06e588be97ab7c1c09fe0883dd1f58656860d83251aaa0fe594b9664ec94985",
+        "record_bytes": 37974,
+        "record_sha256": "0b3224aeb4d77e84b459be41cc27f7704a97f76ec008eeba04ffc51bb95ec813",
+        "source_bytes": 6583,
+        "source_sha256": "c06e588be97ab7c1c09fe0883dd1f58656860d83251aaa0fe594b9664ec94985",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "6f51702bee879e3cb5e100ff089a45124452b879c57906e6b3b259238125283f",
+        "codec": "zstd",
+        "encoded_bytes": 3606,
+        "id": "jpeg-macro-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 40740,
+        "original_sha256": "4956a95a52bf364aef4bc42d58a0a3d0da76547b34a0deb440ad28c7b1dbfd74",
+        "record_bytes": 37979,
+        "record_sha256": "8b112efb2b4f94a7e05d36867c7155a7e1590ef9a3d31e0ecf883332b8e4f3fa",
+        "source_bytes": 40740,
+        "source_sha256": "4956a95a52bf364aef4bc42d58a0a3d0da76547b34a0deb440ad28c7b1dbfd74",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "775e88ef98d18ae179df71337df9997f46e4bb7e558c952d35a7de225d14e57c",
+        "codec": "identity",
+        "encoded_bytes": 131057,
+        "id": "jpeg-texture-320",
+        "mime": "image/jpeg",
+        "original_bytes": 131057,
+        "original_sha256": "0904485c118f8c6f0ef10e17c3592342bed3d7cae20b12aa99f8acc9da24fdae",
+        "record_bytes": 207920,
+        "record_sha256": "88cdd0a349636bb65ebca2f971d15e54db140316332725b5ec25c1e120618fa8",
+        "source_bytes": 131057,
+        "source_sha256": "0904485c118f8c6f0ef10e17c3592342bed3d7cae20b12aa99f8acc9da24fdae",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "8789cd224e9ff29d9137ad13986ad112c886fa71112d386dbb9ace3ac05a5ea4",
+        "codec": "identity",
+        "encoded_bytes": 130982,
+        "id": "jpeg-boundary-131072",
+        "mime": "image/jpeg",
+        "original_bytes": 130982,
+        "original_sha256": "c287aeb8593292d18399fb7b991d510e1774f2efe043a3f0fb873fe81c0146f3",
+        "record_bytes": 207820,
+        "record_sha256": "6a6077b30529cd8b87645eda1b3553bb4d57eefa2425397c0f00023e2c4b94d6",
+        "source_bytes": 130982,
+        "source_sha256": "c287aeb8593292d18399fb7b991d510e1774f2efe043a3f0fb873fe81c0146f3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "ed8b01bc613dd6bcb8593bd476a454b06388e96ef83878edba604090a9546de9",
+        "codec": "identity",
+        "encoded_bytes": 261779,
+        "id": "jpeg-boundary-262144",
+        "mime": "image/jpeg",
+        "original_bytes": 261779,
+        "original_sha256": "c265133591c3239efff313a5da96f6f5b27ad0de5a0a1adce889d2ce9418e2f6",
+        "record_bytes": 382218,
+        "record_sha256": "adf02b264737c5a992a1d41e099d3a9630faf13092eacb1b998f66f5755af162",
+        "source_bytes": 261779,
+        "source_sha256": "c265133591c3239efff313a5da96f6f5b27ad0de5a0a1adce889d2ce9418e2f6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "f49cf450364ebbcc4b14cf9197194965ec7eb05e7f6c8bbd6be82f6eeed38d0f",
+        "codec": "zstd",
+        "encoded_bytes": 2944,
+        "id": "png-caption-320",
+        "mime": "image/png",
+        "original_bytes": 3319,
+        "original_sha256": "aa37d972e98be71753dcf89c18e36588c17fe2ac779611af5def7acf40bacdfc",
+        "record_bytes": 37092,
+        "record_sha256": "111f59d2530777192ba08a36291ddf21e6df5f18549e1d8a16b39c0793de9f27",
+        "source_bytes": 3319,
+        "source_sha256": "aa37d972e98be71753dcf89c18e36588c17fe2ac779611af5def7acf40bacdfc",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0e07f3edf43c7f36650a103b0b36d4b4e678b577a6f17a669087ee5394d264ca",
+        "codec": "zstd",
+        "encoded_bytes": 5565,
+        "id": "png-caption-1280",
+        "mime": "image/png",
+        "original_bytes": 9698,
+        "original_sha256": "aaae1aabd7d58ffa9e0bacbc0e8b3d9604d44fbacf14849f5ca16a04c0fa9ab7",
+        "record_bytes": 40587,
+        "record_sha256": "43ea47ea18851ccc18fea2ff3a87fd271c137c93f7576153a915c05b90e4e432",
+        "source_bytes": 9698,
+        "source_sha256": "aaae1aabd7d58ffa9e0bacbc0e8b3d9604d44fbacf14849f5ca16a04c0fa9ab7",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "da82af2fa35c4383842ef4776deec076007b9517dc0d077f0f97c307cdc7ee90",
+        "codec": "zstd",
+        "encoded_bytes": 7532,
+        "id": "png-screenshot-320",
+        "mime": "image/png",
+        "original_bytes": 8260,
+        "original_sha256": "f5767cc56903bddbb968f3ae02bce33302a4de760652fd4d16fc31287d3e7177",
+        "record_bytes": 43208,
+        "record_sha256": "784542654071af92ab8f2838cec1c01f09a759e87397c00cae6f955b8deb491f",
+        "source_bytes": 8260,
+        "source_sha256": "f5767cc56903bddbb968f3ae02bce33302a4de760652fd4d16fc31287d3e7177",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "c9421ab8f1b6fdba15d0b50ffcad13f2ee9141e440b5d3f54e9291f70fe7ed4f",
+        "codec": "zstd",
+        "encoded_bytes": 13463,
+        "id": "png-screenshot-1280",
+        "mime": "image/png",
+        "original_bytes": 22540,
+        "original_sha256": "8eab37c158329afe475cec91095d9d77a38543ca20f197bf31216106437ce1f7",
+        "record_bytes": 51122,
+        "record_sha256": "7cbe16ccd91b68615dcd1a1eb156c95d1d03c3b0d757dc4bcc4e78e4aff08887",
+        "source_bytes": 22540,
+        "source_sha256": "8eab37c158329afe475cec91095d9d77a38543ca20f197bf31216106437ce1f7",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "aa9bded96fd9e94972abffd3a94e7284f35cd11ea23070d1772a260be3881c5e",
+        "codec": "zstd",
+        "encoded_bytes": 3120,
+        "id": "png-macro-320",
+        "mime": "image/png",
+        "original_bytes": 3804,
+        "original_sha256": "4c647b3efc07f8e5edcf820d20ccb80fe63990f32fd1e761f3bf62446b7252cb",
+        "record_bytes": 37324,
+        "record_sha256": "855c0cbc7c20ff475ec5a4995425fc724c93944567577594daf04de02384c53a",
+        "source_bytes": 3804,
+        "source_sha256": "4c647b3efc07f8e5edcf820d20ccb80fe63990f32fd1e761f3bf62446b7252cb",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "197199e50c539ca39d883206b142d37b94d16fd7df945a201740e7db3f27e778",
+        "codec": "zstd",
+        "encoded_bytes": 3438,
+        "id": "png-macro-1280",
+        "mime": "image/png",
+        "original_bytes": 8996,
+        "original_sha256": "2f1782b26d162a81ff6601801890cf69fcdae6785a1f0d83e3a3cb27998acace",
+        "record_bytes": 37751,
+        "record_sha256": "3868ba3926da8e87249329c41dbb4ee6aa15ddfbcbad855e0591f950b1c0ce49",
+        "source_bytes": 8996,
+        "source_sha256": "2f1782b26d162a81ff6601801890cf69fcdae6785a1f0d83e3a3cb27998acace",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "b99fe17311161a95e681b2cd6261392702e95fd6e676085e7940d368495ece14",
+        "codec": "identity",
+        "encoded_bytes": 208502,
+        "id": "png-texture-320",
+        "mime": "image/png",
+        "original_bytes": 208502,
+        "original_sha256": "3e423a08dd6a9ac18d8c7efeada02b82a249506a8b0f0dcb0a43034c02804113",
+        "record_bytes": 311178,
+        "record_sha256": "39b9b676f115b2fea98d66471b363e78080ab344ee28850a54de2e538219cbb3",
+        "source_bytes": 208502,
+        "source_sha256": "3e423a08dd6a9ac18d8c7efeada02b82a249506a8b0f0dcb0a43034c02804113",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "2fd864a05220df49462d078faa55481a2d72ef10770ee4654d690e8a450a6ccf",
+        "codec": "identity",
+        "encoded_bytes": 130738,
+        "id": "png-boundary-131072",
+        "mime": "image/png",
+        "original_bytes": 130738,
+        "original_sha256": "c920973ae5c65be575b42c800b8e204a34469b6ac83d1025ac1573468d4a9e6f",
+        "record_bytes": 207494,
+        "record_sha256": "9e8e29c3aa5104e7baf8f7bed28a1ebc66d9a3df1504d2e229dedec9080510c0",
+        "source_bytes": 130738,
+        "source_sha256": "c920973ae5c65be575b42c800b8e204a34469b6ac83d1025ac1573468d4a9e6f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "475f66bc6401b7f91465bd28918d9bb38ce566ca111a0fe6c764fc9cef54901c",
+        "codec": "identity",
+        "encoded_bytes": 261334,
+        "id": "png-boundary-262144",
+        "mime": "image/png",
+        "original_bytes": 261334,
+        "original_sha256": "5c6c4f21ba76f51468dce34e47ebb0fc8a2330b17b7985d3be9c2479a11815fe",
+        "record_bytes": 381622,
+        "record_sha256": "13bc5fb49265ef16e3ccb8b1f5c772bf30e4c584b3a8bb2e49634841bd54a35d",
+        "source_bytes": 261334,
+        "source_sha256": "5c6c4f21ba76f51468dce34e47ebb0fc8a2330b17b7985d3be9c2479a11815fe",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "2e42fdf4e8d5b7d3e828400071312d2a8b62c95e518aaa7fb485896dc005ac83",
+        "codec": "identity",
+        "encoded_bytes": 3086,
+        "id": "webp-caption-320",
+        "mime": "image/webp",
+        "original_bytes": 3086,
+        "original_sha256": "8da7e3e2c41fbcb450b21fbee6855a4459cf832fc719327e334571c90ac03935",
+        "record_bytes": 37287,
+        "record_sha256": "5c4361bcafe6b52604ae91875cc97b41d2d6f491e29c229e5eaa0109610f1f7d",
+        "source_bytes": 3086,
+        "source_sha256": "8da7e3e2c41fbcb450b21fbee6855a4459cf832fc719327e334571c90ac03935",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "1129d93b7466ea7b154779e461c2c73aba1e80208df27fce6233184c053419d3",
+        "codec": "zstd",
+        "encoded_bytes": 7309,
+        "id": "webp-caption-1280",
+        "mime": "image/webp",
+        "original_bytes": 9122,
+        "original_sha256": "f48a110d7a1a20bdf08ccda158ab5d8bc20fc6a8d2f627f830dfa7db22127779",
+        "record_bytes": 42918,
+        "record_sha256": "a3067998f9376f65011e2a912d2e089b25d83cb207041adfb669528d5e8e9284",
+        "source_bytes": 9122,
+        "source_sha256": "f48a110d7a1a20bdf08ccda158ab5d8bc20fc6a8d2f627f830dfa7db22127779",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0563f49db6ebb1da0cc89f29a4c217afaae9094170782e95b9ae5c07c6d1fb5d",
+        "codec": "identity",
+        "encoded_bytes": 12330,
+        "id": "webp-screenshot-320",
+        "mime": "image/webp",
+        "original_bytes": 12330,
+        "original_sha256": "ae741ebd4b3b39eae3474b4e272f6aa912be5d79cee5837f98564f6d29497122",
+        "record_bytes": 49614,
+        "record_sha256": "27713c31e334d82bbfd4abc075aed4b66b85e2ef938c8536186d07c573390398",
+        "source_bytes": 12330,
+        "source_sha256": "ae741ebd4b3b39eae3474b4e272f6aa912be5d79cee5837f98564f6d29497122",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0be1f756f5e88b0c6a5c853f4307a7b99e9d2ea5439ed8fb099668563ee963c1",
+        "codec": "zstd",
+        "encoded_bytes": 12171,
+        "id": "webp-screenshot-1280",
+        "mime": "image/webp",
+        "original_bytes": 14292,
+        "original_sha256": "92418cb3e12311f7ba98c9a8f39657f2daaf2f3b74eb0ff6c2970591573d45c4",
+        "record_bytes": 49401,
+        "record_sha256": "679b839e052843d0efba6758217ab0526241e5a2ff69ef2b03a93f45d0c11bd5",
+        "source_bytes": 14292,
+        "source_sha256": "92418cb3e12311f7ba98c9a8f39657f2daaf2f3b74eb0ff6c2970591573d45c4",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "e5aa9ece6a04decd29bac2ceeaafc843a33f5c342c31d329f5e2031164395b64",
+        "codec": "identity",
+        "encoded_bytes": 2442,
+        "id": "webp-macro-320",
+        "mime": "image/webp",
+        "original_bytes": 2442,
+        "original_sha256": "0aa8858867c7877839d9752d1907dd68bcee62f675a9c17887461374ae8ad49a",
+        "record_bytes": 36427,
+        "record_sha256": "c791d193ba36ae74ae5fadfcdb18739af484241bf5cc65df22511ea7a7753c09",
+        "source_bytes": 2442,
+        "source_sha256": "0aa8858867c7877839d9752d1907dd68bcee62f675a9c17887461374ae8ad49a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "463f79a20eef929db717c7857a44538b18af795cc2660d7c47cbe6b10288148f",
+        "codec": "zstd",
+        "encoded_bytes": 2430,
+        "id": "webp-macro-1280",
+        "mime": "image/webp",
+        "original_bytes": 4790,
+        "original_sha256": "8582fb4620ce654ce5854a48cc6b92c0b73ff3b199ae65912a6819f8ee5c7f8e",
+        "record_bytes": 36410,
+        "record_sha256": "db4ccb51d0b640baabeabac4dbdf062c6775cd0bc4e501fb3526f153cbcc814d",
+        "source_bytes": 4790,
+        "source_sha256": "8582fb4620ce654ce5854a48cc6b92c0b73ff3b199ae65912a6819f8ee5c7f8e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0ee10c486a06568d0bcef5499956e14266b5be9a9a21624414daf6fde2e6c57c",
+        "codec": "identity",
+        "encoded_bytes": 56956,
+        "id": "webp-texture-320",
+        "mime": "image/webp",
+        "original_bytes": 56956,
+        "original_sha256": "c15fcf55227cf70ef992ff3be8ffa1a8a07f7c953894fca70c16560032ac793f",
+        "record_bytes": 109118,
+        "record_sha256": "99f44f94cc0c1893bdb4a97a588c6b345e3f0075b9bc96f00c6400d11fcc6bb1",
+        "source_bytes": 56956,
+        "source_sha256": "c15fcf55227cf70ef992ff3be8ffa1a8a07f7c953894fca70c16560032ac793f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "5de3a5e03f0a2f23f660ff896b823bc98d49ee811f90e54a9883c76f0a7612c2",
+        "codec": "identity",
+        "encoded_bytes": 130898,
+        "id": "webp-boundary-131072",
+        "mime": "image/webp",
+        "original_bytes": 130898,
+        "original_sha256": "6b9ba5e4de07249308cd1693ff32b7b8989a5e00ba68a254a4ff21b0a616a086",
+        "record_bytes": 207710,
+        "record_sha256": "af1dcf62a0eaf2c26e631a5a48935458afc16c3d6e848fbca3ca0e83f00cbcc8",
+        "source_bytes": 130898,
+        "source_sha256": "6b9ba5e4de07249308cd1693ff32b7b8989a5e00ba68a254a4ff21b0a616a086",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "08b1a9dee667af895257af0d642c50b26f7b0b031722e3fb25ee4b2a52b16158",
+        "codec": "identity",
+        "encoded_bytes": 260604,
+        "id": "webp-boundary-262144",
+        "mime": "image/webp",
+        "original_bytes": 260604,
+        "original_sha256": "595fae553888101b768de0c49a51d4abbe5b582b98a25a80959944184234135b",
+        "record_bytes": 380650,
+        "record_sha256": "c7e062923109acc20e145eb8060f368f6c84ba4154e538bd02389bcef31ce845",
+        "source_bytes": 260604,
+        "source_sha256": "595fae553888101b768de0c49a51d4abbe5b582b98a25a80959944184234135b",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "f78b20604ad6d657d81ec7428b7c220b76202569e3de2e9e91614bfd8c539e2d",
+        "codec": "zstd",
+        "encoded_bytes": 2984,
+        "id": "png-transparent-320",
+        "mime": "image/png",
+        "original_bytes": 3242,
+        "original_sha256": "abe8afd5a3bcce13a8ee75e10cc5c1a9863723e0f7bc3676ec4a01797250b93e",
+        "record_bytes": 37144,
+        "record_sha256": "ce6ce25cbe40a0b5ea4c1551af314b2fcae2afcef909a4884f28c7ac59c1aad7",
+        "source_bytes": 3242,
+        "source_sha256": "abe8afd5a3bcce13a8ee75e10cc5c1a9863723e0f7bc3676ec4a01797250b93e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "e93cd24f28fc4dc04e78760cb9f79720ceea963511b224a73415bcfe327326db",
+        "codec": "zstd",
+        "encoded_bytes": 5859,
+        "id": "png-transparent-1280",
+        "mime": "image/png",
+        "original_bytes": 10037,
+        "original_sha256": "ebc75d2f0c6133d26918c0456ed813530d20224c1de9af7fc69c00e66f454fcd",
+        "record_bytes": 40981,
+        "record_sha256": "59fc271aaef1a78d9193d5909ddb9be2d41509ddd924500be14cb0abb9f381e0",
+        "source_bytes": 10037,
+        "source_sha256": "ebc75d2f0c6133d26918c0456ed813530d20224c1de9af7fc69c00e66f454fcd",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "c71040aafad904a277defa75add672b1ded7210d08f4738316f7c23859ecf3c9",
+        "codec": "zstd",
+        "encoded_bytes": 2041,
+        "id": "gif-caption-160",
+        "mime": "image/gif",
+        "original_bytes": 3095,
+        "original_sha256": "079c4200b67d7a663110414ac1d6ec217eadd7a19937de12cefc1137dec4942f",
+        "record_bytes": 35888,
+        "record_sha256": "22d9889d5ece5478e292a82a96929c3fe6f87825b9d8d5a510a34262ec92176e",
+        "source_bytes": 3095,
+        "source_sha256": "079c4200b67d7a663110414ac1d6ec217eadd7a19937de12cefc1137dec4942f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "1602bd3b1e8000a9f917c7e0a0b34eda1448264121eb0db961aa5768980b4b59",
+        "codec": "zstd",
+        "encoded_bytes": 4740,
+        "id": "gif-caption-640",
+        "mime": "image/gif",
+        "original_bytes": 5754,
+        "original_sha256": "daf10f5484522e1005f865c15646418695fa3bdac2792a9ad0d3f6cf6ca694fc",
+        "record_bytes": 39485,
+        "record_sha256": "27b424b0f80cf0f2e32df024e1605b55c0a9accb92d7b012a61c34d8a2725e59",
+        "source_bytes": 5754,
+        "source_sha256": "daf10f5484522e1005f865c15646418695fa3bdac2792a9ad0d3f6cf6ca694fc",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "50b17ccdd76183d37ef4ae138ad29c6b872dc24f70a41cfd825d0f63e8b234d9",
+        "codec": "zstd",
+        "encoded_bytes": 41403,
+        "id": "gif-texture-160",
+        "mime": "image/gif",
+        "original_bytes": 43922,
+        "original_sha256": "c446c0c66999a0a9053a34981eba5f7e0924623ba4de882cebf71de5b0ddcf75",
+        "record_bytes": 88371,
+        "record_sha256": "a53ef75dc613783df9045cf415b13b977bc181582ead27b0f4ba9b91ccbd6154",
+        "source_bytes": 43922,
+        "source_sha256": "c446c0c66999a0a9053a34981eba5f7e0924623ba4de882cebf71de5b0ddcf75",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "f8b078fb83682298ded963ad6422659a4c72947c27407873f0dad8384edf7711",
+        "codec": "zstd",
+        "encoded_bytes": 121892,
+        "id": "gif-boundary-131072",
+        "mime": "image/gif",
+        "original_bytes": 131019,
+        "original_sha256": "7cc72710dc7bb86c62477109f4e0ba76be8c060168acdd920aece55c6ce28302",
+        "record_bytes": 195695,
+        "record_sha256": "7d5bb94d8af5a3a0d0a829ec6701d1b636e2ae4da36ffdc929f789d9badb426c",
+        "source_bytes": 131019,
+        "source_sha256": "7cc72710dc7bb86c62477109f4e0ba76be8c060168acdd920aece55c6ce28302",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "235b387d8bd6a07b8b79a0eaad49b1d01282ccd3cabfea16bf8a7599594727c9",
+        "codec": "zstd",
+        "encoded_bytes": 243549,
+        "id": "gif-boundary-262144",
+        "mime": "image/gif",
+        "original_bytes": 260806,
+        "original_sha256": "2e230a6b906207a4bd03706973b4f58f22b5c104368cd6d50416b51549f9217f",
+        "record_bytes": 357903,
+        "record_sha256": "b8d920ef57df115034457a083004b33ca50f6eca07e8cc86e3a1e8856cfcb56d",
+        "source_bytes": 260806,
+        "source_sha256": "2e230a6b906207a4bd03706973b4f58f22b5c104368cd6d50416b51549f9217f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "b484aef024418fef78d422229d7b640c0596e18750923aac0b43ddaf4a596d67",
+        "codec": "zstd",
+        "encoded_bytes": 489692,
+        "id": "gif-boundary-524288",
+        "mime": "image/gif",
+        "original_bytes": 524242,
+        "original_sha256": "22a7351f8c60697e91fb244abfe63da8fc3ddbd3beb6d6719b8e2e5c2f68af9d",
+        "record_bytes": 686095,
+        "record_sha256": "4e875ba4fc7995baaa8f508b97df68682bfcd4bcfd4a235598474806e8a03983",
+        "source_bytes": 524242,
+        "source_sha256": "22a7351f8c60697e91fb244abfe63da8fc3ddbd3beb6d6719b8e2e5c2f68af9d",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "88c12b9fbab07899bfa5a09479f9277a53c5bec234f31838c71c3567d2dff8c7",
+        "codec": "identity",
+        "encoded_bytes": 4884,
+        "id": "webp-animation",
+        "mime": "image/webp",
+        "original_bytes": 4884,
+        "original_sha256": "bfad77478d8b080d99f3d74df0ab75cf8782b182b244c37f098154f638e8a666",
+        "record_bytes": 39684,
+        "record_sha256": "a19cd111189941400e0e1a4e28dbd549862ff8cc38a73984657f0d44b23228bc",
+        "source_bytes": 4884,
+        "source_sha256": "bfad77478d8b080d99f3d74df0ab75cf8782b182b244c37f098154f638e8a666",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "487120a9bb661ec7b80c77f6f4187e3bca601a0acbeb2ab2273d12244bf88172",
+        "codec": "identity",
+        "encoded_bytes": 8,
+        "id": "text-8",
+        "mime": "text/plain",
+        "original_bytes": 8,
+        "original_sha256": "22f210fbd07e2e6516695ccc5f896e285af15ff8fb4488c33ef290308df81c48",
+        "record_bytes": 33197,
+        "record_sha256": "a6eb0a68060e200a27a012ade6f2a9879e639ec4bfb425f417f65ad1707a84a3",
+        "source_bytes": 8,
+        "source_sha256": "22f210fbd07e2e6516695ccc5f896e285af15ff8fb4488c33ef290308df81c48",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "9ed48799acf1858be11512e5aa5c1fbebd62f6576185c8b5d7d7615b3c8edfd5",
+        "codec": "zstd",
+        "encoded_bytes": 53,
+        "id": "text-64",
+        "mime": "text/plain",
+        "original_bytes": 64,
+        "original_sha256": "bc780ab1c3388b6bc60ba7004bb3c252714360de57f788be22406e904ec8f3b3",
+        "record_bytes": 33256,
+        "record_sha256": "a321c252866d6c755b3e12abd2a2a995b3cda310853ce1368a6da35edfb12568",
+        "source_bytes": 64,
+        "source_sha256": "bc780ab1c3388b6bc60ba7004bb3c252714360de57f788be22406e904ec8f3b3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "a99a920d20f622b43e77a67ac9e2413dbf80b0cdadfdca103fcf827aeb320579",
+        "codec": "zstd",
+        "encoded_bytes": 135,
+        "id": "text-512",
+        "mime": "text/plain",
+        "original_bytes": 512,
+        "original_sha256": "64aae48883ee1d7f4a0b0485572ccaece6155971a3df99114bc27beed1339071",
+        "record_bytes": 33367,
+        "record_sha256": "8cb020bdf0e7544d501cd1117f8a7ac3c372a1ebc0741dfcf6bf3893d81baa3a",
+        "source_bytes": 512,
+        "source_sha256": "64aae48883ee1d7f4a0b0485572ccaece6155971a3df99114bc27beed1339071",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "78c00f2f6d6ac39694b2754377ae865f5e6d06fc9681fca934279b6c8c1fd21f",
+        "codec": "zstd",
+        "encoded_bytes": 301,
+        "id": "text-4096",
+        "mime": "text/plain",
+        "original_bytes": 4096,
+        "original_sha256": "9780dd4cdc7ffc8cf0712c19f7fb9f9fe62add5726ef15e7915d7a97ba5e1b10",
+        "record_bytes": 33593,
+        "record_sha256": "194f423b1710041670ee48420e9b034005032e73ae1a1e986ef640acef4f54bb",
+        "source_bytes": 4096,
+        "source_sha256": "9780dd4cdc7ffc8cf0712c19f7fb9f9fe62add5726ef15e7915d7a97ba5e1b10",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "af811ecef5c64d61409a4f86d3a55bae5f6c46d8ff438c19a1cd9cf05019cd7d",
+        "codec": "zstd",
+        "encoded_bytes": 844,
+        "id": "text-16384",
+        "mime": "text/plain",
+        "original_bytes": 16384,
+        "original_sha256": "0e5f2369f99ad9b1bd055874094cbb3173059f52684b9ff12ece79bbed1798c1",
+        "record_bytes": 34319,
+        "record_sha256": "4b4106c9c2c6797e2a3748a94dedd735e15fbec613157942726927a82354ee1c",
+        "source_bytes": 16384,
+        "source_sha256": "0e5f2369f99ad9b1bd055874094cbb3173059f52684b9ff12ece79bbed1798c1",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      }
+    ],
+    "historical36": [
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "7a304726039aec044e40b3f6fe1ae53d22a025f960389e45780a727dc62c181f",
+        "codec": "identity",
+        "encoded_bytes": 35,
+        "id": "text-caption-small",
+        "mime": "text/plain",
+        "original_bytes": 35,
+        "original_sha256": "50fcc121b40c2ecb9a571fa860f238456e8bcab95bfd7d2eb7a5c0f289c6d1fb",
+        "record_bytes": 33235,
+        "record_sha256": "d6d07d087c0dc8bf27b0f853e203cb7f5f9790a12c0e8a9e19086c659aa546af",
+        "source_bytes": 36,
+        "source_sha256": "633d1db519b6651029acf84edfb87fc09fe482805c38151b6321ebb49cc6195f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "a3d26a56066c11fc7e4d63df2c4f51326530810749041ac09dfcd16adf6a14f4",
+        "codec": "zstd",
+        "encoded_bytes": 272,
+        "id": "text-story-medium",
+        "mime": "text/plain",
+        "original_bytes": 398,
+        "original_sha256": "129132822207044b005dee760524fea5b987f6347fb2904e0a14a27e5dfb6566",
+        "record_bytes": 33550,
+        "record_sha256": "11f1c0c90655ae823db5c5dbb88864af7df6014cff62350ecb8991c384bd6b97",
+        "source_bytes": 399,
+        "source_sha256": "a1e8db6a92cb0c98617f406a06658ac1fb5b507a694124a359c5d5be3fce3928",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "4a325cbc1ae1cc04513985f022e1d2c4a453c6b76e9258e38774ff578df5461e",
+        "codec": "zstd",
+        "encoded_bytes": 253,
+        "id": "text-audit-log-large",
+        "mime": "text/plain",
+        "original_bytes": 2852,
+        "original_sha256": "d5e4b3633a397fbb35d06ef8a40c659fe8c6d5288355a06fe8739bdc9f0c7acb",
+        "record_bytes": 33528,
+        "record_sha256": "0f4151c9b237d85671b44bd9814b87ae8c96e12dd77cd0b7d10703297eb542e7",
+        "source_bytes": 2852,
+        "source_sha256": "d5e4b3633a397fbb35d06ef8a40c659fe8c6d5288355a06fe8739bdc9f0c7acb",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "23c5db1a7e78e9e754c03ac035ed13a94808139dbe82f364d25471448927fa4e",
+        "codec": "zstd",
+        "encoded_bytes": 98,
+        "id": "text-json-pretty",
+        "mime": "text/plain",
+        "original_bytes": 109,
+        "original_sha256": "21f775301f1037ee38869ad3f94d3c8f152435d35faecc1415b1a996917efd92",
+        "record_bytes": 33317,
+        "record_sha256": "4b8de3cb2cde1745f3b03e2a1e1405b79a64436a00140716e39049d70a273997",
+        "source_bytes": 110,
+        "source_sha256": "e811ae217c543c5960e90cce0f910ad7dbb0208add743a82fc4715e4d6dafb1f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "e88684f0ff67e4437ae05482df2262f873a39828f90c065b30b7566de26de161",
+        "codec": "zstd",
+        "encoded_bytes": 325,
+        "id": "text-json-minified",
+        "mime": "text/plain",
+        "original_bytes": 2947,
+        "original_sha256": "e0aafa7803f0f807eb9b0de8df34d3d53b6719c6b825c836eb8cb9fea1562601",
+        "record_bytes": 33624,
+        "record_sha256": "0cd3f3961146a498cfcbe0201e701dfab3ea21e40a108e2af2356674523e099d",
+        "source_bytes": 2947,
+        "source_sha256": "e0aafa7803f0f807eb9b0de8df34d3d53b6719c6b825c836eb8cb9fea1562601",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "af8575863565808d9a4eb438571b1b7dd0f29a3e2772bf271e3761196c909ce5",
+        "codec": "zstd",
+        "encoded_bytes": 776,
+        "id": "text-json-peer-snapshot-large",
+        "mime": "text/plain",
+        "original_bytes": 11813,
+        "original_sha256": "eef5816fecea582d39244e2c48820311f7a29ed5b9e839495de0db43cc3ec78e",
+        "record_bytes": 34226,
+        "record_sha256": "1d89e643af0bf6af35214f3ca45272a1b30df61d444d03519a6886618ffbea39",
+        "source_bytes": 11814,
+        "source_sha256": "8d1872e9e28086fdd9fbb78b3a8bd0d6a1e96db090bc29b229186dfd799341e7",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "02cab3246d0bea9cc0b92ba29500b0a1e1a6a955cda3f4ae729628dcbc75462e",
+        "codec": "zstd",
+        "encoded_bytes": 108,
+        "id": "text-source-code",
+        "mime": "text/plain",
+        "original_bytes": 125,
+        "original_sha256": "067e9db27cd5f991011c9b2eec2fc14f342bbbc08e91b0a6448ea2cea18c6036",
+        "record_bytes": 33330,
+        "record_sha256": "e979ecdbaecf7d7b5979106525af0d399fd03b63a0ac12935e415425a2d577dc",
+        "source_bytes": 126,
+        "source_sha256": "bcedb68696197cc02ca3a71036ac9e019bcf773fdaf2591186ebb5d7140d5eba",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "954aa59dd4a402b7bc5ff4c2ad825a13ffc594fb419a9a84302c5003e126fb9d",
+        "codec": "zstd",
+        "encoded_bytes": 238,
+        "id": "text-source-admission-model",
+        "mime": "text/plain",
+        "original_bytes": 462,
+        "original_sha256": "cf20ecc2b9c83ae8a0708db7a399526bca4af6f3fd6fe2eaa4397a6bb64633cc",
+        "record_bytes": 33506,
+        "record_sha256": "10bf402484fc6a577ffde1b071058fdea66d0593df7c986c544bf91a612aea95",
+        "source_bytes": 463,
+        "source_sha256": "117ef4d39a4ec47ce2ca336b1b4d211a1dddca23b8faa20afdcddecdf5b577aa",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "2e2a94ae29317ed5d91b13c1d2df5f268d1539f307299ddaf42837f708b3548f",
+        "codec": "zstd",
+        "encoded_bytes": 336,
+        "id": "text-source-snapshot-cli",
+        "mime": "text/plain",
+        "original_bytes": 544,
+        "original_sha256": "3ac06ede2afa2be24ac1584e6bc37d32aab9ad127ae68182de336000c32bf779",
+        "record_bytes": 33634,
+        "record_sha256": "636d717b6619ff1685dca40609627fc01606426ddc882a39b1d992cf78a9bd03",
+        "source_bytes": 545,
+        "source_sha256": "7628d60d857d577f0ca03b6cbc118acbe2696ee2e04a242fdf6516f1be980b2c",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "e976e3256b1b83495f303e65bda59feb2b574ac213f065faa04c6dd723ef155d",
+        "codec": "zstd",
+        "encoded_bytes": 1275,
+        "id": "jpeg-flat-small",
+        "mime": "image/jpeg",
+        "original_bytes": 3530,
+        "original_sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6",
+        "record_bytes": 34867,
+        "record_sha256": "e2f5f0fa3ec782f5d6774ad45e869fb64900f635b082091c5397ee63d3b6c27d",
+        "source_bytes": 3530,
+        "source_sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "eda93bddb45be6e2f2ef85bbb1c3dd80fc5eed923195e6be775e76ef2b3f1f3c",
+        "codec": "zstd",
+        "encoded_bytes": 21220,
+        "id": "jpeg-text-poster",
+        "mime": "image/jpeg",
+        "original_bytes": 56015,
+        "original_sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed",
+        "record_bytes": 61467,
+        "record_sha256": "a6efd9c341f176447226847f6a27d39a220e7767cf89f1f1185cccb506fcf73a",
+        "source_bytes": 56015,
+        "source_sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "f5f3b32b57c58c6d8081bae5e2ba7b91d16d9cbb177c7cd0e4a99781a9d147fa",
+        "codec": "zstd",
+        "encoded_bytes": 173191,
+        "id": "jpeg-photo-like",
+        "mime": "image/jpeg",
+        "original_bytes": 689193,
+        "original_sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e",
+        "record_bytes": 264099,
+        "record_sha256": "7b766af5c822933a615ff215ce1fdc7de761815d02f3e4f7a4967cee84d6ea69",
+        "source_bytes": 689193,
+        "source_sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "cdbb5cef4c8d897508ac167994eb5d8a6f17695239f38cb9078060d6745192df",
+        "codec": "identity",
+        "encoded_bytes": 1530684,
+        "id": "jpeg-noise-capacity",
+        "mime": "image/jpeg",
+        "original_bytes": 1530684,
+        "original_sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616",
+        "record_bytes": 2074094,
+        "record_sha256": "f021094b330da33ee900b410258b77701dddd1bf6b67a688664118e003bc6ce5",
+        "source_bytes": 1530684,
+        "source_sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "a2c0c7cbe38341b3aeafb9fe6b9296b43bd838a9d5c7d85c7149eb6d6d6b312a",
+        "codec": "zstd",
+        "encoded_bytes": 40570,
+        "id": "jpeg-photo-small",
+        "mime": "image/jpeg",
+        "original_bytes": 97649,
+        "original_sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f",
+        "record_bytes": 87267,
+        "record_sha256": "13b82106e281a0cbb76a5901ecab9d7f42518111b2bdf24a566399b17888333b",
+        "source_bytes": 97649,
+        "source_sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "549f9b9ed5083bb61b2cb64c386043f1d1a7b290df070b52296a93a249fe0d8f",
+        "codec": "zstd",
+        "encoded_bytes": 9390,
+        "id": "jpeg-mixed-medium",
+        "mime": "image/jpeg",
+        "original_bytes": 57251,
+        "original_sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909",
+        "record_bytes": 45690,
+        "record_sha256": "7276123bd7f65cc2f8121905a7bcd920c6ea944146ec38494d4a68e665bfa509",
+        "source_bytes": 57251,
+        "source_sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "d1408f296ee9cfca971116cc862cc27ff9adfa8bec60105d08c01a30b595c60c",
+        "codec": "zstd",
+        "encoded_bytes": 13187,
+        "id": "jpeg-text-large",
+        "mime": "image/jpeg",
+        "original_bytes": 66371,
+        "original_sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93",
+        "record_bytes": 50756,
+        "record_sha256": "1acfeecc8068a61a93b148aa650ae6e322683a8f3dd9c2d7cbf06104f24f562a",
+        "source_bytes": 66371,
+        "source_sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "b52d80e4dfad89f0d4424c2e81132ee55fbff56d2e8abedef07d07633b30ca42",
+        "codec": "zstd",
+        "encoded_bytes": 188,
+        "id": "png-flat-small",
+        "mime": "image/png",
+        "original_bytes": 638,
+        "original_sha256": "661c37d971f8727953face7d0b8da6663ce8a1985c7ea9fab8c14aa079280632",
+        "record_bytes": 33413,
+        "record_sha256": "caaae2dd1afb31e2e68939b3ccb2ecae2b06c25faffb063451f68ec76e91b52c",
+        "source_bytes": 638,
+        "source_sha256": "661c37d971f8727953face7d0b8da6663ce8a1985c7ea9fab8c14aa079280632",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "231e19959101bc9625106521fd23e3f993d4b148eafcbe7cc7df7038d2b1777b",
+        "codec": "zstd",
+        "encoded_bytes": 1601,
+        "id": "png-illustrated-medium",
+        "mime": "image/png",
+        "original_bytes": 3550,
+        "original_sha256": "a085bd399617bff4a0a989f95c25a5089cf33b5db5f78ae927379a9a7012c2bd",
+        "record_bytes": 35301,
+        "record_sha256": "e6fe7d9b8b26c4c6734bed7440401535f601bd52cd6c7dbf4daa1f19aefd0b2e",
+        "source_bytes": 3550,
+        "source_sha256": "a085bd399617bff4a0a989f95c25a5089cf33b5db5f78ae927379a9a7012c2bd",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0620d1c137991228e2c4375379a88f07cebd431d6290c29990c8dccd335399d7",
+        "codec": "zstd",
+        "encoded_bytes": 1980,
+        "id": "png-text-poster",
+        "mime": "image/png",
+        "original_bytes": 5337,
+        "original_sha256": "574feb77cf23bc7984f04d97f355c7eab2fcc47dfaa2336bc669c58fec8aad79",
+        "record_bytes": 35806,
+        "record_sha256": "5318301d14f5c0674bbeef9159ce2a3ec526404b68b13d1c1e01cf164996236c",
+        "source_bytes": 5337,
+        "source_sha256": "574feb77cf23bc7984f04d97f355c7eab2fcc47dfaa2336bc669c58fec8aad79",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "2dcc8600fc884e23175487fa5234841588e88c4fc3b76dae6415528eadf146a0",
+        "codec": "identity",
+        "encoded_bytes": 1772761,
+        "id": "png-noise-capacity",
+        "mime": "image/png",
+        "original_bytes": 1772761,
+        "original_sha256": "4fe5ab20eb591bddbbb8f54adca02fffb7f453c342b2171a25b811be91274da8",
+        "record_bytes": 2396862,
+        "record_sha256": "38bc0e9ba0f208f1e3fbe0da8a48bef8e38b849ee962cf8687284e8890bd775e",
+        "source_bytes": 1772761,
+        "source_sha256": "4fe5ab20eb591bddbbb8f54adca02fffb7f453c342b2171a25b811be91274da8",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "b6a94fdc950819efc21ad35a4d7fac06964109250be58f4d5f900b0020fa9ad3",
+        "codec": "zstd",
+        "encoded_bytes": 3678,
+        "id": "png-photo-small",
+        "mime": "image/png",
+        "original_bytes": 4314,
+        "original_sha256": "36218ec3e027ecfd779dc5037a43acf26522a99f3b9473de475c951e687e44a5",
+        "record_bytes": 38069,
+        "record_sha256": "1e02054b876653450d3bdc4b0e780275b76f86bff8a898286287294e041184ad",
+        "source_bytes": 4314,
+        "source_sha256": "36218ec3e027ecfd779dc5037a43acf26522a99f3b9473de475c951e687e44a5",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "3cd1476fba25937902735e80a87d4dc0eeccef30736de6e18a86cb2680210717",
+        "codec": "zstd",
+        "encoded_bytes": 1604,
+        "id": "png-mixed-medium",
+        "mime": "image/png",
+        "original_bytes": 3671,
+        "original_sha256": "8d39f6a5a686cd61f14b308f38792d7edbdb153b30a2cd671ff714abbdcce122",
+        "record_bytes": 35305,
+        "record_sha256": "f6273aab18c3dc1ff9633a5d04013c984c25495cc3ca49312e1a433743946580",
+        "source_bytes": 3671,
+        "source_sha256": "8d39f6a5a686cd61f14b308f38792d7edbdb153b30a2cd671ff714abbdcce122",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "fb58cb54a5fc4d0cbeefa737ab8fcda20c434ef4d18492ef61d2413290b8c137",
+        "codec": "zstd",
+        "encoded_bytes": 1883,
+        "id": "png-text-large",
+        "mime": "image/png",
+        "original_bytes": 4903,
+        "original_sha256": "d1740689d0b649c9689eed37b09909c931b8e183e11db86baca0462cdd7da4b9",
+        "record_bytes": 35678,
+        "record_sha256": "87a9dd08a540c3446e912e00876d1834b792b9914c404e37704d08ce4aec8447",
+        "source_bytes": 4903,
+        "source_sha256": "d1740689d0b649c9689eed37b09909c931b8e183e11db86baca0462cdd7da4b9",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "bd4e55c301e6909b8bda6f04844ee630dedb6d05f9f616149be73336fa06200a",
+        "codec": "zstd",
+        "encoded_bytes": 376,
+        "id": "webp-flat-small",
+        "mime": "image/webp",
+        "original_bytes": 376,
+        "original_sha256": "7c4d1d04659178703a09cefaba52891133ae279e56cf4750514347cc8eeff562",
+        "record_bytes": 33668,
+        "record_sha256": "acc1d8fba9f1f82402498883982d88599969534f64caab65ce792c14df4e2fef",
+        "source_bytes": 376,
+        "source_sha256": "7c4d1d04659178703a09cefaba52891133ae279e56cf4750514347cc8eeff562",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "e5ac69832d24cafdf221c7ac541d5f3456238e6568c166f480ae576ff249fea9",
+        "codec": "zstd",
+        "encoded_bytes": 10322,
+        "id": "webp-illustrated-medium",
+        "mime": "image/webp",
+        "original_bytes": 10992,
+        "original_sha256": "0c369277d296429346bff9c32325bfd741377e109b41780be28101a08d401de5",
+        "record_bytes": 46935,
+        "record_sha256": "7c12102cc3a03d0c59e072508b50b6c85653798eb5e94400020dac19a0ac4c11",
+        "source_bytes": 10992,
+        "source_sha256": "0c369277d296429346bff9c32325bfd741377e109b41780be28101a08d401de5",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "29a51a9d05df1e4536505458c4ec1248521e1132e5022f80ac9b1ec8165ad5d4",
+        "codec": "zstd",
+        "encoded_bytes": 204761,
+        "id": "webp-photo-like",
+        "mime": "image/webp",
+        "original_bytes": 215346,
+        "original_sha256": "b377ca497c100b4dc0c8fe17ca1f5b82628721e580f4990d5404e09ddff42fd9",
+        "record_bytes": 306191,
+        "record_sha256": "6dc1ed27a18bd80eb307f27a078a65de2d5526e3a2e5c9f5f7e043d4e261032f",
+        "source_bytes": 215346,
+        "source_sha256": "b377ca497c100b4dc0c8fe17ca1f5b82628721e580f4990d5404e09ddff42fd9",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap"
+          ]
+        },
+        "block_hash": "f5d5e13b6d961476824ec5dd618bc364d6029c265bb11b7f63166402c8478823",
+        "codec": "identity",
+        "encoded_bytes": 625250,
+        "id": "webp-noise-capacity",
+        "mime": "image/webp",
+        "original_bytes": 625250,
+        "original_sha256": "427f84db03cb6e822e6bda8f81acfa6e92bc13d5c2c9948d88caa369e63c5951",
+        "record_bytes": 866847,
+        "record_sha256": "ec4f83b99a0e79789444fd68a3748aad8c8de4fbcb78ff9faaf64a9182387391",
+        "source_bytes": 625250,
+        "source_sha256": "427f84db03cb6e822e6bda8f81acfa6e92bc13d5c2c9948d88caa369e63c5951",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "4631225180f287983a91ec883ede6fe0d277e32d9566bcc686455fc0796e7c5e",
+        "codec": "identity",
+        "encoded_bytes": 31762,
+        "id": "webp-photo-small",
+        "mime": "image/webp",
+        "original_bytes": 31762,
+        "original_sha256": "06060be99cab89545df668540d1d04b941c58cc73266bea0090c991f4fae5083",
+        "record_bytes": 75527,
+        "record_sha256": "907093ad260014e23b75984bba0a344cc024ddc3a471769ad9da668fa8d148e4",
+        "source_bytes": 31762,
+        "source_sha256": "06060be99cab89545df668540d1d04b941c58cc73266bea0090c991f4fae5083",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "b41d4e02c149ad53ad4ae74cc31f5fcb2bf606e3d90abe8e112a5d20f1fd8492",
+        "codec": "zstd",
+        "encoded_bytes": 8184,
+        "id": "webp-mixed-medium",
+        "mime": "image/webp",
+        "original_bytes": 10302,
+        "original_sha256": "9f4af322753ebb1a6da69f2268861e76ddf6c0bc45f52034fc24420deece555a",
+        "record_bytes": 44082,
+        "record_sha256": "bf392f0ebf70050a6f2750e9f548343e4daafe1bf8a8e34149e12b62787ea047",
+        "source_bytes": 10302,
+        "source_sha256": "9f4af322753ebb1a6da69f2268861e76ddf6c0bc45f52034fc24420deece555a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "9b67dd2a26482d76b8edca5ff335105eb6d1a6d63c0d7b399a6fd43ebc635be8",
+        "codec": "zstd",
+        "encoded_bytes": 8484,
+        "id": "webp-text-large",
+        "mime": "image/webp",
+        "original_bytes": 10474,
+        "original_sha256": "d7252f0af8737478312c0ea693d495338847daa380da2997e6620f8e08c17b2d",
+        "record_bytes": 44483,
+        "record_sha256": "03f290696c071b1b1ba38b328bff60587f4a3530a89a6050f28c81cdfa52efff",
+        "source_bytes": 10474,
+        "source_sha256": "d7252f0af8737478312c0ea693d495338847daa380da2997e6620f8e08c17b2d",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "3f07f44c19f8924350cb2bf8ee696c4afc2f572a03fad55f8af74bc67648507e",
+        "codec": "identity",
+        "encoded_bytes": 652,
+        "id": "gif-flat-small",
+        "mime": "image/gif",
+        "original_bytes": 652,
+        "original_sha256": "01b2d4d1d2e48f350e65f6df08edc808df08770e37f204aff1cc32dea6c2d90f",
+        "record_bytes": 34037,
+        "record_sha256": "b5e6d82d8bd2f6774cd926ec774ec4bdfcbcc70811f4aaa2f2691343e35b1ac6",
+        "source_bytes": 652,
+        "source_sha256": "01b2d4d1d2e48f350e65f6df08edc808df08770e37f204aff1cc32dea6c2d90f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "29cf7894330f47c18c4abef2ba2e5111652d66ff3265ca67f9b5a96cf7d3bb96",
+        "codec": "identity",
+        "encoded_bytes": 6200,
+        "id": "gif-animated-illustrated",
+        "mime": "image/gif",
+        "original_bytes": 6200,
+        "original_sha256": "d5941c77e3b6a8800357def61aacded0c5993f219ccf2a6f3159c930ffbe7a9f",
+        "record_bytes": 41437,
+        "record_sha256": "4804c52d4c54e2ac4c38f1f3baf7dc14052c2f5f799760e12745480f4e77f86f",
+        "source_bytes": 6200,
+        "source_sha256": "d5941c77e3b6a8800357def61aacded0c5993f219ccf2a6f3159c930ffbe7a9f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap"
+          ]
+        },
+        "block_hash": "58e6049574b4f7963ddb5e513c5d64bbd1d2e1ac68859cbbc5ffe3a408f4a62f",
+        "codec": "zstd",
+        "encoded_bytes": 748847,
+        "id": "gif-noise-capacity",
+        "mime": "image/gif",
+        "original_bytes": 802666,
+        "original_sha256": "4cc496487f2497ec3d3ac18f212f10ca1d51204785c99664bdc261af47d4f590",
+        "record_bytes": 1031635,
+        "record_sha256": "dcfafb1192f0fbe08431cb74e4e5dc7cfc823075159aadb6c5825c1bdb4de4b6",
+        "source_bytes": 802666,
+        "source_sha256": "4cc496487f2497ec3d3ac18f212f10ca1d51204785c99664bdc261af47d4f590",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "5e28c9878d9de955fdb52a96c89b7c38f4e28e9ad9f59927d4cb9a654772d524",
+        "codec": "identity",
+        "encoded_bytes": 55720,
+        "id": "gif-photo-small",
+        "mime": "image/gif",
+        "original_bytes": 55720,
+        "original_sha256": "83add893b06499e9a8b0f1e31a60562b0b9bbd18af51abae923891382c5f3d51",
+        "record_bytes": 107468,
+        "record_sha256": "05d0d4a682ef06d03bea32a6a8d8e973acb7bb139eb6bc13f63c6c1b430508f7",
+        "source_bytes": 55720,
+        "source_sha256": "83add893b06499e9a8b0f1e31a60562b0b9bbd18af51abae923891382c5f3d51",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0b958689a34cc1838230e7414205d40a631d2aa33e13913d44d8005fffe1a759",
+        "codec": "identity",
+        "encoded_bytes": 4057,
+        "id": "gif-text-medium",
+        "mime": "image/gif",
+        "original_bytes": 4057,
+        "original_sha256": "34c04be3b66e05d07192e9cb7cf948c4d9e03b6b2c0043ccea316651b25ab0e6",
+        "record_bytes": 38581,
+        "record_sha256": "04a85ba42536ecb20c01cbcf14c8cf38c60c5005eec54e9fe6b2333dfa3fad1a",
+        "source_bytes": 4057,
+        "source_sha256": "34c04be3b66e05d07192e9cb7cf948c4d9e03b6b2c0043ccea316651b25ab0e6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "797d818841a5b66ae95042deec56bcdbe69477ce23a844ef051b76d6170d5463",
+        "codec": "identity",
+        "encoded_bytes": 4961,
+        "id": "gif-mixed-large",
+        "mime": "image/gif",
+        "original_bytes": 4961,
+        "original_sha256": "e3d088d4244f059769684ec47713c1eae7b617caddd9f6e360d2bbd1cf521613",
+        "record_bytes": 39786,
+        "record_sha256": "eec6671c59976dccaa6a04a289721b9a5e5dd7db6095e14d1f7e9fa2a716e0fe",
+        "source_bytes": 4961,
+        "source_sha256": "e3d088d4244f059769684ec47713c1eae7b617caddd9f6e360d2bbd1cf521613",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      }
+    ],
+    "meme58": [
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "f6b70ebebfec9f9b431004d1faae768433fa323cdfdb5f5e5273c40c579a7387",
+        "codec": "zstd",
+        "encoded_bytes": 5968,
+        "id": "jpeg-caption-320",
+        "mime": "image/jpeg",
+        "original_bytes": 8666,
+        "original_sha256": "fbf06612d6fb95950d173d9492daf46a964f858789df1f38f9a523598f346da5",
+        "record_bytes": 41126,
+        "record_sha256": "73d1a397ea39c75b7d0285b61af1e053c671437d484a761adc15f700c488123d",
+        "source_bytes": 8666,
+        "source_sha256": "fbf06612d6fb95950d173d9492daf46a964f858789df1f38f9a523598f346da5",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "79762f8479ee914f07e6f742521f97d9bb482aa983a97cc647931a7022b3c6f1",
+        "codec": "zstd",
+        "encoded_bytes": 16199,
+        "id": "jpeg-caption-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 52173,
+        "original_sha256": "a4aafc5eaa6fa7f797263f240b83ec9f7483aeb558fded5c7869a41eb18387d3",
+        "record_bytes": 54772,
+        "record_sha256": "63f75bb8a7387efb380857526dab8adaae0182ae35a29fc91779eb444cd3f746",
+        "source_bytes": 52173,
+        "source_sha256": "a4aafc5eaa6fa7f797263f240b83ec9f7483aeb558fded5c7869a41eb18387d3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "60e0d0250ec2d1bdb78ec3a6d22cc3ab434d4b1813166c243dbda7b4dcef9002",
+        "codec": "zstd",
+        "encoded_bytes": 22213,
+        "id": "jpeg-screenshot-320",
+        "mime": "image/jpeg",
+        "original_bytes": 24337,
+        "original_sha256": "8373f7107c74144b0f408d2e3b4931c13598c87d5e134675e367a4095d10e71a",
+        "record_bytes": 62789,
+        "record_sha256": "bf1134a556b782e135c497436542372bfe918fade64cf8ffceab9f3f5e13f7c6",
+        "source_bytes": 24337,
+        "source_sha256": "8373f7107c74144b0f408d2e3b4931c13598c87d5e134675e367a4095d10e71a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "dd813134bc24aac8929019fb5cc953df2ecd872065cfc4cb354a68dad1760481",
+        "codec": "zstd",
+        "encoded_bytes": 18522,
+        "id": "jpeg-screenshot-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 59749,
+        "original_sha256": "dd8dc8277e879702511e149b456481da0659a6a9b2b078a62aa09f891470a3b6",
+        "record_bytes": 57868,
+        "record_sha256": "ef91e0732b0602fe9ecadadd35e2df2b1396760c6188fd16bd0b8f1e879cfa44",
+        "source_bytes": 59749,
+        "source_sha256": "dd8dc8277e879702511e149b456481da0659a6a9b2b078a62aa09f891470a3b6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "bc15a14f62e897ffcb76cd39b43ceb6b73e6f1d7126ce44b51001b5540ca306d",
+        "codec": "zstd",
+        "encoded_bytes": 3606,
+        "id": "jpeg-macro-320",
+        "mime": "image/jpeg",
+        "original_bytes": 6583,
+        "original_sha256": "c06e588be97ab7c1c09fe0883dd1f58656860d83251aaa0fe594b9664ec94985",
+        "record_bytes": 37974,
+        "record_sha256": "0b3224aeb4d77e84b459be41cc27f7704a97f76ec008eeba04ffc51bb95ec813",
+        "source_bytes": 6583,
+        "source_sha256": "c06e588be97ab7c1c09fe0883dd1f58656860d83251aaa0fe594b9664ec94985",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "6f51702bee879e3cb5e100ff089a45124452b879c57906e6b3b259238125283f",
+        "codec": "zstd",
+        "encoded_bytes": 3606,
+        "id": "jpeg-macro-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 40740,
+        "original_sha256": "4956a95a52bf364aef4bc42d58a0a3d0da76547b34a0deb440ad28c7b1dbfd74",
+        "record_bytes": 37979,
+        "record_sha256": "8b112efb2b4f94a7e05d36867c7155a7e1590ef9a3d31e0ecf883332b8e4f3fa",
+        "source_bytes": 40740,
+        "source_sha256": "4956a95a52bf364aef4bc42d58a0a3d0da76547b34a0deb440ad28c7b1dbfd74",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "775e88ef98d18ae179df71337df9997f46e4bb7e558c952d35a7de225d14e57c",
+        "codec": "identity",
+        "encoded_bytes": 131057,
+        "id": "jpeg-texture-320",
+        "mime": "image/jpeg",
+        "original_bytes": 131057,
+        "original_sha256": "0904485c118f8c6f0ef10e17c3592342bed3d7cae20b12aa99f8acc9da24fdae",
+        "record_bytes": 207920,
+        "record_sha256": "88cdd0a349636bb65ebca2f971d15e54db140316332725b5ec25c1e120618fa8",
+        "source_bytes": 131057,
+        "source_sha256": "0904485c118f8c6f0ef10e17c3592342bed3d7cae20b12aa99f8acc9da24fdae",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "no_legal_frozen_record"
+          ]
+        },
+        "block_hash": null,
+        "codec": null,
+        "encoded_bytes": null,
+        "id": "jpeg-texture-1280",
+        "mime": "image/jpeg",
+        "original_bytes": 2242286,
+        "original_sha256": "26680a7a4879d2834f1c5ec61f8bc7ed310fde5fdea235e12e465723b2b598fc",
+        "record_bytes": null,
+        "source_bytes": 2242286,
+        "source_sha256": "26680a7a4879d2834f1c5ec61f8bc7ed310fde5fdea235e12e465723b2b598fc",
+        "status": "Excluded: original exceeds frozen v3 cap; no complete canonical block",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "8789cd224e9ff29d9137ad13986ad112c886fa71112d386dbb9ace3ac05a5ea4",
+        "codec": "identity",
+        "encoded_bytes": 130982,
+        "id": "jpeg-boundary-131072",
+        "mime": "image/jpeg",
+        "original_bytes": 130982,
+        "original_sha256": "c287aeb8593292d18399fb7b991d510e1774f2efe043a3f0fb873fe81c0146f3",
+        "record_bytes": 207820,
+        "record_sha256": "6a6077b30529cd8b87645eda1b3553bb4d57eefa2425397c0f00023e2c4b94d6",
+        "source_bytes": 130982,
+        "source_sha256": "c287aeb8593292d18399fb7b991d510e1774f2efe043a3f0fb873fe81c0146f3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "ed8b01bc613dd6bcb8593bd476a454b06388e96ef83878edba604090a9546de9",
+        "codec": "identity",
+        "encoded_bytes": 261779,
+        "id": "jpeg-boundary-262144",
+        "mime": "image/jpeg",
+        "original_bytes": 261779,
+        "original_sha256": "c265133591c3239efff313a5da96f6f5b27ad0de5a0a1adce889d2ce9418e2f6",
+        "record_bytes": 382218,
+        "record_sha256": "adf02b264737c5a992a1d41e099d3a9630faf13092eacb1b998f66f5755af162",
+        "source_bytes": 261779,
+        "source_sha256": "c265133591c3239efff313a5da96f6f5b27ad0de5a0a1adce889d2ce9418e2f6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "fa910122d91ba55f145f62309fb6ded503c9268de5473046e47f8ac16cc23536",
+        "codec": "identity",
+        "encoded_bytes": 523998,
+        "id": "jpeg-boundary-524288",
+        "mime": "image/jpeg",
+        "original_bytes": 523998,
+        "original_sha256": "4a4225e731dd77d3ef37fcee1df7c780598d7a8d6bbab4d88d188551c364ac77",
+        "record_bytes": 731842,
+        "record_sha256": "0a7710b201f139417ad5faaaaa15dcf71b89f2e0b115170d9080bd86ffa551bb",
+        "source_bytes": 523998,
+        "source_sha256": "4a4225e731dd77d3ef37fcee1df7c780598d7a8d6bbab4d88d188551c364ac77",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "b9d0b431640fe032808f8b7c12f6322b44a3534cd40fa5d3858ab85d667c970b",
+        "codec": "identity",
+        "encoded_bytes": 1045587,
+        "id": "jpeg-boundary-1048576",
+        "mime": "image/jpeg",
+        "original_bytes": 1045587,
+        "original_sha256": "92eeed55e79a6bf50f01d34de1ede3c81dab7ff6a9063979432e146e3925a9e9",
+        "record_bytes": 1427297,
+        "record_sha256": "c8cec01a608f2c9320a02f2914daa122be3ea468a7e90915af3bb1b4f938b5d3",
+        "source_bytes": 1045587,
+        "source_sha256": "92eeed55e79a6bf50f01d34de1ede3c81dab7ff6a9063979432e146e3925a9e9",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "47a7b2ffd84f4b08b6e0b035463723656b8a46c2b9333c9b39f3aee6471a4dfb",
+        "codec": "identity",
+        "encoded_bytes": 2096883,
+        "id": "jpeg-boundary-2097152",
+        "mime": "image/jpeg",
+        "original_bytes": 2096883,
+        "original_sha256": "07888b8aebcbd1b34ffe995483e948de6e74c41c7cb1578dd58f5a891f7a21bf",
+        "record_bytes": 2829027,
+        "record_sha256": "5e0058c025c9b2844f87b7d7cceb69816bd2f2a4cf2b24fbec0a6da782e3c7cd",
+        "source_bytes": 2096883,
+        "source_sha256": "07888b8aebcbd1b34ffe995483e948de6e74c41c7cb1578dd58f5a891f7a21bf",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "f49cf450364ebbcc4b14cf9197194965ec7eb05e7f6c8bbd6be82f6eeed38d0f",
+        "codec": "zstd",
+        "encoded_bytes": 2944,
+        "id": "png-caption-320",
+        "mime": "image/png",
+        "original_bytes": 3319,
+        "original_sha256": "aa37d972e98be71753dcf89c18e36588c17fe2ac779611af5def7acf40bacdfc",
+        "record_bytes": 37092,
+        "record_sha256": "111f59d2530777192ba08a36291ddf21e6df5f18549e1d8a16b39c0793de9f27",
+        "source_bytes": 3319,
+        "source_sha256": "aa37d972e98be71753dcf89c18e36588c17fe2ac779611af5def7acf40bacdfc",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0e07f3edf43c7f36650a103b0b36d4b4e678b577a6f17a669087ee5394d264ca",
+        "codec": "zstd",
+        "encoded_bytes": 5565,
+        "id": "png-caption-1280",
+        "mime": "image/png",
+        "original_bytes": 9698,
+        "original_sha256": "aaae1aabd7d58ffa9e0bacbc0e8b3d9604d44fbacf14849f5ca16a04c0fa9ab7",
+        "record_bytes": 40587,
+        "record_sha256": "43ea47ea18851ccc18fea2ff3a87fd271c137c93f7576153a915c05b90e4e432",
+        "source_bytes": 9698,
+        "source_sha256": "aaae1aabd7d58ffa9e0bacbc0e8b3d9604d44fbacf14849f5ca16a04c0fa9ab7",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "da82af2fa35c4383842ef4776deec076007b9517dc0d077f0f97c307cdc7ee90",
+        "codec": "zstd",
+        "encoded_bytes": 7532,
+        "id": "png-screenshot-320",
+        "mime": "image/png",
+        "original_bytes": 8260,
+        "original_sha256": "f5767cc56903bddbb968f3ae02bce33302a4de760652fd4d16fc31287d3e7177",
+        "record_bytes": 43208,
+        "record_sha256": "784542654071af92ab8f2838cec1c01f09a759e87397c00cae6f955b8deb491f",
+        "source_bytes": 8260,
+        "source_sha256": "f5767cc56903bddbb968f3ae02bce33302a4de760652fd4d16fc31287d3e7177",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "c9421ab8f1b6fdba15d0b50ffcad13f2ee9141e440b5d3f54e9291f70fe7ed4f",
+        "codec": "zstd",
+        "encoded_bytes": 13463,
+        "id": "png-screenshot-1280",
+        "mime": "image/png",
+        "original_bytes": 22540,
+        "original_sha256": "8eab37c158329afe475cec91095d9d77a38543ca20f197bf31216106437ce1f7",
+        "record_bytes": 51122,
+        "record_sha256": "7cbe16ccd91b68615dcd1a1eb156c95d1d03c3b0d757dc4bcc4e78e4aff08887",
+        "source_bytes": 22540,
+        "source_sha256": "8eab37c158329afe475cec91095d9d77a38543ca20f197bf31216106437ce1f7",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "aa9bded96fd9e94972abffd3a94e7284f35cd11ea23070d1772a260be3881c5e",
+        "codec": "zstd",
+        "encoded_bytes": 3120,
+        "id": "png-macro-320",
+        "mime": "image/png",
+        "original_bytes": 3804,
+        "original_sha256": "4c647b3efc07f8e5edcf820d20ccb80fe63990f32fd1e761f3bf62446b7252cb",
+        "record_bytes": 37324,
+        "record_sha256": "855c0cbc7c20ff475ec5a4995425fc724c93944567577594daf04de02384c53a",
+        "source_bytes": 3804,
+        "source_sha256": "4c647b3efc07f8e5edcf820d20ccb80fe63990f32fd1e761f3bf62446b7252cb",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "197199e50c539ca39d883206b142d37b94d16fd7df945a201740e7db3f27e778",
+        "codec": "zstd",
+        "encoded_bytes": 3438,
+        "id": "png-macro-1280",
+        "mime": "image/png",
+        "original_bytes": 8996,
+        "original_sha256": "2f1782b26d162a81ff6601801890cf69fcdae6785a1f0d83e3a3cb27998acace",
+        "record_bytes": 37751,
+        "record_sha256": "3868ba3926da8e87249329c41dbb4ee6aa15ddfbcbad855e0591f950b1c0ce49",
+        "source_bytes": 8996,
+        "source_sha256": "2f1782b26d162a81ff6601801890cf69fcdae6785a1f0d83e3a3cb27998acace",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "b99fe17311161a95e681b2cd6261392702e95fd6e676085e7940d368495ece14",
+        "codec": "identity",
+        "encoded_bytes": 208502,
+        "id": "png-texture-320",
+        "mime": "image/png",
+        "original_bytes": 208502,
+        "original_sha256": "3e423a08dd6a9ac18d8c7efeada02b82a249506a8b0f0dcb0a43034c02804113",
+        "record_bytes": 311178,
+        "record_sha256": "39b9b676f115b2fea98d66471b363e78080ab344ee28850a54de2e538219cbb3",
+        "source_bytes": 208502,
+        "source_sha256": "3e423a08dd6a9ac18d8c7efeada02b82a249506a8b0f0dcb0a43034c02804113",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "no_legal_frozen_record"
+          ]
+        },
+        "block_hash": null,
+        "codec": null,
+        "encoded_bytes": null,
+        "id": "png-texture-1280",
+        "mime": "image/png",
+        "original_bytes": 3594660,
+        "original_sha256": "321533218f70a892bc943bb39ea8f02078953d872f65ec1744259981bb6af1ac",
+        "record_bytes": null,
+        "source_bytes": 3594660,
+        "source_sha256": "321533218f70a892bc943bb39ea8f02078953d872f65ec1744259981bb6af1ac",
+        "status": "Excluded: original exceeds frozen v3 cap; no complete canonical block",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "2fd864a05220df49462d078faa55481a2d72ef10770ee4654d690e8a450a6ccf",
+        "codec": "identity",
+        "encoded_bytes": 130738,
+        "id": "png-boundary-131072",
+        "mime": "image/png",
+        "original_bytes": 130738,
+        "original_sha256": "c920973ae5c65be575b42c800b8e204a34469b6ac83d1025ac1573468d4a9e6f",
+        "record_bytes": 207494,
+        "record_sha256": "9e8e29c3aa5104e7baf8f7bed28a1ebc66d9a3df1504d2e229dedec9080510c0",
+        "source_bytes": 130738,
+        "source_sha256": "c920973ae5c65be575b42c800b8e204a34469b6ac83d1025ac1573468d4a9e6f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "475f66bc6401b7f91465bd28918d9bb38ce566ca111a0fe6c764fc9cef54901c",
+        "codec": "identity",
+        "encoded_bytes": 261334,
+        "id": "png-boundary-262144",
+        "mime": "image/png",
+        "original_bytes": 261334,
+        "original_sha256": "5c6c4f21ba76f51468dce34e47ebb0fc8a2330b17b7985d3be9c2479a11815fe",
+        "record_bytes": 381622,
+        "record_sha256": "13bc5fb49265ef16e3ccb8b1f5c772bf30e4c584b3a8bb2e49634841bd54a35d",
+        "source_bytes": 261334,
+        "source_sha256": "5c6c4f21ba76f51468dce34e47ebb0fc8a2330b17b7985d3be9c2479a11815fe",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "b22bbeaec4a3ffa93878f8658aa29408a4ce65679bcf6266cb04158b809237b0",
+        "codec": "identity",
+        "encoded_bytes": 522301,
+        "id": "png-boundary-524288",
+        "mime": "image/png",
+        "original_bytes": 522301,
+        "original_sha256": "f79b27904e0fc0999848ab9487a66d1d129786b3dd9c27f3152b05276653d1b1",
+        "record_bytes": 729579,
+        "record_sha256": "51ea92b3ae505d30d07d00b3d288e9b8870e1165f14186e37adf37c5e71ef1f6",
+        "source_bytes": 522301,
+        "source_sha256": "f79b27904e0fc0999848ab9487a66d1d129786b3dd9c27f3152b05276653d1b1",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "ab1252bd239bac51b5697c0ce52520b4ae88fa68af4d2364b1c0b3fd78e7a5fe",
+        "codec": "identity",
+        "encoded_bytes": 1045602,
+        "id": "png-boundary-1048576",
+        "mime": "image/png",
+        "original_bytes": 1045602,
+        "original_sha256": "3baa9d360d538eba204e2ff282de2449cbd52f12f08da4f92dc4c1adfd9e2f0e",
+        "record_bytes": 1427314,
+        "record_sha256": "efcaab6d0b6f431f60db4f0446551fef16c707125112be96526e424bbbe856b4",
+        "source_bytes": 1045602,
+        "source_sha256": "3baa9d360d538eba204e2ff282de2449cbd52f12f08da4f92dc4c1adfd9e2f0e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "19a2d97352ed5ef3a5f36ad3b598a60aa8f01c3c7ce5a11bf3ee1888dff3bf9c",
+        "codec": "identity",
+        "encoded_bytes": 2092973,
+        "id": "png-boundary-2097152",
+        "mime": "image/png",
+        "original_bytes": 2092973,
+        "original_sha256": "8248d142436269af0696fa094c57eae590b502dbc0fd344e5ad98b81690d0bb0",
+        "record_bytes": 2823810,
+        "record_sha256": "0736509c9f7c39edcdb39af94da056c0cc360b0044801937462ef231c3ab5ebe",
+        "source_bytes": 2092973,
+        "source_sha256": "8248d142436269af0696fa094c57eae590b502dbc0fd344e5ad98b81690d0bb0",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "2e42fdf4e8d5b7d3e828400071312d2a8b62c95e518aaa7fb485896dc005ac83",
+        "codec": "identity",
+        "encoded_bytes": 3086,
+        "id": "webp-caption-320",
+        "mime": "image/webp",
+        "original_bytes": 3086,
+        "original_sha256": "8da7e3e2c41fbcb450b21fbee6855a4459cf832fc719327e334571c90ac03935",
+        "record_bytes": 37287,
+        "record_sha256": "5c4361bcafe6b52604ae91875cc97b41d2d6f491e29c229e5eaa0109610f1f7d",
+        "source_bytes": 3086,
+        "source_sha256": "8da7e3e2c41fbcb450b21fbee6855a4459cf832fc719327e334571c90ac03935",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "1129d93b7466ea7b154779e461c2c73aba1e80208df27fce6233184c053419d3",
+        "codec": "zstd",
+        "encoded_bytes": 7309,
+        "id": "webp-caption-1280",
+        "mime": "image/webp",
+        "original_bytes": 9122,
+        "original_sha256": "f48a110d7a1a20bdf08ccda158ab5d8bc20fc6a8d2f627f830dfa7db22127779",
+        "record_bytes": 42918,
+        "record_sha256": "a3067998f9376f65011e2a912d2e089b25d83cb207041adfb669528d5e8e9284",
+        "source_bytes": 9122,
+        "source_sha256": "f48a110d7a1a20bdf08ccda158ab5d8bc20fc6a8d2f627f830dfa7db22127779",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0563f49db6ebb1da0cc89f29a4c217afaae9094170782e95b9ae5c07c6d1fb5d",
+        "codec": "identity",
+        "encoded_bytes": 12330,
+        "id": "webp-screenshot-320",
+        "mime": "image/webp",
+        "original_bytes": 12330,
+        "original_sha256": "ae741ebd4b3b39eae3474b4e272f6aa912be5d79cee5837f98564f6d29497122",
+        "record_bytes": 49614,
+        "record_sha256": "27713c31e334d82bbfd4abc075aed4b66b85e2ef938c8536186d07c573390398",
+        "source_bytes": 12330,
+        "source_sha256": "ae741ebd4b3b39eae3474b4e272f6aa912be5d79cee5837f98564f6d29497122",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0be1f756f5e88b0c6a5c853f4307a7b99e9d2ea5439ed8fb099668563ee963c1",
+        "codec": "zstd",
+        "encoded_bytes": 12171,
+        "id": "webp-screenshot-1280",
+        "mime": "image/webp",
+        "original_bytes": 14292,
+        "original_sha256": "92418cb3e12311f7ba98c9a8f39657f2daaf2f3b74eb0ff6c2970591573d45c4",
+        "record_bytes": 49401,
+        "record_sha256": "679b839e052843d0efba6758217ab0526241e5a2ff69ef2b03a93f45d0c11bd5",
+        "source_bytes": 14292,
+        "source_sha256": "92418cb3e12311f7ba98c9a8f39657f2daaf2f3b74eb0ff6c2970591573d45c4",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "e5aa9ece6a04decd29bac2ceeaafc843a33f5c342c31d329f5e2031164395b64",
+        "codec": "identity",
+        "encoded_bytes": 2442,
+        "id": "webp-macro-320",
+        "mime": "image/webp",
+        "original_bytes": 2442,
+        "original_sha256": "0aa8858867c7877839d9752d1907dd68bcee62f675a9c17887461374ae8ad49a",
+        "record_bytes": 36427,
+        "record_sha256": "c791d193ba36ae74ae5fadfcdb18739af484241bf5cc65df22511ea7a7753c09",
+        "source_bytes": 2442,
+        "source_sha256": "0aa8858867c7877839d9752d1907dd68bcee62f675a9c17887461374ae8ad49a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "463f79a20eef929db717c7857a44538b18af795cc2660d7c47cbe6b10288148f",
+        "codec": "zstd",
+        "encoded_bytes": 2430,
+        "id": "webp-macro-1280",
+        "mime": "image/webp",
+        "original_bytes": 4790,
+        "original_sha256": "8582fb4620ce654ce5854a48cc6b92c0b73ff3b199ae65912a6819f8ee5c7f8e",
+        "record_bytes": 36410,
+        "record_sha256": "db4ccb51d0b640baabeabac4dbdf062c6775cd0bc4e501fb3526f153cbcc814d",
+        "source_bytes": 4790,
+        "source_sha256": "8582fb4620ce654ce5854a48cc6b92c0b73ff3b199ae65912a6819f8ee5c7f8e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0ee10c486a06568d0bcef5499956e14266b5be9a9a21624414daf6fde2e6c57c",
+        "codec": "identity",
+        "encoded_bytes": 56956,
+        "id": "webp-texture-320",
+        "mime": "image/webp",
+        "original_bytes": 56956,
+        "original_sha256": "c15fcf55227cf70ef992ff3be8ffa1a8a07f7c953894fca70c16560032ac793f",
+        "record_bytes": 109118,
+        "record_sha256": "99f44f94cc0c1893bdb4a97a588c6b345e3f0075b9bc96f00c6400d11fcc6bb1",
+        "source_bytes": 56956,
+        "source_sha256": "c15fcf55227cf70ef992ff3be8ffa1a8a07f7c953894fca70c16560032ac793f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "5bd986906cf64cd532e27b39118af0f963f2847a0cdb76a385432ec1cd82d50a",
+        "codec": "identity",
+        "encoded_bytes": 955098,
+        "id": "webp-texture-1280",
+        "mime": "image/webp",
+        "original_bytes": 955098,
+        "original_sha256": "9f08a02a24a41ade68c1efcc411ab1effc55fa7efe658ff872babb88a09fc038",
+        "record_bytes": 1306644,
+        "record_sha256": "1404dea90eec6c38a7bc5c5e08713e3775b37df4b8bacfa4f11ce11a84770e2b",
+        "source_bytes": 955098,
+        "source_sha256": "9f08a02a24a41ade68c1efcc411ab1effc55fa7efe658ff872babb88a09fc038",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "5de3a5e03f0a2f23f660ff896b823bc98d49ee811f90e54a9883c76f0a7612c2",
+        "codec": "identity",
+        "encoded_bytes": 130898,
+        "id": "webp-boundary-131072",
+        "mime": "image/webp",
+        "original_bytes": 130898,
+        "original_sha256": "6b9ba5e4de07249308cd1693ff32b7b8989a5e00ba68a254a4ff21b0a616a086",
+        "record_bytes": 207710,
+        "record_sha256": "af1dcf62a0eaf2c26e631a5a48935458afc16c3d6e848fbca3ca0e83f00cbcc8",
+        "source_bytes": 130898,
+        "source_sha256": "6b9ba5e4de07249308cd1693ff32b7b8989a5e00ba68a254a4ff21b0a616a086",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "08b1a9dee667af895257af0d642c50b26f7b0b031722e3fb25ee4b2a52b16158",
+        "codec": "identity",
+        "encoded_bytes": 260604,
+        "id": "webp-boundary-262144",
+        "mime": "image/webp",
+        "original_bytes": 260604,
+        "original_sha256": "595fae553888101b768de0c49a51d4abbe5b582b98a25a80959944184234135b",
+        "record_bytes": 380650,
+        "record_sha256": "c7e062923109acc20e145eb8060f368f6c84ba4154e538bd02389bcef31ce845",
+        "source_bytes": 260604,
+        "source_sha256": "595fae553888101b768de0c49a51d4abbe5b582b98a25a80959944184234135b",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "b07982367421209ecc49c30b9f7f330f33dbae20b10628a5c0c0bcae0d959361",
+        "codec": "identity",
+        "encoded_bytes": 523046,
+        "id": "webp-boundary-524288",
+        "mime": "image/webp",
+        "original_bytes": 523046,
+        "original_sha256": "5d097691ba93b7b8434f9c207e3560063bf95880652d26fa08710e41f1ccd6f8",
+        "record_bytes": 730574,
+        "record_sha256": "28b81fb32753521d297e88ac733ef4468fa586d94fd6249b08dd384cb802e770",
+        "source_bytes": 523046,
+        "source_sha256": "5d097691ba93b7b8434f9c207e3560063bf95880652d26fa08710e41f1ccd6f8",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "ab61e8bfba13fd68e3656e1e730da8563d11bfd2e47a9f6ca6dfa6c70dc65a7f",
+        "codec": "identity",
+        "encoded_bytes": 1047618,
+        "id": "webp-boundary-1048576",
+        "mime": "image/webp",
+        "original_bytes": 1047618,
+        "original_sha256": "0485e75d6c0fe2cb064ef86e0b53712bf6751684fbbed8de7d363625a9544e2d",
+        "record_bytes": 1430008,
+        "record_sha256": "754550aa02f18f0e8d1d28498f927020af7e86b62893e749884a5853a134ebe6",
+        "source_bytes": 1047618,
+        "source_sha256": "0485e75d6c0fe2cb064ef86e0b53712bf6751684fbbed8de7d363625a9544e2d",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "43625a910ef76ce517a5b481294fba31cea4cc0c3d790f6bc82435229ce89374",
+        "codec": "identity",
+        "encoded_bytes": 2096312,
+        "id": "webp-boundary-2097152",
+        "mime": "image/webp",
+        "original_bytes": 2096312,
+        "original_sha256": "f1dbca383dd19cb7a00c301ffaced9d8e416083fe1b3d0b9cf9e548f746fd111",
+        "record_bytes": 2828268,
+        "record_sha256": "6c821053b46a21fd4f3017cde92b826b0188cb228ed025f2e8cb76fb457b521b",
+        "source_bytes": 2096312,
+        "source_sha256": "f1dbca383dd19cb7a00c301ffaced9d8e416083fe1b3d0b9cf9e548f746fd111",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "f78b20604ad6d657d81ec7428b7c220b76202569e3de2e9e91614bfd8c539e2d",
+        "codec": "zstd",
+        "encoded_bytes": 2984,
+        "id": "png-transparent-320",
+        "mime": "image/png",
+        "original_bytes": 3242,
+        "original_sha256": "abe8afd5a3bcce13a8ee75e10cc5c1a9863723e0f7bc3676ec4a01797250b93e",
+        "record_bytes": 37144,
+        "record_sha256": "ce6ce25cbe40a0b5ea4c1551af314b2fcae2afcef909a4884f28c7ac59c1aad7",
+        "source_bytes": 3242,
+        "source_sha256": "abe8afd5a3bcce13a8ee75e10cc5c1a9863723e0f7bc3676ec4a01797250b93e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "e93cd24f28fc4dc04e78760cb9f79720ceea963511b224a73415bcfe327326db",
+        "codec": "zstd",
+        "encoded_bytes": 5859,
+        "id": "png-transparent-1280",
+        "mime": "image/png",
+        "original_bytes": 10037,
+        "original_sha256": "ebc75d2f0c6133d26918c0456ed813530d20224c1de9af7fc69c00e66f454fcd",
+        "record_bytes": 40981,
+        "record_sha256": "59fc271aaef1a78d9193d5909ddb9be2d41509ddd924500be14cb0abb9f381e0",
+        "source_bytes": 10037,
+        "source_sha256": "ebc75d2f0c6133d26918c0456ed813530d20224c1de9af7fc69c00e66f454fcd",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "c71040aafad904a277defa75add672b1ded7210d08f4738316f7c23859ecf3c9",
+        "codec": "zstd",
+        "encoded_bytes": 2041,
+        "id": "gif-caption-160",
+        "mime": "image/gif",
+        "original_bytes": 3095,
+        "original_sha256": "079c4200b67d7a663110414ac1d6ec217eadd7a19937de12cefc1137dec4942f",
+        "record_bytes": 35888,
+        "record_sha256": "22d9889d5ece5478e292a82a96929c3fe6f87825b9d8d5a510a34262ec92176e",
+        "source_bytes": 3095,
+        "source_sha256": "079c4200b67d7a663110414ac1d6ec217eadd7a19937de12cefc1137dec4942f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "1602bd3b1e8000a9f917c7e0a0b34eda1448264121eb0db961aa5768980b4b59",
+        "codec": "zstd",
+        "encoded_bytes": 4740,
+        "id": "gif-caption-640",
+        "mime": "image/gif",
+        "original_bytes": 5754,
+        "original_sha256": "daf10f5484522e1005f865c15646418695fa3bdac2792a9ad0d3f6cf6ca694fc",
+        "record_bytes": 39485,
+        "record_sha256": "27b424b0f80cf0f2e32df024e1605b55c0a9accb92d7b012a61c34d8a2725e59",
+        "source_bytes": 5754,
+        "source_sha256": "daf10f5484522e1005f865c15646418695fa3bdac2792a9ad0d3f6cf6ca694fc",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "50b17ccdd76183d37ef4ae138ad29c6b872dc24f70a41cfd825d0f63e8b234d9",
+        "codec": "zstd",
+        "encoded_bytes": 41403,
+        "id": "gif-texture-160",
+        "mime": "image/gif",
+        "original_bytes": 43922,
+        "original_sha256": "c446c0c66999a0a9053a34981eba5f7e0924623ba4de882cebf71de5b0ddcf75",
+        "record_bytes": 88371,
+        "record_sha256": "a53ef75dc613783df9045cf415b13b977bc181582ead27b0f4ba9b91ccbd6154",
+        "source_bytes": 43922,
+        "source_sha256": "c446c0c66999a0a9053a34981eba5f7e0924623ba4de882cebf71de5b0ddcf75",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": [
+            "original_cap",
+            "encoded_cap"
+          ]
+        },
+        "block_hash": "05e5ea17a8480371cd50398e75645bcfd900412310a08370830f154eefa6f330",
+        "codec": "zstd",
+        "encoded_bytes": 741046,
+        "id": "gif-texture-640",
+        "mime": "image/gif",
+        "original_bytes": 795696,
+        "original_sha256": "c24f3f6add9017ecd64c7be51cf075cd1eebfa846828eb3ae67fe0241bfbcc57",
+        "record_bytes": 1021235,
+        "record_sha256": "0ecfccebf9562c0635ed246fff4e5fe7ceaab5217bbd1b4636dd63281c38de94",
+        "source_bytes": 795696,
+        "source_sha256": "c24f3f6add9017ecd64c7be51cf075cd1eebfa846828eb3ae67fe0241bfbcc57",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "f8b078fb83682298ded963ad6422659a4c72947c27407873f0dad8384edf7711",
+        "codec": "zstd",
+        "encoded_bytes": 121892,
+        "id": "gif-boundary-131072",
+        "mime": "image/gif",
+        "original_bytes": 131019,
+        "original_sha256": "7cc72710dc7bb86c62477109f4e0ba76be8c060168acdd920aece55c6ce28302",
+        "record_bytes": 195695,
+        "record_sha256": "7d5bb94d8af5a3a0d0a829ec6701d1b636e2ae4da36ffdc929f789d9badb426c",
+        "source_bytes": 131019,
+        "source_sha256": "7cc72710dc7bb86c62477109f4e0ba76be8c060168acdd920aece55c6ce28302",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "235b387d8bd6a07b8b79a0eaad49b1d01282ccd3cabfea16bf8a7599594727c9",
+        "codec": "zstd",
+        "encoded_bytes": 243549,
+        "id": "gif-boundary-262144",
+        "mime": "image/gif",
+        "original_bytes": 260806,
+        "original_sha256": "2e230a6b906207a4bd03706973b4f58f22b5c104368cd6d50416b51549f9217f",
+        "record_bytes": 357903,
+        "record_sha256": "b8d920ef57df115034457a083004b33ca50f6eca07e8cc86e3a1e8856cfcb56d",
+        "source_bytes": 260806,
+        "source_sha256": "2e230a6b906207a4bd03706973b4f58f22b5c104368cd6d50416b51549f9217f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "b484aef024418fef78d422229d7b640c0596e18750923aac0b43ddaf4a596d67",
+        "codec": "zstd",
+        "encoded_bytes": 489692,
+        "id": "gif-boundary-524288",
+        "mime": "image/gif",
+        "original_bytes": 524242,
+        "original_sha256": "22a7351f8c60697e91fb244abfe63da8fc3ddbd3beb6d6719b8e2e5c2f68af9d",
+        "record_bytes": 686095,
+        "record_sha256": "4e875ba4fc7995baaa8f508b97df68682bfcd4bcfd4a235598474806e8a03983",
+        "source_bytes": 524242,
+        "source_sha256": "22a7351f8c60697e91fb244abfe63da8fc3ddbd3beb6d6719b8e2e5c2f68af9d",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "c2f43a6b230e04263b25e8d8763479a5f2f5cfd790a8a048176a0f5cc2931c18",
+        "codec": "zstd",
+        "encoded_bytes": 977839,
+        "id": "gif-boundary-1048576",
+        "mime": "image/gif",
+        "original_bytes": 1047920,
+        "original_sha256": "85969fb1140dca9967a189f304a36edb6d3b5cfe325cb42c2e596abdaf526675",
+        "record_bytes": 1336961,
+        "record_sha256": "514002e01e1797e1961da117525d7188c612a88b0f6253f6fc93442a15f988df",
+        "source_bytes": 1047920,
+        "source_sha256": "85969fb1140dca9967a189f304a36edb6d3b5cfe325cb42c2e596abdaf526675",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "71524f3dbb274363016b859983de1b4c3d9ddf5519d59e964a02b94b2a54a92f",
+        "codec": "identity",
+        "encoded_bytes": 2097133,
+        "id": "gif-boundary-2097152",
+        "mime": "image/gif",
+        "original_bytes": 2097133,
+        "original_sha256": "bbef85aad798e9f72d89c30debc5ea5e665335d7797bcb1cad5a6cc2cb26ad1f",
+        "record_bytes": 2829360,
+        "record_sha256": "7ac55463892d482ec999012972ed610d66cc1a1eeb57a5607bf962322f7def4c",
+        "source_bytes": 2097133,
+        "source_sha256": "bbef85aad798e9f72d89c30debc5ea5e665335d7797bcb1cad5a6cc2cb26ad1f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "88c12b9fbab07899bfa5a09479f9277a53c5bec234f31838c71c3567d2dff8c7",
+        "codec": "identity",
+        "encoded_bytes": 4884,
+        "id": "webp-animation",
+        "mime": "image/webp",
+        "original_bytes": 4884,
+        "original_sha256": "bfad77478d8b080d99f3d74df0ab75cf8782b182b244c37f098154f638e8a666",
+        "record_bytes": 39684,
+        "record_sha256": "a19cd111189941400e0e1a4e28dbd549862ff8cc38a73984657f0d44b23228bc",
+        "source_bytes": 4884,
+        "source_sha256": "bfad77478d8b080d99f3d74df0ab75cf8782b182b244c37f098154f638e8a666",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "487120a9bb661ec7b80c77f6f4187e3bca601a0acbeb2ab2273d12244bf88172",
+        "codec": "identity",
+        "encoded_bytes": 8,
+        "id": "text-8",
+        "mime": "text/plain",
+        "original_bytes": 8,
+        "original_sha256": "22f210fbd07e2e6516695ccc5f896e285af15ff8fb4488c33ef290308df81c48",
+        "record_bytes": 33197,
+        "record_sha256": "a6eb0a68060e200a27a012ade6f2a9879e639ec4bfb425f417f65ad1707a84a3",
+        "source_bytes": 8,
+        "source_sha256": "22f210fbd07e2e6516695ccc5f896e285af15ff8fb4488c33ef290308df81c48",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "9ed48799acf1858be11512e5aa5c1fbebd62f6576185c8b5d7d7615b3c8edfd5",
+        "codec": "zstd",
+        "encoded_bytes": 53,
+        "id": "text-64",
+        "mime": "text/plain",
+        "original_bytes": 64,
+        "original_sha256": "bc780ab1c3388b6bc60ba7004bb3c252714360de57f788be22406e904ec8f3b3",
+        "record_bytes": 33256,
+        "record_sha256": "a321c252866d6c755b3e12abd2a2a995b3cda310853ce1368a6da35edfb12568",
+        "source_bytes": 64,
+        "source_sha256": "bc780ab1c3388b6bc60ba7004bb3c252714360de57f788be22406e904ec8f3b3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "a99a920d20f622b43e77a67ac9e2413dbf80b0cdadfdca103fcf827aeb320579",
+        "codec": "zstd",
+        "encoded_bytes": 135,
+        "id": "text-512",
+        "mime": "text/plain",
+        "original_bytes": 512,
+        "original_sha256": "64aae48883ee1d7f4a0b0485572ccaece6155971a3df99114bc27beed1339071",
+        "record_bytes": 33367,
+        "record_sha256": "8cb020bdf0e7544d501cd1117f8a7ac3c372a1ebc0741dfcf6bf3893d81baa3a",
+        "source_bytes": 512,
+        "source_sha256": "64aae48883ee1d7f4a0b0485572ccaece6155971a3df99114bc27beed1339071",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "78c00f2f6d6ac39694b2754377ae865f5e6d06fc9681fca934279b6c8c1fd21f",
+        "codec": "zstd",
+        "encoded_bytes": 301,
+        "id": "text-4096",
+        "mime": "text/plain",
+        "original_bytes": 4096,
+        "original_sha256": "9780dd4cdc7ffc8cf0712c19f7fb9f9fe62add5726ef15e7915d7a97ba5e1b10",
+        "record_bytes": 33593,
+        "record_sha256": "194f423b1710041670ee48420e9b034005032e73ae1a1e986ef640acef4f54bb",
+        "source_bytes": 4096,
+        "source_sha256": "9780dd4cdc7ffc8cf0712c19f7fb9f9fe62add5726ef15e7915d7a97ba5e1b10",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "af811ecef5c64d61409a4f86d3a55bae5f6c46d8ff438c19a1cd9cf05019cd7d",
+        "codec": "zstd",
+        "encoded_bytes": 844,
+        "id": "text-16384",
+        "mime": "text/plain",
+        "original_bytes": 16384,
+        "original_sha256": "0e5f2369f99ad9b1bd055874094cbb3173059f52684b9ff12ece79bbed1798c1",
+        "record_bytes": 34319,
+        "record_sha256": "4b4106c9c2c6797e2a3748a94dedd735e15fbec613157942726927a82354ee1c",
+        "source_bytes": 16384,
+        "source_sha256": "0e5f2369f99ad9b1bd055874094cbb3173059f52684b9ff12ece79bbed1798c1",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "08424531cd17faa5184e824250cee3209dc0586154eebf1fd05b3688167c4805",
+        "codec": "zstd",
+        "encoded_bytes": 2963,
+        "id": "text-65536",
+        "mime": "text/plain",
+        "original_bytes": 65536,
+        "original_sha256": "70fb977b503b39580d83602ca6e50ce862a012781cd0c502c4266a2e3e4fb28e",
+        "record_bytes": 37144,
+        "record_sha256": "6d0b87c3f3776c088858bc43b77306282c6da131bf440cbc6d64967bff7f841f",
+        "source_bytes": 65536,
+        "source_sha256": "70fb977b503b39580d83602ca6e50ce862a012781cd0c502c4266a2e3e4fb28e",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "47822ef96850eba31fc3910cd634dfcc03329ca09a640e5634dd8589023bde0d",
+        "codec": "zstd",
+        "encoded_bytes": 11467,
+        "id": "text-262144",
+        "mime": "text/plain",
+        "original_bytes": 262144,
+        "original_sha256": "15f83ff79d22c3b55dac8108ae90d50bb98217942e89066d3425c8264134a91f",
+        "record_bytes": 48487,
+        "record_sha256": "cda5c179d46f1d9fd11f5467c8a142fcd687f4d5de0b20fc66f62c22f3b2cb2f",
+        "source_bytes": 262144,
+        "source_sha256": "15f83ff79d22c3b55dac8108ae90d50bb98217942e89066d3425c8264134a91f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      }
+    ],
+    "production34": [
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "1e576bb5267d25e9026b6b351f915b5f95c1a57a0d80e61dd076637a42331262",
+        "codec": "identity",
+        "encoded_bytes": 48,
+        "id": "narrative-tiny",
+        "mime": "text/plain",
+        "original_bytes": 48,
+        "original_sha256": "794562e5b17a777e2e9d55a8d1656ec63bc58890cd1734d5558aa54c47b6242f",
+        "record_bytes": 33251,
+        "record_sha256": "34d306908a3be7ded9687ed98569c75fc13f7e33d2c1a6fd64435030921880c5",
+        "source_bytes": 48,
+        "source_sha256": "794562e5b17a777e2e9d55a8d1656ec63bc58890cd1734d5558aa54c47b6242f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "fd81dd228a2dca23ab1cb75c2341768b4700813f75f7a8febed48a708ac45428",
+        "codec": "zstd",
+        "encoded_bytes": 419,
+        "id": "narrative-small",
+        "mime": "text/plain",
+        "original_bytes": 1024,
+        "original_sha256": "fac7650dce07cceb9e724c1d9b3c8abe0d546a1caf0298d42dcbb489c43ef833",
+        "record_bytes": 33748,
+        "record_sha256": "b6b9bba0b0bc210d9c9d88fb0aab4486f14e0b030c5c5585ccdc9f4fcf847cee",
+        "source_bytes": 1024,
+        "source_sha256": "fac7650dce07cceb9e724c1d9b3c8abe0d546a1caf0298d42dcbb489c43ef833",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "f8b65ed35bae5f37a8f87b93a2a33fa58ae04826018d3f7d685ecc28c22815c9",
+        "codec": "zstd",
+        "encoded_bytes": 4473,
+        "id": "narrative-medium",
+        "mime": "text/plain",
+        "original_bytes": 32767,
+        "original_sha256": "5c2126d67b3774e6ff7e10a6f09f040b6063afb0099c618e4fc2a2182d4f8a80",
+        "record_bytes": 39155,
+        "record_sha256": "8a37a9bfd15cf8dcd65ad1f80bf5c9d4877112172fec9196a340b98f86059687",
+        "source_bytes": 32767,
+        "source_sha256": "5c2126d67b3774e6ff7e10a6f09f040b6063afb0099c618e4fc2a2182d4f8a80",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "0c32521d830de2361375b61114298b9ebfa32adda3399ac0a13b2848fa4936de",
+        "codec": "zstd",
+        "encoded_bytes": 31893,
+        "id": "narrative-max",
+        "mime": "text/plain",
+        "original_bytes": 262144,
+        "original_sha256": "b666d0125bbbd12656fca336cd0fc53cd38b8dcfa465f2c9382efe11b456467f",
+        "record_bytes": 75718,
+        "record_sha256": "bf45fc4eea1dddbe9c76703f6b0d6b847e04bb35efec695a89c97cd56d1a0f47",
+        "source_bytes": 262144,
+        "source_sha256": "b666d0125bbbd12656fca336cd0fc53cd38b8dcfa465f2c9382efe11b456467f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "8a1466c5be93d9bfd3fc0b1b0652afbc8d2a210c4d3557de54499a216d05ce10",
+        "codec": "zstd",
+        "encoded_bytes": 256,
+        "id": "json-1",
+        "mime": "text/plain",
+        "original_bytes": 362,
+        "original_sha256": "c8907039e037297522efac5cf8c59194034a2f0d17be23e400c2e16c26925c2b",
+        "record_bytes": 33530,
+        "record_sha256": "ff84e74fad3df20e0c3924ac982a0c2fe1712b72549e6528742777d5eb26992e",
+        "source_bytes": 362,
+        "source_sha256": "c8907039e037297522efac5cf8c59194034a2f0d17be23e400c2e16c26925c2b",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "71ca87629f50f8f8504d95d2bb4d20a926c34210ab5c1fc9b85dfcf4c4e462d9",
+        "codec": "zstd",
+        "encoded_bytes": 891,
+        "id": "json-12",
+        "mime": "text/plain",
+        "original_bytes": 3375,
+        "original_sha256": "78278599f6e9d4d3aaa4c64a4e1affb3cd4646225bb3a42ec682dfc657ccf702",
+        "record_bytes": 34376,
+        "record_sha256": "83e55387b15171415f257f2521a0e55f1f848cea201abf11941ba5bad4c41054",
+        "source_bytes": 3375,
+        "source_sha256": "78278599f6e9d4d3aaa4c64a4e1affb3cd4646225bb3a42ec682dfc657ccf702",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "ee76a5423e594ca6a94a3f874edb28d244c25f6e97d58cad1be935b516e6debf",
+        "codec": "zstd",
+        "encoded_bytes": 6546,
+        "id": "json-128",
+        "mime": "text/plain",
+        "original_bytes": 35270,
+        "original_sha256": "1ee36637309a657f01c24e6f376ea7b7e04f58c676ecb4ce11f6410cbe5edbe4",
+        "record_bytes": 41919,
+        "record_sha256": "eef82225f1a5944cdb11f146ed9d1cbd0424c6418613487534983638356b8ea8",
+        "source_bytes": 35270,
+        "source_sha256": "1ee36637309a657f01c24e6f376ea7b7e04f58c676ecb4ce11f6410cbe5edbe4",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "f1d156f1b887aa9bd0e4fd387f51fc27694bab8791da72d6a9c2a14f88c3f1ab",
+        "codec": "zstd",
+        "encoded_bytes": 32884,
+        "id": "json-650",
+        "mime": "text/plain",
+        "original_bytes": 178647,
+        "original_sha256": "550e93d5afba61837a161b2150c94836df8b02844ddcbad66a7862cc86c5b220",
+        "record_bytes": 77042,
+        "record_sha256": "2c59866da04ed603abd32a251b49beba5dc82a26e26e94c2f58b559c559e35ef",
+        "source_bytes": 178647,
+        "source_sha256": "550e93d5afba61837a161b2150c94836df8b02844ddcbad66a7862cc86c5b220",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "7b31ad1f9b84830d8f6eeb64eb4715644aed2ad2de9001d8ba48daf4ce6f3ec4",
+        "codec": "zstd",
+        "encoded_bytes": 97,
+        "id": "source-small",
+        "mime": "text/plain",
+        "original_bytes": 102,
+        "original_sha256": "bbe9f17042de0767f0816349f408b9860eecc0c1c119a634ec7f924877e6434f",
+        "record_bytes": 33317,
+        "record_sha256": "7a8ac4faa58f8557d7b64211b4249ad80f0f569c02bddc7436bf83e7c9de3033",
+        "source_bytes": 102,
+        "source_sha256": "bbe9f17042de0767f0816349f408b9860eecc0c1c119a634ec7f924877e6434f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": []
+        },
+        "block_hash": "69b8aab4e94f696cb5c4ad51bd881b399620a6c457f402a11498dd13b73c2bab",
+        "codec": "zstd",
+        "encoded_bytes": 3620,
+        "id": "source-module",
+        "mime": "text/plain",
+        "original_bytes": 8008,
+        "original_sha256": "f4ff888a353d1a8d9dfcdf67e3542096078bfcb74d23d6b6ce01e09575b06ede",
+        "record_bytes": 38018,
+        "record_sha256": "77e263039abb38316012e0bf4635d110a873a87ada4190eabcfc06199110d527",
+        "source_bytes": 8008,
+        "source_sha256": "f4ff888a353d1a8d9dfcdf67e3542096078bfcb74d23d6b6ce01e09575b06ede",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "0484dda62d52c3e34e57337cee8d0a10bb4028b6fd2803ec6e143f66bb42b9d8",
+        "codec": "zstd",
+        "encoded_bytes": 11160,
+        "id": "source-suite",
+        "mime": "text/plain",
+        "original_bytes": 31972,
+        "original_sha256": "89b9126e514b3608d06e92d03f2a1a42ed057a286cc84816f2dda344cd6404e6",
+        "record_bytes": 48073,
+        "record_sha256": "6ae63ddd58f81642db89c73161a9a63760fe40662c36b34048c3fa6fe1533e01",
+        "source_bytes": 31972,
+        "source_sha256": "89b9126e514b3608d06e92d03f2a1a42ed057a286cc84816f2dda344cd6404e6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 16384,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "76036f9183a82d38c23016eb8b1147258d68daf3967adc68ff07bd12e59831b5",
+        "codec": "zstd",
+        "encoded_bytes": 49202,
+        "id": "entropy-text",
+        "mime": "text/plain",
+        "original_bytes": 65536,
+        "original_sha256": "0db1a393156b391e670baaf0ad3bbf17e087bf219f173536814018921fc3c88f",
+        "record_bytes": 98797,
+        "record_sha256": "6d540ddd638a2aed0c85904fe599b4a90c029b81d4fa72c3f4afcef91635d3e6",
+        "source_bytes": 65536,
+        "source_sha256": "0db1a393156b391e670baaf0ad3bbf17e087bf219f173536814018921fc3c88f",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0e37036acc2fe6853ab02371f31ad6c3c3b88fbf7f34c95834c4f63dfcef7e07",
+        "codec": "identity",
+        "encoded_bytes": 69,
+        "id": "png-tiny",
+        "mime": "image/png",
+        "original_bytes": 69,
+        "original_sha256": "4beaa00a650ac9d8ae5f1c6a46b92a95c14473f09f317140bc4b3b16d51ecabe",
+        "record_bytes": 33246,
+        "record_sha256": "b262ef16fa35634ad45579428b7c48ecd2cd1bad2777769a69a25683f325e2e2",
+        "source_bytes": 69,
+        "source_sha256": "4beaa00a650ac9d8ae5f1c6a46b92a95c14473f09f317140bc4b3b16d51ecabe",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "69c7c00f6685830d32357309cd0f484939ee5ef2c562a9e75d0fcf18ac291319",
+        "codec": "zstd",
+        "encoded_bytes": 7024,
+        "id": "png-small",
+        "mime": "image/png",
+        "original_bytes": 7322,
+        "original_sha256": "497620d2acc5da18283e195d5b47bfd96e22c85c08c772d461aa31c3da4f30e4",
+        "record_bytes": 42532,
+        "record_sha256": "8899edff417199ae8c8af0c43f2b4f23dfe0892c4634bbe63f00fafbc909373c",
+        "source_bytes": 7322,
+        "source_sha256": "497620d2acc5da18283e195d5b47bfd96e22c85c08c772d461aa31c3da4f30e4",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap"
+          ]
+        },
+        "block_hash": "1ca01e3e654e8b37503775fdc9f534bf14fd54544b959d47b81ba16192785ec8",
+        "codec": "identity",
+        "encoded_bytes": 591076,
+        "id": "png-medium",
+        "mime": "image/png",
+        "original_bytes": 591076,
+        "original_sha256": "aeee1fef18e6fabda8445899a99033420966bf581e557f4237311c4ee024a059",
+        "record_bytes": 821279,
+        "record_sha256": "5acebcd0e7df8629b07550f2bac2c2537c12250cefb242a34bb6557586d329d1",
+        "source_bytes": 591076,
+        "source_sha256": "aeee1fef18e6fabda8445899a99033420966bf581e557f4237311c4ee024a059",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "371613f368977bd153c0ca2f9ffd394659033d1436bb6836c01455873b9ca127",
+        "codec": "identity",
+        "encoded_bytes": 261296,
+        "id": "png-near-active",
+        "mime": "image/png",
+        "original_bytes": 261296,
+        "original_sha256": "dfe2c07f6512ea57ca48577342dd729864752ad8082aaa9d6cd2745c995cdc2a",
+        "record_bytes": 381570,
+        "record_sha256": "9aa1cf65cd7d606c191785e5aa98d3a378984e91a5127fb0380693b63c067431",
+        "source_bytes": 261296,
+        "source_sha256": "dfe2c07f6512ea57ca48577342dd729864752ad8082aaa9d6cd2745c995cdc2a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "655843ca15a47a180c5e6e9814e1cada36fc18bf8190ace0036a941cb719e178",
+        "codec": "identity",
+        "encoded_bytes": 2096062,
+        "id": "png-near-v3",
+        "mime": "image/png",
+        "original_bytes": 2096062,
+        "original_sha256": "b97d9f1b12498b9749196dadb861395af7a9748a13e9b87ac2003ce5d01ff5d5",
+        "record_bytes": 2827930,
+        "record_sha256": "a37b5cae500d6d11974f6776c9e6b91cdeb8be7491d858eb20c5e052ed9da217",
+        "source_bytes": 2096062,
+        "source_sha256": "b97d9f1b12498b9749196dadb861395af7a9748a13e9b87ac2003ce5d01ff5d5",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "487487fa03202ccc67df2f067be89afcc7392b974235f5e7c0af1237133e6cc4",
+        "codec": "zstd",
+        "encoded_bytes": 468,
+        "id": "jpeg-tiny",
+        "mime": "image/jpeg",
+        "original_bytes": 631,
+        "original_sha256": "08e73e5cc08886ba41fa93ce698dd31c0e863bf62b991c4cfec61d507320b4b3",
+        "record_bytes": 33780,
+        "record_sha256": "587eb36e75338897988e54bf5844e5dba5e5966e070c3093134d848de8026923",
+        "source_bytes": 631,
+        "source_sha256": "08e73e5cc08886ba41fa93ce698dd31c0e863bf62b991c4cfec61d507320b4b3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "8b07055a54ed7f888e3aac0d1ebda2cd3725a05dfa0892be84747b12ac1c01b5",
+        "codec": "zstd",
+        "encoded_bytes": 21019,
+        "id": "jpeg-small",
+        "mime": "image/jpeg",
+        "original_bytes": 23387,
+        "original_sha256": "3eccf88bd0b016e75d347f1773a1f385cb2d342983e2b9b41e06ccb1d2b16ac3",
+        "record_bytes": 61198,
+        "record_sha256": "a5ea97b8757548e07bda55aa7d0cdc1faed20c2bd92934a6561f02dca8d88d45",
+        "source_bytes": 23387,
+        "source_sha256": "3eccf88bd0b016e75d347f1773a1f385cb2d342983e2b9b41e06ccb1d2b16ac3",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "fce0baca8f01e8e5dccb6c33fe6cafd85a135b6de29d8fafdb977728a10d0b83",
+        "codec": "identity",
+        "encoded_bytes": 383143,
+        "id": "jpeg-medium",
+        "mime": "image/jpeg",
+        "original_bytes": 383143,
+        "original_sha256": "86eea450f4c47acdeaa4011e1d309a75c3d92f4f99118ed512f2f53a33472d9d",
+        "record_bytes": 544038,
+        "record_sha256": "fb7b96a8e41d5b43ed3e77794470f9517eefcf81bec67cab94cb9742770e4e8d",
+        "source_bytes": 383143,
+        "source_sha256": "86eea450f4c47acdeaa4011e1d309a75c3d92f4f99118ed512f2f53a33472d9d",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "6c3f6778d7fa8d93a6852fc797148619c2f148d4c9200e6bc73f965da09c95c7",
+        "codec": "identity",
+        "encoded_bytes": 259183,
+        "id": "jpeg-near-active",
+        "mime": "image/jpeg",
+        "original_bytes": 259183,
+        "original_sha256": "460a544df61a8b8f561060bcab12c89ad896bf8bfd525cbc46e0692c936182d7",
+        "record_bytes": 378758,
+        "record_sha256": "407ae7bca6966432c61b6de81fdc8e3e65a6f5c8705a0f24bd57bfdef69a4c82",
+        "source_bytes": 259183,
+        "source_sha256": "460a544df61a8b8f561060bcab12c89ad896bf8bfd525cbc46e0692c936182d7",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "667e9d7c0d8d04a7f376da775f13a0f84a21d7c604d4a49834822262fa991928",
+        "codec": "identity",
+        "encoded_bytes": 2091343,
+        "id": "jpeg-near-v3",
+        "mime": "image/jpeg",
+        "original_bytes": 2091343,
+        "original_sha256": "030a96333363f1c2766c69f80f00411c040916c5c815e71fbd6712de950ba0b6",
+        "record_bytes": 2821643,
+        "record_sha256": "9a85013e2fbb09361469390c1d26db0c23efefb512e794e4c16833c92c13f4f8",
+        "source_bytes": 2091343,
+        "source_sha256": "030a96333363f1c2766c69f80f00411c040916c5c815e71fbd6712de950ba0b6",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "aede17ceca0a857faae4577b24068043559b23645dc85061eae52865ad8fc329",
+        "codec": "identity",
+        "encoded_bytes": 66,
+        "id": "webp-tiny",
+        "mime": "image/webp",
+        "original_bytes": 66,
+        "original_sha256": "7c14802354c22205f1d63e4359951e778df242a25ab07822cf88fac4ebb727e9",
+        "record_bytes": 33245,
+        "record_sha256": "a6ccc8ce9b4149f99f08ce8b835e04899024a539fe2c97a0fa1d07b828e89dc6",
+        "source_bytes": 66,
+        "source_sha256": "7c14802354c22205f1d63e4359951e778df242a25ab07822cf88fac4ebb727e9",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "de25f62adbaed6aad03892eabb44e3d4b7ab7c2b0089133733c9a14f1c91af28",
+        "codec": "identity",
+        "encoded_bytes": 10720,
+        "id": "webp-small",
+        "mime": "image/webp",
+        "original_bytes": 10720,
+        "original_sha256": "d4afd8911770032d57fbcf75de73022032353f93406284dcd6444de90a45355b",
+        "record_bytes": 47470,
+        "record_sha256": "e235024295624e564d9b3840ce97502b6f05c8f3e481b8e5be879f42ed6d48d5",
+        "source_bytes": 10720,
+        "source_sha256": "d4afd8911770032d57fbcf75de73022032353f93406284dcd6444de90a45355b",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "44db9f0dc4d71d26f8dd12fb1495ffbcd0797f3873452a225ff4cfaf19e88232",
+        "codec": "identity",
+        "encoded_bytes": 156834,
+        "id": "webp-medium",
+        "mime": "image/webp",
+        "original_bytes": 156834,
+        "original_sha256": "24d3754ff7506753b3975860daf67499a7a43ad19e51e87b3706ad55520fd988",
+        "record_bytes": 242290,
+        "record_sha256": "bae74f4e9c7451becccc7b13c1fce3fda3b1a42b7e42e3568045d8d42c699817",
+        "source_bytes": 156834,
+        "source_sha256": "24d3754ff7506753b3975860daf67499a7a43ad19e51e87b3706ad55520fd988",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "a430aeecaf3148e8b5382f789fd1cdea957464b9c4d0cc4751869737ca5ff8d8",
+        "codec": "identity",
+        "encoded_bytes": 260920,
+        "id": "webp-near-active",
+        "mime": "image/webp",
+        "original_bytes": 260920,
+        "original_sha256": "0bac647e3d2211f1aa6374fb9bd2869da877e2d4d2b15319e28f91e5cf689e77",
+        "record_bytes": 381074,
+        "record_sha256": "7e3de5bf3f6c7971b6f82687a6c430e6c72e7cf66c6b8564feba44212677c0f3",
+        "source_bytes": 260920,
+        "source_sha256": "0bac647e3d2211f1aa6374fb9bd2869da877e2d4d2b15319e28f91e5cf689e77",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "8be1c2e191abebb07abd8db71ceb6d8948e326787ea764c18f23a3b1e4d37d1a",
+        "codec": "identity",
+        "encoded_bytes": 2090902,
+        "id": "webp-near-v3",
+        "mime": "image/webp",
+        "original_bytes": 2090902,
+        "original_sha256": "57314d59bfab248d46b9e4d8aef4f43a4d1ce6b44196ec2e990a5b83115d40e5",
+        "record_bytes": 2821056,
+        "record_sha256": "f5240f6efc749166b1bbc7d895f39ad3beaf37ad019a515b76c7e22311eace84",
+        "source_bytes": 2090902,
+        "source_sha256": "57314d59bfab248d46b9e4d8aef4f43a4d1ce6b44196ec2e990a5b83115d40e5",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "408214e73fe464fa477fcbf1cdcf7f64feeaf06739510fdbfff970b7588e3005",
+        "codec": "identity",
+        "encoded_bytes": 20596,
+        "id": "webp-animated",
+        "mime": "image/webp",
+        "original_bytes": 20596,
+        "original_sha256": "528b0aa69b32c8967211b4922c825c174813d83d137d3ffb13bd3c3c1c59c232",
+        "record_bytes": 60639,
+        "record_sha256": "7cabe06287b71024c77e1e28970031bc0cfb5c1328ba549417c3868c53f75f73",
+        "source_bytes": 20596,
+        "source_sha256": "528b0aa69b32c8967211b4922c825c174813d83d137d3ffb13bd3c3c1c59c232",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "efb86cd1653310b3c993a5a90450bff606ca0bdfff91957b3eb41b361a9926dc",
+        "codec": "identity",
+        "encoded_bytes": 43,
+        "id": "gif-tiny",
+        "mime": "image/gif",
+        "original_bytes": 43,
+        "original_sha256": "4e68c225b495d9e46132df6bfaec596a32153139aae9e81d9816a9328c763ac1",
+        "record_bytes": 33214,
+        "record_sha256": "758f29c0bbdce9a4eb5251ac72f6d728621f467864ff02a80dc5c87b646b11ad",
+        "source_bytes": 43,
+        "source_sha256": "4e68c225b495d9e46132df6bfaec596a32153139aae9e81d9816a9328c763ac1",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "eac0a767cc6ad879731d64e9c20104c91be4959200dc01c7ee19bdf768ae8c75",
+        "codec": "identity",
+        "encoded_bytes": 6807,
+        "id": "gif-small",
+        "mime": "image/gif",
+        "original_bytes": 6807,
+        "original_sha256": "16f91f5aa82a4111ab2ed925c8b3750c1f32f95f35492c5349dd4fd622cafb04",
+        "record_bytes": 42244,
+        "record_sha256": "4f353b4dd2eb760616fe005f167983b1232959b1d9e2c29c3e205bfb5a43409b",
+        "source_bytes": 6807,
+        "source_sha256": "16f91f5aa82a4111ab2ed925c8b3750c1f32f95f35492c5349dd4fd622cafb04",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap"
+          ]
+        },
+        "block_hash": "7cb7e240c15c1f8d08947e647b59d011bbe2f52df47baa84697a709ceeaec4fd",
+        "codec": "zstd",
+        "encoded_bytes": 249846,
+        "id": "gif-medium",
+        "mime": "image/gif",
+        "original_bytes": 268337,
+        "original_sha256": "4e7b028000150809e5a0889adb33d778252790a5433946f23f51c4ea44845a4a",
+        "record_bytes": 366299,
+        "record_sha256": "85b4abfa0a46e6dbc83c75a192da378933dedb4ce1a37a695fac873012a16433",
+        "source_bytes": 268337,
+        "source_sha256": "4e7b028000150809e5a0889adb33d778252790a5433946f23f51c4ea44845a4a",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": []
+        },
+        "block_hash": "0ef755d3919c75135bde959e8e31b52f9337c2625d7618ce9aebf30346bffe40",
+        "codec": "zstd",
+        "encoded_bytes": 243557,
+        "id": "gif-near-active",
+        "mime": "image/gif",
+        "original_bytes": 261748,
+        "original_sha256": "83b1db7f206e312d7f2374861e418334e19290abb646ac30fef31010eedcd7cd",
+        "record_bytes": 357915,
+        "record_sha256": "3ac5e3be909a5a1e42f006ce06b754b6fa338b1a50b16815402adc7d355cf621",
+        "source_bytes": 261748,
+        "source_sha256": "83b1db7f206e312d7f2374861e418334e19290abb646ac30fef31010eedcd7cd",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": false,
+          "frames": 1,
+          "original_cap": 262144,
+          "reasons": [
+            "original_cap",
+            "encoded_cap",
+            "complete_cap"
+          ]
+        },
+        "block_hash": "4c17c0ee6a1b39c58f887e710b0145da5abb13a764c07026b28131ce531e34d8",
+        "codec": "identity",
+        "encoded_bytes": 2096459,
+        "id": "gif-near-v3",
+        "mime": "image/gif",
+        "original_bytes": 2096459,
+        "original_sha256": "c4905a70e2c2a93914a5bfce0ebd09166598a00ea55507adc1026a3487a3b4d1",
+        "record_bytes": 2828461,
+        "record_sha256": "311f0fa910fa63c10ae3607d054020cbd780ad20d3844f02754f1eed13340963",
+        "source_bytes": 2096459,
+        "source_sha256": "c4905a70e2c2a93914a5bfce0ebd09166598a00ea55507adc1026a3487a3b4d1",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      },
+      {
+        "balanced": {
+          "eligible": true,
+          "frames": 2,
+          "original_cap": 524288,
+          "reasons": []
+        },
+        "block_hash": "add69b48d8b0f2db8c03aa39cc7d0f2a963b64a9bcc52d66495545961050b75f",
+        "codec": "zstd",
+        "encoded_bytes": 13970,
+        "id": "gif-animated",
+        "mime": "image/gif",
+        "original_bytes": 14964,
+        "original_sha256": "ea6940bd1a46d3fdf1f2b3ddb28cfbe288e89bdae20ea13d7a913bd7deb39e55",
+        "record_bytes": 51796,
+        "record_sha256": "3ee01d7a57e7833f027840434938a7b6b8d34784b8b5aab04f8d8e5052c4bd4c",
+        "source_bytes": 14964,
+        "source_sha256": "ea6940bd1a46d3fdf1f2b3ddb28cfbe288e89bdae20ea13d7a913bd7deb39e55",
+        "status": "Exact frozen record replay",
+        "synthetic": true
+      }
+    ]
+  },
+  "totals": {
+    "balanced41": {
+      "canonical_bytes": 4876357,
+      "choices": {
+        "identity": 14,
+        "zstd": 27
+      },
+      "encoded_bytes": 2637179,
+      "legal_records": 41,
+      "original_bytes": 2875842,
+      "originals": 41,
+      "source_bytes": 2875842
+    },
+    "historical36": {
+      "canonical_bytes": 8241301,
+      "choices": {
+        "identity": 10,
+        "zstd": 26
+      },
+      "encoded_bytes": 5285229,
+      "legal_records": 36,
+      "original_bytes": 6093910,
+      "originals": 36,
+      "source_bytes": 6093917
+    },
+    "meme58": {
+      "canonical_bytes": 26413907,
+      "choices": {
+        "identity": 25,
+        "zstd": 31
+      },
+      "encoded_bytes": 18417045,
+      "legal_records": 56,
+      "original_bytes": 24930635,
+      "originals": 58,
+      "source_bytes": 24930635
+    },
+    "production34": {
+      "canonical_bytes": 15798621,
+      "choices": {
+        "identity": 17,
+        "zstd": 17
+      },
+      "encoded_bytes": 11002892,
+      "legal_records": 34,
+      "original_bytes": 11521163,
+      "originals": 34,
+      "source_bytes": 11521163
+    }
+  },
+  "version": 1,
+  "weighting": "Equal records, synthetic coverage; no production traffic distribution"
+}

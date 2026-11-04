@@ -1,0 +1,146 @@
+{
+  "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-9a2e14b8963d410098107ffb8c12ad67",
+  "groups": [
+    {
+      "group": "focused",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "verification/task721/test_bridge.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-9a2e14b8963d410098107ffb8c12ad67\\focused"
+      ],
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "timeout_seconds": 360,
+      "exit": 0,
+      "elapsed_seconds": 28.5051233000122
+    },
+    {
+      "group": "canonical_admission",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_10c_v3.py",
+        "tests/test_milestone_7_task_7_13_admission.py",
+        "tests/test_milestone_7_task_7_14_issuance.py",
+        "tests/test_milestone_7_task_7_15_history.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-d1c38c72125f415d838e77163c5e909c\\canonical_admission"
+      ],
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "timeout_seconds": 360,
+      "exit": 0,
+      "elapsed_seconds": 106.43695369991474
+    },
+    {
+      "group": "codecs",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_6_decoder.py",
+        "tests/test_milestone_7_task_7_6a_sequences.py",
+        "tests/test_milestone_7_task_7_6b_performance.py",
+        "tests/test_milestone_7_task_7_6c_isolation.py",
+        "tests/test_milestone_7_task_7_6d_linux_isolation.py",
+        "tests/test_milestone_7_task_7_6d_evidence.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-d1c38c72125f415d838e77163c5e909c\\codecs"
+      ],
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "timeout_seconds": 360,
+      "exit": 0,
+      "elapsed_seconds": 44.56587679986842
+    },
+    {
+      "group": "atomic",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_16_atomic.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-d1c38c72125f415d838e77163c5e909c\\atomic"
+      ],
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "timeout_seconds": 360,
+      "exit": 0,
+      "elapsed_seconds": 182.0857513998635
+    },
+    {
+      "group": "active_storage",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/storage/test_sqlite_storage_backend.py",
+        "tests/storage/test_storage_regression_pass.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-d1c38c72125f415d838e77163c5e909c\\active_storage"
+      ],
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "timeout_seconds": 360,
+      "exit": 0,
+      "elapsed_seconds": 8.864602100104094
+    },
+    {
+      "group": "active_safe",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_protocol_v1_golden_vectors.py",
+        "tests/test_protocol_v1_freeze_consistency.py",
+        "tests/blockchain/test_protocol_v1_block_format.py",
+        "tests/test_milestone_6_task_6_9_media_integrity.py",
+        "tests/test_milestone_7_task_7_17e_finality_durability.py",
+        "-k",
+        "not media_api and not settings_connection_ownership_and_nested_begin",
+        "-q",
+        "--tb=short",
+        "-p",
+        "no:cacheprovider",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task721-3a9f48c2a7214b748e6aaeae69059083\\active_safe"
+      ],
+      "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+      "timeout_seconds": 360,
+      "exit": 0,
+      "elapsed_seconds": 44.18800889980048
+    }
+  ]
+}

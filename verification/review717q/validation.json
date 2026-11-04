@@ -1,0 +1,123 @@
+{
+  "artifacts": {
+    "docs/milestone-7-network-wide-review-journal-feasibility.md": "4db9ab1de6c5e811b3eafdcd52141faf29d5c316709980048d28b5af6577045c",
+    "docs/milestone-7-review-journal-capacity-and-clock-decision.md": "da8b680e1fac4cf53e343d28459f2b8e223647ec41d025081ec6e7a6ae042ee6",
+    "tests/test_milestone_7_task_7_17q_capacity_clock.py": "586901861158edeee075568233ac1e28466bd83f350499e94e208c968b618209",
+    "verification/review717q/__init__.py": "7b4c5325df484dc391709f8914b3afa95a158d77ba4a39d417aeb123d974e3df",
+    "verification/review717q/audit.py": "00c5007d921c21d97b10bfdc9054ca98f3f5d649dfa9412c7201643dfcc8afe4",
+    "verification/review717q/capacity.py": "47d072cbbb88c6075aeb23290ac770371be13d070e8753535cf929d96bfedba6",
+    "verification/review717q/clock.py": "ced0ec85fcbba3eb7902fa3407b1c24a1ba75e416256221213773370ff4a741b",
+    "verification/review717q/inputs.json": "f4df8378833ae3c01434df9cd17f9decc86fd874dadebd5c39b4a2e6643c8375",
+    "verification/review717q/results.json": "8d1c3ea6a46e8e26953f55f1c91b41400646e03b494895844725063c50249a24",
+    "verification/review717q/workload.py": "54daeb91aedc4857b2401bfcf59f501afd56f7e115da3fd3f67228021ce72489"
+  },
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "checks": [
+    "HEAD/branch unchanged",
+    "index empty",
+    "only P notice tracked modification",
+    "P historical body/code/fixtures/negative controls unchanged",
+    "untracked inventory constrained",
+    "all recorded JUnit cases pass",
+    "UTF-8/newlines/whitespace",
+    "local Markdown links",
+    "git diff --check"
+  ],
+  "earlier_runs": [
+    {
+      "cause": "incorrect expected idle-storage literal corrected; not release evidence",
+      "failed": 1,
+      "junit": "temp/task717q-focused-1.xml",
+      "passed": 35
+    },
+    {
+      "cause": "superseded by additional parent-binding/penalty tests; not added to total",
+      "junit": "temp/task717q-focused-final.xml",
+      "passed": 116
+    },
+    {
+      "cause": "superseded by typed-signer and independent economics checks; not added to total",
+      "junit": "temp/task717q-focused-release.xml",
+      "passed": 118
+    }
+  ],
+  "errors": 0,
+  "exclusions": [
+    "whole repository",
+    "live network/multi-host BFT throughput",
+    "new-profile actual signatures/time oracle",
+    "physical clock/crash tests",
+    "full close paging implementation",
+    "production source archive/restore benchmarks"
+  ],
+  "failed": 0,
+  "final_head": "e15c71e0e31afd3cb9a3bb50bc114bcac5922c62",
+  "final_state": "only named unstaged Q deliverables; index empty",
+  "historical_economics_input_sha256": "61d49f77f3897637f863bfcf30c6048e395ae162b7f19fdbecb3f86020aad75c",
+  "initial_head": "e15c71e0e31afd3cb9a3bb50bc114bcac5922c62",
+  "initial_state": "clean index/worktree including untracked files, observed before edits",
+  "preserved_P": {
+    "tests/fixtures/review717p_v1/cases.json": "09e8802ba07ecec03d0810e40bc0cbe42ff24b984db5054ff1c3020f3cff010a",
+    "tests/test_milestone_7_task_7_17p_review_journal.py": "13d01f26e7138c8cd77dfddba8d2da96c6f1d8741eb17a4feeab5f3f6dd49a65",
+    "verification/review717p/__init__.py": "cbb7893a2c0cc5da4d050e892eec9c151e0dbe9a7f0b257b82f198ebfd21a304",
+    "verification/review717p/audit.py": "f1a41bb68712bc92d532c0d23ba76eaf478fbb12088c647eae7b693054956467",
+    "verification/review717p/check.py": "f8206ff3e8d661f4605c6e9f3ac769bedc59d0104b42bf4a6dff2cb086287221",
+    "verification/review717p/model.py": "20c9307865c69877c0f4a7a237964b477302dca0131d3cf0b306051f6762e8ba",
+    "verification/review717p/negative-control-traces.json": "7ba94576553b97f11cf103cb0d5333152f2bf130c33a1891d4c0248faeb93a3f",
+    "verification/review717p/oracle.py": "cecc9808c756e414acef67873b20d3a9903997bac86ea047fbb37707f98a0fb6",
+    "verification/review717p/results.json": "5220c7fc310c02097b134cc1887e1e3bf449ca5703d59ab9b1181533833fbc83",
+    "verification/review717p/validation.json": "92b3ed5d02ef9fd4e0ea686de9c62f40469eda4b67f4241927c7eb5e9d617758",
+    "verification/review717p/workload.py": "402d64d26fde4852b31df428ed98a58ea6c08dc7744e545a15c037243e231566"
+  },
+  "python": "3.13.5",
+  "skipped": 0,
+  "suites": [
+    {
+      "junit": "temp/task717q-focused-delivery.xml",
+      "junit_sha256": "f714244dc2792847ddd8489aa8e43496934f67cf0e9a6deb695663b55e7c5ce9",
+      "modules": {
+        "tests.test_milestone_7_task_7_17p_review_journal": 80,
+        "tests.test_milestone_7_task_7_17q_capacity_clock": 40
+      },
+      "outcomes": {
+        "passed": 120
+      },
+      "seconds": 10.719,
+      "test_inventory_sha256": "80ea2f9e323c238b2dc86992d3197d4a07070b494202e0d04f414abfbd35bfa4",
+      "total": 120
+    },
+    {
+      "junit": "temp/task717q-regression-final.xml",
+      "junit_sha256": "315ff373b5bff26a1a371b11d953dd0e83f96090ff8998de4950750574dacd69",
+      "modules": {
+        "tests.blockchain.test_protocol_v1_block_format": 8,
+        "tests.blockchain.test_protocol_v1_genesis": 24,
+        "tests.blockchain.test_protocol_v1_lifecycle_finality": 5,
+        "tests.blockchain.test_task_3_5_validator_quorum_finality": 12,
+        "tests.blockchain.test_task_3_6_public_finality_status": 3,
+        "tests.test_milestone_5_task_5_5_earned_reviewer_eligibility": 9,
+        "tests.test_milestone_6_task_6_5_dual_review": 19,
+        "tests.test_milestone_7_task_7_10c_v3": 119,
+        "tests.test_milestone_7_task_7_17e_finality_durability": 36,
+        "tests.test_milestone_7_task_7_17h_tendermint_model": 42,
+        "tests.test_milestone_7_task_7_17j_durable_signer": 125,
+        "tests.test_milestone_7_task_7_17k_validator_authority": 113,
+        "tests.test_milestone_7_task_7_17m_g2_genesis": 184,
+        "tests.test_milestone_7_task_7_8_node_economics": 7,
+        "tests.test_protocol_v1": 43,
+        "tests.test_protocol_v1_freeze_consistency": 5,
+        "tests.test_protocol_v1_golden_vectors": 8,
+        "tests.test_protocol_v1_native_transfers": 15
+      },
+      "outcomes": {
+        "passed": 777
+      },
+      "seconds": 123.735,
+      "test_inventory_sha256": "d8b40eed52a4676b8504dfad08ce16fea503e10403c93091f5b0842c8b0d30fb",
+      "total": 777
+    }
+  ],
+  "task": "7.17Q",
+  "timed_out": 0,
+  "total_passed": 897
+}

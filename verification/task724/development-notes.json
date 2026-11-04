@@ -1,0 +1,8 @@
+{
+  "initial_verifier_attempt": {
+    "status": "FAIL; no complete verification credit",
+    "cause": "Local-link checks ran before the newly generated findings/checksum targets existed.",
+    "correction": "Materialize new summary/checksum targets, then validate links and recompute final hashes.",
+    "historical_or_production_changes": false
+  }
+}

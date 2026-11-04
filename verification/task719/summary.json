@@ -1,0 +1,67 @@
+{
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "collection_only_deselections": 1,
+  "comparisons": {
+    "codec_nontiming_differences": [],
+    "codec_rows": 252,
+    "composition_exact_excluding_environment_and_sqlite": true,
+    "economics_csv_byte_exact": true,
+    "economics_json_exact": true,
+    "historical_composition_sqlite_replay": "BLOCKED: historical WAL request conflicts with active DELETE-only safety gate; no bypass",
+    "storage_exact_excluding_environment": true
+  },
+  "corpus_source_hashes_unchanged": true,
+  "files_modified": [
+    "scripts/milestone_7_task_7_3_corpus.py",
+    "scripts/milestone_7_task_7_4_benchmark.py",
+    "scripts/milestone_7_task_7_4a_image_evaluation.py",
+    "scripts/milestone_7_task_7_7_block_composition.py"
+  ],
+  "final_status": " M scripts/milestone_7_task_7_3_corpus.py\n M scripts/milestone_7_task_7_4_benchmark.py\n M scripts/milestone_7_task_7_4a_image_evaluation.py\n M scripts/milestone_7_task_7_7_block_composition.py\n?? docs/milestone-7-reproducibility-and-regression-triage.md\n?? verification/task719/adaptive_roundtrip_metadata.json\n?? verification/task719/api_api_case.txt\n?? verification/task719/api_control_api_case.txt\n?? verification/task719/api_control_api_case_outcomes.json\n?? verification/task719/api_control_execution.json\n?? verification/task719/api_control_loopback.txt\n?? verification/task719/api_execution.json\n?? verification/task719/api_loopback.txt\n?? verification/task719/api_probe.py\n?? verification/task719/baseline_codec.txt\n?? verification/task719/baseline_composition.txt\n?? verification/task719/baseline_corpus.txt\n?? verification/task719/baseline_execution.json\n?? verification/task719/baseline_manifest_differences.txt\n?? verification/task719/baseline_measurements.txt\n?? verification/task719/baseline_measurements_outcomes.json\n?? verification/task719/before.json\n?? verification/task719/checks.py\n?? verification/task719/checksums.sha256\n?? verification/task719/codec.json\n?? verification/task719/comparisons.json\n?? verification/task719/composition_followup_comparisons.txt\n?? verification/task719/composition_followup_composition_no_sqlite.txt\n?? verification/task719/composition_followup_execution.json\n?? verification/task719/composition_no_sqlite.json\n?? verification/task719/diagnostic-runner-note.json\n?? verification/task719/economics.csv\n?? verification/task719/economics.json\n?? verification/task719/five_failure_triage.json\n?? verification/task719/inventory_collect_deselection.txt\n?? verification/task719/inventory_collect_deselection_outcomes.json\n?? verification/task719/inventory_collect_original_skips.txt\n?? verification/task719/inventory_collect_original_skips_outcomes.json\n?? verification/task719/inventory_execution.json\n?? verification/task719/manifest_differences.json\n?? verification/task719/original_skip_deselection_inventory.json\n?? verification/task719/preservation.json\n?? verification/task719/pytest_evidence.py\n?? verification/task719/reproduce_adaptive_roundtrip_metadata.txt\n?? verification/task719/reproduce_codec.txt\n?? verification/task719/reproduce_comparisons.txt\n?? verification/task719/reproduce_composition.txt\n?? verification/task719/reproduce_corpus.txt\n?? verification/task719/reproduce_economics.txt\n?? verification/task719/reproduce_execution.json\n?? verification/task719/reproduce_storage.txt\n?? verification/task719/run.py\n?? verification/task719/source_versions.json\n?? verification/task719/storage.json\n?? verification/task719/summarize.py\n?? verification/task719/summary.json\n?? verification/task719/test_reproduction_guards.py\n?? verification/task719/tests_codec.txt\n?? verification/task719/tests_codec_outcomes.json\n?? verification/task719/tests_execution.json\n?? verification/task719/tests_format_storage.txt\n?? verification/task719/tests_format_storage_outcomes.json\n?? verification/task719/tests_measurements.txt\n?? verification/task719/tests_measurements_outcomes.json\n?? verification/task719/tests_wrapper_guards.txt\n?? verification/task719/tests_wrapper_guards_outcomes.json\n",
+  "focused_completed_disjoint_counts": {
+    "failed": 2,
+    "passed": 681,
+    "skipped": 193
+  },
+  "head": "2b80161980722e680eb4f5234613230d8048d940",
+  "historical_inventory": {
+    "deselected": 1,
+    "failed": 5,
+    "skipped": 197,
+    "timeout_attempts": 2
+  },
+  "immutable_tracked_changes": [],
+  "immutable_tracked_files_checked": 332,
+  "index_changed": false,
+  "initial_status": "clean",
+  "milestone_completion_claim": false,
+  "not_run": [
+    "No full suite",
+    "No 7.17 reviewer-journal or consensus sequence",
+    "No Linux runtime tests or atomic WAL crash executions"
+  ],
+  "original_documented_commands": {
+    "codec": "PASS",
+    "composition": "Manifest gate repaired; full historical SQLite replay BLOCKED; --skip-sqlite PASS",
+    "corpus": "PASS"
+  },
+  "preexisting_tracked_files": 956,
+  "ready_for_owner_review_and_commit": true,
+  "remaining_blockers": [
+    "Historical 7.7 WAL SQLite replay conflicts with active DELETE-only storage safety gate",
+    "Two obsolete Task 7.3 assertions remain failed and unchanged",
+    "Linux execution not rerun; 193 platform skips and four gated WAL crash cases are not passes"
+  ],
+  "reproduction_acceptance": "PARTIAL",
+  "timeout_findings": {
+    "new_restricted_api_35_seconds": "TIMEOUT; same setup stack; writable TEMP/TMP did not resolve",
+    "new_restricted_stdlib_control": "12-second self-watchdog timeout, no API/database",
+    "new_unrestricted_controls": "Socketpair PASS; unchanged API test 1 PASS in 0.90 seconds",
+    "original_combined_v3_480_seconds": "190 completed progress dots, next node is public API test; no completed summary",
+    "original_standalone_45_seconds": "Socket accept during event-loop self-pipe setup before API handler"
+  },
+  "unresolved_test_ids": [
+    "tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory",
+    "tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure"
+  ]
+}

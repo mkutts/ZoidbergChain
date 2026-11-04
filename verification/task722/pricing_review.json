@@ -1,0 +1,34 @@
+{
+  "review_date": "2026-10-28",
+  "timezone": "America/New_York",
+  "basis_used": "Unchanged local illustrative USD/GiB assumptions dated 2026-10-18. No full provider quotation is asserted.",
+  "regional_quote": null,
+  "sources": [
+    {
+      "provider": "Hetzner",
+      "service_class": "Cloud compute and attached block volumes",
+      "region": "Not selected; no regional quote",
+      "urls": ["https://www.hetzner.com/cloud/", "https://docs.hetzner.com/cloud/volumes/overview/"],
+      "observation": "Compute prices not exposed in fetched dynamic page. Volume documentation specifies 10 GB minimum, 1 GB increments, up to 16 attachments and 10 TB total. Server snapshots/backups exclude attached volumes.",
+      "model_limit": "Illustrative disk pool is not a purchaseable Hetzner plan. Beyond provider volume limits another storage arrangement and quote are required; its price is unverified. Local full-copy snapshots are explicitly capacity-funded, not assumed included by the provider."
+    },
+    {
+      "provider": "Amazon Lightsail",
+      "service_class": "Cloud instance, SSD block storage and snapshots",
+      "region": "Not selected; historical assumptions are not a regional quote",
+      "url": "https://aws.amazon.com/lightsail/pricing/",
+      "observation": "Official page lists block storage starting at 8 GB, $0.10 per allocated GB-month, snapshots $0.05 per GB-month, regional transfer allowances and outbound overage rules. This does not substantiate the whole historical $40/4-vCPU/8-GiB/160-GiB bundle or its USD/GiB rates.",
+      "model_limit": "No regional bundle, maximum volume count/capacity, free-transfer offset or provider-native snapshot tariff silently substituted. Model provisions local full-copy snapshot capacity at its historical disk rate. One attempted AWS block-storage FAQ URL was inaccessible."
+    },
+    {
+      "provider": "Backblaze B2 plus unspecified storage-focused compute host",
+      "service_class": "Object backups; separate host compute/storage",
+      "region": "Host and backup regions unspecified",
+      "url": "https://www.backblaze.com/cloud-storage/pricing",
+      "observation": "Official B2 page starts at $6.95 per TB-month and describes free egress up to three times retained storage. It is not a full-node host quotation and is not the historical illustrative $0.006/GiB-month assumption.",
+      "model_limit": "Use local rates only as explicit historical assumptions. Host disk expansion limits, IOPS and region-specific end-to-end pricing remain unquoted."
+    }
+  ],
+  "unpriced_or_unqualified": ["taxes and currency changes", "provider minimums beyond illustrative 1-GiB billing granularity", "IOPS and snapshot/backup CPU work", "tier upgrades above attachment capacity limits", "production bursts and restore-time requirements", "unmeasured retained forks and real finality/reviewer-authority traffic"],
+  "fully_loaded_meaning": "Every listed media-only capacity and expected transfer line is charged in the model. This is not a fully quoted operating bill or a production throughput certification."
+}

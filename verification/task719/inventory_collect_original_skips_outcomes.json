@@ -1,0 +1,203 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_atomic_success_proposal_indexes_and_exact_recovery",
+      "line": 152
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_idempotent_retry_and_competing_candidates_share_one_issuance",
+      "line": 178
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[RuntimeError-before_claims]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[RuntimeError-after_claims]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[RuntimeError-after_block]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[OperationalError-before_claims]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[OperationalError-after_claims]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[OperationalError-after_block]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[OSError-before_claims]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[OSError-after_claims]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_rollback_at_every_write_stage_and_retry[OSError-after_block]",
+      "line": 193
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_lost_acknowledgement_is_retryable",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_busy_is_local_failure_and_leaves_no_claim",
+      "line": 220
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_two_connections_have_one_certification_winner",
+      "line": 232
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_independent_reviews_or_conflicting_submission[False]",
+      "line": 248
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_independent_reviews_or_conflicting_submission[True]",
+      "line": 248
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_signed_nonce_reuse_across_distinct_media_is_durable_conflict",
+      "line": 271
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_concurrent_independent_certifications_serialize_epoch_quota",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_old_read_only_proposal_cannot_authorize_new_snapshot",
+      "line": 314
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_snapshot_cas_stale_history_and_changed_eligibility[revision]",
+      "line": 327
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_snapshot_cas_stale_history_and_changed_eligibility[penalty]",
+      "line": 327
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_snapshot_cas_stale_history_and_changed_eligibility[established]",
+      "line": 327
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[network]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[genesis]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[media-policy]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[review-policy]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[signature]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[replayed-dimension]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[missing]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_context_crypto_and_missing_evidence_never_write[unresolved]",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_incomplete_or_invalid_construction_is_atomic[native]",
+      "line": 391
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_incomplete_or_invalid_construction_is_atomic[reward]",
+      "line": 391
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_incomplete_or_invalid_construction_is_atomic[parent]",
+      "line": 391
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_provisional_reorg_and_finalized_history_protection",
+      "line": 424
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_selection_failure_rolls_back_claims_and_tip",
+      "line": 456
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_source_snapshot_cannot_conflict_with_retained_v3_finality",
+      "line": 469
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_identity_and_zstd_share_claim_owner_but_allow_candidate_variants",
+      "line": 490
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_worker_unavailable_and_actual_disk_full_are_local",
+      "line": 507
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_immutable_constraints_foreign_keys_backup_and_nonactivation",
+      "line": 529
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_two_processes_one_owner_and_idempotent_retry",
+      "line": 601
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_affected_wal_runtime_is_refused_before_touching_any_file",
+      "line": 626
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[before_claims-DELETE]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[before_claims-WAL]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_claims-DELETE]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_claims-WAL]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_block-DELETE]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_block-WAL]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_commit-DELETE]",
+      "line": 639
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_commit-WAL]",
+      "line": 639
+    }
+  ],
+  "deselected": [],
+  "reports": [],
+  "exitstatus": 0
+}

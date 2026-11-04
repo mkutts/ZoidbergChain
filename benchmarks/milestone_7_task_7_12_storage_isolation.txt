@@ -1,0 +1,30 @@
+........................................................................ [  9%]
+........................................................................ [ 19%]
+........................................................................ [ 28%]
+........................................................................ [ 38%]
+........................................................................ [ 47%]
+........................................................................ [ 57%]
+........................................................................ [ 67%]
+......................................................ssssssssssssssssss [ 76%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 86%]
+ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 95%]
+sssssssssssssssssssssssssssssss.                                         [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:52: requires an actual Linux kernel
+SKIPPED [152] tests\test_milestone_7_task_7_6d_linux_isolation.py:67: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:84: requires an actual Linux kernel
+SKIPPED [9] tests\test_milestone_7_task_7_6d_linux_isolation.py:96: requires an actual Linux kernel
+SKIPPED [14] tests\test_milestone_7_task_7_6d_linux_isolation.py:109: requires an actual Linux kernel
+SKIPPED [3] tests\test_milestone_7_task_7_6d_linux_isolation.py:116: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:126: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:136: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:151: requires an actual Linux kernel
+SKIPPED [3] tests\test_milestone_7_task_7_6d_linux_isolation.py:170: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:189: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:209: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:220: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:238: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:279: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:287: requires an actual Linux kernel
+SKIPPED [1] tests\test_milestone_7_task_7_6d_linux_isolation.py:295: requires an actual Linux kernel
+559 passed, 193 skipped in 123.17s (0:02:03)

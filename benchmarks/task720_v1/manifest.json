@@ -1,0 +1,326 @@
+{
+  "environment": {
+    "jpeg": "8.0",
+    "pillow": "12.3.0",
+    "webp": "1.6.0"
+  },
+  "generator": "benchmarks/task720_v1/corpus.py",
+  "inclusion": "All predeclared MIME/size/category members; no codec-dependent exclusions or weighting",
+  "license": "CC0-1.0 for newly created corpus artifacts",
+  "profile": "task720-production-like-v1",
+  "representativeness": "Synthetic production-like coverage only; no real-world media or observed traffic weights",
+  "samples": [
+    {
+      "category": "plain_text",
+      "id": "narrative-tiny",
+      "mime": "text/plain",
+      "origin": "Self-created seeded operations prose with varied events; synthetic, not human upload",
+      "seed": 7202074,
+      "sha256": "794562e5b17a777e2e9d55a8d1656ec63bc58890cd1734d5558aa54c47b6242f",
+      "size": 48
+    },
+    {
+      "category": "plain_text",
+      "id": "narrative-small",
+      "mime": "text/plain",
+      "origin": "Self-created seeded operations prose with varied events; synthetic, not human upload",
+      "seed": 7203050,
+      "sha256": "fac7650dce07cceb9e724c1d9b3c8abe0d546a1caf0298d42dcbb489c43ef833",
+      "size": 1024
+    },
+    {
+      "category": "plain_text",
+      "id": "narrative-medium",
+      "mime": "text/plain",
+      "origin": "Self-created seeded operations prose with varied events; synthetic, not human upload",
+      "seed": 7234794,
+      "sha256": "5c2126d67b3774e6ff7e10a6f09f040b6063afb0099c618e4fc2a2182d4f8a80",
+      "size": 32767
+    },
+    {
+      "category": "plain_text",
+      "id": "narrative-max",
+      "mime": "text/plain",
+      "origin": "Self-created seeded operations prose with varied events; synthetic, not human upload",
+      "seed": 7464170,
+      "sha256": "b666d0125bbbd12656fca336cd0fc53cd38b8dcfa465f2c9382efe11b456467f",
+      "size": 262144
+    },
+    {
+      "category": "structured_metadata_json",
+      "id": "json-1",
+      "mime": "text/plain",
+      "origin": "Self-created nested operational events, unique digest IDs and varied numeric values",
+      "seed": 7202027,
+      "sha256": "c8907039e037297522efac5cf8c59194034a2f0d17be23e400c2e16c26925c2b",
+      "size": 362
+    },
+    {
+      "category": "structured_metadata_json",
+      "id": "json-12",
+      "mime": "text/plain",
+      "origin": "Self-created nested operational events, unique digest IDs and varied numeric values",
+      "seed": 7202038,
+      "sha256": "78278599f6e9d4d3aaa4c64a4e1affb3cd4646225bb3a42ec682dfc657ccf702",
+      "size": 3375
+    },
+    {
+      "category": "structured_metadata_json",
+      "id": "json-128",
+      "mime": "text/plain",
+      "origin": "Self-created nested operational events, unique digest IDs and varied numeric values",
+      "seed": 7202154,
+      "sha256": "1ee36637309a657f01c24e6f376ea7b7e04f58c676ecb4ce11f6410cbe5edbe4",
+      "size": 35270
+    },
+    {
+      "category": "structured_metadata_json",
+      "id": "json-650",
+      "mime": "text/plain",
+      "origin": "Self-created nested operational events, unique digest IDs and varied numeric values",
+      "seed": 7202676,
+      "sha256": "550e93d5afba61837a161b2150c94836df8b02844ddcbad66a7862cc86c5b220",
+      "size": 178647
+    },
+    {
+      "category": "source_code",
+      "id": "source-small",
+      "mime": "text/plain",
+      "origin": "Self-created Task 7.20 source, CC0-1.0; actual complete modules for larger members",
+      "seed": null,
+      "sha256": "bbe9f17042de0767f0816349f408b9860eecc0c1c119a634ec7f924877e6434f",
+      "size": 102
+    },
+    {
+      "category": "source_code",
+      "id": "source-module",
+      "mime": "text/plain",
+      "origin": "Self-created Task 7.20 source, CC0-1.0; actual complete modules for larger members",
+      "seed": null,
+      "sha256": "f4ff888a353d1a8d9dfcdf67e3542096078bfcb74d23d6b6ce01e09575b06ede",
+      "size": 8008
+    },
+    {
+      "category": "source_code",
+      "id": "source-suite",
+      "mime": "text/plain",
+      "origin": "Self-created Task 7.20 source, CC0-1.0; actual complete modules for larger members",
+      "seed": null,
+      "sha256": "89b9126e514b3608d06e92d03f2a1a42ed057a286cc84816f2dda344cd6404e6",
+      "size": 31972
+    },
+    {
+      "category": "high_entropy_text",
+      "id": "entropy-text",
+      "mime": "text/plain",
+      "origin": "Seeded uniform ASCII token stream; synthetic entropy control",
+      "seed": 7202026,
+      "sha256": "0db1a393156b391e670baaf0ad3bbf17e087bf219f173536814018921fc3c88f",
+      "size": 65536
+    },
+    {
+      "category": "image/png",
+      "id": "png-tiny",
+      "mime": "image/png",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202026,
+      "sha256": "4beaa00a650ac9d8ae5f1c6a46b92a95c14473f09f317140bc4b3b16d51ecabe",
+      "size": 69
+    },
+    {
+      "category": "image/png",
+      "id": "png-small",
+      "mime": "image/png",
+      "origin": "Self-created dashboard raster; no camera/photo/production claim",
+      "seed": 7202026,
+      "sha256": "497620d2acc5da18283e195d5b47bfd96e22c85c08c772d461aa31c3da4f30e4",
+      "size": 7322
+    },
+    {
+      "category": "image/png",
+      "id": "png-medium",
+      "mime": "image/png",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202026,
+      "sha256": "aeee1fef18e6fabda8445899a99033420966bf581e557f4237311c4ee024a059",
+      "size": 591076
+    },
+    {
+      "category": "image/png",
+      "id": "png-near-active",
+      "mime": "image/png",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202026,
+      "sha256": "dfe2c07f6512ea57ca48577342dd729864752ad8082aaa9d6cd2745c995cdc2a",
+      "size": 261296
+    },
+    {
+      "category": "image/png",
+      "id": "png-near-v3",
+      "mime": "image/png",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202026,
+      "sha256": "b97d9f1b12498b9749196dadb861395af7a9748a13e9b87ac2003ce5d01ff5d5",
+      "size": 2096062
+    },
+    {
+      "category": "image/jpeg",
+      "id": "jpeg-tiny",
+      "mime": "image/jpeg",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202027,
+      "sha256": "08e73e5cc08886ba41fa93ce698dd31c0e863bf62b991c4cfec61d507320b4b3",
+      "size": 631
+    },
+    {
+      "category": "image/jpeg",
+      "id": "jpeg-small",
+      "mime": "image/jpeg",
+      "origin": "Self-created dashboard raster; no camera/photo/production claim",
+      "seed": 7202027,
+      "sha256": "3eccf88bd0b016e75d347f1773a1f385cb2d342983e2b9b41e06ccb1d2b16ac3",
+      "size": 23387
+    },
+    {
+      "category": "image/jpeg",
+      "id": "jpeg-medium",
+      "mime": "image/jpeg",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202027,
+      "sha256": "86eea450f4c47acdeaa4011e1d309a75c3d92f4f99118ed512f2f53a33472d9d",
+      "size": 383143
+    },
+    {
+      "category": "image/jpeg",
+      "id": "jpeg-near-active",
+      "mime": "image/jpeg",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202027,
+      "sha256": "460a544df61a8b8f561060bcab12c89ad896bf8bfd525cbc46e0692c936182d7",
+      "size": 259183
+    },
+    {
+      "category": "image/jpeg",
+      "id": "jpeg-near-v3",
+      "mime": "image/jpeg",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202027,
+      "sha256": "030a96333363f1c2766c69f80f00411c040916c5c815e71fbd6712de950ba0b6",
+      "size": 2091343
+    },
+    {
+      "category": "image/webp",
+      "id": "webp-tiny",
+      "mime": "image/webp",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202028,
+      "sha256": "7c14802354c22205f1d63e4359951e778df242a25ab07822cf88fac4ebb727e9",
+      "size": 66
+    },
+    {
+      "category": "image/webp",
+      "id": "webp-small",
+      "mime": "image/webp",
+      "origin": "Self-created dashboard raster; no camera/photo/production claim",
+      "seed": 7202028,
+      "sha256": "d4afd8911770032d57fbcf75de73022032353f93406284dcd6444de90a45355b",
+      "size": 10720
+    },
+    {
+      "category": "image/webp",
+      "id": "webp-medium",
+      "mime": "image/webp",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202028,
+      "sha256": "24d3754ff7506753b3975860daf67499a7a43ad19e51e87b3706ad55520fd988",
+      "size": 156834
+    },
+    {
+      "category": "image/webp",
+      "id": "webp-near-active",
+      "mime": "image/webp",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202028,
+      "sha256": "0bac647e3d2211f1aa6374fb9bd2869da877e2d4d2b15319e28f91e5cf689e77",
+      "size": 260920
+    },
+    {
+      "category": "image/webp",
+      "id": "webp-near-v3",
+      "mime": "image/webp",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202028,
+      "sha256": "57314d59bfab248d46b9e4d8aef4f43a4d1ce6b44196ec2e990a5b83115d40e5",
+      "size": 2090902
+    },
+    {
+      "category": "image/webp",
+      "id": "webp-animated",
+      "mime": "image/webp",
+      "origin": "Self-created two-frame operations display; exact animation container retained",
+      "seed": 7202028,
+      "sha256": "528b0aa69b32c8967211b4922c825c174813d83d137d3ffb13bd3c3c1c59c232",
+      "size": 20596
+    },
+    {
+      "category": "image/gif",
+      "id": "gif-tiny",
+      "mime": "image/gif",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202029,
+      "sha256": "4e68c225b495d9e46132df6bfaec596a32153139aae9e81d9816a9328c763ac1",
+      "size": 43
+    },
+    {
+      "category": "image/gif",
+      "id": "gif-small",
+      "mime": "image/gif",
+      "origin": "Self-created dashboard raster; no camera/photo/production claim",
+      "seed": 7202029,
+      "sha256": "16f91f5aa82a4111ab2ed925c8b3750c1f32f95f35492c5349dd4fd622cafb04",
+      "size": 6807
+    },
+    {
+      "category": "image/gif",
+      "id": "gif-medium",
+      "mime": "image/gif",
+      "origin": "Self-created texture raster; no camera/photo/production claim",
+      "seed": 7202029,
+      "sha256": "4e7b028000150809e5a0889adb33d778252790a5433946f23f51c4ea44845a4a",
+      "size": 268337
+    },
+    {
+      "category": "image/gif",
+      "id": "gif-near-active",
+      "mime": "image/gif",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202029,
+      "sha256": "83b1db7f206e312d7f2374861e418334e19290abb646ac30fef31010eedcd7cd",
+      "size": 261748
+    },
+    {
+      "category": "image/gif",
+      "id": "gif-near-v3",
+      "mime": "image/gif",
+      "origin": "Self-created noise texture; deterministic dimension search for 90-100% original-container cap",
+      "seed": 7202029,
+      "sha256": "c4905a70e2c2a93914a5bfce0ebd09166598a00ea55507adc1026a3487a3b4d1",
+      "size": 2096459
+    },
+    {
+      "category": "image/gif",
+      "id": "gif-animated",
+      "mime": "image/gif",
+      "origin": "Self-created two-frame operations display; exact animation container retained",
+      "seed": 7202029,
+      "sha256": "ea6940bd1a46d3fdf1f2b3ddb28cfbe288e89bdae20ea13d7a913bd7deb39e55",
+      "size": 14964
+    }
+  ],
+  "seed": 7202026,
+  "sources": {
+    "corpus.py": "8622c0b523090fbc757ea7f7cd43852be9b22dde19104896b5f60b3e38a7ab24",
+    "measure.py": "dce1aa4b7f451aa70c93c651c905fdbeb89fcaa877134aba65c93eb93051fc10"
+  },
+  "version": "1.0.0"
+}

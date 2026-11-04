@@ -1,0 +1,2 @@
+Verified source hashes and 252 codec round trips
+Wrote supplemental.json; size mismatches 0 strict roundtrips 72

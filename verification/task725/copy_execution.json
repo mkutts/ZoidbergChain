@@ -1,0 +1,16 @@
+{
+  "elapsed_seconds": 1210.0104087998625,
+  "fresh_process_timeout_seconds": 1200,
+  "mode": "Copies-only continuation of completed physical measurement; no source DB writes",
+  "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-copies-rvzbktiw",
+  "source_database_sha256": {
+    "balanced41": "67d67750d7d1f8fa38b7dacce458480e1a2ad1923aadefbf2c01eb44850fbead",
+    "historical36": "0d78cb0d35c93d8988a69f29c35a6e4eebacb3457a0afbd22764e45e655c5b94",
+    "meme58": "c37253299f7e965efd9b26f5f28960a486e8b699d14a6f5aed40f093d7216644",
+    "production34": "ee836a232233ea798277365f45204aec46f104c40062174eaea5a63c501ba87b"
+  },
+  "source_databases_unchanged": true,
+  "source_scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task725-evsstq4i",
+  "status": "PASS",
+  "version": 1
+}

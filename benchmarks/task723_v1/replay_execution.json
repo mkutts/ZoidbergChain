@@ -1,0 +1,57 @@
+[
+  {
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "C:\\Users\\mattk\\ZoidbergChain\\benchmarks\\task723_v1\\run.py",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task723-fresh-replay"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 215.78650819999166,
+    "log_tail": [
+      "Record 53 text-64 33256",
+      "Record 54 text-512 33367",
+      "Record 55 text-4096 33593",
+      "Record 56 text-16384 34319",
+      "Record 57 text-65536 37144",
+      "Record 58 text-262144 48487",
+      "Record 59 text-expansion-control 33327",
+      "Study complete 58 primary records; 100 separate-cap scenarios"
+    ]
+  },
+  {
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "C:\\Users\\mattk\\ZoidbergChain\\benchmarks\\task723_v1\\enrich.py",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task723-fresh-replay"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 147.48948729992844,
+    "log_tail": [
+      "Full profiles verified text-8",
+      "Full profiles verified text-64",
+      "Full profiles verified text-512",
+      "Full profiles verified text-4096",
+      "Full profiles verified text-16384",
+      "Full profiles verified text-65536",
+      "Full profiles verified text-262144",
+      "Full profiles verified text-expansion-control"
+    ]
+  },
+  {
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "C:\\Users\\mattk\\ZoidbergChain\\benchmarks\\task723_v1\\crosscheck.py",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task723-fresh-replay"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 0.19296739995479584,
+    "log_tail": [
+      "{\"status\": \"PASS\", \"primary_records\": 58, \"diagnostic_records\": 1, \"codec_trials\": 413, \"candidates\": 108, \"decimal_month_checks\": 1350, \"metadata_target\": \"FAIL retained\", \"checks\": \"Original identities, exact ledgers, base64, coverage, percentile ranks, component-budget bounds, complete codec records and independent Decimal costs\"}"
+    ]
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "historical": [
+    {
+      "entries": 61,
+      "manifest": "verification/task719/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries": 41,
+      "manifest": "benchmarks/task720_v1/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries": 38,
+      "manifest": "verification/task721/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries": 40,
+      "manifest": "verification/task722/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries": 30,
+      "manifest": "benchmarks/task723_v1/checksums.sha256",
+      "status": "PASS"
+    },
+    {
+      "entries": 10,
+      "manifest": "verification/task724/checksums.sha256",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}

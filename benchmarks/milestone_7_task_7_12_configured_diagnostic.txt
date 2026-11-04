@@ -1,0 +1,11 @@
+{
+  "python": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "pillow": "12.3.0",
+  "temp_root": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task712-runtime"
+}
+directory: C:\Users\mattk\ZoidbergChain\temp\task712-runtime\zoidberg-media-worker-diagnostic-d7kg7bx7 stat: os.stat_result(st_mode=16895, st_ino=1125899910329506, st_dev=2082376487433288584, st_nlink=1, st_uid=0, st_gid=0, st_size=0, st_atime=1792467076, st_mtime=1792467076, st_ctime=1792467076)
+decoded: {'width': 3, 'height': 2, 'frame_count': 1, 'aggregate_decoded_pixels': 6}
+worker exit codes: [0]
+cleanup: complete
+admission: ACCEPT

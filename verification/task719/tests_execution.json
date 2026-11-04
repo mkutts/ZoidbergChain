@@ -1,0 +1,114 @@
+{
+  "commands": [
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_3_corpus.py",
+        "tests/test_milestone_7_task_7_4_benchmark.py",
+        "tests/test_milestone_7_task_7_4a_image_evaluation.py",
+        "tests/test_milestone_7_task_7_7_block_composition.py",
+        "tests/test_milestone_7_task_7_8_node_economics.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77\\measurements"
+      ],
+      "elapsed_seconds": 45.119,
+      "exit_code": 1,
+      "log": "tests_measurements.txt",
+      "name": "measurements",
+      "pid": 25492,
+      "timed_out": false,
+      "timeout_seconds": 150
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_6_decoder.py",
+        "tests/test_milestone_7_task_7_6a_sequences.py",
+        "tests/test_milestone_7_task_7_6b_performance.py",
+        "tests/test_milestone_7_task_7_6c_isolation.py",
+        "tests/test_milestone_7_task_7_6d_linux_isolation.py",
+        "tests/test_milestone_7_task_7_6d_evidence.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77\\codec"
+      ],
+      "elapsed_seconds": 46.453,
+      "exit_code": 0,
+      "log": "tests_codec.txt",
+      "name": "codec",
+      "pid": 18304,
+      "timed_out": false,
+      "timeout_seconds": 150
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "tests/test_milestone_7_task_7_10c_v3.py",
+        "tests/test_milestone_7_task_7_11_storage.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77\\format_storage"
+      ],
+      "elapsed_seconds": 94.217,
+      "exit_code": 0,
+      "log": "tests_format_storage.txt",
+      "name": "format_storage",
+      "pid": 26440,
+      "timed_out": false,
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "-m",
+        "pytest",
+        "verification/task719/test_reproduction_guards.py",
+        "-q",
+        "--tb=short",
+        "-p",
+        "verification.task719.pytest_evidence",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77\\wrapper_guards"
+      ],
+      "elapsed_seconds": 9.477,
+      "exit_code": 0,
+      "log": "tests_wrapper_guards.txt",
+      "name": "wrapper_guards",
+      "pid": 16512,
+      "timed_out": false,
+      "timeout_seconds": 100
+    }
+  ],
+  "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TEMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77",
+    "TMP": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77"
+  },
+  "phase": "tests",
+  "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task719-tests-7669360cbc8a4bccbed2bd6f58ad4c77"
+}

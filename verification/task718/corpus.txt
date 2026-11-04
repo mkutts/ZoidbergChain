@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_3_corpus.py", line 303, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_3_corpus.py", line 296, in main
+    statistics = verify_manifest(manifest)
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_3_corpus.py", line 277, in verify_manifest
+    raise ValueError("Manifest does not match regenerated deterministic corpus or pinned environment.")
+ValueError: Manifest does not match regenerated deterministic corpus or pinned environment.

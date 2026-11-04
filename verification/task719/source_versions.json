@@ -1,0 +1,38 @@
+[
+  {
+    "after_sha256": "f66bd893a163a35781a2e980bf27e4a0fc76761cb1ea86490123a307a53dd3c3",
+    "before_sha256": "f66bd893a163a35781a2e980bf27e4a0fc76761cb1ea86490123a307a53dd3c3",
+    "last_committed_version": "3a93bff28a13ac376354ac23d989799fabc6a2d3 Milestone 7 Task 7.11: implement isolated canonical v3 SQLite storage",
+    "path": "scripts/milestone_7_task_7_11_storage.py"
+  },
+  {
+    "after_sha256": "545ec2b53b139b494cbb3007812564d01686cb0f90351143aabf4966165d7993",
+    "before_sha256": "6fe5694e3a23a1982e4d6e5652494888ac66c934cb2411b3113ba6e3dd3d6b2d",
+    "last_committed_version": "a39cb448a203646a156781f5b22a213da3bc0b62 Milestone 7 Task 7.3: build reproducible media benchmark corpus",
+    "path": "scripts/milestone_7_task_7_3_corpus.py"
+  },
+  {
+    "after_sha256": "2418ac867843cdbc1847d69c3627f8b67453cc69964234cf289c9cc8bd18f6ed",
+    "before_sha256": "6d95ce2d81db3a854db4d938965392f3cc2888f17a68cc0b94d9c8e11b2b74b6",
+    "last_committed_version": "eb1f685eafd8fa5faa5188b67d55c912fc30b53a Milestone 7 Task 7.4: benchmark lossless compression and select baseline",
+    "path": "scripts/milestone_7_task_7_4_benchmark.py"
+  },
+  {
+    "after_sha256": "c06d164093c26fabc75d269ca77e0a85769b12c653d9f183f3b25062d45f2387",
+    "before_sha256": "2fba5763bcbd44a518460387f9768b9a9d27b0da0db3f6619c1e2e6c9cf40f36",
+    "last_committed_version": "83e327c5e41e3d64b2c547e2fbb240eee7edf27d Milestone 7 Task 7.4A: evaluate image-specific lossless compression",
+    "path": "scripts/milestone_7_task_7_4a_image_evaluation.py"
+  },
+  {
+    "after_sha256": "f98c58546fe8d5840281ac799b74bf58c70fd8e3f99ef365bee3c286643a31dc",
+    "before_sha256": "9ff1794bf2cb2758c6148586e50987fdb64694e73349d8578e61ee044c7ff84f",
+    "last_committed_version": "e5a3a77335e80512fc01a2d9050c775ad0b8be3b Milestone 7 Task 7.7: measure block composition and storage overhead",
+    "path": "scripts/milestone_7_task_7_7_block_composition.py"
+  },
+  {
+    "after_sha256": "293491b7e3a10cf879bf5a4691d9dbebe6e07836379ac9de39d5961dd5e404c9",
+    "before_sha256": "293491b7e3a10cf879bf5a4691d9dbebe6e07836379ac9de39d5961dd5e404c9",
+    "last_committed_version": "c8d9172ddd95cd7914881ed61412f145ed91ae19 Milestone 7 Task 7.8: model three-year full-node economics",
+    "path": "scripts/milestone_7_task_7_8_node_economics.py"
+  }
+]

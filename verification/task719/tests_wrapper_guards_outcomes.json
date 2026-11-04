@@ -1,0 +1,128 @@
+{
+  "collected": [
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_current_observations_are_not_historical_corpus_identity",
+      "line": 15
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sha256]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[original_byte_size]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[id]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[category]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[dimensions]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sample_order]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_sample]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[environment]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[schema]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[extra_field]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_observation]",
+      "line": 21
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_current_observations_are_not_historical_corpus_identity",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sha256]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[original_byte_size]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[id]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[category]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[dimensions]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sample_order]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_sample]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[environment]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[schema]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[extra_field]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_observation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

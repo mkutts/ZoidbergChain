@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 431, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 424, in main
+    output = run(config, include_sqlite=not args.skip_sqlite)
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 403, in run
+    rows = build_rows(config)
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 256, in build_rows
+    raise ValueError("corpus manifest does not regenerate; refusing measurement")
+ValueError: corpus manifest does not regenerate; refusing measurement

@@ -1,0 +1,48 @@
+{
+  "exact_source_roundtrips": 139,
+  "native_codec_peak": "unavailable, benchmark parent not instrumented; no tracemalloc/native equivalence claim",
+  "note": "Windows job/process commit observations, not RSS or a cross-platform memory bound proof",
+  "rejected_source_candidates": [
+    {
+      "code": "block_count",
+      "codec": "zstd",
+      "exact_source_bytes": false,
+      "id": "gif-near-v3",
+      "population": "production-like",
+      "stage": "frame",
+      "status": "INVALID"
+    }
+  ],
+  "worker": {
+    "peak_job_commit_bytes": {
+      "observations": 210,
+      "p50": 13217792,
+      "p95": 25948160,
+      "worst": 26431488
+    },
+    "peak_process_commit_bytes": {
+      "observations": 210,
+      "p50": 11948032,
+      "p95": 24727552,
+      "worst": 25223168
+    },
+    "process_kernel_ns": {
+      "observations": 210,
+      "p50": 46875000,
+      "p95": 78125000,
+      "worst": 93750000
+    },
+    "process_user_ns": {
+      "observations": 210,
+      "p50": 31250000,
+      "p95": 125000000,
+      "worst": 171875000
+    },
+    "total_ns": {
+      "observations": 210,
+      "p50": 127716800,
+      "p95": 335654100,
+      "worst": 381817900
+    }
+  }
+}

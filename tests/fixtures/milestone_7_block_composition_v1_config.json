@@ -1,0 +1,24 @@
+{
+  "measurement_id": "zoidbergchain-block-composition-v1",
+  "measurement_version": "1.0.0",
+  "corpus_manifest": "tests/fixtures/milestone_7_corpus_v1_manifest.json",
+  "zstd_level": 3,
+  "zstd_window_log": 18,
+  "workload_groups": {
+    "small": {"maximum_original_bytes": 4096},
+    "medium": {"minimum_original_bytes": 4097, "maximum_original_bytes": 131072},
+    "large": {"minimum_original_bytes": 131073},
+    "representative_images": {"mime_prefix": "image/", "benchmark_scoring": true}
+  },
+  "sqlite": {
+    "journal_mode": "WAL",
+    "observation_block_counts": [1, 5, 15],
+    "page_size": 4096
+  },
+  "provisional_candidates": {
+    "legacy_media_cap_bytes": 262144,
+    "legacy_complete_block_cap_bytes": 524288,
+    "evaluated_media_cap_bytes": 2097152,
+    "evaluated_complete_block_cap_bytes": 3145728
+  }
+}

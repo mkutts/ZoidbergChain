@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "primary_records": 58,
+  "diagnostic_records": 1,
+  "codec_trials": 413,
+  "candidates": 108,
+  "decimal_month_checks": 1350,
+  "metadata_target": "FAIL retained",
+  "checks": "Original identities, exact ledgers, base64, coverage, percentile ranks, component-budget bounds, complete codec records and independent Decimal costs"
+}

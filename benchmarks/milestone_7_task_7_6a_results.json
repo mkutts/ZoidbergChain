@@ -1,0 +1,5312 @@
+{
+  "baseline_head": "545b395283e0421e04894dadfd2bc2981b643de2",
+  "corpus": {
+    "identity_accepts": 36,
+    "manifest_sha256": "d872a8669cad218b72e5dbcf1dfbbff4de8718fc48c37f4950bf7dc46bff121f",
+    "rows": [
+      {
+        "consumed": 49,
+        "encoded_bytes": 49,
+        "encoded_sha256": "e76e2c7c2dc3c8ec1b62689acfeacf504d0829a6d5735744e0d657a357c77fb8",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-caption-small",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 36,
+        "original_sha256": "633d1db519b6651029acf84edfb87fc09fe482805c38151b6321ebb49cc6195f",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 25300,
+          "p95_ns": 34400,
+          "wall_ns": [
+            25300,
+            34400,
+            22300,
+            29000,
+            18200
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            36
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 36,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 36,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 273,
+        "encoded_bytes": 273,
+        "encoded_sha256": "577657d3c9f78e3860f3566cc052d2ada043c0765c2c1482eb1cd064bb82e326",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-story-medium",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 399,
+        "original_sha256": "a1e8db6a92cb0c98617f406a06658ac1fb5b507a694124a359c5d5be3fce3928",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 46500,
+          "p95_ns": 56200,
+          "wall_ns": [
+            56200,
+            48200,
+            46500,
+            44600,
+            44900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            399
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 399,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 356,
+          "max_offset": 337,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 152,
+          "sequences": 7
+        }
+      },
+      {
+        "consumed": 253,
+        "encoded_bytes": 253,
+        "encoded_sha256": "fe40844eab192fd68193dd1368999a5803dcc092005bcfa7fcb87203cf69fe7b",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-audit-log-large",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 2852,
+        "original_sha256": "d5e4b3633a397fbb35d06ef8a40c659fe8c6d5288355a06fe8739bdc9f0c7acb",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            15625000,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 532400,
+          "p95_ns": 539200,
+          "wall_ns": [
+            539200,
+            507000,
+            532400,
+            523700,
+            533000
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            2852
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 2852,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 197,
+          "max_offset": 596,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 623,
+          "sequences": 141
+        }
+      },
+      {
+        "consumed": 98,
+        "encoded_bytes": 98,
+        "encoded_sha256": "330f32c36d62392e52dd0ac9d344d179fad65486e20971c5ca93e4fb08f0cd42",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-json-pretty",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 110,
+        "original_sha256": "e811ae217c543c5960e90cce0f910ad7dbb0208add743a82fc4715e4d6dafb1f",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 38100,
+          "p95_ns": 40600,
+          "wall_ns": [
+            40600,
+            38400,
+            37400,
+            37200,
+            38100
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            110
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 110,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 85,
+          "max_offset": 67,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 84,
+          "sequences": 4
+        }
+      },
+      {
+        "consumed": 325,
+        "encoded_bytes": 325,
+        "encoded_sha256": "4cb2ad6b9eb2326a1312f7b0aeb68727cd849dfbc888e1007eea3d2c679e897c",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-json-minified",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 2947,
+        "original_sha256": "e0aafa7803f0f807eb9b0de8df34d3d53b6719c6b825c836eb8cb9fea1562601",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 334100,
+          "p95_ns": 341500,
+          "wall_ns": [
+            322000,
+            334100,
+            334200,
+            314300,
+            341500
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            2947
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 2947,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 226,
+          "max_offset": 2763,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 737,
+          "sequences": 65
+        }
+      },
+      {
+        "consumed": 777,
+        "encoded_bytes": 777,
+        "encoded_sha256": "bf338f39a8fa02703123303e9c2af9fa0de394e02b970475dd4a77f64009fdc8",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-json-peer-snapshot-large",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 11814,
+        "original_sha256": "8d1872e9e28086fdd9fbb78b3a8bd0d6a1e96db090bc29b229186dfd799341e7",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 789300,
+          "p95_ns": 818700,
+          "wall_ns": [
+            818700,
+            777400,
+            815500,
+            789300,
+            752800
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            11814
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 11814,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 492,
+          "max_offset": 11647,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 2876,
+          "sequences": 222
+        }
+      },
+      {
+        "consumed": 109,
+        "encoded_bytes": 109,
+        "encoded_sha256": "6306c8b8f8ebe957a61562a9f66e795839efa475e3f3e6539047af86b9060e00",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-source-code",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 126,
+        "original_sha256": "bcedb68696197cc02ca3a71036ac9e019bcf773fdaf2591186ebb5d7140d5eba",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 40000,
+          "p95_ns": 44300,
+          "wall_ns": [
+            40500,
+            44300,
+            40000,
+            38300,
+            37500
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            126
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 126,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 91,
+          "max_offset": 101,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 86,
+          "sequences": 4
+        }
+      },
+      {
+        "consumed": 238,
+        "encoded_bytes": 238,
+        "encoded_sha256": "944f4cc743917997a6713fa44eacc0d659babea6ca9c4a860053e0c279c2cd66",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-source-admission-model",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 463,
+        "original_sha256": "117ef4d39a4ec47ce2ca336b1b4d211a1dddca23b8faa20afdcddecdf5b577aa",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 104100,
+          "p95_ns": 106400,
+          "wall_ns": [
+            106400,
+            104100,
+            104300,
+            102200,
+            101500
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            463
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 463,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 199,
+          "max_offset": 282,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 523,
+          "sequences": 26
+        }
+      },
+      {
+        "consumed": 337,
+        "encoded_bytes": 337,
+        "encoded_sha256": "1e8db92ef27a24bec183efc2acb7368ffb0ba549ebf948a18aaf3c1beeb07883",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "text-source-snapshot-cli",
+        "mime_type": "text/plain",
+        "native_arena_bytes": 95968,
+        "original_bytes": 545,
+        "original_sha256": "7628d60d857d577f0ca03b6cbc118acbe2696ee2e04a242fdf6516f1be980b2c",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 112800,
+          "p95_ns": 114900,
+          "wall_ns": [
+            114900,
+            113500,
+            110100,
+            112800,
+            109900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            545
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 545,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 316,
+          "max_offset": 381,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 594,
+          "sequences": 29
+        }
+      },
+      {
+        "consumed": 1275,
+        "encoded_bytes": 1275,
+        "encoded_sha256": "2a86059feccb9821c0a97d02d56bd9410966846e3f8d35f9b3a33724fe924b86",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-flat-small",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 3530,
+        "original_sha256": "e580bd3d60e017602f4a7e5b1fe0aaaaadf8683d833f476faab939bb2ccfa1a6",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 127300,
+          "p95_ns": 170200,
+          "wall_ns": [
+            128800,
+            123300,
+            170200,
+            127300,
+            126800
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            3530
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3530,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 1200,
+          "max_offset": 1574,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 749,
+          "sequences": 31
+        }
+      },
+      {
+        "consumed": 21220,
+        "encoded_bytes": 21220,
+        "encoded_sha256": "76ffbe7d88a0f46827e5102332aec5b5baa3ee9b521b9aa2d1ed012430de6c23",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-text-poster",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 56015,
+        "original_sha256": "f8b1d9c8ffe3f38077d2913cd75a87302614f272235f1a25c9354016b0a624ed",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            15625000,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 2464200,
+          "p95_ns": 2523100,
+          "wall_ns": [
+            2436500,
+            2372900,
+            2493000,
+            2464200,
+            2523100
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            56015
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 56015,
+          "fse_cells": 384,
+          "fse_tables": 3,
+          "literal_bytes": 18972,
+          "max_offset": 45905,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 17326,
+          "sequences": 755
+        }
+      },
+      {
+        "consumed": 173191,
+        "encoded_bytes": 173191,
+        "encoded_sha256": "ba2dd2b65c085f95ec79ca22ff50bbe0d9780e54d537637d9fb465e0a4b11ce3",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-photo-like",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 689193,
+        "original_sha256": "78ab077e12b83214b3bcb2126e1c82e711e365042f60d86d3adc6ad0b5e9c97e",
+        "oversized": true,
+        "timings": {
+          "cpu_ns": [
+            125000000,
+            109375000,
+            140625000,
+            125000000,
+            125000000
+          ],
+          "median_cpu_ns": 125000000,
+          "median_ns": 128711700,
+          "p95_ns": 131722900,
+          "wall_ns": [
+            131722900,
+            128813100,
+            127180600,
+            128711700,
+            128325700
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            16384,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            16384,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            16384,
+            8192,
+            8192,
+            8192,
+            8192,
+            123945
+          ],
+          "blocks": 52,
+          "compressed_blocks": 52,
+          "decoded_bytes": 689193,
+          "fse_cells": 19840,
+          "fse_tables": 156,
+          "literal_bytes": 63689,
+          "max_offset": 260700,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 855452,
+          "sequences": 42207
+        }
+      },
+      {
+        "consumed": 1530734,
+        "encoded_bytes": 1530734,
+        "encoded_sha256": "8361c76c23e9cb238a2895268e769de4c59a0aa54789d987274c829f875643ac",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-noise-capacity",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 1530684,
+        "original_sha256": "ca7eb2e0bbfedb38b38bca12206a7423664d7d1ab8b3a4b5a7125ba10bada616",
+        "oversized": true,
+        "timings": {
+          "cpu_ns": [
+            15625000,
+            0,
+            15625000,
+            15625000,
+            0
+          ],
+          "median_cpu_ns": 15625000,
+          "median_ns": 8553800,
+          "p95_ns": 8710000,
+          "wall_ns": [
+            8269400,
+            8553800,
+            8584800,
+            8372700,
+            8710000
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            88892
+          ],
+          "blocks": 12,
+          "compressed_blocks": 0,
+          "decoded_bytes": 1530684,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 1530684,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 40570,
+        "encoded_bytes": 40570,
+        "encoded_sha256": "d0ff79386ef779e8583bc5a37e035ae7be1d11f3b7acc935f68a4fed79778235",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-photo-small",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 97649,
+        "original_sha256": "1c537b36a356aee955f208501ed95eb1da668ba6a5bd069cab1d2b53920cba5f",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            15625000,
+            15625000,
+            15625000,
+            15625000,
+            15625000
+          ],
+          "median_cpu_ns": 15625000,
+          "median_ns": 15526700,
+          "p95_ns": 15708100,
+          "wall_ns": [
+            15526700,
+            15386000,
+            15389500,
+            15708100,
+            15581000
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            97649
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 97649,
+          "fse_cells": 1280,
+          "fse_tables": 3,
+          "literal_bytes": 27164,
+          "max_offset": 92856,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 106545,
+          "sequences": 5189
+        }
+      },
+      {
+        "consumed": 9390,
+        "encoded_bytes": 9390,
+        "encoded_sha256": "5d527954f19c255066a09989b86f58641e43a797b57b47d3de30069889524d4c",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-mixed-medium",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 57251,
+        "original_sha256": "2c4ad29c9b596e41d0dd8c0c68cea8abc7df09dab8d2bc52391d7078b71d8909",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            15625000,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 1173000,
+          "p95_ns": 1276000,
+          "wall_ns": [
+            1103600,
+            1276000,
+            1236900,
+            1173000,
+            1090400
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            57251
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 57251,
+          "fse_cells": 256,
+          "fse_tables": 3,
+          "literal_bytes": 8402,
+          "max_offset": 33911,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 7271,
+          "sequences": 318
+        }
+      },
+      {
+        "consumed": 13187,
+        "encoded_bytes": 13187,
+        "encoded_sha256": "dfeda4144f22026be779db7835a63f9569ff1743e3680c60940e86daec830d42",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "jpeg-text-large",
+        "mime_type": "image/jpeg",
+        "native_arena_bytes": 95968,
+        "original_bytes": 66371,
+        "original_sha256": "ccce009ea329ec8f9f25be3890dc1409554a2e82a8b93cc43c1fb68b8bfa8a93",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 1223500,
+          "p95_ns": 1407900,
+          "wall_ns": [
+            1224400,
+            1154700,
+            1169300,
+            1223500,
+            1407900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            66371
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 66371,
+          "fse_cells": 256,
+          "fse_tables": 3,
+          "literal_bytes": 12081,
+          "max_offset": 54192,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 8189,
+          "sequences": 347
+        }
+      },
+      {
+        "consumed": 188,
+        "encoded_bytes": 188,
+        "encoded_sha256": "927c52e50231729d6f6a61f9fff2fe5e1dfc31499f6259069b0b07c539eb4a2b",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-flat-small",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 638,
+        "original_sha256": "661c37d971f8727953face7d0b8da6663ce8a1985c7ea9fab8c14aa079280632",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 36300,
+          "p95_ns": 41700,
+          "wall_ns": [
+            41700,
+            38700,
+            36300,
+            36200,
+            35300
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            638
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 638,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 156,
+          "max_offset": 177,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 108,
+          "sequences": 4
+        }
+      },
+      {
+        "consumed": 1601,
+        "encoded_bytes": 1601,
+        "encoded_sha256": "33ace3e767933d9eef92ed7244dc8c72cd05fce9df4c54642ace589e4c88c814",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-illustrated-medium",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 3550,
+        "original_sha256": "a085bd399617bff4a0a989f95c25a5089cf33b5db5f78ae927379a9a7012c2bd",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 338500,
+          "p95_ns": 529000,
+          "wall_ns": [
+            338500,
+            347900,
+            333100,
+            529000,
+            333600
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            3550
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3550,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 1360,
+          "max_offset": 2622,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 1409,
+          "sequences": 71
+        }
+      },
+      {
+        "consumed": 1980,
+        "encoded_bytes": 1980,
+        "encoded_sha256": "60e179064c279156cade535f9410fb124bf40caae25cfe888bd49a88aff5b32f",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-text-poster",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 5337,
+        "original_sha256": "574feb77cf23bc7984f04d97f355c7eab2fcc47dfaa2336bc669c58fec8aad79",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            15625000,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 398400,
+          "p95_ns": 496200,
+          "wall_ns": [
+            403400,
+            397800,
+            398400,
+            393600,
+            496200
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            5337
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 5337,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 1766,
+          "max_offset": 3898,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 1866,
+          "sequences": 94
+        }
+      },
+      {
+        "consumed": 1772817,
+        "encoded_bytes": 1772817,
+        "encoded_sha256": "c5b36af7105e44d5d27031692e9b210c1f2315d4f22b21613df1a461194d33c5",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-noise-capacity",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 1772761,
+        "original_sha256": "4fe5ab20eb591bddbbb8f54adca02fffb7f453c342b2171a25b811be91274da8",
+        "oversized": true,
+        "timings": {
+          "cpu_ns": [
+            0,
+            15625000,
+            0,
+            15625000,
+            15625000
+          ],
+          "median_cpu_ns": 15625000,
+          "median_ns": 9592800,
+          "p95_ns": 10427500,
+          "wall_ns": [
+            10427500,
+            9442800,
+            9691900,
+            9592800,
+            9296600
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            68825
+          ],
+          "blocks": 14,
+          "compressed_blocks": 0,
+          "decoded_bytes": 1772761,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 1772761,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 3678,
+        "encoded_bytes": 3678,
+        "encoded_sha256": "d22b9f57d8a5194bffee7b2a15522a0665e96a55fdf39ef58cb8d59e74c97862",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-photo-small",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 4314,
+        "original_sha256": "36218ec3e027ecfd779dc5037a43acf26522a99f3b9473de475c951e687e44a5",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 482600,
+          "p95_ns": 495600,
+          "wall_ns": [
+            495600,
+            482600,
+            486500,
+            478700,
+            469000
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            4314
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 4314,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 3294,
+          "max_offset": 3444,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 2650,
+          "sequences": 133
+        }
+      },
+      {
+        "consumed": 1604,
+        "encoded_bytes": 1604,
+        "encoded_sha256": "73f775e14d20d370db0d8b6a26e5576e8e80b6dea7b596ac9ee16718df26f856",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-mixed-medium",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 3671,
+        "original_sha256": "8d39f6a5a686cd61f14b308f38792d7edbdb153b30a2cd671ff714abbdcce122",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 366600,
+          "p95_ns": 620400,
+          "wall_ns": [
+            375100,
+            355500,
+            620400,
+            366600,
+            347900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            3671
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3671,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 1377,
+          "max_offset": 2212,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 1325,
+          "sequences": 67
+        }
+      },
+      {
+        "consumed": 1883,
+        "encoded_bytes": 1883,
+        "encoded_sha256": "619a22ef9a5aba7888b57593660ab136170926f75bd23a465cb56a44a53dd0e7",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "png-text-large",
+        "mime_type": "image/png",
+        "native_arena_bytes": 95968,
+        "original_bytes": 4903,
+        "original_sha256": "d1740689d0b649c9689eed37b09909c931b8e183e11db86baca0462cdd7da4b9",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 367400,
+          "p95_ns": 370700,
+          "wall_ns": [
+            370700,
+            369000,
+            362000,
+            367400,
+            364000
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            4903
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 4903,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 1664,
+          "max_offset": 3415,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 1666,
+          "sequences": 82
+        }
+      },
+      {
+        "consumed": 376,
+        "encoded_bytes": 376,
+        "encoded_sha256": "bcdc7642e2a2ffde814f0c340b17580f41f6dd72ad95b4a85e3e562b3fdb3d9e",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-flat-small",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 376,
+        "original_sha256": "7c4d1d04659178703a09cefaba52891133ae279e56cf4750514347cc8eeff562",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 27600,
+          "p95_ns": 33700,
+          "wall_ns": [
+            33700,
+            29900,
+            27600,
+            26800,
+            26200
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            376
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 376,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 354,
+          "max_offset": 106,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 30,
+          "sequences": 1
+        }
+      },
+      {
+        "consumed": 10322,
+        "encoded_bytes": 10322,
+        "encoded_sha256": "081350518624ad5429bfa533cdb231b786690f3078ecb109f194e6051c5b1801",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-illustrated-medium",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 10992,
+        "original_sha256": "0c369277d296429346bff9c32325bfd741377e109b41780be28101a08d401de5",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 489800,
+          "p95_ns": 596000,
+          "wall_ns": [
+            596000,
+            514800,
+            426100,
+            422300,
+            489800
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            10992
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 10992,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 10020,
+          "max_offset": 6186,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 1916,
+          "sequences": 84
+        }
+      },
+      {
+        "consumed": 204761,
+        "encoded_bytes": 204761,
+        "encoded_sha256": "47ea069f34e234a6a69cc19242dabde11366e08417d5d0b4096136e1210592da",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-photo-like",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 215346,
+        "original_sha256": "b377ca497c100b4dc0c8fe17ca1f5b82628721e580f4990d5404e09ddff42fd9",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            15625000,
+            0,
+            0,
+            15625000
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 5188000,
+          "p95_ns": 5314900,
+          "wall_ns": [
+            5188000,
+            5137200,
+            5010900,
+            5314900,
+            5205400
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            84274
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 215346,
+          "fse_cells": 768,
+          "fse_tables": 3,
+          "literal_bytes": 68507,
+          "max_offset": 152178,
+          "raw_rle_bytes": 131072,
+          "sequence_bits": 40744,
+          "sequences": 1517
+        }
+      },
+      {
+        "consumed": 625279,
+        "encoded_bytes": 625279,
+        "encoded_sha256": "715920ee4b07ba682e3d50ca7e589b70020eef4db4a223c819c2a3f97be4785e",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-noise-capacity",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 625250,
+        "original_sha256": "427f84db03cb6e822e6bda8f81acfa6e92bc13d5c2c9948d88caa369e63c5951",
+        "oversized": true,
+        "timings": {
+          "cpu_ns": [
+            0,
+            15625000,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 3373800,
+          "p95_ns": 3714900,
+          "wall_ns": [
+            3714900,
+            3592700,
+            3204200,
+            3308100,
+            3373800
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            131072,
+            131072,
+            100962
+          ],
+          "blocks": 5,
+          "compressed_blocks": 0,
+          "decoded_bytes": 625250,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 625250,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 31776,
+        "encoded_bytes": 31776,
+        "encoded_sha256": "15a87fe38b34d4cac08ac506d5e65624d8849dcb38ba1f32e4cb83d6e53c84b9",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-photo-small",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 31762,
+        "original_sha256": "06060be99cab89545df668540d1d04b941c58cc73266bea0090c991f4fae5083",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 142600,
+          "p95_ns": 147300,
+          "wall_ns": [
+            143100,
+            147300,
+            137600,
+            142600,
+            136900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            31762
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 31762,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 31762,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 8184,
+        "encoded_bytes": 8184,
+        "encoded_sha256": "8b80b1f8e260e5e1bb90b792b21e3da6928747372664747e45b741842af25498",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-mixed-medium",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 10302,
+        "original_sha256": "9f4af322753ebb1a6da69f2268861e76ddf6c0bc45f52034fc24420deece555a",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 536900,
+          "p95_ns": 602700,
+          "wall_ns": [
+            558000,
+            602700,
+            536900,
+            522100,
+            520300
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            10302
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 10302,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 7760,
+          "max_offset": 5494,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 2828,
+          "sequences": 127
+        }
+      },
+      {
+        "consumed": 8484,
+        "encoded_bytes": 8484,
+        "encoded_sha256": "ffcd01d6c3899fd45ec37a46f8129d44bbb52c3a49e6e6dfb178a7f0904baf9f",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "webp-text-large",
+        "mime_type": "image/webp",
+        "native_arena_bytes": 95968,
+        "original_bytes": 10474,
+        "original_sha256": "d7252f0af8737478312c0ea693d495338847daa380da2997e6620f8e08c17b2d",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 467400,
+          "p95_ns": 775200,
+          "wall_ns": [
+            454900,
+            449800,
+            470000,
+            775200,
+            467400
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            10474
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 10474,
+          "fse_cells": 224,
+          "fse_tables": 3,
+          "literal_bytes": 8135,
+          "max_offset": 3724,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 2206,
+          "sequences": 101
+        }
+      },
+      {
+        "consumed": 666,
+        "encoded_bytes": 666,
+        "encoded_sha256": "7439d24331f41129e57b9b1efb2475c84e93f3fd034a9385f20d0381e16de697",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "gif-flat-small",
+        "mime_type": "image/gif",
+        "native_arena_bytes": 95968,
+        "original_bytes": 652,
+        "original_sha256": "01b2d4d1d2e48f350e65f6df08edc808df08770e37f204aff1cc32dea6c2d90f",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 20600,
+          "p95_ns": 24500,
+          "wall_ns": [
+            24500,
+            22600,
+            20500,
+            20000,
+            20600
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            652
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 652,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 652,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 6214,
+        "encoded_bytes": 6214,
+        "encoded_sha256": "408f5fcbc0021b1e50e778f17663452797cc40f9cdefa4719f0bab2806ba3e2c",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "gif-animated-illustrated",
+        "mime_type": "image/gif",
+        "native_arena_bytes": 95968,
+        "original_bytes": 6200,
+        "original_sha256": "d5941c77e3b6a8800357def61aacded0c5993f219ccf2a6f3159c930ffbe7a9f",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 42900,
+          "p95_ns": 98400,
+          "wall_ns": [
+            43100,
+            42800,
+            98400,
+            42900,
+            41300
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            6200
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 6200,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 6200,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 748847,
+        "encoded_bytes": 748847,
+        "encoded_sha256": "6d03cc8ccf8b8130bf26a635af366b9d68e11f8bf022caf29201d039cd38142e",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "gif-noise-capacity",
+        "mime_type": "image/gif",
+        "native_arena_bytes": 95968,
+        "original_bytes": 802666,
+        "original_sha256": "4cc496487f2497ec3d3ac18f212f10ca1d51204785c99664bdc261af47d4f590",
+        "oversized": true,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            15625000,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 4679800,
+          "p95_ns": 4771400,
+          "wall_ns": [
+            4485300,
+            4746100,
+            4093400,
+            4679800,
+            4771400
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            32768,
+            24576,
+            8192,
+            32768,
+            8192,
+            8192,
+            8192,
+            57344,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            16384,
+            8192,
+            32768,
+            8192,
+            16384,
+            8192,
+            8192,
+            32768,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            8192,
+            24576,
+            8192,
+            8192,
+            32768,
+            32768,
+            122730
+          ],
+          "blocks": 39,
+          "compressed_blocks": 39,
+          "decoded_bytes": 802666,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 802666,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 55734,
+        "encoded_bytes": 55734,
+        "encoded_sha256": "0a52545e13dc4d0209d382d8fd300b4e9aaf93ca1db33d7067656ab6fdfff366",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "gif-photo-small",
+        "mime_type": "image/gif",
+        "native_arena_bytes": 95968,
+        "original_bytes": 55720,
+        "original_sha256": "83add893b06499e9a8b0f1e31a60562b0b9bbd18af51abae923891382c5f3d51",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 230200,
+          "p95_ns": 242500,
+          "wall_ns": [
+            234400,
+            230200,
+            228200,
+            242500,
+            227500
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            55720
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 55720,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 55720,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 4071,
+        "encoded_bytes": 4071,
+        "encoded_sha256": "123db93cc8843b34a0393cf59d3f35cc52504343352c22e7b09decace07b0144",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "gif-text-medium",
+        "mime_type": "image/gif",
+        "native_arena_bytes": 95968,
+        "original_bytes": 4057,
+        "original_sha256": "34c04be3b66e05d07192e9cb7cf948c4d9e03b6b2c0043ccea316651b25ab0e6",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 35600,
+          "p95_ns": 39500,
+          "wall_ns": [
+            39500,
+            35800,
+            35600,
+            33900,
+            32700
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            4057
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 4057,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 4057,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "consumed": 4975,
+        "encoded_bytes": 4975,
+        "encoded_sha256": "b4701d2d3a61d2862bf005e6ffaadeb1744c5a102f0d0bc5e29954eec8cb38d5",
+        "exact_identity": true,
+        "exact_zstd": true,
+        "id": "gif-mixed-large",
+        "mime_type": "image/gif",
+        "native_arena_bytes": 95968,
+        "original_bytes": 4961,
+        "original_sha256": "e3d088d4244f059769684ec47713c1eae7b617caddd9f6e360d2bbd1cf521613",
+        "oversized": false,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 38400,
+          "p95_ns": 39800,
+          "wall_ns": [
+            38700,
+            39800,
+            38400,
+            37000,
+            36900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            4961
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 4961,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 4961,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      }
+    ],
+    "samples": 36,
+    "strict_accepts": 36
+  },
+  "enforced_derived_bounds": {
+    "blocks": 64,
+    "encoded_bytes": 2097152,
+    "max_live_sequence_fse_cells": 1280,
+    "output_bytes": 2097152,
+    "sequence_fse_cells": 81920,
+    "sequence_fse_tables": 192,
+    "sequences": 699050,
+    "window": 262144
+  },
+  "environment": {
+    "architecture": "AMD64",
+    "cffi": "2.0.0",
+    "libzstd": [
+      1,
+      5,
+      7
+    ],
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
+    "zstandard": "0.25.0"
+  },
+  "golden": {
+    "counts": {
+      "accept": 42,
+      "reject": 110
+    },
+    "manifest_sha256": {
+      "milestone_7_codec_v1": "0cef315b6514cd7d19a6e74ad685dab5aa9ea9cdff9996f571bbc90f50fb66a5",
+      "milestone_7_codec_v2": "3d4dcd6e29b29c7751523731e5de9d7966a50be9828cff9772c21a3561250677"
+    },
+    "rows": [
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "identity-1",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "work": null
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "identity-2",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "work": null
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "identity-3",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "work": null
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "identity-4",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "work": null
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "identity-at-A-B",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "work": null
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-high-ratio-at-A",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 2097152,
+          "sha256": "6932fd31e5daf4739b9fa78ff777b2831b0995cc1d0b0093cac80601902013bc",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072
+          ],
+          "blocks": 16,
+          "compressed_blocks": 1,
+          "decoded_bytes": 2097152,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 2,
+          "max_offset": 1,
+          "raw_rle_bytes": 1966080,
+          "sequence_bits": 33,
+          "sequences": 1
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-default",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            456
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 456,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 19,
+          "max_offset": 19,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 30,
+          "sequences": 1
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-level9",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            456
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 456,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 19,
+          "max_offset": 19,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 30,
+          "sequences": 1
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-raw",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            456
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 456,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 456,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-rle",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 512,
+          "sha256": "64164443bb63e338ef1cfdb12a57117cd1212270cc935a798f6e8a665cdf4659",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            512
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 512,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 512,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-single-fcs1",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 1,
+          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 1,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-single-fcs2",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 256,
+          "sha256": "69783923010e99687c31035cf20f1394ea6bb6047396b2fae9ea600f085c33eb",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            256
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 256,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 256,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-single-fcs4",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 3,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-single-fcs8",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 3,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-multi-fcs2",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 256,
+          "sha256": "69783923010e99687c31035cf20f1394ea6bb6047396b2fae9ea600f085c33eb",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            256
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 256,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 256,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-multi-fcs4",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 3,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "zstd-multi-fcs8",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 3,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "window-below",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 3,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "window-at",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 3,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "blocks-64-empty",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 1,
+          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "blocks": 64,
+          "compressed_blocks": 0,
+          "decoded_bytes": 1,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "blocks-64-one-byte",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 64,
+          "sha256": "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "blocks": 64,
+          "compressed_blocks": 0,
+          "decoded_bytes": 64,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 64,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": "block_count",
+        "deterministic_repeat": true,
+        "id": "blocks-65",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 1,
+          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "magic",
+        "deterministic_repeat": true,
+        "id": "invalid-magic",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "magic",
+        "deterministic_repeat": true,
+        "id": "magicless",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "checksum",
+        "deterministic_repeat": true,
+        "id": "checksum-corrupt",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "reserved_flags",
+        "deterministic_repeat": true,
+        "id": "flag-16",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "reserved_flags",
+        "deterministic_repeat": true,
+        "id": "flag-8",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "flag-1",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "flag-2",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "flag-3",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "dictionary-1-0",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "dictionary-1-13",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "dictionary-2-0",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "dictionary-2-13",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "dictionary-4-0",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "dictionary",
+        "deterministic_repeat": true,
+        "id": "dictionary-4-13",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "checksum_required",
+        "deterministic_repeat": true,
+        "id": "checksum-missing",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "content_size_required",
+        "deterministic_repeat": true,
+        "id": "content-size-missing",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "content_size_mismatch",
+        "deterministic_repeat": true,
+        "id": "content-size-false",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "original_hash",
+        "deterministic_repeat": true,
+        "id": "hash-wrong",
+        "stage": "integrity",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 456,
+          "sha256": "a6e8ac5186e7e7b40a5503a7203a7a76462dced08b7481d32800b719cfa39b87",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "window_limit",
+        "deterministic_repeat": true,
+        "id": "window-over",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "window_limit",
+        "deterministic_repeat": true,
+        "id": "single-window-over",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 300000,
+          "sha256": "29927e273accc68286005017f7fa6e4f27bddb4db3083ff8b8d4c3667905b7fa",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a50",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a51",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a52",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a53",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a54",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a55",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a56",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a57",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a58",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a59",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a5a",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a5b",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a5c",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a5d",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a5e",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "skippable",
+        "deterministic_repeat": true,
+        "id": "skippable-184d2a5f",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "trailing_data",
+        "deterministic_repeat": true,
+        "id": "concatenated",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "trailing_data",
+        "deterministic_repeat": true,
+        "id": "concatenated-empty",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "trailing_data",
+        "deterministic_repeat": true,
+        "id": "trailing-zero",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "trailing_data",
+        "deterministic_repeat": true,
+        "id": "trailing-garbage",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "trailing_data",
+        "deterministic_repeat": true,
+        "id": "skippable-suffix",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-1",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-2",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-3",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-4",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-5",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-6",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-7",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-8",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-9",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-10",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-11",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-12",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-13",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-14",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-15",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-16",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-17",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-18",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "truncated",
+        "deterministic_repeat": true,
+        "id": "truncated-19",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "block_type",
+        "deterministic_repeat": true,
+        "id": "reserved-block",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "block_size",
+        "deterministic_repeat": true,
+        "id": "raw-block-over",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "block_size",
+        "deterministic_repeat": true,
+        "id": "last-block-missing",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "bad-treeless-literals",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "bad-literals-length",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "bad-sequence-tables",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "output-overrun",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "output-overrun-rle",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "output-underrun",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "regenerated-block-over-window",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "original_size_limit",
+        "deterministic_repeat": true,
+        "id": "bomb-over-A",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 2097153,
+          "sha256": "71ac24a75f6bc57bc51b43b3d13c3009aa243986b77a92102a3097c9e53123e9",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "content_size_mismatch",
+        "deterministic_repeat": true,
+        "id": "bomb-lying-size",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 2097153,
+          "sha256": "71ac24a75f6bc57bc51b43b3d13c3009aa243986b77a92102a3097c9e53123e9",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "unadvertised-raw-dictionary",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "codec_profile",
+        "deterministic_repeat": true,
+        "id": "unknown-codec",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "codec_profile",
+        "deterministic_repeat": true,
+        "id": "unknown-profile",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "encoding_version",
+        "deterministic_repeat": true,
+        "id": "unknown-encoding",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "stored_size_limit",
+        "deterministic_repeat": true,
+        "id": "encoded-over-B",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "original_size_limit",
+        "deterministic_repeat": true,
+        "id": "empty-original",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "stored_size_limit",
+        "deterministic_repeat": true,
+        "id": "empty-payload",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "integer_type",
+        "deterministic_repeat": true,
+        "id": "boolean-int",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "integer_type",
+        "deterministic_repeat": true,
+        "id": "float-int",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "integer_type",
+        "deterministic_repeat": true,
+        "id": "string-int",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "integer_type",
+        "deterministic_repeat": true,
+        "id": "null-int",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "mime_type",
+        "deterministic_repeat": true,
+        "id": "mime-alias",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "hash_format",
+        "deterministic_repeat": true,
+        "id": "hash-uppercase",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "keys",
+        "deterministic_repeat": true,
+        "id": "extra-field",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "base64_length",
+        "deterministic_repeat": true,
+        "id": "base64-short",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "base64_syntax",
+        "deterministic_repeat": true,
+        "id": "base64-newline",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "base64_syntax",
+        "deterministic_repeat": true,
+        "id": "base64-url",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "base64_noncanonical",
+        "deterministic_repeat": true,
+        "id": "base64-pad-bits",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "stored_size_mismatch",
+        "deterministic_repeat": true,
+        "id": "stored-size-false",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "identity_size",
+        "deterministic_repeat": true,
+        "id": "identity-size-false",
+        "stage": "frame",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "keys",
+        "deterministic_repeat": true,
+        "id": "missing-field",
+        "stage": "descriptor",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1"
+      },
+      {
+        "code": "window_offset",
+        "deterministic_repeat": true,
+        "id": "offset-exceeds-declared-window",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 9216,
+          "sha256": "e0a6c5f97cd2457462bddf32c3ff0da825f3004abd8282075b081439bb8db9b8",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "valid-cross-window-compressed",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v1",
+        "unmodified_libzstd": {
+          "bytes": 525312,
+          "sha256": "567c2c3f2c0e93e59155c154083111204cf86081539f05ff43d17b73dbde8ce8",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            131072,
+            131072,
+            1024
+          ],
+          "blocks": 5,
+          "compressed_blocks": 1,
+          "decoded_bytes": 525312,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1024,
+          "raw_rle_bytes": 524288,
+          "sequence_bits": 36,
+          "sequences": 1
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-1",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 4,
+          "sha256": "61be55a8e2f6b4e172338bddf184d6dbee29c98853e0a0485ecee7f27b9af0b4",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            3
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 4,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 2,
+          "sequences": 1
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-127",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 382,
+          "sha256": "f9ae3add067697d7bc7cd0f68dcd19fd5bc6bd475818dce2f800d1f55be46634",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            381
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 382,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 254,
+          "sequences": 127
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-128",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 385,
+          "sha256": "637310b1a9640cb19b74633c5537f9a7a58009c731ae1edc16b06c959552a0af",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            384
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 385,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 256,
+          "sequences": 128
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-32511",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 97534,
+          "sha256": "25832e34a09e0a0d9a214b5ddfe89f71d199fbfc2daa570c4603aa9b49ee3a8d",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            97533
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 97534,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 65022,
+          "sequences": 32511
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-32512",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 97537,
+          "sha256": "a2c86f3ef7f831983155e486bd1ae93dbcded7fbeb86884e0d853a76cf87f45a",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            97536
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 97537,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 65024,
+          "sequences": 32512
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-43690",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 131071,
+          "sha256": "115b57995e13fe27ba1077d631a7fa5182fbb798ac0193e879a75ebb3680732c",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            131070
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 131071,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 87380,
+          "sequences": 43690
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "short-matches-at-frame-A",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 2097152,
+          "sha256": "5256ec18f11624025905d057d6befb03d77b243511ac5f77ed5e0221ce6d84b5",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            2,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            30
+          ],
+          "blocks": 18,
+          "compressed_blocks": 17,
+          "decoded_bytes": 2097152,
+          "fse_cells": 51,
+          "fse_tables": 51,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 2,
+          "sequence_bits": 1398100,
+          "sequences": 699050
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "nonminimal-sequence-count",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 4,
+          "sha256": "61be55a8e2f6b4e172338bddf184d6dbee29c98853e0a0485ecee7f27b9af0b4",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            3
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 4,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 2,
+          "sequences": 1
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "sequence-fse-max-logs",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 7,
+          "sha256": "8a50a4422d673f463f8e4141d8c4b68c4f001ba16f83ad77b8a31bde53ee7273",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            4,
+            3
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 7,
+          "fse_cells": 1280,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 4,
+          "raw_rle_bytes": 4,
+          "sequence_bits": 26,
+          "sequences": 1
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-fse-log-over-6",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-fse-log-over-9",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "short-matches-over-block",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 131074,
+          "sha256": "ee5c64a37e125e31817f2ffe51fa68fde6eed9617a9743acc0054d1381700f0d",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "repeat-tables-across-raw",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 14,
+          "sha256": "82cab7df0abfb9d95dca4e5937ce2968c798c726fea48c016bf9763221efda13",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            3,
+            1,
+            9
+          ],
+          "blocks": 4,
+          "compressed_blocks": 2,
+          "decoded_bytes": 14,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 2,
+          "sequence_bits": 8,
+          "sequences": 4
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "repeat-offset-reordering",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 14,
+          "sha256": "35bcf97e1580fd72a03a63185cb64e151ae20ea4b9bd6271f204a05fef90809d",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            8,
+            3,
+            3
+          ],
+          "blocks": 3,
+          "compressed_blocks": 2,
+          "decoded_bytes": 14,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 4,
+          "raw_rle_bytes": 8,
+          "sequence_bits": 0,
+          "sequences": 2
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "repeat-offset-minus-one",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 14,
+          "sha256": "fadb3f64fb1084c9517881aadf3464c2c3f7c4750b2718b9b4ecaf2d8136aa86",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            8,
+            3,
+            3
+          ],
+          "blocks": 3,
+          "compressed_blocks": 2,
+          "decoded_bytes": 14,
+          "fse_cells": 6,
+          "fse_tables": 6,
+          "literal_bytes": 0,
+          "max_offset": 8,
+          "raw_rle_bytes": 8,
+          "sequence_bits": 4,
+          "sequences": 2
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "repeat-offset-minus-one-zero",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "offset-1024",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 1027,
+          "sha256": "2f7188606f0c82556a2b9c92f01bdb19c15661351132b8176e26b048126a6577",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            1024,
+            3
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 1027,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1024,
+          "raw_rle_bytes": 1024,
+          "sequence_bits": 10,
+          "sequences": 1
+        }
+      },
+      {
+        "code": "window_offset",
+        "deterministic_repeat": true,
+        "id": "offset-1025",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 1028,
+          "sha256": "325840ba4fd3ece651bc9e767fbd570b333ef2372434cf6b30f3502eb405e667",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "offset-262144",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 262147,
+          "sha256": "dcd4c348ad033743e870fddab7fad3832f791967a64a28ae4fa21edd21f0177a",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            3
+          ],
+          "blocks": 3,
+          "compressed_blocks": 1,
+          "decoded_bytes": 262147,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 262144,
+          "raw_rle_bytes": 262144,
+          "sequence_bits": 18,
+          "sequences": 1
+        }
+      },
+      {
+        "code": "window_offset",
+        "deterministic_repeat": true,
+        "id": "offset-262145",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 262148,
+          "sha256": "42435d17cbde7f8a0b7098512a4d7a3340f525d9edadd79a86557330719f744c",
+          "status": "decoded"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "repeat-table-missing",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-reserved-bits",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-rle-symbol-overflow",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "fse-log-overflow",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "fse-zero-run-overflow",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-stop-bit-missing",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-unused-bits",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-count-3byte-truncated",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "deterministic_repeat": true,
+        "id": "sequence-count-over-output",
+        "stage": "decode",
+        "status": "reject",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "status": "error"
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "raw-literals-width-1",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 3,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "rle-literals-width-1",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 3,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "raw-literals-width-2",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 3,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "rle-literals-width-2",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 3,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "raw-literals-width-3",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 3,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "code": null,
+        "deterministic_repeat": true,
+        "exact_bytes_sha256": true,
+        "id": "rle-literals-width-3",
+        "stage": null,
+        "status": "accept",
+        "suite": "milestone_7_codec_v2",
+        "unmodified_libzstd": {
+          "bytes": 3,
+          "sha256": "9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+          "status": "decoded"
+        },
+        "work": {
+          "block_output_sizes": [
+            3
+          ],
+          "blocks": 1,
+          "compressed_blocks": 1,
+          "decoded_bytes": 3,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 3,
+          "max_offset": 0,
+          "raw_rle_bytes": 0,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      }
+    ],
+    "total": 152
+  },
+  "independent_decoder_executed": false,
+  "methodology": {
+    "clocks": "perf_counter_ns and process_time_ns",
+    "corpus_repetitions": 5,
+    "corpus_warmups": 1,
+    "excluded": "imports, fixture/corpus generation, result writing",
+    "malformed_repetitions": 31,
+    "p95": "nearest rank",
+    "resource_repetitions": 3,
+    "resource_warmups": 1
+  },
+  "remaining_gates": [
+    "Independent review/fuzzing of new verifier, including FSE/repeat handling",
+    "Independent full decoder and supported OS/architecture agreement",
+    "Reviewed full native Huffman/table/malformed-path work and state proof",
+    "Restricted native workers with process memory/concurrency/queue controls",
+    "Final launch A/B/C, integration and lifecycle tests are outside this task"
+  ],
+  "report_version": "1.0.0",
+  "resources": {
+    "cpu_note": "Windows process CPU clock is coarse; raw CPU/elapsed samples retained; no validity deadline",
+    "malformed": [
+      {
+        "code": "invalid_stream",
+        "id": "fse-log-overflow",
+        "status": "reject",
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 8900,
+          "p95_ns": 13300,
+          "wall_ns": [
+            16500,
+            13300,
+            11200,
+            10400,
+            9900,
+            10000,
+            9700,
+            9300,
+            8800,
+            9000,
+            9100,
+            9100,
+            8800,
+            8600,
+            8600,
+            8700,
+            8900,
+            9400,
+            9100,
+            8600,
+            9100,
+            8500,
+            8400,
+            8500,
+            8300,
+            8600,
+            8900,
+            8600,
+            8500,
+            8100,
+            8100
+          ]
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "id": "fse-zero-run-overflow",
+        "status": "reject",
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 12900,
+          "p95_ns": 14500,
+          "wall_ns": [
+            15000,
+            14500,
+            14300,
+            13400,
+            13500,
+            13000,
+            13000,
+            13400,
+            13100,
+            13200,
+            12700,
+            12600,
+            12200,
+            12300,
+            12300,
+            12200,
+            12600,
+            13400,
+            12900,
+            12600,
+            13000,
+            13200,
+            13000,
+            12800,
+            12600,
+            13300,
+            12800,
+            12500,
+            12100,
+            12100,
+            12300
+          ]
+        }
+      },
+      {
+        "code": "invalid_stream",
+        "id": "sequence-count-over-output",
+        "status": "reject",
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 7400,
+          "p95_ns": 13900,
+          "wall_ns": [
+            11700,
+            8100,
+            7600,
+            7400,
+            7500,
+            7200,
+            7400,
+            7200,
+            7000,
+            7400,
+            7200,
+            7400,
+            7400,
+            7000,
+            7200,
+            7100,
+            6900,
+            7400,
+            7100,
+            7100,
+            6800,
+            6900,
+            7200,
+            7300,
+            7000,
+            42200,
+            13900,
+            10700,
+            9300,
+            8500,
+            8200
+          ]
+        }
+      },
+      {
+        "code": "window_offset",
+        "id": "offset-1025",
+        "status": "reject",
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 19400,
+          "p95_ns": 23900,
+          "wall_ns": [
+            24200,
+            21900,
+            20900,
+            19700,
+            20000,
+            19700,
+            19400,
+            19700,
+            19600,
+            19400,
+            19100,
+            19300,
+            20000,
+            19500,
+            23900,
+            19200,
+            19400,
+            20800,
+            19400,
+            19700,
+            19000,
+            19000,
+            19100,
+            19600,
+            19300,
+            19100,
+            18700,
+            19800,
+            19400,
+            18800,
+            18700
+          ]
+        }
+      }
+    ],
+    "memory_note": "Explicit native arena/output capacities; Python trace is not native/RSS/stack accounting",
+    "rows": [
+      {
+        "encoded_bytes": 81,
+        "expansion_ratio": 0.7901234567901234,
+        "id": "one-raw-block",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 8300,
+          "p95_ns": 8600,
+          "wall_ns": [
+            8600,
+            8300,
+            7800
+          ]
+        },
+        "original_bytes": 64,
+        "output_capacity": 64,
+        "peak_output_storage": 128,
+        "python_tracemalloc_peak": 1214,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 19600,
+          "p95_ns": 23600,
+          "wall_ns": [
+            23600,
+            19600,
+            17600
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            64
+          ],
+          "blocks": 1,
+          "compressed_blocks": 0,
+          "decoded_bytes": 64,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 64,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "encoded_bytes": 270,
+        "expansion_ratio": 0.23703703703703705,
+        "id": "64-tiny-blocks",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 99600,
+          "p95_ns": 184500,
+          "wall_ns": [
+            99600,
+            184500,
+            92000
+          ]
+        },
+        "original_bytes": 64,
+        "output_capacity": 64,
+        "peak_output_storage": 128,
+        "python_tracemalloc_peak": 2639,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 147400,
+          "p95_ns": 360600,
+          "wall_ns": [
+            147400,
+            146800,
+            360600
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "blocks": 64,
+          "compressed_blocks": 0,
+          "decoded_bytes": 64,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 64,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "encoded_bytes": 207,
+        "expansion_ratio": 0.004830917874396135,
+        "id": "64-mostly-empty",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 47700,
+          "p95_ns": 48800,
+          "wall_ns": [
+            48800,
+            47700,
+            47400
+          ]
+        },
+        "original_bytes": 1,
+        "output_capacity": 1,
+        "peak_output_storage": 2,
+        "python_tracemalloc_peak": 2544,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 100200,
+          "p95_ns": 100500,
+          "wall_ns": [
+            100500,
+            100200,
+            99500
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          "blocks": 64,
+          "compressed_blocks": 0,
+          "decoded_bytes": 1,
+          "fse_cells": 0,
+          "fse_tables": 0,
+          "literal_bytes": 0,
+          "max_offset": 0,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 0,
+          "sequences": 0
+        }
+      },
+      {
+        "encoded_bytes": 87,
+        "expansion_ratio": 24105.19540229885,
+        "id": "high-ratio-at-A",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 2059900,
+          "p95_ns": 2092500,
+          "wall_ns": [
+            1747400,
+            2092500,
+            2059900
+          ]
+        },
+        "original_bytes": 2097152,
+        "output_capacity": 2097152,
+        "peak_output_storage": 4194304,
+        "python_tracemalloc_peak": 2099070,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            15625000
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 1917800,
+          "p95_ns": 2332100,
+          "wall_ns": [
+            2332100,
+            1917800,
+            1892800
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072,
+            131072
+          ],
+          "blocks": 16,
+          "compressed_blocks": 1,
+          "decoded_bytes": 2097152,
+          "fse_cells": 160,
+          "fse_tables": 3,
+          "literal_bytes": 2,
+          "max_offset": 1,
+          "raw_rle_bytes": 1966080,
+          "sequence_bits": 33,
+          "sequences": 1
+        }
+      },
+      {
+        "encoded_bytes": 61,
+        "expansion_ratio": 6.311475409836065,
+        "id": "short-matches-128",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 12600,
+          "p95_ns": 14600,
+          "wall_ns": [
+            14600,
+            12600,
+            11600
+          ]
+        },
+        "original_bytes": 385,
+        "output_capacity": 385,
+        "peak_output_storage": 770,
+        "python_tracemalloc_peak": 1764,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 318500,
+          "p95_ns": 320500,
+          "wall_ns": [
+            318500,
+            320500,
+            313600
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            384
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 385,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 256,
+          "sequences": 128
+        }
+      },
+      {
+        "encoded_bytes": 10952,
+        "expansion_ratio": 11.967768444119795,
+        "id": "short-matches-43690",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 488000,
+          "p95_ns": 498200,
+          "wall_ns": [
+            481700,
+            488000,
+            498200
+          ]
+        },
+        "original_bytes": 131071,
+        "output_capacity": 131071,
+        "peak_output_storage": 262142,
+        "python_tracemalloc_peak": null,
+        "timings": {
+          "cpu_ns": [
+            109375000,
+            109375000,
+            93750000
+          ],
+          "median_cpu_ns": 109375000,
+          "median_ns": 110837100,
+          "p95_ns": 111200700,
+          "wall_ns": [
+            110183000,
+            111200700,
+            110837100
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            1,
+            131070
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 131071,
+          "fse_cells": 3,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 1,
+          "sequence_bits": 87380,
+          "sequences": 43690
+        }
+      },
+      {
+        "encoded_bytes": 174975,
+        "expansion_ratio": 11.985437919702814,
+        "id": "short-matches-at-frame-A",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            15625000,
+            0,
+            15625000
+          ],
+          "median_cpu_ns": 15625000,
+          "median_ns": 8756300,
+          "p95_ns": 8990300,
+          "wall_ns": [
+            8699000,
+            8990300,
+            8756300
+          ]
+        },
+        "original_bytes": 2097152,
+        "output_capacity": 2097152,
+        "peak_output_storage": 4194304,
+        "python_tracemalloc_peak": null,
+        "timings": {
+          "cpu_ns": [
+            1781250000,
+            1750000000,
+            1765625000
+          ],
+          "median_cpu_ns": 1765625000,
+          "median_ns": 1821242900,
+          "p95_ns": 1835874900,
+          "wall_ns": [
+            1835874900,
+            1791450500,
+            1821242900
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            2,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            131070,
+            30
+          ],
+          "blocks": 18,
+          "compressed_blocks": 17,
+          "decoded_bytes": 2097152,
+          "fse_cells": 51,
+          "fse_tables": 51,
+          "literal_bytes": 0,
+          "max_offset": 1,
+          "raw_rle_bytes": 2,
+          "sequence_bits": 1398100,
+          "sequences": 699050
+        }
+      },
+      {
+        "encoded_bytes": 40,
+        "expansion_ratio": 0.175,
+        "id": "sequence-fse-max-logs",
+        "native_arena_bytes": 95968,
+        "native_only_timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 11200,
+          "p95_ns": 11300,
+          "wall_ns": [
+            11300,
+            11200,
+            10800
+          ]
+        },
+        "original_bytes": 7,
+        "output_capacity": 7,
+        "peak_output_storage": 14,
+        "python_tracemalloc_peak": 37257,
+        "timings": {
+          "cpu_ns": [
+            0,
+            0,
+            0
+          ],
+          "median_cpu_ns": 0,
+          "median_ns": 268800,
+          "p95_ns": 277200,
+          "wall_ns": [
+            268800,
+            277200,
+            263100
+          ]
+        },
+        "work": {
+          "block_output_sizes": [
+            4,
+            3
+          ],
+          "blocks": 2,
+          "compressed_blocks": 1,
+          "decoded_bytes": 7,
+          "fse_cells": 1280,
+          "fse_tables": 3,
+          "literal_bytes": 0,
+          "max_offset": 4,
+          "raw_rle_bytes": 4,
+          "sequence_bits": 26,
+          "sequences": 1
+        }
+      }
+    ]
+  },
+  "source_sha256": {
+    "codec_prototype/sequence_verifier.py": "81708092df67a8fc28902657124ff76500a95348ba3a95306700f84326576ad5",
+    "codec_prototype/strict_decoder.py": "1f8022ca19ff4543c5381f238702a025ee8517dca80811f278336fed2d9ba2cb",
+    "scripts/milestone_7_task_7_6a_conformance.py": "5eadd2da680bbf884e9ebdd11f3722f7f5169ffd3c6f673991c0400fa9e9f88f",
+    "scripts/milestone_7_task_7_6a_vectors.py": "cf4127da7d80464f70704b32e947a2ea80e045fb4a445af164dc92bcabae47d3"
+  },
+  "task": "7.6A"
+}

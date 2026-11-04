@@ -1,0 +1,1193 @@
+{
+  "scenarios": [
+    {
+      "month36": {
+        "backup_retained_bytes": 17863531431,
+        "backup_transfer_bytes": 18803717296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 2901750000,
+        "cumulative_cost": 726.4912576607423,
+        "days": 31,
+        "incoming_bytes": 113367000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.09982026050537825,
+          "compute": 20.0,
+          "egress": 0.18393700286746026,
+          "primary_storage": 0.0,
+          "total": 20.283757263372838
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 82150000,
+        "outgoing_bytes": 946368000,
+        "primary_physical_bytes": 4700929324,
+        "snapshot_bytes": 4700929324,
+        "temporary_headroom_bytes": 6457791860
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 17863531431,
+        "blocks": 109500,
+        "canonical_bytes": 2901750000,
+        "cumulative_cost": 726.4912576607423,
+        "cumulative_outgoing_bytes": 33428160000,
+        "initial_sync_bytes": 3482100000,
+        "primary_physical_bytes": 4700929324,
+        "snapshot_bytes": 4700929324
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 17863531431,
+        "backup_transfer_bytes": 18803717296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 2901750000,
+        "cumulative_cost": 1496.9255388250565,
+        "days": 31,
+        "incoming_bytes": 113367000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.8318355042114854,
+          "compute": 40.0,
+          "egress": 1.6554330258071421,
+          "primary_storage": 0.0,
+          "total": 42.487268530018625
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 82150000,
+        "outgoing_bytes": 946368000,
+        "primary_physical_bytes": 4700929324,
+        "snapshot_bytes": 4700929324,
+        "temporary_headroom_bytes": 6457791860
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 17863531431,
+        "blocks": 109500,
+        "canonical_bytes": 2901750000,
+        "cumulative_cost": 1496.9255388250565,
+        "cumulative_outgoing_bytes": 33428160000,
+        "initial_sync_bytes": 3482100000,
+        "primary_physical_bytes": 4700929324,
+        "snapshot_bytes": 4700929324
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 17863531431,
+        "backup_transfer_bytes": 18803717296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 2901750000,
+        "cumulative_cost": 1626.4912576607414,
+        "days": 31,
+        "incoming_bytes": 113367000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.09982026050537825,
+          "compute": 45.0,
+          "egress": 0.18393700286746026,
+          "primary_storage": 0.0,
+          "total": 45.283757263372834
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 82150000,
+        "outgoing_bytes": 946368000,
+        "primary_physical_bytes": 4700929324,
+        "snapshot_bytes": 4700929324,
+        "temporary_headroom_bytes": 6457791860
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 17863531431,
+        "blocks": 109500,
+        "canonical_bytes": 2901750000,
+        "cumulative_cost": 1626.4912576607414,
+        "cumulative_outgoing_bytes": 33428160000,
+        "initial_sync_bytes": 3482100000,
+        "primary_physical_bytes": 4700929324,
+        "snapshot_bytes": 4700929324
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 113916055431,
+        "backup_transfer_bytes": 119911637296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 23123334000,
+        "cumulative_cost": 755.9722794390276,
+        "days": 31,
+        "incoming_bytes": 903393816,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.6365555642053485,
+          "compute": 20.0,
+          "egress": 1.1869986705482007,
+          "primary_storage": 0.0,
+          "total": 21.823554234753548
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 654633200,
+        "outgoing_bytes": 7541374464,
+        "primary_physical_bytes": 29977909324,
+        "snapshot_bytes": 29977909324,
+        "temporary_headroom_bytes": 12550813660
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 113916055431,
+        "blocks": 109500,
+        "canonical_bytes": 23123334000,
+        "cumulative_cost": 755.9722794390276,
+        "cumulative_outgoing_bytes": 266380807680,
+        "initial_sync_bytes": 27748000800,
+        "primary_physical_bytes": 29977909324,
+        "snapshot_bytes": 29977909324
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 113916055431,
+        "backup_transfer_bytes": 119911637296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 23123334000,
+        "cumulative_cost": 1755.6443126326421,
+        "days": 31,
+        "incoming_bytes": 903393816,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 5.304629701711238,
+          "compute": 40.0,
+          "egress": 10.682988034933805,
+          "primary_storage": 0.0,
+          "total": 55.98761773664504
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 654633200,
+        "outgoing_bytes": 7541374464,
+        "primary_physical_bytes": 29977909324,
+        "snapshot_bytes": 29977909324,
+        "temporary_headroom_bytes": 12550813660
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 113916055431,
+        "blocks": 109500,
+        "canonical_bytes": 23123334000,
+        "cumulative_cost": 1755.6443126326421,
+        "cumulative_outgoing_bytes": 266380807680,
+        "initial_sync_bytes": 27748000800,
+        "primary_physical_bytes": 29977909324,
+        "snapshot_bytes": 29977909324
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 113916055431,
+        "backup_transfer_bytes": 119911637296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 23123334000,
+        "cumulative_cost": 1655.9722794390277,
+        "days": 31,
+        "incoming_bytes": 903393816,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.6365555642053485,
+          "compute": 45.0,
+          "egress": 1.1869986705482007,
+          "primary_storage": 0.0,
+          "total": 46.823554234753544
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 654633200,
+        "outgoing_bytes": 7541374464,
+        "primary_physical_bytes": 29977909324,
+        "snapshot_bytes": 29977909324,
+        "temporary_headroom_bytes": 12550813660
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 113916055431,
+        "blocks": 109500,
+        "canonical_bytes": 23123334000,
+        "cumulative_cost": 1655.9722794390277,
+        "cumulative_outgoing_bytes": 266380807680,
+        "initial_sync_bytes": 27748000800,
+        "primary_physical_bytes": 29977909324,
+        "snapshot_bytes": 29977909324
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1123805318931,
+        "backup_transfer_bytes": 1182952967296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 226665000000,
+        "cumulative_cost": 1111.427231415081,
+        "days": 31,
+        "incoming_bytes": 8855460000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 6.279751577961445,
+          "compute": 20.0,
+          "egress": 11.705577441453935,
+          "primary_storage": 5.771385039389134,
+          "total": 43.75671405880451
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 6417000000,
+        "outgoing_bytes": 73923840000,
+        "primary_physical_bytes": 295738241824,
+        "snapshot_bytes": 295738241824,
+        "temporary_headroom_bytes": 76612402485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1123805318931,
+        "blocks": 109500,
+        "canonical_bytes": 226665000000,
+        "cumulative_cost": 1111.427231415081,
+        "cumulative_outgoing_bytes": 2611180800000,
+        "initial_sync_bytes": 271998000000,
+        "primary_physical_bytes": 295738241824,
+        "snapshot_bytes": 295738241824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1123805318931,
+        "backup_transfer_bytes": 1182952967296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 226665000000,
+        "cumulative_cost": 4559.972790674865,
+        "days": 31,
+        "incoming_bytes": 8855460000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 52.331263149678705,
+          "compute": 40.0,
+          "egress": 105.3501969730854,
+          "primary_storage": 11.542770078778268,
+          "total": 209.22423020154235
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 6417000000,
+        "outgoing_bytes": 73923840000,
+        "primary_physical_bytes": 295738241824,
+        "snapshot_bytes": 295738241824,
+        "temporary_headroom_bytes": 76612402485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1123805318931,
+        "blocks": 109500,
+        "canonical_bytes": 226665000000,
+        "cumulative_cost": 4559.972790674865,
+        "cumulative_outgoing_bytes": 2611180800000,
+        "initial_sync_bytes": 271998000000,
+        "primary_physical_bytes": 295738241824,
+        "snapshot_bytes": 295738241824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1123805318931,
+        "backup_transfer_bytes": 1182952967296,
+        "cumulative_blocks": 109500,
+        "cumulative_canonical_bytes": 226665000000,
+        "cumulative_cost": 1964.960861313807,
+        "days": 31,
+        "incoming_bytes": 8855460000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 6.279751577961445,
+          "compute": 45.0,
+          "egress": 11.705577441453935,
+          "primary_storage": 0.0,
+          "total": 62.98532901941538
+        },
+        "new_blocks": 3100,
+        "new_canonical_bytes": 6417000000,
+        "outgoing_bytes": 73923840000,
+        "primary_physical_bytes": 295738241824,
+        "snapshot_bytes": 295738241824,
+        "temporary_headroom_bytes": 76612402485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 100,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1123805318931,
+        "blocks": 109500,
+        "canonical_bytes": 226665000000,
+        "cumulative_cost": 1964.960861313807,
+        "cumulative_outgoing_bytes": 2611180800000,
+        "initial_sync_bytes": 271998000000,
+        "primary_physical_bytes": 295738241824,
+        "snapshot_bytes": 295738241824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 141913343931,
+        "backup_transfer_bytes": 149382467296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 29017500000,
+        "cumulative_cost": 764.5653766074213,
+        "days": 31,
+        "incoming_bytes": 1133670000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.7930026050537824,
+          "compute": 20.0,
+          "egress": 1.4793700286746025,
+          "primary_storage": 0.0,
+          "total": 22.272372633728384
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 821500000,
+        "outgoing_bytes": 9463680000,
+        "primary_physical_bytes": 37345616824,
+        "snapshot_bytes": 37345616824,
+        "temporary_headroom_bytes": 14326801235
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 141913343931,
+        "blocks": 1095000,
+        "canonical_bytes": 29017500000,
+        "cumulative_cost": 764.5653766074213,
+        "cumulative_outgoing_bytes": 334281600000,
+        "initial_sync_bytes": 34821000000,
+        "primary_physical_bytes": 37345616824,
+        "snapshot_bytes": 37345616824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 141913343931,
+        "backup_transfer_bytes": 149382467296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 29017500000,
+        "cumulative_cost": 1831.0553882505735,
+        "days": 31,
+        "incoming_bytes": 1133670000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 6.608355042114853,
+          "compute": 40.0,
+          "egress": 13.314330258071422,
+          "primary_storage": 0.0,
+          "total": 59.922685300186274
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 821500000,
+        "outgoing_bytes": 9463680000,
+        "primary_physical_bytes": 37345616824,
+        "snapshot_bytes": 37345616824,
+        "temporary_headroom_bytes": 14326801235
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 141913343931,
+        "blocks": 1095000,
+        "canonical_bytes": 29017500000,
+        "cumulative_cost": 1831.0553882505735,
+        "cumulative_outgoing_bytes": 334281600000,
+        "initial_sync_bytes": 34821000000,
+        "primary_physical_bytes": 37345616824,
+        "snapshot_bytes": 37345616824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 141913343931,
+        "backup_transfer_bytes": 149382467296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 29017500000,
+        "cumulative_cost": 1664.5653766074204,
+        "days": 31,
+        "incoming_bytes": 1133670000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 0.7930026050537824,
+          "compute": 45.0,
+          "egress": 1.4793700286746025,
+          "primary_storage": 0.0,
+          "total": 47.27237263372838
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 821500000,
+        "outgoing_bytes": 9463680000,
+        "primary_physical_bytes": 37345616824,
+        "snapshot_bytes": 37345616824,
+        "temporary_headroom_bytes": 14326801235
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 141913343931,
+        "blocks": 1095000,
+        "canonical_bytes": 29017500000,
+        "cumulative_cost": 1664.5653766074204,
+        "cumulative_outgoing_bytes": 334281600000,
+        "initial_sync_bytes": 34821000000,
+        "primary_physical_bytes": 37345616824,
+        "snapshot_bytes": 37345616824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1102438583931,
+        "backup_transfer_bytes": 1160461667296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 231233340000,
+        "cumulative_cost": 1102.6358546313822,
+        "days": 31,
+        "incoming_bytes": 9033938160,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 6.160355642053485,
+          "compute": 20.0,
+          "egress": 11.509986705482007,
+          "primary_storage": 5.50955184660852,
+          "total": 43.17989419414401
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 6546332000,
+        "outgoing_bytes": 75413744640,
+        "primary_physical_bytes": 290115416824,
+        "snapshot_bytes": 290115416824,
+        "temporary_headroom_bytes": 75257019235
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1102438583931,
+        "blocks": 1095000,
+        "canonical_bytes": 231233340000,
+        "cumulative_cost": 1102.6358546313822,
+        "cumulative_outgoing_bytes": 2663808076800,
+        "initial_sync_bytes": 277480008000,
+        "primary_physical_bytes": 290115416824,
+        "snapshot_bytes": 290115416824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1102438583931,
+        "backup_transfer_bytes": 1160461667296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 231233340000,
+        "cumulative_cost": 4504.76364680864,
+        "days": 31,
+        "incoming_bytes": 9033938160,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 51.33629701711237,
+          "compute": 40.0,
+          "egress": 103.58988034933805,
+          "primary_storage": 11.01910369321704,
+          "total": 205.94528105966745
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 6546332000,
+        "outgoing_bytes": 75413744640,
+        "primary_physical_bytes": 290115416824,
+        "snapshot_bytes": 290115416824,
+        "temporary_headroom_bytes": 75257019235
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1102438583931,
+        "blocks": 1095000,
+        "canonical_bytes": 231233340000,
+        "cumulative_cost": 4504.76364680864,
+        "cumulative_outgoing_bytes": 2663808076800,
+        "initial_sync_bytes": 277480008000,
+        "primary_physical_bytes": 290115416824,
+        "snapshot_bytes": 290115416824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1102438583931,
+        "backup_transfer_bytes": 1160461667296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 231233340000,
+        "cumulative_cost": 1959.375594390276,
+        "days": 31,
+        "incoming_bytes": 9033938160,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 6.160355642053485,
+          "compute": 45.0,
+          "egress": 11.509986705482007,
+          "primary_storage": 0.0,
+          "total": 62.670342347535495
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 6546332000,
+        "outgoing_bytes": 75413744640,
+        "primary_physical_bytes": 290115416824,
+        "snapshot_bytes": 290115416824,
+        "temporary_headroom_bytes": 75257019235
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1102438583931,
+        "blocks": 1095000,
+        "canonical_bytes": 231233340000,
+        "cumulative_cost": 1959.375594390276,
+        "cumulative_outgoing_bytes": 2663808076800,
+        "initial_sync_bytes": 277480008000,
+        "primary_physical_bytes": 290115416824,
+        "snapshot_bytes": 290115416824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 11201331218931,
+        "backup_transfer_bytes": 11790874967296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 2266650000000,
+        "cumulative_cost": 6402.5684753139485,
+        "days": 31,
+        "incoming_bytes": 88554600000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 62.592315779614445,
+          "compute": 20.0,
+          "egress": 116.69577441453934,
+          "primary_storage": 129.26385039389135,
+          "total": 328.5519405880451
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 64170000000,
+        "outgoing_bytes": 739238400000,
+        "primary_physical_bytes": 2947718741824,
+        "snapshot_bytes": 2947718741824,
+        "temporary_headroom_bytes": 715872907485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 11201331218931,
+        "blocks": 1095000,
+        "canonical_bytes": 2266650000000,
+        "cumulative_cost": 6402.5684753139485,
+        "cumulative_outgoing_bytes": 26111808000000,
+        "initial_sync_bytes": 2719980000000,
+        "primary_physical_bytes": 2947718741824,
+        "snapshot_bytes": 2947718741824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 11201331218931,
+        "backup_transfer_bytes": 11790874967296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 2266650000000,
+        "cumulative_cost": 36038.81462907494,
+        "days": 31,
+        "incoming_bytes": 88554600000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 521.602631496787,
+          "compute": 40.0,
+          "egress": 1050.261969730854,
+          "primary_storage": 258.5277007877827,
+          "total": 1870.3923020154236
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 64170000000,
+        "outgoing_bytes": 739238400000,
+        "primary_physical_bytes": 2947718741824,
+        "snapshot_bytes": 2947718741824,
+        "temporary_headroom_bytes": 715872907485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 11201331218931,
+        "blocks": 1095000,
+        "canonical_bytes": 2266650000000,
+        "cumulative_cost": 36038.81462907494,
+        "cumulative_outgoing_bytes": 26111808000000,
+        "initial_sync_bytes": 2719980000000,
+        "primary_physical_bytes": 2947718741824,
+        "snapshot_bytes": 2947718741824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 11201331218931,
+        "backup_transfer_bytes": 11790874967296,
+        "cumulative_blocks": 1095000,
+        "cumulative_canonical_bytes": 2266650000000,
+        "cumulative_cost": 5732.137148724963,
+        "days": 31,
+        "incoming_bytes": 88554600000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 62.592315779614445,
+          "compute": 45.0,
+          "egress": 116.69577441453934,
+          "primary_storage": 44.90554015755654,
+          "total": 269.19363035171034
+        },
+        "new_blocks": 31000,
+        "new_canonical_bytes": 64170000000,
+        "outgoing_bytes": 739238400000,
+        "primary_physical_bytes": 2947718741824,
+        "snapshot_bytes": 2947718741824,
+        "temporary_headroom_bytes": 715872907485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 1000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 11201331218931,
+        "blocks": 1095000,
+        "canonical_bytes": 2266650000000,
+        "cumulative_cost": 5732.137148724963,
+        "cumulative_outgoing_bytes": 26111808000000,
+        "initial_sync_bytes": 2719980000000,
+        "primary_physical_bytes": 2947718741824,
+        "snapshot_bytes": 2947718741824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1382411468931,
+        "backup_transfer_bytes": 1455169967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 290175000000,
+        "cumulative_cost": 1234.7421015423718,
+        "days": 31,
+        "incoming_bytes": 11336700000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 7.724826050537825,
+          "compute": 20.0,
+          "egress": 14.433700286746026,
+          "primary_storage": 8.940408005565406,
+          "total": 51.098934342849255
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 8215000000,
+        "outgoing_bytes": 94636800000,
+        "primary_physical_bytes": 363792491824,
+        "snapshot_bytes": 363792491824,
+        "temporary_headroom_bytes": 93016894985
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1382411468931,
+        "blocks": 10950000,
+        "canonical_bytes": 290175000000,
+        "cumulative_cost": 1234.7421015423718,
+        "cumulative_outgoing_bytes": 3342816000000,
+        "initial_sync_bytes": 348210000000,
+        "primary_physical_bytes": 363792491824,
+        "snapshot_bytes": 363792491824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1382411468931,
+        "backup_transfer_bytes": 1455169967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 290175000000,
+        "cumulative_cost": 5351.224953442066,
+        "days": 31,
+        "incoming_bytes": 11336700000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 64.37355042114854,
+          "compute": 40.0,
+          "egress": 129.9033025807142,
+          "primary_storage": 17.88081601113081,
+          "total": 252.15766901299355
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 8215000000,
+        "outgoing_bytes": 94636800000,
+        "primary_physical_bytes": 363792491824,
+        "snapshot_bytes": 363792491824,
+        "temporary_headroom_bytes": 93016894985
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1382411468931,
+        "blocks": 10950000,
+        "canonical_bytes": 290175000000,
+        "cumulative_cost": 5351.224953442066,
+        "cumulative_outgoing_bytes": 3342816000000,
+        "initial_sync_bytes": 348210000000,
+        "primary_physical_bytes": 363792491824,
+        "snapshot_bytes": 363792491824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 1382411468931,
+        "backup_transfer_bytes": 1455169967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 290175000000,
+        "cumulative_cost": 2045.3065660742093,
+        "days": 31,
+        "incoming_bytes": 11336700000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 7.724826050537825,
+          "compute": 45.0,
+          "egress": 14.433700286746026,
+          "primary_storage": 0.0,
+          "total": 67.15852633728386
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 8215000000,
+        "outgoing_bytes": 94636800000,
+        "primary_physical_bytes": 363792491824,
+        "snapshot_bytes": 363792491824,
+        "temporary_headroom_bytes": 93016894985
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "small_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 1382411468931,
+        "blocks": 10950000,
+        "canonical_bytes": 290175000000,
+        "cumulative_cost": 2045.3065660742093,
+        "cumulative_outgoing_bytes": 3342816000000,
+        "initial_sync_bytes": 348210000000,
+        "primary_physical_bytes": 363792491824,
+        "snapshot_bytes": 363792491824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 10987663868931,
+        "backup_transfer_bytes": 11565961967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 2312333400000,
+        "cumulative_cost": 6298.56001914339,
+        "days": 31,
+        "incoming_bytes": 90339381600,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 61.398356420534846,
+          "compute": 20.0,
+          "egress": 114.73986705482007,
+          "primary_storage": 126.6455184660852,
+          "total": 322.7837419414401
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 65463320000,
+        "outgoing_bytes": 754137446400,
+        "primary_physical_bytes": 2891490491824,
+        "snapshot_bytes": 2891490491824,
+        "temporary_headroom_bytes": 702319074985
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 10987663868931,
+        "blocks": 10950000,
+        "canonical_bytes": 2312333400000,
+        "cumulative_cost": 6298.56001914339,
+        "cumulative_outgoing_bytes": 26638080768000,
+        "initial_sync_bytes": 2774800080000,
+        "primary_physical_bytes": 2891490491824,
+        "snapshot_bytes": 2891490491824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 10987663868931,
+        "backup_transfer_bytes": 11565961967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 2312333400000,
+        "cumulative_cost": 35454.53381374554,
+        "days": 31,
+        "incoming_bytes": 90339381600,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 511.65297017112374,
+          "compute": 40.0,
+          "egress": 1032.6588034933804,
+          "primary_storage": 253.2910369321704,
+          "total": 1837.6028105966745
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 65463320000,
+        "outgoing_bytes": 754137446400,
+        "primary_physical_bytes": 2891490491824,
+        "snapshot_bytes": 2891490491824,
+        "temporary_headroom_bytes": 702319074985
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 10987663868931,
+        "blocks": 10950000,
+        "canonical_bytes": 2312333400000,
+        "cumulative_cost": 35454.53381374554,
+        "cumulative_outgoing_bytes": 26638080768000,
+        "initial_sync_bytes": 2774800080000,
+        "primary_physical_bytes": 2891490491824,
+        "snapshot_bytes": 2891490491824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 10987663868931,
+        "backup_transfer_bytes": 11565961967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 2312333400000,
+        "cumulative_cost": 5657.540570525546,
+        "days": 31,
+        "incoming_bytes": 90339381600,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 61.398356420534846,
+          "compute": 45.0,
+          "egress": 114.73986705482007,
+          "primary_storage": 43.85820738643408,
+          "total": 264.996430861789
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 65463320000,
+        "outgoing_bytes": 754137446400,
+        "primary_physical_bytes": 2891490491824,
+        "snapshot_bytes": 2891490491824,
+        "temporary_headroom_bytes": 702319074985
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "representative_corpus"
+      },
+      "three_year": {
+        "backup_retained_bytes": 10987663868931,
+        "blocks": 10950000,
+        "canonical_bytes": 2312333400000,
+        "cumulative_cost": 5657.540570525546,
+        "cumulative_outgoing_bytes": 26638080768000,
+        "initial_sync_bytes": 2774800080000,
+        "primary_physical_bytes": 2891490491824,
+        "snapshot_bytes": 2891490491824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 111976590218931,
+        "backup_transfer_bytes": 117870094967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 22666500000000,
+        "cumulative_cost": 60054.91606031257,
+        "days": 31,
+        "incoming_bytes": 885546000000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 625.7179577961444,
+          "compute": 20.0,
+          "egress": 1166.5977441453933,
+          "primary_storage": 1364.1885039389135,
+          "total": 3176.504205880451
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 641700000000,
+        "outgoing_bytes": 7392384000000,
+        "primary_physical_bytes": 29467523741824,
+        "snapshot_bytes": 29467523741824,
+        "temporary_headroom_bytes": 7108477957485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "budget_vps",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 111976590218931,
+        "blocks": 10950000,
+        "canonical_bytes": 22666500000000,
+        "cumulative_cost": 60054.91606031257,
+        "cumulative_outgoing_bytes": 261118080000000,
+        "initial_sync_bytes": 27199800000000,
+        "primary_physical_bytes": 29467523741824,
+        "snapshot_bytes": 29467523741824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 111976590218931,
+        "backup_transfer_bytes": 117870094967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 22666500000000,
+        "cumulative_cost": 352309.10330509546,
+        "days": 31,
+        "incoming_bytes": 885546000000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 5214.31631496787,
+          "compute": 40.0,
+          "egress": 10499.37969730854,
+          "primary_storage": 2728.377007877827,
+          "total": 18482.073020154236
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 641700000000,
+        "outgoing_bytes": 7392384000000,
+        "primary_physical_bytes": 29467523741824,
+        "snapshot_bytes": 29467523741824,
+        "temporary_headroom_bytes": 7108477957485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "mainstream_cloud",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 111976590218931,
+        "blocks": 10950000,
+        "canonical_bytes": 22666500000000,
+        "cumulative_cost": 352309.10330509546,
+        "cumulative_outgoing_bytes": 261118080000000,
+        "initial_sync_bytes": 27199800000000,
+        "primary_physical_bytes": 29467523741824,
+        "snapshot_bytes": 29467523741824
+      }
+    },
+    {
+      "month36": {
+        "backup_retained_bytes": 111976590218931,
+        "backup_transfer_bytes": 117870094967296,
+        "cumulative_blocks": 10950000,
+        "cumulative_canonical_bytes": 22666500000000,
+        "cumulative_cost": 45672.52658295352,
+        "days": 31,
+        "incoming_bytes": 885546000000,
+        "month": 36,
+        "monthly_cost": {
+          "backup": 625.7179577961444,
+          "compute": 45.0,
+          "egress": 1166.5977441453933,
+          "primary_storage": 538.8754015755653,
+          "total": 2376.1911035171033
+        },
+        "new_blocks": 310000,
+        "new_canonical_bytes": 641700000000,
+        "outgoing_bytes": 7392384000000,
+        "primary_physical_bytes": 29467523741824,
+        "snapshot_bytes": 29467523741824,
+        "temporary_headroom_bytes": 7108477957485
+      },
+      "scenario": {
+        "backup_policy": "recommended",
+        "blocks_per_day": 10000,
+        "encoded_factor": 1.0,
+        "peer_count": 8,
+        "physical_factor": 1.0,
+        "profile": "storage_focused",
+        "workload": "large_media"
+      },
+      "three_year": {
+        "backup_retained_bytes": 111976590218931,
+        "blocks": 10950000,
+        "canonical_bytes": 22666500000000,
+        "cumulative_cost": 45672.52658295352,
+        "cumulative_outgoing_bytes": 261118080000000,
+        "initial_sync_bytes": 27199800000000,
+        "primary_physical_bytes": 29467523741824,
+        "snapshot_bytes": 29467523741824
+      }
+    }
+  ],
+  "status": "historical uncorrected: snapshot/headroom/workspace not fully billed"
+}

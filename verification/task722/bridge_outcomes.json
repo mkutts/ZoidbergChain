@@ -1,0 +1,438 @@
+{
+  "collected": [
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_retrieval_restart_and_no_recompression[identity]",
+      "line": 54
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_retrieval_restart_and_no_recompression[zstd]",
+      "line": 54
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[codec_id-brotli]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[codec_version-2]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[codec_version-True]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[encoding_version-2]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[mime_type-video/mp4]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[original_sha256-0000000000000000000000000000000000000000000000000000000000000000]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[original_size-2]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[stored_size-1]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[original_size-262145]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[stored_size-2097153]",
+      "line": 72
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[corrupt]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[truncated]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[block-hash]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[noncanonical]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[signature]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[network]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[protocol]",
+      "line": 84
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_hash_mismatch_reaches_decoder_with_valid_signed_original_commitment",
+      "line": 105
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_larger_conforming_encoding_valid_without_recompression",
+      "line": 118
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_complete_cap_without_fabricating_schema_valid_padding[3145727]",
+      "line": 131
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_complete_cap_without_fabricating_schema_valid_padding[3145728]",
+      "line": 131
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_complete_cap_without_fabricating_schema_valid_padding[3145729]",
+      "line": 131
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[oversized-text]",
+      "line": 142
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[wrong-mime]",
+      "line": 142
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[unsupported]",
+      "line": 142
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[noncanonical-original]",
+      "line": 142
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_independent_application_validation_and_missing_authority",
+      "line": 154
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_upload_service_then_canonical_only_retrieval[text]",
+      "line": 183
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_upload_service_then_canonical_only_retrieval[png]",
+      "line": 183
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_process_interruption_and_retry[after-blob]",
+      "line": 208
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_process_interruption_and_retry[after-index]",
+      "line": 208
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_process_interruption_and_retry[after-commit]",
+      "line": 208
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[index]",
+      "line": 223
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[corrupt]",
+      "line": 223
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[truncated]",
+      "line": 223
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[missing-record]",
+      "line": 223
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_unavailable_decoder_storage_and_missing_block_distinct",
+      "line": 254
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_no_inherited_wal_maintenance_or_consensus_authority",
+      "line": 264
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_nonactivation_by_environment_or_peer_field",
+      "line": 276
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_active_sources_and_frozen_evidence_are_unchanged",
+      "line": 299
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_reconciliation_has_comparable_populations_and_mandatory_fields",
+      "line": 310
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_retrieval_restart_and_no_recompression[identity]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_retrieval_restart_and_no_recompression[zstd]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[codec_id-brotli]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[codec_version-2]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[codec_version-True]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[encoding_version-2]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[mime_type-video/mp4]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[original_sha256-0000000000000000000000000000000000000000000000000000000000000000]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[original_size-2]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[stored_size-1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[original_size-262145]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_descriptor_is_not_local_failure[stored_size-2097153]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[corrupt]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[truncated]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[block-hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[noncanonical]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_invalid_actual_canonical_encoded_bytes[protocol]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_hash_mismatch_reaches_decoder_with_valid_signed_original_commitment",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_larger_conforming_encoding_valid_without_recompression",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_complete_cap_without_fabricating_schema_valid_padding[3145727]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_complete_cap_without_fabricating_schema_valid_padding[3145728]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_complete_cap_without_fabricating_schema_valid_padding[3145729]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[oversized-text]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[wrong-mime]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[unsupported]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_producer_rejects_bad_mime_size_and_unaccepted_original[noncanonical-original]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_independent_application_validation_and_missing_authority",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_upload_service_then_canonical_only_retrieval[text]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_upload_service_then_canonical_only_retrieval[png]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_process_interruption_and_retry[after-blob]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_process_interruption_and_retry[after-index]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_actual_process_interruption_and_retry[after-commit]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[index]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[corrupt]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[truncated]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_database_is_not_substitute_for_canonical_evidence[missing-record]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_unavailable_decoder_storage_and_missing_block_distinct",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_no_inherited_wal_maintenance_or_consensus_authority",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_nonactivation_by_environment_or_peer_field",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_active_sources_and_frozen_evidence_are_unchanged",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task721/test_bridge.py::test_reconciliation_has_comparable_populations_and_mandatory_fields",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

@@ -1,0 +1,34 @@
+WARNING:root:SQLite backend selected. Native transactions, reviewer state, and vote evidence use relational durable storage.
+Traceback (most recent call last):
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 430, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 423, in main
+    output = run(config, include_sqlite=not args.skip_sqlite)
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 412, in run
+    "sqlite": sqlite_measurements(rows, config) if include_sqlite else {"skipped": True},
+              ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 382, in sqlite_measurements
+    results[f"{representation}:{encoding}"] = _sqlite_observation(
+                                              ~~~~~~~~~~~~~~~~~~~^
+        f"{representation}:{encoding}", [row["storage_record"] for row in selected], config
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\mattk\ZoidbergChain\scripts\milestone_7_task_7_7_block_composition.py", line 353, in _sqlite_observation
+    backend.save_chain(records[:count])
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\mattk\ZoidbergChain\storage.py", line 829, in save_chain
+    document = self._load_or_new_blockchain_document()
+  File "C:\Users\mattk\ZoidbergChain\storage.py", line 1304, in _load_or_new_blockchain_document
+    document = self.load_blockchain_document()
+  File "C:\Users\mattk\ZoidbergChain\storage.py", line 3120, in load_blockchain_document
+    sections = self._load_sections()
+  File "C:\Users\mattk\ZoidbergChain\storage.py", line 2769, in _load_sections
+    with self._connect() as connection:
+         ~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\mattk\ZoidbergChain\storage.py", line 1515, in _connect
+    raise RuntimeError("Active SQLite storage requires DELETE journal mode; no automatic mode conversion.")
+RuntimeError: Active SQLite storage requires DELETE journal mode; no automatic mode conversion.

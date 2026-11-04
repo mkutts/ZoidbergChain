@@ -1,0 +1,167 @@
+{
+  "fixture_version": 1,
+  "status": "TEST_ONLY_INCOMPLETE_POLICY",
+  "source": "Task 7.17L Appendices A/C (unchanged literal preimages)",
+  "objects": {
+    "B0": {
+      "preimage": "{\"domain\":\"zoidbergchain/reviewer-bootstrap/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"reviewer-bootstrap\",\"payload\":{\"bootstrap_version\":1,\"network_id\":\"task717i-test\",\"reputation_rule_digest\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"reviewer_policy_digest\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"reviewers\":[\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\",\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\"]},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "bytes": 511,
+      "sha256": "42064d0346197420df9ef6b35d3769bba0ca933e95c54e59fbb6f5994553bb94"
+    },
+    "DA": {
+      "preimage": "{\"agreement_version\":1,\"application_policy_digest\":\"87a9dad4d24b200ecfc1033e9e182aee1813a3ab771e6c8382099308f70624ca\",\"authority_profile\":\"static-genesis-n4-f1-q3-v1\",\"domain\":\"zoidbergchain/bft-agreement/v1\",\"limits\":{\"agreement_bytes\":4096,\"block_bytes\":3145728,\"commit_proof_bytes\":16384,\"envelope_bytes\":2048,\"manifest_bytes\":8192,\"max_depth\":32,\"max_round\":2147483647,\"max_uint\":9007199254740991,\"prevote_certificate_bytes\":12288,\"proposal_bundle_bytes\":3160400,\"round_evidence_bytes\":8192,\"signed_bytes\":2304},\"parent_profile\":\"immediate-finalized-v1\",\"proposer_profile\":\"height-minus-one-plus-round-mod-four-v1\",\"protocol\":\"zoidbergchain\",\"protocol_version\":2,\"reference\":\"arxiv:1807.04938v3/Algorithm1\",\"rule_selection\":\"printed-lines-1-67\",\"signer_profile\":\"reserve-sign-store-release-v1\",\"timeout_profile\":\"linear-1000ms-plus-1000ms-per-round-v1\",\"wire_profile\":\"bft-ascii-json-v1\"}",
+      "bytes": 892,
+      "sha256": "2ca3a90d2d1d7bb9535da7d201981e1fb44613633a76f4a6433390b4b82a3c9b"
+    },
+    "G2": {
+      "preimage": "{\"domain\":\"zoidbergchain/genesis/v2\",\"network_id\":\"task717i-test\",\"object_type\":\"genesis\",\"payload\":{\"agreement_descriptor\":{\"agreement_version\":1,\"application_policy_digest\":\"87a9dad4d24b200ecfc1033e9e182aee1813a3ab771e6c8382099308f70624ca\",\"authority_profile\":\"static-genesis-n4-f1-q3-v1\",\"domain\":\"zoidbergchain/bft-agreement/v1\",\"limits\":{\"agreement_bytes\":4096,\"block_bytes\":3145728,\"commit_proof_bytes\":16384,\"envelope_bytes\":2048,\"manifest_bytes\":8192,\"max_depth\":32,\"max_round\":2147483647,\"max_uint\":9007199254740991,\"prevote_certificate_bytes\":12288,\"proposal_bundle_bytes\":3160400,\"round_evidence_bytes\":8192,\"signed_bytes\":2304},\"parent_profile\":\"immediate-finalized-v1\",\"proposer_profile\":\"height-minus-one-plus-round-mod-four-v1\",\"protocol\":\"zoidbergchain\",\"protocol_version\":2,\"reference\":\"arxiv:1807.04938v3/Algorithm1\",\"rule_selection\":\"printed-lines-1-67\",\"signer_profile\":\"reserve-sign-store-release-v1\",\"timeout_profile\":\"linear-1000ms-plus-1000ms-per-round-v1\",\"wire_profile\":\"bft-ascii-json-v1\"},\"agreement_profile_digest\":\"2ca3a90d2d1d7bb9535da7d201981e1fb44613633a76f4a6433390b4b82a3c9b\",\"application\":\"task717i-test\",\"consensus_message_version\":1,\"genesis_version\":2,\"history_bootstrap\":{\"bootstrap_events\":[],\"bootstrap_history_commitment\":\"e520ea6baf1db8caf4de876c68c0376834a27944c2d3f44c7d545fbf190132c9\",\"history_version\":1,\"initial_state\":{\"bootstrap_history_commitment\":\"e520ea6baf1db8caf4de876c68c0376834a27944c2d3f44c7d545fbf190132c9\",\"native_bootstrap_digest\":\"0b517284e1d7b2bbf34ef28401eeac545751b6a1a7be057acf712a37aca56518\",\"policy_registry_digest\":\"87a9dad4d24b200ecfc1033e9e182aee1813a3ab771e6c8382099308f70624ca\",\"reviewer_bootstrap_digest\":\"42064d0346197420df9ef6b35d3769bba0ca933e95c54e59fbb6f5994553bb94\",\"state_version\":1},\"initial_state_commitment\":\"e2c758c1d42dc7c6a975a07e907b7ed96798fb4b3d24da21f1150db573eafcb6\"},\"index\":0,\"initial_block_version\":4,\"native_bootstrap\":{\"allocations\":[],\"initial_reward_pool\":\"0\",\"native_state_version\":1,\"network_id\":\"task717i-test\",\"total_supply\":\"0\"},\"native_bootstrap_digest\":\"0b517284e1d7b2bbf34ef28401eeac545751b6a1a7be057acf712a37aca56518\",\"policy_registry\":{\"domain\":\"zoidbergchain/application-policy-registry/v1\",\"network_id\":\"task717i-test\",\"policies\":[{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"encoding\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"history\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"issuance\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"media\",\"policy_version\":2},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"native\",\"policy_version\":2},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"reputation\",\"policy_version\":3},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"review\",\"policy_version\":3},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"reviewer\",\"policy_version\":2},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"rights\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"technical\",\"policy_version\":1}],\"registry_version\":1},\"policy_registry_digest\":\"87a9dad4d24b200ecfc1033e9e182aee1813a3ab771e6c8382099308f70624ca\",\"previous_hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"reviewer_bootstrap\":{\"bootstrap_version\":1,\"network_id\":\"task717i-test\",\"reputation_rule_digest\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"reviewer_policy_digest\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"reviewers\":[\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\",\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\"]},\"reviewer_bootstrap_digest\":\"42064d0346197420df9ef6b35d3769bba0ca933e95c54e59fbb6f5994553bb94\",\"validator_manifest\":{\"authority_profile\":\"static-genesis-v1\",\"byzantine_fault_budget\":1,\"domain\":\"zoidbergchain/validator-set/v1\",\"membership_version\":1,\"network_id\":\"task717i-test\",\"protocol\":\"zoidbergchain\",\"protocol_version\":2,\"required_quorum\":3,\"validator_epoch\":0,\"validator_public_keys\":[\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\",\"02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5\",\"02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13\",\"02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9\"]},\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "bytes": 4318,
+      "sha256": "0b1b932a7d6cfb0fed6cec2019724b0b0bf6ab13b0516e8d60d63ddbfa25ee94"
+    },
+    "HB": {
+      "preimage": "{\"domain\":\"zoidbergchain/history-bootstrap/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"history-bootstrap\",\"payload\":{\"bootstrap_events\":[],\"history_version\":1},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "bytes": 212,
+      "sha256": "e520ea6baf1db8caf4de876c68c0376834a27944c2d3f44c7d545fbf190132c9"
+    },
+    "J0": {
+      "preimage": "{\"bootstrap_digest\":\"42064d0346197420df9ef6b35d3769bba0ca933e95c54e59fbb6f5994553bb94\",\"domain\":\"zoidbergchain/reviewer-journal-genesis/v1\",\"genesis_hash\":\"0b1b932a7d6cfb0fed6cec2019724b0b0bf6ab13b0516e8d60d63ddbfa25ee94\",\"history_policy_digest\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"network_id\":\"task717i-test\",\"protocol_version\":2}",
+      "bytes": 363,
+      "sha256": "5b6b9bf604f3e2ea7196b1fabf2260fa3a9447e1ea044066dbd849d29d623884"
+    },
+    "M": {
+      "preimage": "{\"authority_profile\":\"static-genesis-v1\",\"byzantine_fault_budget\":1,\"domain\":\"zoidbergchain/validator-set/v1\",\"membership_version\":1,\"network_id\":\"task717i-test\",\"protocol\":\"zoidbergchain\",\"protocol_version\":2,\"required_quorum\":3,\"validator_epoch\":0,\"validator_public_keys\":[\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\",\"02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5\",\"02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13\",\"02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9\"]}",
+      "bytes": 552,
+      "sha256": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518"
+    },
+    "N0": {
+      "preimage": "{\"domain\":\"zoidbergchain/native-bootstrap/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"native-bootstrap\",\"payload\":{\"allocations\":[],\"initial_reward_pool\":\"0\",\"native_state_version\":1,\"network_id\":\"task717i-test\",\"total_supply\":\"0\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "bytes": 284,
+      "sha256": "0b517284e1d7b2bbf34ef28401eeac545751b6a1a7be057acf712a37aca56518"
+    },
+    "N1": {
+      "preimage": "{\"domain\":\"zoidbergchain/native-bootstrap/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"native-bootstrap\",\"payload\":{\"allocations\":[{\"balance\":\"1\",\"next_nonce\":\"1\",\"wallet_address\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\"}],\"initial_reward_pool\":\"0\",\"native_state_version\":1,\"network_id\":\"task717i-test\",\"total_supply\":\"1\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "bytes": 378,
+      "sha256": "1e2e98b4e0495796e1142f94492ece6385723cf2bf00838c325984d148857fa9"
+    },
+    "NS": {
+      "preimage": "{\"agreement_profile_digest\":\"2ca3a90d2d1d7bb9535da7d201981e1fb44613633a76f4a6433390b4b82a3c9b\",\"genesis_hash\":\"0b1b932a7d6cfb0fed6cec2019724b0b0bf6ab13b0516e8d60d63ddbfa25ee94\",\"network_id\":\"task717i-test\",\"protocol\":\"zoidbergchain\",\"protocol_version\":2,\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_public_key\":\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"}",
+      "bytes": 520,
+      "sha256": "a78428636e2eff7fc6c83d3d8619606922374e28390d0ca0832dbef86539cc6d"
+    },
+    "PR": {
+      "preimage": "{\"domain\":\"zoidbergchain/application-policy-registry/v1\",\"network_id\":\"task717i-test\",\"policies\":[{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"encoding\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"history\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"issuance\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"media\",\"policy_version\":2},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"native\",\"policy_version\":2},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"reputation\",\"policy_version\":3},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"review\",\"policy_version\":3},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"reviewer\",\"policy_version\":2},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"rights\",\"policy_version\":1},{\"canonical_bytes\":\"7b7d\",\"policy_kind\":\"technical\",\"policy_version\":1}],\"registry_version\":1}",
+      "bytes": 823,
+      "sha256": "87a9dad4d24b200ecfc1033e9e182aee1813a3ab771e6c8382099308f70624ca"
+    },
+    "S0": {
+      "preimage": "{\"domain\":\"zoidbergchain/initial-state/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"initial-state\",\"payload\":{\"bootstrap_history_commitment\":\"e520ea6baf1db8caf4de876c68c0376834a27944c2d3f44c7d545fbf190132c9\",\"native_bootstrap_digest\":\"0b517284e1d7b2bbf34ef28401eeac545751b6a1a7be057acf712a37aca56518\",\"policy_registry_digest\":\"87a9dad4d24b200ecfc1033e9e182aee1813a3ab771e6c8382099308f70624ca\",\"reviewer_bootstrap_digest\":\"42064d0346197420df9ef6b35d3769bba0ca933e95c54e59fbb6f5994553bb94\",\"state_version\":1},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "bytes": 558,
+      "sha256": "e2c758c1d42dc7c6a975a07e907b7ed96798fb4b3d24da21f1150db573eafcb6"
+    },
+    "rebuilt": {
+      "preimage": "{\"accounts\":[],\"claims\":[],\"finalized_ref\":{\"block_hash\":\"0b1b932a7d6cfb0fed6cec2019724b0b0bf6ab13b0516e8d60d63ddbfa25ee94\",\"block_height\":0},\"offenses\":[],\"participation\":[],\"penalties\":[],\"reviewers\":[{\"quota_used\":0,\"underlying_status\":\"ESTABLISHED_REVIEWER\",\"wallet_address\":\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\"},{\"quota_used\":0,\"underlying_status\":\"ESTABLISHED_REVIEWER\",\"wallet_address\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\"}],\"reward_pool\":\"0\"}",
+      "bytes": 466,
+      "sha256": "fbf7d2331e3e4da4fac95482b7c9885612d21d40a5b7688f47aa2770321a233c"
+    }
+  },
+  "mutations": {
+    "duplicate-reviewer": {
+      "path": [
+        "payload",
+        "reviewer_bootstrap",
+        "reviewers"
+      ],
+      "value": [
+        "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+        "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+      ],
+      "bytes": 4318,
+      "sha256": "5a310bfdb69961a97b05311e0add4fef680f5c866e403e126c117988bdc5b2ba"
+    },
+    "malformed-reviewer": {
+      "path": [
+        "payload",
+        "reviewer_bootstrap",
+        "reviewers"
+      ],
+      "value": [
+        "0xBAD"
+      ],
+      "bytes": 4236,
+      "sha256": "d2e855078095c16939b60e40a8ff8a4298d9653060a5b36379c4e80c683729a7"
+    },
+    "noncanonical-newline": {
+      "suffix_hex": "0a",
+      "bytes": 4319,
+      "sha256": "0d2f92d05f401c11e9188986d20fddd6e178d56fc249dcb6a55e59ef9416bdf4"
+    },
+    "null-reviewers": {
+      "path": [
+        "payload",
+        "reviewer_bootstrap",
+        "reviewers"
+      ],
+      "value": null,
+      "bytes": 4231,
+      "sha256": "e643856de2d387a077cdd2db3970491c13ea4b1eaa1f078df1f45130cd9aa559"
+    },
+    "self-consistent-foreign-root": {
+      "path": [
+        "payload",
+        "application"
+      ],
+      "value": "task717i-other",
+      "bytes": 4319,
+      "sha256": "a24f7a8ffcd7afe5a2a98015a0d67afa7132640556996df225bcabf8f8520c3f"
+    },
+    "tampered-policy-version": {
+      "path": [
+        "payload",
+        "policy_registry",
+        "policies",
+        0,
+        "policy_version"
+      ],
+      "value": 2,
+      "bytes": 4318,
+      "sha256": "a9aa9efc336e4a66a6ab7aa3f9f67d1d0ef7a7afedbcfb25bf7b11e01662cb08"
+    },
+    "unknown-field": {
+      "path": [
+        "payload",
+        "genesis_hash"
+      ],
+      "value": "0b1b932a7d6cfb0fed6cec2019724b0b0bf6ab13b0516e8d60d63ddbfa25ee94",
+      "bytes": 4400,
+      "sha256": "de2c6aa0066ad8852cbe775cb8d7f39ceca18c701d813e9cf3d856ac75a04bf6"
+    },
+    "wrong-manifest": {
+      "path": [
+        "payload",
+        "validator_manifest",
+        "required_quorum"
+      ],
+      "value": 2,
+      "bytes": 4318,
+      "sha256": "9f000270f9b8df3085f400823cab6b44dd78df97a1c7528ee76a435300bc4622"
+    },
+    "wrong-network": {
+      "path": [
+        "network_id"
+      ],
+      "value": "task717i-test-b",
+      "bytes": 4320,
+      "sha256": "99db440b77796009592ab59990afd3320a12118b9c86c10a7967aa79dc303530"
+    },
+    "wrong-validator-epoch": {
+      "path": [
+        "payload",
+        "validator_manifest",
+        "validator_epoch"
+      ],
+      "value": 1,
+      "bytes": 4318,
+      "sha256": "11f7b6d64492a493a1b8040c3eb64a6f04e7cafcb2a83e700ce6ad5102c4c7b3"
+    }
+  }
+}

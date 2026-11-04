@@ -1,0 +1,1256 @@
+{
+  "counts": {
+    "deselected": 2,
+    "failed": 0,
+    "passed": 1030,
+    "skipped": 197
+  },
+  "disjoint_test_ids": true,
+  "failures": [],
+  "final_command_timeouts": 0,
+  "groups": {
+    "active": {
+      "counts": {
+        "deselected": 2,
+        "passed": 99
+      },
+      "deselected": [
+        "tests/test_milestone_6_task_6_9_media_integrity.py::test_media_api_is_derived_and_returns_exact_binary_bytes",
+        "tests/test_milestone_7_task_7_17e_finality_durability.py::test_settings_connection_ownership_and_nested_begin"
+      ],
+      "exitstatus": 0,
+      "nonpassing": []
+    },
+    "atomic": {
+      "counts": {
+        "deselected": 0,
+        "passed": 45,
+        "skipped": 4
+      },
+      "deselected": [],
+      "exitstatus": 0,
+      "nonpassing": [
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_16_atomic.py', 643, 'Skipped: WAL crash verification requires a SQLite runtime with the WAL-reset fix')",
+          "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[before_claims-WAL]",
+          "outcome": "skipped",
+          "when": "call"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_16_atomic.py', 643, 'Skipped: WAL crash verification requires a SQLite runtime with the WAL-reset fix')",
+          "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_claims-WAL]",
+          "outcome": "skipped",
+          "when": "call"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_16_atomic.py', 643, 'Skipped: WAL crash verification requires a SQLite runtime with the WAL-reset fix')",
+          "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_block-WAL]",
+          "outcome": "skipped",
+          "when": "call"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_16_atomic.py', 643, 'Skipped: WAL crash verification requires a SQLite runtime with the WAL-reset fix')",
+          "nodeid": "tests/test_milestone_7_task_7_16_atomic.py::test_external_process_termination_journal_recovery_and_retry[after_commit-WAL]",
+          "outcome": "skipped",
+          "when": "call"
+        }
+      ]
+    },
+    "bridge": {
+      "counts": {
+        "deselected": 0,
+        "passed": 43
+      },
+      "deselected": [],
+      "exitstatus": 0,
+      "nonpassing": []
+    },
+    "canonical": {
+      "counts": {
+        "deselected": 0,
+        "passed": 324
+      },
+      "deselected": [],
+      "exitstatus": 0,
+      "nonpassing": []
+    },
+    "codecs": {
+      "counts": {
+        "deselected": 0,
+        "passed": 476,
+        "skipped": 193
+      },
+      "deselected": [],
+      "exitstatus": 0,
+      "nonpassing": [
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 52, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_parent_never_decodes",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-3]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-4]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-at-A-B]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-high-ratio-at-A]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-default]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-level9]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-raw]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-rle]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs4]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-single-fcs8]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-multi-fcs2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-multi-fcs4]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[zstd-multi-fcs8]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[window-below]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[window-at]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[blocks-64-empty]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[blocks-64-one-byte]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[blocks-65]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[invalid-magic]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[magicless]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[checksum-corrupt]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-16]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-8]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[flag-3]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-1-0]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-1-13]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-2-0]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-2-13]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-4-0]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[dictionary-4-13]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[checksum-missing]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[content-size-missing]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[content-size-false]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[hash-wrong]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[window-over]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[single-window-over]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a50]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a51]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a52]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a53]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a54]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a55]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a56]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a57]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a58]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a59]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5a]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5b]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5c]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5d]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5e]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-184d2a5f]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[concatenated]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[concatenated-empty]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[trailing-zero]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[trailing-garbage]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[skippable-suffix]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-3]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-4]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-5]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-6]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-7]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-8]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-9]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-10]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-11]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-12]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-13]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-14]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-15]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-16]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-17]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-18]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[truncated-19]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[reserved-block]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-block-over]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[last-block-missing]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bad-treeless-literals]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bad-literals-length]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bad-sequence-tables]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[output-overrun]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[output-overrun-rle]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[output-underrun]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[regenerated-block-over-window]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bomb-over-A]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[bomb-lying-size]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unadvertised-raw-dictionary]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unknown-codec]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unknown-profile]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[unknown-encoding]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[encoded-over-B]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[empty-original]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[empty-payload]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[boolean-int]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[float-int]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[string-int]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[null-int]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[mime-alias]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[hash-uppercase]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[extra-field]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-short]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-newline]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-url]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[base64-pad-bits]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[stored-size-false]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[identity-size-false]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[missing-field]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-exceeds-declared-window]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[valid-cross-window-compressed]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-127]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-128]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-32511]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-32512]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-43690]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-at-frame-A]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[nonminimal-sequence-count]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-fse-max-logs]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-fse-log-over-6]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-fse-log-over-9]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[short-matches-over-block]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-tables-across-raw]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-offset-reordering]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-offset-minus-one]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-offset-minus-one-zero]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-1024]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-1025]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-262144]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[offset-262145]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[repeat-table-missing]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-reserved-bits]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-rle-symbol-overflow]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[fse-log-overflow]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[fse-zero-run-overflow]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-stop-bit-missing]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-unused-bits]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-count-3byte-truncated]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[sequence-count-over-output]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-literals-width-1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[rle-literals-width-1]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-literals-width-2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[rle-literals-width-2]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[raw-literals-width-3]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 67, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_frozen_vectors[rle-literals-width-3]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 84, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_corpus_exact_reconstruction",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[filesystem-worker_filesystem_denied]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[network-worker_network_denied]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[spawn_child-worker_child_denied]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[privilege-worker_privilege_denied]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[descriptors-worker_descriptors_closed]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[limits-worker_limits_sealed]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[allocate-worker_memory_limit_confirmed]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[allocate_native-worker_native_memory_denied]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 96, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_controls_enforced[missing_seccomp-linux_seccomp_unavailable]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[crash]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[oversized]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[truncated]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[malformed]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[duplicate]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[unknown_status]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_id]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_request]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_hash]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[wrong_size]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[excess_body]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[extra_field]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[trailing]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 109, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_faults_and_malformed_ipc[exit_after_reply]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 116, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_hang_watchdogs[hang-timeout]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 116, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_hang_watchdogs[startup_hang-startup_timeout]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 116, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_hang_watchdogs[close_then_hang-timeout]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 126, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_cpu_budget_and_native_accounting",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 136, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_kernel_cpu_limit_without_coordinator_sampling",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 151, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_kernel_state_before_any_request",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 170, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_explicit_termination[cancel]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 170, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_explicit_termination[terminate]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 170, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_explicit_termination[close]",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 189, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_concurrency_saturation_and_recovery",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 209, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_repeated_recovery_and_no_retries",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 220, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_cleanup_uncertainty_quarantines_capacity",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 238, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_parent_death_kills_confined_worker",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 279, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_bootstrap_parent_race_exits_before_ready",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 287, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_bootstrap_dead_creator_thread_exits_before_ready",
+          "outcome": "skipped",
+          "when": "setup"
+        },
+        {
+          "detail": "('C:\\\\Users\\\\mattk\\\\ZoidbergChain\\\\tests\\\\test_milestone_7_task_7_6d_linux_isolation.py', 295, 'Skipped: requires an actual Linux kernel')",
+          "nodeid": "tests/test_milestone_7_task_7_6d_linux_isolation.py::test_oversized_request_is_rejected_in_confined_worker",
+          "outcome": "skipped",
+          "when": "setup"
+        }
+      ]
+    },
+    "measurements": {
+      "counts": {
+        "deselected": 0,
+        "passed": 43
+      },
+      "deselected": [],
+      "exitstatus": 0,
+      "nonpassing": []
+    }
+  }
+}

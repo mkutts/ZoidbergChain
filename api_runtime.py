@@ -52,6 +52,7 @@ from utils import extract_text
 from media_technical_validation import (
     TechnicalMediaRequestLimitMiddleware,
     TechnicalMediaValidationError,
+    MediaValidationUnavailable,
     read_upload_file_bounded,
     validate_media_bytes,
 )
@@ -2292,6 +2293,16 @@ async def lifespan(app):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.exception_handler(MediaValidationUnavailable)
+async def media_validation_unavailable_handler(request: Request, exc: MediaValidationUnavailable):
+    return JSONResponse(status_code=503, content={
+        "error": "Local image validation worker unavailable",
+        "code": "MEDIA_VALIDATION_UNAVAILABLE",
+    })
+
+
 app.add_middleware(TechnicalMediaRequestLimitMiddleware)
 
 # CORS: allow both local and live frontend origins.

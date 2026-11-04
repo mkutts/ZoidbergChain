@@ -168,7 +168,8 @@ def test_m6_ac04_resource_timeout_and_worker_failure_fail_closed(monkeypatch):
     monkeypatch.setattr(technical, "_run_isolated_decoder", lambda *a, **k: (_ for _ in ()).throw(TimeoutError()))
     assert REASON_RESOURCE_LIMIT_TERMINATED in _reasons(png, declared_mime_type="image/png")
     monkeypatch.setattr(technical, "_run_isolated_decoder", lambda *a, **k: (_ for _ in ()).throw(RuntimeError()))
-    assert REASON_MALFORMED_MEDIA in _reasons(png, declared_mime_type="image/png")
+    with pytest.raises(technical.MediaValidationUnavailable):
+        validate_media_bytes(png, declared_mime_type="image/png")
 
 
 def test_m6_ac03_plain_text_is_strict_canonical_utf8_and_not_script():

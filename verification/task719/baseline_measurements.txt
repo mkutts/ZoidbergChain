@@ -1,0 +1,44 @@
+F......F....FFF.......                                                   [100%]
+================================== FAILURES ===================================
+_ test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory _
+tests\test_milestone_7_task_7_3_corpus.py:22: in test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory
+    assert manifest == corpus.make_manifest()
+E   AssertionError: assert {'corpus_id':... 262144}, ...} == {'corpus_id':... 262144}, ...}
+E     
+E     Omitting 5 identical items, use -vv to show
+E     Differing items:
+E     {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]} != {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]}
+E     Use -v to get more diff
+_ test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure __
+tests\test_milestone_7_task_7_3_corpus.py:97: in test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure
+    with pytest.raises(TechnicalMediaValidationError) as exc_info:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'media_technical_validation.TechnicalMediaValidationError'>
+_ test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements _
+tests\test_milestone_7_task_7_4a_image_evaluation.py:14: in test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements
+    result = evaluation.run(json.loads(evaluation.CONFIG.read_text(encoding="utf-8")))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\milestone_7_task_7_4a_image_evaluation.py:82: in run
+    raise ValueError("versioned corpus no longer regenerates")
+E   ValueError: versioned corpus no longer regenerates
+________ test_component_accounting_reconciles_every_constructed_block _________
+tests\test_milestone_7_task_7_7_block_composition.py:8: in test_component_accounting_reconciles_every_constructed_block
+    rows = composition.build_rows(config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\milestone_7_task_7_7_block_composition.py:256: in build_rows
+    raise ValueError("corpus manifest does not regenerate; refusing measurement")
+E   ValueError: corpus manifest does not regenerate; refusing measurement
+_____ test_projected_adaptive_mode_never_exceeds_its_identity_projection ______
+tests\test_milestone_7_task_7_7_block_composition.py:26: in test_projected_adaptive_mode_never_exceeds_its_identity_projection
+    rows = composition.build_rows(config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\milestone_7_task_7_7_block_composition.py:256: in build_rows
+    raise ValueError("corpus manifest does not regenerate; refusing measurement")
+E   ValueError: corpus manifest does not regenerate; refusing measurement
+=========================== short test summary info ===========================
+FAILED tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory
+FAILED tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure
+FAILED tests/test_milestone_7_task_7_4a_image_evaluation.py::test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements
+FAILED tests/test_milestone_7_task_7_7_block_composition.py::test_component_accounting_reconciles_every_constructed_block
+FAILED tests/test_milestone_7_task_7_7_block_composition.py::test_projected_adaptive_mode_never_exceeds_its_identity_projection
+5 failed, 17 passed in 36.90s

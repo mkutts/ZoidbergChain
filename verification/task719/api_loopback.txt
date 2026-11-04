@@ -1,0 +1,13 @@
+Creating stdlib default socketpair (no API, database or temporary files)
+Timeout (0:00:05)!
+Thread 0x0000a0c4 (most recent call first):
+  File "C:\Python313\Lib\threading.py", line 363 in wait
+  File "C:\Python313\Lib\threading.py", line 659 in wait
+  File "C:\Python313\Lib\threading.py", line 1342 in run
+  File "C:\Python313\Lib\threading.py", line 1043 in _bootstrap_inner
+  File "C:\Python313\Lib\threading.py", line 1014 in _bootstrap
+
+Thread 0x0000a258 (most recent call first):
+  File "C:\Python313\Lib\socket.py", line 295 in accept
+  File "C:\Python313\Lib\socket.py", line 627 in _fallback_socketpair
+  File "C:\Users\mattk\ZoidbergChain\verification\task719\api_probe.py", line 14 in <module>

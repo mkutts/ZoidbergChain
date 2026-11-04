@@ -1,0 +1,438 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory",
+      "line": 20
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_every_manifest_hash_size_and_image_dimension_matches_generated_bytes",
+      "line": 31
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_scoring_corpus_excludes_capacity_only_and_has_no_corrupt_samples",
+      "line": 43
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_percentiles_and_provisional_limit_exclusions_use_original_image_bytes_only",
+      "line": 54
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_text_json_and_code_are_independent_text_plain_benchmark_categories_with_size_range",
+      "line": 66
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_each_image_mime_has_small_medium_and_large_representative_dimensions",
+      "line": 76
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_validator_environment_outcome_is_recorded_without_calling_invalid_images_valid",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_and_current_validator_preserves_exact_bytes",
+      "line": 93
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_descriptor_estimate_uses_exact_proposed_media_object_shape",
+      "line": 8
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_benchmark_configuration_is_bounded_and_has_identity_fallback",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_zstd_benchmark_profile_caps_the_frame_window_at_256_kib",
+      "line": 21
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_jpeg_parser_reports_container_sections_without_transforming_bytes",
+      "line": 6
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_component_accounting_reconciles_every_constructed_block",
+      "line": 6
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_projected_adaptive_mode_never_exceeds_its_identity_projection",
+      "line": 24
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_block_arithmetic_and_monthly_accumulation",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_storage_backup_network_and_costs_are_accounted",
+      "line": 21
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_threshold_status_sensitivity_and_reproducibility",
+      "line": 32
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[0-small_media-budget_vps]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-bad-budget_vps]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-small_media-bad]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_malformed_config_rejected",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_current_observations_are_not_historical_corpus_identity",
+      "line": 15
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sha256]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[original_byte_size]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[id]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[category]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[dimensions]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sample_order]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_sample]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[environment]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[schema]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[extra_field]",
+      "line": 21
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_observation]",
+      "line": 21
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_independent_published_arithmetic_and_complete_membership",
+      "line": 22
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_all_generated_source_hashes_sizes_and_provenance_are_pinned",
+      "line": 26
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_complete_ledger_on_independently_serialized_crypto_record",
+      "line": 37
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_producer_selects_the_actual_full_descriptor_and_record_minimum[x]",
+      "line": 49
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_producer_selects_the_actual_full_descriptor_and_record_minimum[Accept exact bytes.]",
+      "line": 49
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_producer_selects_the_actual_full_descriptor_and_record_minimum[Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. ]",
+      "line": 49
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_external_expansion_is_valid_and_corruption_is_invalid",
+      "line": 68
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_original_source_hash_and_mime_fail_closed_on_each_missing_descriptor_field",
+      "line": 77
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_metadata_target_is_evaluated_at_each_statistic_without_reweighting",
+      "line": 85
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_every_manifest_hash_size_and_image_dimension_matches_generated_bytes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_scoring_corpus_excludes_capacity_only_and_has_no_corrupt_samples",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_percentiles_and_provisional_limit_exclusions_use_original_image_bytes_only",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_text_json_and_code_are_independent_text_plain_benchmark_categories_with_size_range",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_each_image_mime_has_small_medium_and_large_representative_dimensions",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_validator_environment_outcome_is_recorded_without_calling_invalid_images_valid",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_and_current_validator_preserves_exact_bytes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_descriptor_estimate_uses_exact_proposed_media_object_shape",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_benchmark_configuration_is_bounded_and_has_identity_fallback",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_zstd_benchmark_profile_caps_the_frame_window_at_256_kib",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_jpeg_parser_reports_container_sections_without_transforming_bytes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_component_accounting_reconciles_every_constructed_block",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_projected_adaptive_mode_never_exceeds_its_identity_projection",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_block_arithmetic_and_monthly_accumulation",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_storage_backup_network_and_costs_are_accounted",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_threshold_status_sensitivity_and_reproducibility",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[0-small_media-budget_vps]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-bad-budget_vps]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-small_media-bad]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_malformed_config_rejected",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_current_observations_are_not_historical_corpus_identity",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sha256]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[original_byte_size]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[id]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[category]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[dimensions]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[sample_order]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_sample]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[environment]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[schema]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[extra_field]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task719/test_reproduction_guards.py::test_identity_environment_and_schema_drift_fail_closed[missing_observation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_independent_published_arithmetic_and_complete_membership",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_all_generated_source_hashes_sizes_and_provenance_are_pinned",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_complete_ledger_on_independently_serialized_crypto_record",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_producer_selects_the_actual_full_descriptor_and_record_minimum[x]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_producer_selects_the_actual_full_descriptor_and_record_minimum[Accept exact bytes.]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_producer_selects_the_actual_full_descriptor_and_record_minimum[Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. Natural language about the audit process. ]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_external_expansion_is_valid_and_corruption_is_invalid",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_original_source_hash_and_mime_fail_closed_on_each_missing_descriptor_field",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "benchmarks/task720_v1/test_acceptance.py::test_metadata_target_is_evaluated_at_each_statistic_without_reweighting",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

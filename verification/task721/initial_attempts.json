@@ -1,0 +1,27 @@
+{
+  "exercise_attempt1": {
+    "outcome": "failed before record construction",
+    "cause": "Task 7.3 generated sample key is id, not sample_id",
+    "log": "exercise_attempt1.txt",
+    "resolution": "Corrected the new exercise reader only; historical generator and evidence unchanged"
+  },
+  "active_initial_selection": {
+    "passed": 75,
+    "deselected": 1,
+    "issue": "Existing test_settings_connection_ownership_and_nested_begin enables WAL on an empty disposable DB, then asserts active backend refusal. This configuration-only control was inadvertently included despite the task's stricter prohibition.",
+    "impact": "No media writes, WAL transactions/crash exercise, production DB, or real chain state involved.",
+    "resolution": "Final active_safe selection excludes this control and the known restricted-host HTTP socket test; initial logs/outcomes retained separately and excluded from final totals."
+  },
+  "focused_attempt1": {
+    "passed": 38,
+    "failed": 1,
+    "errors": 2,
+    "causes": [
+      "New wrong-original-size case assigned the frozen original size (1) instead of changing it",
+      "Automatic pytest ID embedded a 262145-byte parameter and exceeded Windows environment-variable length during setup and teardown"
+    ],
+    "resolution": "Wrong-size probe now uses 2; explicit short parameter IDs keep environment and evidence bounded",
+    "full_local_diagnostic_logs": "temp/task721-runtime/focused_attempt1.txt and focused_attempt1_outcomes.json",
+    "acceptance_credit": false
+  }
+}

@@ -1,0 +1,20 @@
+F......F..............                                                   [100%]
+================================== FAILURES ===================================
+_ test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory _
+tests\test_milestone_7_task_7_3_corpus.py:22: in test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory
+    assert manifest == corpus.make_manifest()
+E   AssertionError: assert {'corpus_id':... 262144}, ...} == {'corpus_id':... 262144}, ...}
+E     
+E     Omitting 5 identical items, use -vv to show
+E     Differing items:
+E     {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]} != {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]}
+E     Use -v to get more diff
+_ test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure __
+tests\test_milestone_7_task_7_3_corpus.py:97: in test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure
+    with pytest.raises(TechnicalMediaValidationError) as exc_info:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'media_technical_validation.TechnicalMediaValidationError'>
+=========================== short test summary info ===========================
+FAILED tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory
+FAILED tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure
+2 failed, 20 passed in 44.43s

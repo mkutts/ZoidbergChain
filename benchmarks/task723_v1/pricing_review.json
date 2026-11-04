@@ -1,0 +1,12 @@
+{
+  "review_date": "2026-10-29 America/New_York",
+  "baseline": "Read-only Task 7.22 historical illustrative USD-normalized rates and complete capacity formulas; no rate mutation",
+  "quoted": false,
+  "region": "UNSPECIFIED; no complete same-region host plus disk/backup/egress quote established",
+  "sources": [
+    {"url": "https://www.hetzner.com/cloud/", "observation": "Fetched page requires location/currency settings and does not expose complete matching regional price bundle."},
+    {"url": "https://aws.amazon.com/lightsail/pricing/", "observation": "Bundle, disk and transfer pricing depends on selection and region; inherited blended rates are not established as purchasable capacity tiers."},
+    {"url": "https://www.backblaze.com/cloud-storage/pricing", "observation": "Starting $6.95/TB-month, distinct from inherited $.006/GiB-month assumption; backup source is not a full-node hosting quote."}
+  ],
+  "limitations": "No purchasing recommendation, invoice, region/currency conversion, IOPS or multi-terabyte volume feasibility guarantee. Obtain a matching regional capacity/transfer quote before procurement."
+}

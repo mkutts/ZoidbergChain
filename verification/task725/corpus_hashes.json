@@ -1,0 +1,8 @@
+{
+  "benchmarks/task720_v1/manifest.json": "f0f9a374f6e13c6cb38edf8b8d6ebe68d1a451dfaa756964040189aa2cee61a5",
+  "benchmarks/task720_v1/records.json": "280b709a99400e05e0103c4ae2ba7c19de072dd028bc499412b38418e06fc9fc",
+  "benchmarks/task723_v1/candidates.json": "a37ea69dcdc9dc46fe21a64ef0c62aae4c29122b52d3292659f582777371160a",
+  "benchmarks/task723_v1/manifest.json": "dbb2bd4604b60f4083e9b5835277232dcda204f34bd0c0cd31634aa3619f79b1",
+  "benchmarks/task723_v1/records.json": "7f881407c8be85b9a2a457f1797e480b51bdeea998045d6ffe60f55847bce7b2",
+  "tests/fixtures/milestone_7_corpus_v1_manifest.json": "d872a8669cad218b72e5dbcf1dfbbff4de8718fc48c37f4950bf7dc46bff121f"
+}

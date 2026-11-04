@@ -1,0 +1,2460 @@
+{
+  "N": 4,
+  "f": 1,
+  "implementation_pass": false,
+  "method": "bounded executable model; not TLC/Apalache or unbounded formal proof",
+  "model_level_result": "BOUNDED_PASS",
+  "negative_controls": [
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": true,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 2,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "counterexample_required",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "35656d5be128a2035e1c6e107b9fa6a743882549c845fb8f20df49fef725d411",
+      "name": "removed_lock_check",
+      "transitions": 75,
+      "unique_states": 63,
+      "violations": [
+        "A:honest_disagreement"
+      ]
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 2,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "counterexample_required",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "Y",
+            2
+          ],
+          "phase": "precommit",
+          "r": 2,
+          "valid": [
+            "Y",
+            2
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "35656d5be128a2035e1c6e107b9fa6a743882549c845fb8f20df49fef725d411",
+      "name": "lost_signer_state",
+      "transitions": 75,
+      "unique_states": 64,
+      "violations": [
+        "A:honest_disagreement",
+        "G:unsupported_lock_change"
+      ]
+    }
+  ],
+  "python": "3.13.5",
+  "q": 3,
+  "reference": "https://arxiv.org/pdf/1807.04938v3#page=6",
+  "release_pass": false,
+  "runtime_seconds": 24.413189,
+  "scenarios": [
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 2,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "safe",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 2,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "622c3537eb3ccf02097e2f03076c500ea58862bd79a216738c13eb59bbcb233f",
+      "name": "hidden_commit_nil_rounds_intact_restart",
+      "transitions": 68,
+      "unique_states": 57,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "safe",
+      "final": [
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "Y"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "b9469d219b60479d14cb1ba7316dfe74b67d06f4be04e5307fec62aab719db66",
+      "name": "different_locks_valid_round_late_valid_learning",
+      "transitions": 105,
+      "unique_states": 98,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 4,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "safe",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "b02f690b4875c729cc266ad7b2d74fd8867180466776ca23e1eba935675193e2",
+      "name": "competing_proposals_byzantine_equivocation_reordering",
+      "transitions": 150,
+      "unique_states": 133,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": false,
+            "height": 1,
+            "id": "BAD",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 4,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "safe",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 3,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 3,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "precommit",
+          "r": 3,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "8a54e258e1610d8571333a23faf8e8ee2ee212fa43a02bde3dcf6507bea43b61",
+      "name": "invalid_byzantine_proposal_rejected",
+      "transitions": 136,
+      "unique_states": 119,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [
+          [
+            2,
+            "X"
+          ]
+        ],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "safe",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "27ecbfbc92ddb533c3d5e060840dbbf4204c279adb3e5953c0de84f09f78fc9a",
+      "name": "qc_without_proposal_or_data_then_fetch",
+      "transitions": 22,
+      "unique_states": 21,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "selected_schedule_progress",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "3315d4e1d941f117acb2d00707e701ef0b7ac07dfb700b94175b44ba714f3907",
+      "name": "eventually_synchronous_byzantine_withholds",
+      "transitions": 32,
+      "unique_states": 33,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 2,
+            "id": "XX",
+            "original": true,
+            "parent": "X",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 2,
+            "id": "YY",
+            "original": true,
+            "parent": "Y",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 2,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "selected_schedule_progress",
+      "final": [
+        {
+          "decisions": [
+            "X",
+            "XX"
+          ],
+          "h": 3,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X",
+            "XX"
+          ],
+          "h": 3,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X",
+            "XX"
+          ],
+          "h": 3,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "1fa08b19985aacde6a7ea70f3714cc04b5d4913b3786a19bd4f1375d17381ca1",
+      "name": "consecutive_heights_finalized_parents",
+      "transitions": 61,
+      "unique_states": 62,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [
+          3
+        ],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "selected_schedule_progress",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 3,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "05261ca6cef60d373deecb9fe9cc8d75cf04c78d670d1b4a1d96bc47121051a2",
+      "name": "one_offline",
+      "transitions": 32,
+      "unique_states": 33,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [
+          0
+        ],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "selected_schedule_progress",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 3,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "9179d23b28b27b42d986f7eb6be750fd0bf662dcaa0636ad2f4702de4eb1958c",
+      "name": "proposer_crash_then_synchronous",
+      "transitions": 59,
+      "unique_states": 60,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [
+          2,
+          3
+        ],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 3,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "c0b1ca56a3fa05a4ed9c5d0ed1d6073117ff151549b6a893d4c456bf0d422623",
+      "name": "two_offline_no_quorum",
+      "transitions": 7,
+      "unique_states": 8,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "240b3a2ab820c3b39e4a2b07524bb09e9523bb2dc86b9bb4bc117e719fa1f8a4",
+      "name": "no_valid_media",
+      "transitions": 9,
+      "unique_states": 10,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": false,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "82ac49e5bd4db2589447cdbcec89f29cd1c7349e62bae4b832d7fc32b1dc4c1d",
+      "name": "invalid_media",
+      "transitions": 9,
+      "unique_states": 10,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [
+          [
+            0,
+            "X"
+          ],
+          [
+            0,
+            "Y"
+          ],
+          [
+            1,
+            "X"
+          ],
+          [
+            1,
+            "Y"
+          ],
+          [
+            2,
+            "X"
+          ],
+          [
+            2,
+            "Y"
+          ]
+        ],
+        "offline": [],
+        "retrievable": []
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "240b3a2ab820c3b39e4a2b07524bb09e9523bb2dc86b9bb4bc117e719fa1f8a4",
+      "name": "missing_admission_evidence",
+      "transitions": 9,
+      "unique_states": 10,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [
+          [
+            1,
+            "X"
+          ],
+          [
+            1,
+            "Y"
+          ],
+          [
+            2,
+            "X"
+          ],
+          [
+            2,
+            "Y"
+          ]
+        ],
+        "offline": [],
+        "retrievable": []
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "9eb91ef6f17b2e0220e309a267261c777adc6817db6cc025f6911963b5afca47",
+      "name": "incomplete_proposal_data",
+      "transitions": 38,
+      "unique_states": 39,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [
+          1
+        ],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 1,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "7b3a95438001aae9b335a92c14a87e7300f261eb17270f00da5fbfa3dcf239a1",
+      "name": "local_decoder_unavailable",
+      "transitions": 38,
+      "unique_states": 39,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "no_progress_promise",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "prevote",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "0455fb6063b7a1081c258b4155427ce190b839fc456adbe58d5b28e57d1d5cc9",
+      "name": "permanent_partition_prefix",
+      "transitions": 8,
+      "unique_states": 9,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "selected_schedule_progress",
+      "final": [
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 0,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 2,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        }
+      ],
+      "final_digest": "3315d4e1d941f117acb2d00707e701ef0b7ac07dfb700b94175b44ba714f3907",
+      "name": "partition_healed_eventual_sync",
+      "transitions": 32,
+      "unique_states": 33,
+      "violations": []
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 5,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "expected": "safe",
+      "final": [
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 0,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        },
+        {
+          "decisions": [
+            "X"
+          ],
+          "h": 2,
+          "id": 1,
+          "lock": [
+            "",
+            -1
+          ],
+          "phase": "propose",
+          "r": 0,
+          "valid": [
+            "",
+            -1
+          ]
+        },
+        {
+          "decisions": [],
+          "h": 1,
+          "id": 2,
+          "lock": [
+            "X",
+            0
+          ],
+          "phase": "precommit",
+          "r": 0,
+          "valid": [
+            "X",
+            0
+          ]
+        }
+      ],
+      "final_digest": "fa8ddaed93732d3052269fa0920aa6e3713533c1036370dded12f72ec2c0d353",
+      "name": "delayed_old_round_precommits",
+      "transitions": 30,
+      "unique_states": 29,
+      "violations": []
+    }
+  ],
+  "searches": [
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 1,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "counterexample": null,
+      "deepest_dequeued": 4,
+      "depth_bound": 4,
+      "depth_boundary_states": 7892,
+      "exhausted_configured_depth": true,
+      "expanded_states": 1430,
+      "frontier_unexpanded": 0,
+      "method": "deterministic BFS of executable transition system",
+      "name": "initial",
+      "reachable_prefix_transitions": 0,
+      "result": "BOUNDED_PASS",
+      "runtime_seconds": 0.334224,
+      "seed_digest": "b4038238f1d47e43ce3a3769b9236d9363344158c68616c5d7f7b9b0db83f7d4",
+      "state_cap_reached": false,
+      "state_limit": 50000,
+      "states": 9322,
+      "transitions": 27710
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 2,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "counterexample": null,
+      "deepest_dequeued": 4,
+      "depth_bound": 4,
+      "depth_boundary_states": 26150,
+      "exhausted_configured_depth": true,
+      "expanded_states": 3854,
+      "frontier_unexpanded": 0,
+      "method": "deterministic BFS of executable transition system",
+      "name": "hidden_X_decision",
+      "reachable_prefix_transitions": 20,
+      "result": "BOUNDED_PASS",
+      "runtime_seconds": 2.794159,
+      "seed_digest": "089431755007d00984cf24855a1713bd38a2b05bd16aadb73b82a12a8bbb8339",
+      "state_cap_reached": false,
+      "state_limit": 50000,
+      "states": 30004,
+      "transitions": 103011
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 3,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "counterexample": null,
+      "deepest_dequeued": 3,
+      "depth_bound": 4,
+      "depth_boundary_states": 0,
+      "exhausted_configured_depth": false,
+      "expanded_states": 3099,
+      "frontier_unexpanded": 46901,
+      "method": "deterministic BFS of executable transition system",
+      "name": "different_honest_locks",
+      "reachable_prefix_transitions": 50,
+      "result": "BOUNDED_PASS",
+      "runtime_seconds": 5.917329,
+      "seed_digest": "9f1b3030e6493b34ccda070a8a76d7488592e1fdb7bc90516ca971b0e1aecee3",
+      "state_cap_reached": true,
+      "state_limit": 50000,
+      "states": 50000,
+      "transitions": 132289
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 3,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "counterexample": null,
+      "deepest_dequeued": 3,
+      "depth_bound": 4,
+      "depth_boundary_states": 0,
+      "exhausted_configured_depth": false,
+      "expanded_states": 3295,
+      "frontier_unexpanded": 46705,
+      "method": "deterministic BFS of executable transition system",
+      "name": "justified_proposal",
+      "reachable_prefix_transitions": 73,
+      "result": "BOUNDED_PASS",
+      "runtime_seconds": 8.487601,
+      "seed_digest": "c8bc05106dcd0a88d20cadaad73f2539a107b91043226529c4577a1f9b6fb9b6",
+      "state_cap_reached": true,
+      "state_limit": 50000,
+      "states": 50000,
+      "transitions": 134364
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 4,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "counterexample": null,
+      "deepest_dequeued": 3,
+      "depth_bound": 4,
+      "depth_boundary_states": 0,
+      "exhausted_configured_depth": false,
+      "expanded_states": 2652,
+      "frontier_unexpanded": 47348,
+      "method": "deterministic BFS of executable transition system",
+      "name": "byzantine_proposer_round3",
+      "reachable_prefix_transitions": 102,
+      "result": "BOUNDED_PASS",
+      "runtime_seconds": 4.363827,
+      "seed_digest": "329da70edd116f74b0d46369222e6c4202b03eafda3c15c1d161886e55c6516a",
+      "state_cap_reached": true,
+      "state_limit": 50000,
+      "states": 50000,
+      "transitions": 132888
+    },
+    {
+      "config": {
+        "blocks": [
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "X",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          },
+          {
+            "admission": true,
+            "canonical": true,
+            "height": 1,
+            "id": "Y",
+            "original": true,
+            "parent": "genesis",
+            "protocol": true,
+            "resources": true,
+            "transactions": true
+          }
+        ],
+        "broken_locking": false,
+        "byzantine": [
+          3
+        ],
+        "decoder_unavailable": [],
+        "max_height": 1,
+        "max_round": 1,
+        "missing": [],
+        "offline": [],
+        "retrievable": [
+          "X",
+          "XX",
+          "Y",
+          "YY"
+        ]
+      },
+      "counterexample": null,
+      "deepest_dequeued": 4,
+      "depth_bound": 4,
+      "depth_boundary_states": 12403,
+      "exhausted_configured_depth": true,
+      "expanded_states": 2131,
+      "frontier_unexpanded": 0,
+      "method": "deterministic BFS of executable transition system",
+      "name": "old_round_commit_after_advance",
+      "reachable_prefix_transitions": 29,
+      "result": "BOUNDED_PASS",
+      "runtime_seconds": 2.010701,
+      "seed_digest": "8648e9099401280205762cbafa0199105aff34cf32aa7adee183230f76f59faa",
+      "state_cap_reached": false,
+      "state_limit": 50000,
+      "states": 14534,
+      "transitions": 46640
+    }
+  ],
+  "source_sha256": {
+    "__init__.py": "e12587ab7a3a973f7d08eb0d5ac7719bbccd3b9b70b7dc62b62abafa7029c870",
+    "check.py": "860aae4338124074eb6ca37a7c3d12dcce0c66f6136dcf43547357bc6366bd36",
+    "model.py": "83219319ac553d1114396e4e70645cea578ebac52bfc8664619c8d731906bd4c",
+    "replay.py": "f696197a8e9ba4bdf316c9d2e5727e08d078bf92507eb1cd33df17e5025c0e07",
+    "scenarios.py": "3b0e90c8f49fe92184f28672b6b87a0842f60b8895b052ef1d47df48dbb5ca97"
+  },
+  "task": "7.17H",
+  "totals": {
+    "negative_transitions": 150,
+    "scenario_transitions": 845,
+    "search_states_sum": 203860,
+    "search_transitions": 576902
+  }
+}

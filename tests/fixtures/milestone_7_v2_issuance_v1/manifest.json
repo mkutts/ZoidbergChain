@@ -1,0 +1,38 @@
+{
+  "format_version": "task-7.14-v1",
+  "warning": "OFFLINE TEST CONTEXT ONLY. Reuses immutable Task 7.10C fixture signatures; no production authority.",
+  "source": "../milestone_7_v3_v1/block-identity.json",
+  "source_sha256": "aed15a42772a97f4fd200274dbfaf574b8dd8d0cfbd3dacb030bc06e17b1f21a",
+  "context": {
+    "network_id": "zoidberg-signing-vector-v2",
+    "application": "zoidberg-signing-vector-v2",
+    "genesis_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "media_policy_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "review_policy_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "certificate_bytes": 31552,
+  "certificate_sha256": "cffca5d8239e47644b77f43baf7412c620e83a7cf291f4278ba3ff2c3df7edf5",
+  "certificate_digest": "91d514aa80c2c7fd24835aff551788b2882f7d7e8f2e05cd31fc7bfd036de8a2",
+  "technical_sha256": "3374bdaadc564c77eb47d219456ce1292811664dd16f514e3102ccd8f4ae655e",
+  "originality_ratio": {
+    "denominator": 7,
+    "numerator": 5
+  },
+  "signing_digests": [
+    "aaf1d821a6ead86e797195959a3095c75f7eef26a994c8c3947eac5a8beec4f2",
+    "ad6529bab96bfd7eb0e05f27b416fc23d9422d14a70427d9d98e3efda2752214",
+    "73c00da0d7ef0f8a550381f5f52b5627ad69589ef93870dc5b3d9f71c7848d1b",
+    "0fdcf6712a23008938a9ada7e471424af1a4abc837eeb6872e7b2d1daf47f5af",
+    "9666fd2f220de98b17bec4c2f03f59e42c08ce415e1fb31082f0d2e6b5b5d57e",
+    "20c2e8f31f9fee3d18573991148279d53a8772c9a70a817b2b4e67c440a248e1",
+    "f6016ce1b9c70a1983b5118f166b787652c7e6c9d8957efb966800ba0bd3701d",
+    "8775e6c0931ee373f14386686e5089b8bbb8cec42046167dc6b5a8ccf64af956",
+    "6bb97bc9f1c5479666878795c346b9404f44ed3bfe993e7c89c9f7aedd4f3d70",
+    "4e7177355d43abd5f8eb33cb4180728652d0400e6605efb31c3ecb2a3c16a3b7",
+    "537d1ab45e078d4942496b94bc33ba1f52a781e7c27f8332aa804c13ae4b8bfc",
+    "ec45a7c5713b39a785576eebbad65340646fa5db6bcf34cf5c47a43c7ad7c40b",
+    "f757118fccd2a3f0ce26a11b3a26e9429e1c7332664ea92d64e9ad21d9f14d70",
+    "c672e33d3187cc2846e35974f5bb01743f961a6d011b960861fe994753be5b69",
+    "0ce843c5bd8eca0edea8d0c5732835344bf598a91a906dbeef61dc68d41443f8"
+  ]
+}

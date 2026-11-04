@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "model": "full archival node; 365-day year; Gregorian month lengths with February fixed at 28 days",
+  "months": 36,
+  "month_days": [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+  "currency": "USD",
+  "bytes_per_gib": 1073741824,
+  "workloads": {
+    "small_media": {"label": "SMALL-MEDIA", "weighting": "Assumed production mix: 70% compact raster/PNG or text memes, 30% small JPEG/WebP", "empirical": false, "original_bytes": 16384, "encoded_bytes": 15319, "canonical_block_bytes": 26500, "metadata_bytes": 11181, "physical_amplification": 1.25, "transfer_multiplier": 1.32},
+    "representative_corpus": {"label": "REPRESENTATIVE CORPUS", "weighting": "Empirical equal-weight Task 7.7 image-focused corpus (36 fixtures); not a forecast upload mix", "empirical": true, "original_bytes": 169275, "encoded_bytes": 146812, "canonical_block_bytes": 211172, "metadata_bytes": 15190, "physical_amplification": 1.25, "transfer_multiplier": 1.32},
+    "large_media": {"label": "LARGE-MEDIA", "weighting": "Assumed production mix: 80% 1.2-2 MiB image memes and 20% 512 KiB images; pessimistic image-heavy / little extra compression", "empirical": false, "original_bytes": 1572864, "encoded_bytes": 1541407, "canonical_block_bytes": 2070000, "metadata_bytes": 14800, "physical_amplification": 1.30, "transfer_multiplier": 1.35}
+  },
+  "storage": {"base_database_bytes": 1073741824, "wal_peak_multiplier": 1.45, "temporary_safety_fraction": 0.20, "temporary_fixed_bytes": 5368709120, "database_maintenance": "Daily checkpoint assumed; quarterly VACUUM requires a second primary-sized working copy. Future v3 layout is modeled, not measured."},
+  "backups": {
+    "minimal": {"frequency_per_month": 1, "retained_full_copies": 2, "compression_ratio": 0.95, "snapshot_copies": 1, "description": "Monthly full SQLite-consistent backup, retain two; one local snapshot."},
+    "recommended": {"frequency_per_month": 4, "retained_full_copies": 4, "compression_ratio": 0.95, "snapshot_copies": 1, "description": "Weekly full SQLite-consistent backup, retain four; one local snapshot. No unsupported incremental backup assumed."},
+    "conservative": {"frequency_per_month": 4, "retained_full_copies": 12, "compression_ratio": 0.98, "snapshot_copies": 2, "description": "Weekly full SQLite-consistent backup, retain twelve; two local snapshots. No unsupported incremental backup assumed."}
+  },
+  "network": {"peer_count": 8, "incoming_multiplier": 1.15, "outgoing_multiplier": 1.20, "protocol_overhead_fraction": 0.10, "retransmission_fraction": 0.10, "bootstrap_multiplier": 1.20},
+  "compute": {"node_process_gib": 1.0, "database_cache_gib": 1.0, "os_and_monitoring_gib": 1.0, "decoder_worker_mib": 128, "worker_concurrency": 2, "worker_p95_seconds": 0.45, "safety_fraction": 0.25, "assumption": "7.6C/7.6D isolated-worker p95 adversarial single-block total is provisional; it is not end-to-end throughput validation."},
+  "profiles": {
+    "budget_vps": {"label": "Budget VPS-style (illustrative Hetzner-class)", "monthly_compute": 20.0, "included_primary_gib": 160, "primary_gib_month": 0.05, "backup_gib_month": 0.006, "egress_gib": 0.01, "vcpus": 4, "memory_gib": 8, "source": "https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/", "retrieved": "2026-10-18", "pricing_status": "Illustrative USD-normalized assumption; check region/currency before purchase."},
+    "mainstream_cloud": {"label": "Mainstream cloud (illustrative AWS Lightsail-class)", "monthly_compute": 40.0, "included_primary_gib": 160, "primary_gib_month": 0.10, "backup_gib_month": 0.05, "egress_gib": 0.09, "vcpus": 4, "memory_gib": 8, "source": "https://aws.amazon.com/lightsail/pricing/", "retrieved": "2026-10-18", "pricing_status": "Illustrative USD assumption; regional bundle, transfer allowance, and disk prices must be quoted before purchase."},
+    "storage_focused": {"label": "Storage-focused node + object backup (illustrative)", "monthly_compute": 45.0, "included_primary_gib": 500, "primary_gib_month": 0.02, "backup_gib_month": 0.006, "egress_gib": 0.01, "vcpus": 4, "memory_gib": 8, "source": "https://www.backblaze.com/cloud-storage", "retrieved": "2026-10-18", "pricing_status": "Illustrative blended host/object-store assumption; B2 source is for backup storage, not a full-node host quote."}
+  },
+  "sensitivity": {"encoded_size_factors": [0.75, 1.0, 1.25], "physical_amplification_factors": [1.0, 1.25, 1.5], "peer_counts": [4, 8, 16], "backup_policies": ["minimal", "recommended", "conservative"]}
+}

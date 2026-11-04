@@ -1,0 +1,228 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory",
+      "line": 20
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_every_manifest_hash_size_and_image_dimension_matches_generated_bytes",
+      "line": 29
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_scoring_corpus_excludes_capacity_only_and_has_no_corrupt_samples",
+      "line": 41
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_percentiles_and_provisional_limit_exclusions_use_original_image_bytes_only",
+      "line": 52
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_text_json_and_code_are_independent_text_plain_benchmark_categories_with_size_range",
+      "line": 64
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_each_image_mime_has_small_medium_and_large_representative_dimensions",
+      "line": 74
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_validator_environment_outcome_is_recorded_without_calling_invalid_images_valid",
+      "line": 83
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure",
+      "line": 91
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_descriptor_estimate_uses_exact_proposed_media_object_shape",
+      "line": 8
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_benchmark_configuration_is_bounded_and_has_identity_fallback",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_zstd_benchmark_profile_caps_the_frame_window_at_256_kib",
+      "line": 21
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_jpeg_parser_reports_container_sections_without_transforming_bytes",
+      "line": 6
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_component_accounting_reconciles_every_constructed_block",
+      "line": 6
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_projected_adaptive_mode_never_exceeds_its_identity_projection",
+      "line": 24
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_block_arithmetic_and_monthly_accumulation",
+      "line": 13
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_storage_backup_network_and_costs_are_accounted",
+      "line": 21
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_threshold_status_sensitivity_and_reproducibility",
+      "line": 32
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[0-small_media-budget_vps]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-bad-budget_vps]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-small_media-bad]",
+      "line": 44
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_malformed_config_rejected",
+      "line": 50
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory",
+      "when": "call",
+      "outcome": "failed",
+      "detail": "tests\\test_milestone_7_task_7_3_corpus.py:22: in test_manifest_regenerates_byte_for_byte_and_has_expected_supported_inventory\n    assert manifest == corpus.make_manifest()\nE   AssertionError: assert {'corpus_id':... 262144}, ...} == {'corpus_id':... 262144}, ...}\nE     \nE     Omitting 5 identical items, use -vv to show\nE     Differing items:\nE     {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]} != {'samples': [{'accepted_byte_size': 35, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}....}, {'accepted_byte_size': 11813, 'animated': False, 'benchmark_scoring': True, 'capacity_analysis': False, ...}, ...]}\nE     Use -v to get more diff"
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_every_manifest_hash_size_and_image_dimension_matches_generated_bytes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_scoring_corpus_excludes_capacity_only_and_has_no_corrupt_samples",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_percentiles_and_provisional_limit_exclusions_use_original_image_bytes_only",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_text_json_and_code_are_independent_text_plain_benchmark_categories_with_size_range",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_each_image_mime_has_small_medium_and_large_representative_dimensions",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_validator_environment_outcome_is_recorded_without_calling_invalid_images_valid",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_3_corpus.py::test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure",
+      "when": "call",
+      "outcome": "failed",
+      "detail": "tests\\test_milestone_7_task_7_3_corpus.py:97: in test_frozen_genesis_jpeg_is_valid_but_reproduces_current_isolation_failure\n    with pytest.raises(TechnicalMediaValidationError) as exc_info:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   Failed: DID NOT RAISE <class 'media_technical_validation.TechnicalMediaValidationError'>"
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_descriptor_estimate_uses_exact_proposed_media_object_shape",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_benchmark_configuration_is_bounded_and_has_identity_fallback",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4_benchmark.py::test_zstd_benchmark_profile_caps_the_frame_window_at_256_kib",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_jpeg_parser_reports_container_sections_without_transforming_bytes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_4a_image_evaluation.py::test_image_evaluation_reuses_verified_baseline_and_preserves_identity_requirements",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_component_accounting_reconciles_every_constructed_block",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_7_block_composition.py::test_projected_adaptive_mode_never_exceeds_its_identity_projection",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_block_arithmetic_and_monthly_accumulation",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_storage_backup_network_and_costs_are_accounted",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_threshold_status_sensitivity_and_reproducibility",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[0-small_media-budget_vps]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-bad-budget_vps]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_invalid_selectors_rejected[100-small_media-bad]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_8_node_economics.py::test_malformed_config_rejected",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 1
+}

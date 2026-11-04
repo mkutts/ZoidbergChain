@@ -1,0 +1,1870 @@
+{
+  "manifest": {
+    "domain": "zoidbergchain/validator-set/v1",
+    "membership_version": 1,
+    "protocol": "zoidbergchain",
+    "protocol_version": 2,
+    "network_id": "task717i-test",
+    "authority_profile": "static-genesis-v1",
+    "validator_epoch": 0,
+    "byzantine_fault_budget": 1,
+    "required_quorum": 3,
+    "validator_public_keys": [
+      "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+    ]
+  },
+  "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+  "agreement": {
+    "domain": "zoidbergchain/bft-agreement/v1",
+    "agreement_version": 1,
+    "protocol": "zoidbergchain",
+    "protocol_version": 2,
+    "reference": "arxiv:1807.04938v3/Algorithm1",
+    "rule_selection": "printed-lines-1-67",
+    "authority_profile": "static-genesis-n4-f1-q3-v1",
+    "proposer_profile": "height-minus-one-plus-round-mod-four-v1",
+    "parent_profile": "immediate-finalized-v1",
+    "wire_profile": "bft-ascii-json-v1",
+    "timeout_profile": "linear-1000ms-plus-1000ms-per-round-v1",
+    "signer_profile": "reserve-sign-store-release-v1",
+    "application_policy_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+    "limits": {
+      "max_uint": 9007199254740991,
+      "max_round": 2147483647,
+      "max_depth": 32,
+      "manifest_bytes": 8192,
+      "agreement_bytes": 4096,
+      "envelope_bytes": 2048,
+      "signed_bytes": 2304,
+      "prevote_certificate_bytes": 12288,
+      "commit_proof_bytes": 16384,
+      "block_bytes": 3145728,
+      "proposal_bundle_bytes": 3160400,
+      "round_evidence_bytes": 8192
+    }
+  },
+  "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+  "keys": [
+    {
+      "scalar": 1,
+      "public_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+      "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+    },
+    {
+      "scalar": 2,
+      "public_key": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf"
+    },
+    {
+      "scalar": 3,
+      "public_key": "02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69"
+    },
+    {
+      "scalar": 4,
+      "public_key": "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "validator_id": "0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718"
+    },
+    {
+      "scalar": 5,
+      "public_key": "022f8bde4d1a07209355b4a7250a5c5128e88b84bddc619ab7cba8d569b240efe4",
+      "validator_id": "0xe1ab8145f7e55dc933d51a18c793f901a3a0b276"
+    }
+  ],
+  "cases": {
+    "proposal": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-proposal/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-proposal",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "propose",
+          "valid_round": -1
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-proposal/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-proposal\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"propose\",\"valid_round\":-1,\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 752,
+      "message_id": "8c128259015331ab9af6e38fa13bdf8e6bad5adf675dc01c16e0cb8917d1d456",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373532",
+      "signing_digest": "fe6437f6cdfd66be5ddf5f14be962feb4bedac624da9d430eb55a3622f7eda87",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-proposal/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-proposal",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "propose",
+            "valid_round": -1
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x231426ac6aa087ca3fed84a85d949d7f8bebf9bea647861393732a7756f9ab257ed3d141cf079511a8a164b9e83dc12e8fcddab59265c71e104efe9e0670541b1b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "e0c14b62bd8f3b1d26222c9bcbfbca634657da471260734eaf3aa160172b8085",
+      "signed_length": 947,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "prevote": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "741e46ea64b0f977b9fbed8f745c56f8701c0b9657d77ffc0b351defd5ba361a",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "eb5b273b9ee4015dd7d7baad90a234baa1b106d98933c674cfd1e89daadbe983",
+      "signed_length": 922,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "precommit": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "2904aa247410a48a54b111e75907af6454a65bcc0f3a803db9b0b3ada1cc3220",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "f85e74c3a2c2049d1b93c3a89b2861acaee96af552fe4e3c3ca4a92e1c783cc8",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xbe3197f0623638e90b0aea8c3ccd254fedee367f5a032ce0ef16729944dc07cc0a47efac91da26ea6eb5e77eb62c1fc464c33a7c9f52a11a0d2869e48d268b141b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "e91a786f426a49665431cc339cdcf53b11c69f04e2d985aafb51484ac3c6d5a4",
+      "signed_length": 924,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "nil-prevote": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": null,
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":null,\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 665,
+      "message_id": "dab885a2e2a8227247505d655f728e9873d0a60bf1c0c980cc56decb7761c2c4",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a363635",
+      "signing_digest": "7fc0f423002897617c7935ee15de65cade6fbff06585064b113ee091e86a7236",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": null,
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x1994c1b8fcd9d5f8edd5fbabd94d3a0587db9068ca910bb9d6cac8701017aabb6a22d5c682026aeec2393c35e6e10721a24d2efd7b1237ecb432652e308be9281c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "a1abc3b7d37311be00bd2c5c55ed9482ed235a2c9522a29d7c570cd28a3d1291",
+      "signed_length": 860,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "nil-precommit": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": null,
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":null,\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 667,
+      "message_id": "77131b2d78f8688a659daa8db1fadbb5d15925e33d67bfa004fd1fdb2159050d",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a363637",
+      "signing_digest": "e5058917bedffe466b56c7f959b193b7f24032beaa84dc9c862844c611d5ec87",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": null,
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xe4b0fb5114b50432935b828aa006609f7b064392d02ac8af901f4f16d76ac0cc5912513e8753ea9a22b5a8c5bf09cbc66ca429fb2d18fabbc9eba73089f512e61c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "f9891da3927378fc0bc43401ee368292b6bb4e06c11e5915f15ea56631925446",
+      "signed_length": 862,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "round-one-prevote": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 1,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":1,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "b181a850ab31eea5914a5257eb1fb102bb1378004a950b33c5cfcefe4f12268e",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "7a2b50ec36bddd7b5052b5c46b659e0e110493a13a17634521d4e37e79587baf",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 1,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x8e63c3700675a8e6fa609745615549529b6643f0060fb39a77c073be60395de03053168f529fc8a8d1e64a6a5f0f145a1a621cba0b244a8216aa42b9c192ac9d1c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "e9a63ce320eae44a4ac2a854180fc4e77230705034296b39f2a78a739c00c8cb",
+      "signed_length": 922,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "justified-proposal": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-proposal/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-proposal",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 1,
+          "validator_epoch": 0,
+          "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "propose",
+          "valid_round": 0
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-proposal/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-proposal\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":1,\"step\":\"propose\",\"valid_round\":0,\"validator_epoch\":0,\"validator_id\":\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 751,
+      "message_id": "06eda4c936fb7447cde73f35397aef0368a2a8eb8686b73277547766b49bef26",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373531",
+      "signing_digest": "04a533329eb04d973c104e0c6225685a080df594d958f7da794766caef16ab78",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-proposal/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-proposal",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 1,
+            "validator_epoch": 0,
+            "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "propose",
+            "valid_round": 0
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xb58f3bdbb9db90e42a05ca7743fc441e0d525a356bf69a5dff0bc48d9667817320fb58718d7fa7e32769f6e607fe09607153c8ed617315008ac396ced786fa301c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "e033330652c5fbf8957e2d1cfa1c4c474c7d29aefc923ed1020067eb35508b35",
+      "signed_length": 946,
+      "expected_key": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+    },
+    "network-b": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test-b",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "c1a3521be5435cae728afdf5fc6b7ba97d842419e07873da13f3a1efd2bbcc14",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test-b\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"c1a3521be5435cae728afdf5fc6b7ba97d842419e07873da13f3a1efd2bbcc14\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "c29db1d223236c3ef965bd65b730400e206a8fb752e43358fbf7edba8c07b1d6",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "45cf874d94704da60e3899b2f51854167af3e8c6427ce5c97a7b65912e8e7421",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test-b",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "c1a3521be5435cae728afdf5fc6b7ba97d842419e07873da13f3a1efd2bbcc14",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x9a30d3730d7d895bddc91c1e898e2e3980438ae734cbf36a8cc5f031299f30ad73607d6e5b8978608c546cf26b386ea15980b16c45b4ae051458d952ca1049d31c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "090f28f4129356de1cceda42398a7bfcbb87e0cad8ebf840f87d000ecfb9b52a",
+      "signed_length": 924,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "genesis-b": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+          "message_version": 1,
+          "parent_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"message_version\":1,\"parent_hash\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "3493b33722ffc145896a3f7b1aae55d71675f4af8f2e5646e591105a50aedeae",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "1f7384f42631472cef1fe496cddf6218d4682b3fb5c376b11b9db94230e83262",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "message_version": 1,
+            "parent_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xccb584a8d6d764d7113ce00f9fcb2503e3b9db1c035263f5ac7870f812c1e2032f480ca08a5f4338b970928bb5b9f24fd0795b13461540c9eb031e38da6a69501c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "87e225138a29d3c21e70b3df5b7ab5c8f59c559e5749bd218a32bb4d04af4a66",
+      "signed_length": 922,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "set-b": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6e47544dbe60babc8485a457af33695a2ef0e1782a942394b606633926d47a8d",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6e47544dbe60babc8485a457af33695a2ef0e1782a942394b606633926d47a8d\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "a957ce9d389124faf4e080e3756f7c2d02cd456cf967cf9c8a19314c16baa62b",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "8a1c1e5eace4df1bfafd3651b329a2d8885923fe7d9be5635f372454d91518d9",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6e47544dbe60babc8485a457af33695a2ef0e1782a942394b606633926d47a8d",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x24735d2587c02122020f4399758aa88a21507ae3ed91d7b8eee9f67e9350dc870cd16f1977f429bd254a8d53f077cf48963d0b0c3fba20667fcf6d37bdd2bf1d1b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "b9a6d68160b44cc67242aadf633565bd1ecf7049b5f0a7969e8c3348815353b5",
+      "signed_length": 922,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "conflicting-prevote": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "178405dcf109cb4e44ac943c7938f3b6bc0c35374a3c196cf5163ef21ef063ee",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "566cfc238ec7718584000449a3fcabeb2bcb826c8e6d545c9ff2271e94a714e6",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x7bda87ef72279df261e1d94e1c928cf72176b00ac78912029c6409a3749c51dd6cef88b885e92a8ddddb2033e475125208d7af6d80d8ebd30723722a2ef378511c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "95a81dfca410fbf096fd7db31b25aece46e9803c107cdd00d9e08292f7118fc9",
+      "signed_length": 922,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "conflicting-proposal": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-proposal/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-proposal",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "step": "propose",
+          "valid_round": -1
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-proposal/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-proposal\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"propose\",\"valid_round\":-1,\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 752,
+      "message_id": "69dd24066766d05cbd4b792426ecc0ff0e05908031cb1c7ceef045b7ee988ecc",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373532",
+      "signing_digest": "1b27b74ff11c972e137ff5e3f2d0d552f3b1cad8f6bcd2084c3350379563dc26",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-proposal/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-proposal",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "step": "propose",
+            "valid_round": -1
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xf1be31a5205cb3ec8c52d6df0049175b9d180bb8e803145bc4c84b7ecd4c3e1d420e93b91962e45443fafc8b16a0a5d472103af30c599d31f98b25e526ad3bdb1c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "43a9d434b6fd39eab6c4516cf2f5e1444ed1a0337e4bfa0bbc6bfe07660e5abb",
+      "signed_length": 947,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "precommit-key-2": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "2ec75669de30ed5bd68d8bddd3a1db8718dd18072d01dbf8fe01482320965341",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "3776dfc36ce42f4a940c8c89faf17daee2f54b4b70f76bdea3102a23ec02f242",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x8dba606bddf88b2a3d7ea4c02114ab756602be804567d297df19479ad06bcb3d1a7f4c3cf0627e827408b0b0c26dda9d0b5a04f9577a2603bd6fc77309eb98e81b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "768287a0394744dc94d59732107032661ae115eadd9348ead59d84c88647c033",
+      "signed_length": 924,
+      "expected_key": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+    },
+    "precommit-key-3": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x6813eb9362372eef6200f3b1dbc3f819671cba69\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "e77d2fd2d11f4e7152f14b3e5a8c8ce21bbc46824f7ce45b1cfe925dfd3dcd06",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "28b03a2d49b3ef9ab050def8d40816bccdcc2d1accd78a01a24f1dac2d490f9f",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x38764bedfa4ca37233f9a64b8de943b223edaea446b79cae2fe2b9e68f59d9ad3a1528b6c38b847ff7f1f763f6f41bb875d437015a7ff130ceee9ab6906db86c1b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "dd4c60b30b2586a7e30a6a969bb83c2fa996579c6811ffea5a929bd47447d918",
+      "signed_length": 924,
+      "expected_key": "02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+    },
+    "precommit-key-4": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "bc9a4c78c8d6d0b26974fbd629683afcbe27d27a27486cd4e315197b0ac7ae46",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "4bf1e6292ffc66ef3e99fb89cc09167aac17d19e461e2064e8f63406ecaefdab",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xb9ac34586e292c8148c847a5d92513571dd22c425fa1aac07758f4048baf994365da90455b7fa27274efb296981b79742e372a60c59e035cda056a8e6d330ae81c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "b94b6de8c94a3863aeb6c320a778e89f44648f1e191e5d1be753236065a76cff",
+      "signed_length": 924,
+      "expected_key": "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13"
+    },
+    "conflicting-precommit-key-1": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "55d5a7754cdaefb01980a97a773d8e43b9957fb0f38eb8031a336d9039db6891",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "23055c1f4845698b19f383c5ef7af271c4b79e85459d6331b97b28378a5d5dc2",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xbea7d007306d25ad13e632fa28bba4a9c67ca6caa584f5b5edfa93ee2cb7dde13d618cce4b941acacc7a0b795c0669fff05bd6bdbb3fca0a61caf697a04885c01b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "950e406975ee98cce2fe1802342f95ed6716e3cd4f3e56a3ce59f94bdfb771a2",
+      "signed_length": 924,
+      "expected_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    "conflicting-precommit-key-2": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "d23571b2456543f38e905ea4eeeac1009d2cb385c576b941e26e83adcee7d7c5",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "1068d123637f44e86efa6b3da15ff97491754e931e5998269271a0690fb1abc6",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x30127860f18fbcd22b6481741fc65be67f2bc9806f56b1b8b3b70bfd86f6139b5b816b23178014d4b7d16c3eda9739c0f9d149d357bec2ac8d1631f3ca8d76d41b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "797d47dc30e659b5d01a54835d5ebd34946ede273d29eaff51d88d761c7f5ec8",
+      "signed_length": 924,
+      "expected_key": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+    },
+    "conflicting-precommit-key-3": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "step": "precommit"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"precommit\",\"validator_epoch\":0,\"validator_id\":\"0x6813eb9362372eef6200f3b1dbc3f819671cba69\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 729,
+      "message_id": "d42d95d5bb12b66bdef0c8ad79d3227fad65bd4afda63e95f597c3bd7924da54",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373239",
+      "signing_digest": "94fb38b78cd1a0ace4469c210f1927785d367f586714f04f9b8d58ffc143d7ae",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "step": "precommit"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x98b63432b65ffe2c812ce47ccd61a82d5c3ae232473193763a098ab1b67cf221025ad339fc60a550a10f98827afe10a518a1a4342b15a01394e20ffd9264ca101c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "4c4c9bc4da8294ca6d69876457b9cb2d110f627fe09990ef484597302df97c8f",
+      "signed_length": 924,
+      "expected_key": "02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+    },
+    "prevote-key-2": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x2b5ad5c4795c026514f8317c7a215e218dccd6cf\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "ead40e0929fbbbf90f4635480a07db9ecb77b1a0ac22fe040bd9949d21d3d29b",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "d5a933af9444572a4ec83190e91e2a9ddc76c9739e2956476328269118effa99",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x9227cce4020ae8d14501ca688b0e5b5104b4b0c560ad2d0c3186d99d6d09f9643bd4df5b62b6ae18d477b638399d32f32c2bf493cafac8d4d488e640ab7394c61b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "011a3805a72abbb93df25d00e680924c5807efdf78f6a73eb0f36345900c943c",
+      "signed_length": 922,
+      "expected_key": "02c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+    },
+    "prevote-key-3": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x6813eb9362372eef6200f3b1dbc3f819671cba69\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "3f5945673167c939ce009013876dc498b87972f700ef8c267b4bd74679af6bba",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "09590ed70689412ddbdd3723a7096cd6f60c0b6bde95c13cfdc44fe8813e946d",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0x49670e7d9b3c34d63141c9dac33c4c7080094adaee9d5e1ef6786bf43c5894bb0e20d3f39076645b8ff1c6ad4763e8d855dcd53027e33e8bf1e14bc6023871161b",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "58e46be0a7372b68c8d3072c3943153b2ad96e4ef1f6027f9531cc80440820de",
+      "signed_length": 922,
+      "expected_key": "02f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+    },
+    "prevote-key-4": {
+      "envelope": {
+        "domain": "zoidbergchain/bft-vote/v1",
+        "network_id": "task717i-test",
+        "object_type": "bft-vote",
+        "payload": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_id": "0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718",
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "protocol": "zoidbergchain",
+        "protocol_version": 2
+      },
+      "preimage_ascii": "{\"domain\":\"zoidbergchain/bft-vote/v1\",\"network_id\":\"task717i-test\",\"object_type\":\"bft-vote\",\"payload\":{\"agreement_profile_digest\":\"e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d\",\"block_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"block_height\":1,\"genesis_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"message_version\":1,\"parent_hash\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"round\":0,\"step\":\"prevote\",\"validator_epoch\":0,\"validator_id\":\"0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718\",\"validator_set_commitment\":\"6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518\"},\"protocol\":\"zoidbergchain\",\"protocol_version\":2}",
+      "byte_length": 727,
+      "message_id": "33fedd0ebf857ced36278301dac25e72377ef7f00dcab95ea4d945413d666203",
+      "prefix_hex": "19457468657265756d205369676e6564204d6573736167653a0a373237",
+      "signing_digest": "a62625b81112ef5951be2b4dda832e169f77df0616f3c4ffcfecb2b9d23f30c3",
+      "signed": {
+        "envelope": {
+          "domain": "zoidbergchain/bft-vote/v1",
+          "network_id": "task717i-test",
+          "object_type": "bft-vote",
+          "payload": {
+            "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+            "block_height": 1,
+            "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "message_version": 1,
+            "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+            "round": 0,
+            "validator_epoch": 0,
+            "validator_id": "0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718",
+            "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+            "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "step": "prevote"
+          },
+          "protocol": "zoidbergchain",
+          "protocol_version": 2
+        },
+        "signature": "0xc84f6f6362c81f0be56f5cbd457733a4fef86ed8bc65af81a0372ca722fae1e6000be82dca6f9848b6eaa8dcb199875d372b102d0c2cf26766d4a3e7d891311f1c",
+        "signature_scheme": "personal_sign"
+      },
+      "signed_id": "95f5be20a5ac0c9377e41c02448e34e45203d4c7f5e4b34ed1e322515fb7489e",
+      "signed_length": 922,
+      "expected_key": "02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13"
+    }
+  },
+  "proofs": {
+    "pv": {
+      "value": {
+        "certificate_version": 1,
+        "commitment": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "prevote"
+        },
+        "votes": [
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "prevote"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x9227cce4020ae8d14501ca688b0e5b5104b4b0c560ad2d0c3186d99d6d09f9643bd4df5b62b6ae18d477b638399d32f32c2bf493cafac8d4d488e640ab7394c61b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "prevote"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x49670e7d9b3c34d63141c9dac33c4c7080094adaee9d5e1ef6786bf43c5894bb0e20d3f39076645b8ff1c6ad4763e8d855dcd53027e33e8bf1e14bc6023871161b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "prevote"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+            "signature_scheme": "personal_sign"
+          }
+        ]
+      },
+      "byte_length": 3334,
+      "digest": "d5313ae807328192574bc79c53d7fa26b1b3b26ce8f6262a82b7b98d7466d581"
+    },
+    "q4-x": {
+      "value": {
+        "proof_version": 4,
+        "commitment": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "precommit"
+        },
+        "proposal": {
+          "envelope": {
+            "domain": "zoidbergchain/bft-proposal/v1",
+            "network_id": "task717i-test",
+            "object_type": "bft-proposal",
+            "payload": {
+              "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+              "block_height": 1,
+              "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "message_version": 1,
+              "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "round": 0,
+              "validator_epoch": 0,
+              "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+              "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "step": "propose",
+              "valid_round": -1
+            },
+            "protocol": "zoidbergchain",
+            "protocol_version": 2
+          },
+          "signature": "0x231426ac6aa087ca3fed84a85d949d7f8bebf9bea647861393732a7756f9ab257ed3d141cf079511a8a164b9e83dc12e8fcddab59265c71e104efe9e0670541b1b",
+          "signature_scheme": "personal_sign"
+        },
+        "precommits": [
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x8dba606bddf88b2a3d7ea4c02114ab756602be804567d297df19479ad06bcb3d1a7f4c3cf0627e827408b0b0c26dda9d0b5a04f9577a2603bd6fc77309eb98e81b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x38764bedfa4ca37233f9a64b8de943b223edaea446b79cae2fe2b9e68f59d9ad3a1528b6c38b847ff7f1f763f6f41bb875d437015a7ff130ceee9ab6906db86c1b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0xbe3197f0623638e90b0aea8c3ccd254fedee367f5a032ce0ef16729944dc07cc0a47efac91da26ea6eb5e77eb62c1fc464c33a7c9f52a11a0d2869e48d268b141b",
+            "signature_scheme": "personal_sign"
+          }
+        ]
+      },
+      "byte_length": 4300,
+      "digest": "e872d640fd2ce9991e9e54f25bc204a07d92644442a96c80ddeeaacc3dc15895"
+    },
+    "q4-y": {
+      "value": {
+        "proof_version": 4,
+        "commitment": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "step": "precommit"
+        },
+        "proposal": {
+          "envelope": {
+            "domain": "zoidbergchain/bft-proposal/v1",
+            "network_id": "task717i-test",
+            "object_type": "bft-proposal",
+            "payload": {
+              "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+              "block_height": 1,
+              "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "message_version": 1,
+              "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "round": 0,
+              "validator_epoch": 0,
+              "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+              "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+              "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "step": "propose",
+              "valid_round": -1
+            },
+            "protocol": "zoidbergchain",
+            "protocol_version": 2
+          },
+          "signature": "0xf1be31a5205cb3ec8c52d6df0049175b9d180bb8e803145bc4c84b7ecd4c3e1d420e93b91962e45443fafc8b16a0a5d472103af30c599d31f98b25e526ad3bdb1c",
+          "signature_scheme": "personal_sign"
+        },
+        "precommits": [
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x30127860f18fbcd22b6481741fc65be67f2bc9806f56b1b8b3b70bfd86f6139b5b816b23178014d4b7d16c3eda9739c0f9d149d357bec2ac8d1631f3ca8d76d41b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x98b63432b65ffe2c812ce47ccd61a82d5c3ae232473193763a098ab1b67cf221025ad339fc60a550a10f98827afe10a518a1a4342b15a01394e20ffd9264ca101c",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0xbea7d007306d25ad13e632fa28bba4a9c67ca6caa584f5b5edfa93ee2cb7dde13d618cce4b941acacc7a0b795c0669fff05bd6bdbb3fca0a61caf697a04885c01b",
+            "signature_scheme": "personal_sign"
+          }
+        ]
+      },
+      "byte_length": 4300,
+      "digest": "454a7d341eb07906fd3ff74f170a6f7ad7cafef75d5232ed1f46a15fbd1988c5"
+    },
+    "q4-x-four": {
+      "value": {
+        "proof_version": 4,
+        "commitment": {
+          "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+          "block_height": 1,
+          "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "message_version": 1,
+          "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+          "round": 0,
+          "validator_epoch": 0,
+          "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+          "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "step": "precommit"
+        },
+        "proposal": {
+          "envelope": {
+            "domain": "zoidbergchain/bft-proposal/v1",
+            "network_id": "task717i-test",
+            "object_type": "bft-proposal",
+            "payload": {
+              "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+              "block_height": 1,
+              "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "message_version": 1,
+              "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+              "round": 0,
+              "validator_epoch": 0,
+              "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+              "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "step": "propose",
+              "valid_round": -1
+            },
+            "protocol": "zoidbergchain",
+            "protocol_version": 2
+          },
+          "signature": "0x231426ac6aa087ca3fed84a85d949d7f8bebf9bea647861393732a7756f9ab257ed3d141cf079511a8a164b9e83dc12e8fcddab59265c71e104efe9e0670541b1b",
+          "signature_scheme": "personal_sign"
+        },
+        "precommits": [
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x1eff47bc3a10a45d4b230b5d10e37751fe6aa718",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0xb9ac34586e292c8148c847a5d92513571dd22c425fa1aac07758f4048baf994365da90455b7fa27274efb296981b79742e372a60c59e035cda056a8e6d330ae81c",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x8dba606bddf88b2a3d7ea4c02114ab756602be804567d297df19479ad06bcb3d1a7f4c3cf0627e827408b0b0c26dda9d0b5a04f9577a2603bd6fc77309eb98e81b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x6813eb9362372eef6200f3b1dbc3f819671cba69",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x38764bedfa4ca37233f9a64b8de943b223edaea446b79cae2fe2b9e68f59d9ad3a1528b6c38b847ff7f1f763f6f41bb875d437015a7ff130ceee9ab6906db86c1b",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 0,
+                "validator_epoch": 0,
+                "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "precommit"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0xbe3197f0623638e90b0aea8c3ccd254fedee367f5a032ce0ef16729944dc07cc0a47efac91da26ea6eb5e77eb62c1fc464c33a7c9f52a11a0d2869e48d268b141b",
+            "signature_scheme": "personal_sign"
+          }
+        ]
+      },
+      "byte_length": 5225,
+      "digest": "82a4f1a91a95755a64729cf945bd6897a9a89855258baaaffaf5424deb07c302"
+    },
+    "re": {
+      "value": {
+        "evidence_version": 1,
+        "messages": [
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-proposal/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-proposal",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 1,
+                "validator_epoch": 0,
+                "validator_id": "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "propose",
+                "valid_round": 0
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0xb58f3bdbb9db90e42a05ca7743fc441e0d525a356bf69a5dff0bc48d9667817320fb58718d7fa7e32769f6e607fe09607153c8ed617315008ac396ced786fa301c",
+            "signature_scheme": "personal_sign"
+          },
+          {
+            "envelope": {
+              "domain": "zoidbergchain/bft-vote/v1",
+              "network_id": "task717i-test",
+              "object_type": "bft-vote",
+              "payload": {
+                "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+                "block_height": 1,
+                "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "message_version": 1,
+                "parent_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+                "round": 1,
+                "validator_epoch": 0,
+                "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+                "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+                "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "step": "prevote"
+              },
+              "protocol": "zoidbergchain",
+              "protocol_version": 2
+            },
+            "signature": "0x8e63c3700675a8e6fa609745615549529b6643f0060fb39a77c073be60395de03053168f529fc8a8d1e64a6a5f0f145a1a621cba0b244a8216aa42b9c192ac9d1c",
+            "signature_scheme": "personal_sign"
+          }
+        ]
+      },
+      "byte_length": 1905,
+      "digest": "abdd6e6e78dc2772c0579b7e6d25287a9449b87fd802ff9e91838a19702edcbb"
+    }
+  },
+  "sizes": {
+    "manifest": 603,
+    "agreement": 892,
+    "proposal_envelope": 835,
+    "proposal_signed": 1030,
+    "prevote_envelope": 802,
+    "prevote_signed": 997,
+    "precommit_envelope": 804,
+    "precommit_signed": 999,
+    "pv3": 3583,
+    "pv4": 4581,
+    "q4_3": 4632,
+    "q4_4": 5632,
+    "round_evidence": 2066,
+    "context_extension": 230,
+    "proposal_bundle": 3151382
+  },
+  "namespace": {
+    "protocol": "zoidbergchain",
+    "protocol_version": 2,
+    "network_id": "task717i-test",
+    "genesis_hash": "1111111111111111111111111111111111111111111111111111111111111111",
+    "agreement_profile_digest": "e11a24a8784901b160173ec2a15b6113aa22678d852ae8109f84cd4706331e0d",
+    "validator_epoch": 0,
+    "validator_set_commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+    "validator_public_key": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "validator_id": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  },
+  "scenarios": {
+    "retry": {
+      "case": "retry",
+      "namespace_id": "d5f80ef285820d97d2e3553bd5e59a43f3be2cfa13df6e62b4b6ab179e798254",
+      "slot": {
+        "height": 1,
+        "round": 0,
+        "purpose": "prevote"
+      },
+      "stored_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "stored_signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+      "request_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "db_sequence": 43,
+      "db_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "witness_sequence": 43,
+      "witness_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "publication": "unknown",
+      "expected": "return_exact_stored"
+    },
+    "conflict": {
+      "case": "conflict",
+      "namespace_id": "d5f80ef285820d97d2e3553bd5e59a43f3be2cfa13df6e62b4b6ab179e798254",
+      "slot": {
+        "height": 1,
+        "round": 0,
+        "purpose": "prevote"
+      },
+      "stored_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "stored_signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+      "request_message_id": "178405dcf109cb4e44ac943c7938f3b6bc0c35374a3c196cf5163ef21ef063ee",
+      "db_sequence": 43,
+      "db_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "witness_sequence": 43,
+      "witness_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "publication": "unknown",
+      "expected": "CONFLICTING_SLOT"
+    },
+    "crash-before-publication": {
+      "case": "crash-before-publication",
+      "namespace_id": "d5f80ef285820d97d2e3553bd5e59a43f3be2cfa13df6e62b4b6ab179e798254",
+      "slot": {
+        "height": 1,
+        "round": 0,
+        "purpose": "prevote"
+      },
+      "stored_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "stored_signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+      "request_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "db_sequence": 43,
+      "db_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "witness_sequence": 43,
+      "witness_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "publication": "not_started",
+      "expected": "publish_exact_stored"
+    },
+    "stale-state": {
+      "case": "stale-state",
+      "namespace_id": "d5f80ef285820d97d2e3553bd5e59a43f3be2cfa13df6e62b4b6ab179e798254",
+      "slot": {
+        "height": 1,
+        "round": 0,
+        "purpose": "prevote"
+      },
+      "stored_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "stored_signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+      "request_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "db_sequence": 41,
+      "db_event_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "witness_sequence": 43,
+      "witness_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "publication": "unknown",
+      "expected": "STALE_STATE"
+    },
+    "same-sequence-divergence": {
+      "case": "same-sequence-divergence",
+      "namespace_id": "d5f80ef285820d97d2e3553bd5e59a43f3be2cfa13df6e62b4b6ab179e798254",
+      "slot": {
+        "height": 1,
+        "round": 0,
+        "purpose": "prevote"
+      },
+      "stored_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "stored_signature": "0xa2ad4144e11687fcfaf1049551b34054e891268814b0d812c38b7e47fbc5c0964823383911f40f0cf8a20db7478f877a26fc23d124d3d56f045c1a7972f94f451c",
+      "request_message_id": "61dc09f1cca96983b99acc83247925482041beaa9a82ffab013f515d8aaee2d3",
+      "db_sequence": 43,
+      "db_event_id": "3333333333333333333333333333333333333333333333333333333333333333",
+      "witness_sequence": 43,
+      "witness_event_id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "publication": "unknown",
+      "expected": "STALE_STATE"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "benchmark_id": "zoidbergchain-compression-baseline-v1",
+  "benchmark_version": "1.0.0",
+  "corpus_manifest": "tests/fixtures/milestone_7_corpus_v1_manifest.json",
+  "warmup_iterations": 2,
+  "timed_repetitions": 9,
+  "canonical_storage_estimate": "Exact UTF-8 length of the proposed v3 media descriptor in milestone-7-compression-protocol.md, including strict base64 payload and descriptor fields. It excludes the identical enclosing block/certificate/transaction fields, so it is an estimate of media-object storage rather than a measured complete block.",
+  "candidates": [
+    {"id": "identity-1", "codec": "identity", "profile": "identity/1"},
+    {"id": "zstd-3", "codec": "zstd", "level": 3, "profile": "zstd generic, checksum + content size, window_log=18, no dictionary, single thread"},
+    {"id": "zstd-6", "codec": "zstd", "level": 6, "profile": "zstd generic, checksum + content size, window_log=18, no dictionary, single thread"},
+    {"id": "zstd-9", "codec": "zstd", "level": 9, "profile": "zstd generic, checksum + content size, window_log=18, no dictionary, single thread"},
+    {"id": "brotli-4", "codec": "brotli", "level": 4, "profile": "generic mode, lgwin=18, one complete stream"},
+    {"id": "brotli-6", "codec": "brotli", "level": 6, "profile": "generic mode, lgwin=18, one complete stream"},
+    {"id": "zlib-6", "codec": "zlib", "level": 6, "profile": "zlib wrapper, wbits=15, one stream"}
+  ]
+}

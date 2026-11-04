@@ -134,6 +134,14 @@ class MediaRequestTooLarge(Exception):
     pass
 
 
+class MediaValidationUnavailable(RuntimeError):
+    """Local worker/infrastructure failure; no media-validity verdict exists."""
+
+
+class _MalformedImageError(ValueError):
+    """Decoder rejected image bytes, rather than its execution environment."""
+
+
 class _UnsupportedMetadataError(ValueError):
     pass
 
@@ -338,14 +346,14 @@ def _container_metadata(payload: bytes, mime_type: str) -> tuple[int | None, int
     raise ValueError("unsupported image type")
 
 
-def _decode_image_worker(payload: bytes, expected_mime: str, memory_limit: int) -> dict[str, int]:
+def _decode_image_worker(payload: bytes, expected_mime: str, memory_limit: int, empty_dir: str) -> dict[str, int]:
     try:
         import resource
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
     except (ImportError, OSError, ValueError):
         pass
     old_cwd = os.getcwd()
-    with tempfile.TemporaryDirectory(prefix="zoidberg-media-worker-") as empty_dir:
+    try:
         os.chdir(empty_dir)
         old_max_pixels = Image.MAX_IMAGE_PIXELS
         try:
@@ -371,26 +379,40 @@ def _decode_image_worker(payload: bytes, expected_mime: str, memory_limit: int) 
                         aggregate += source.width * source.height
                         source.convert("RGBA").load()
             return {"width": width, "height": height, "frame_count": frames, "aggregate_decoded_pixels": aggregate}
+        except PermissionError:
+            raise
+        except OSError as exc:
+            # Pillow also uses OSError for corrupt compressed streams. OS errors
+            # with errno/winerror describe local failures, not invalid bytes.
+            if exc.errno is not None or getattr(exc, "winerror", None) is not None:
+                raise
+            raise _MalformedImageError(str(exc)) from exc
+        except (ValueError, SyntaxError, Warning) as exc:
+            raise _MalformedImageError(str(exc)) from exc
         finally:
             Image.MAX_IMAGE_PIXELS = old_max_pixels
-            os.chdir(old_cwd)
+    finally:
+        os.chdir(old_cwd)
 
 
 def _run_isolated_decoder(payload: bytes, mime_type: str, *, timeout_seconds: int, memory_limit: int) -> dict[str, int]:
     context = multiprocessing.get_context("spawn" if os.name == "nt" else "fork")
-    executor = ProcessPoolExecutor(max_workers=1, mp_context=context)
-    future = executor.submit(_decode_image_worker, payload, mime_type, memory_limit)
-    timed_out = False
-    try:
-        return future.result(timeout=timeout_seconds)
-    except FutureTimeoutError as exc:
-        timed_out = True
-        future.cancel()
-        for process in getattr(executor, "_processes", {}).values():
-            process.terminate()
-        raise TimeoutError("structural decode budget exceeded") from exc
-    finally:
-        executor.shutdown(wait=not timed_out, cancel_futures=True)
+    # The parent owns cleanup, including after forced worker death. The root is
+    # the operator's standard tempfile configuration; never a submitted path.
+    with tempfile.TemporaryDirectory(prefix="zoidberg-media-worker-") as empty_dir:
+        executor = ProcessPoolExecutor(max_workers=1, mp_context=context)
+        try:
+            future = executor.submit(_decode_image_worker, payload, mime_type, memory_limit, empty_dir)
+            try:
+                return future.result(timeout=timeout_seconds)
+            except FutureTimeoutError as exc:
+                future.cancel()
+                for process in getattr(executor, "_processes", {}).values():
+                    process.terminate()
+                raise TimeoutError("structural decode budget exceeded") from exc
+        finally:
+            # Reap terminated workers before deleting their working directory.
+            executor.shutdown(wait=True, cancel_futures=True)
 
 
 def _basic_rejection(raw: bytes, reason: str, *, declared_mime_type: str | None = None) -> dict[str, Any]:
@@ -503,8 +525,10 @@ def validate_media_bytes(
             reasons.update(code for code in structural["reason_codes"] if code != REASON_ACCEPTED_POLICY_METADATA)
         except TimeoutError:
             reasons.add(REASON_RESOURCE_LIMIT_TERMINATED)
-        except Exception:
+        except _MalformedImageError:
             reasons.add(REASON_MALFORMED_MEDIA)
+        except Exception as exc:
+            raise MediaValidationUnavailable("Local image validation worker unavailable") from exc
 
     extension_match = None
     if safe_name and detected:

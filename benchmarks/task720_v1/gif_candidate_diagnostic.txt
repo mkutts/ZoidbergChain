@@ -1,0 +1,26 @@
+{
+  "original": 2096459,
+  "encoded": 1954542,
+  "status": "INVALID",
+  "stage": "frame",
+  "code": "block_count",
+  "reason": null,
+  "metrics": {
+    "pid": 19448,
+    "startup_ns": 112559200,
+    "exchange_ns": 106809000,
+    "exit_code": 0,
+    "peak_job_commit_bytes": 25169920,
+    "peak_process_commit_bytes": 23957504,
+    "process_user_ns": 93750000,
+    "process_kernel_ns": 62500000,
+    "enforced_memory_bytes": 134217728,
+    "enforced_active_processes": 1,
+    "enforced_user_cpu_ns": 5000000000,
+    "enforced_affinity": 1,
+    "enforced_flags": 8986,
+    "reaped": true,
+    "cleanup_ns": 114900,
+    "total_ns": 321135900
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "commands": [
+    {
+      "name": "supplemental_recheck",
+      "argv": [
+        "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+        "-B",
+        "verification/task718/supplemental.py"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "timeout_seconds": 240,
+      "elapsed_seconds": 61.48,
+      "log": "supplemental_recheck.txt"
+    }
+  ]
+}

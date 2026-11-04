@@ -1,0 +1,115 @@
+{
+  "artifacts": {
+    "docs/milestone-7-review-journal-capacity-and-clock-decision.md": "45e2160a090d71f8e6bf9d3435fd016d3d646a8925659343544daf0b3522af0e",
+    "docs/milestone-7-review-journal-wire-and-closure-contract.md": "4e1f31a938be45a228fb49300e4429e8bb2ba5397254474e09d2dc2d79e7179d",
+    "tests/fixtures/review717r_v1/schema.json": "001a692c8f0f623f37d420054648b332fb962563fbc8d04e891de72b2226c162",
+    "tests/fixtures/review717r_v1/vectors.json": "0d72087651ead35eb241a89e8599727e45654fe472ec73814abb642b1f0eac44",
+    "tests/test_milestone_7_task_7_17r_wire_closure.py": "6fff2c749856b8c7347fee8cf28dad80260d0b7b43e27078198f2f5ba29e7fdc",
+    "verification/review717r/__init__.py": "763d074ecc899e7cf61027a029fb16eb6f5f2dd737ba6f6ab3933643dcacc492",
+    "verification/review717r/audit.py": "63b822b67d06796d8cb0768fd12986b52331c8efc2405b0dec4b17277f16006c",
+    "verification/review717r/evidence.py": "aa5dea495864a68b3d3f1e20b377bf23061b559e8ce2cae910ad2eeffb2bad9e",
+    "verification/review717r/model.py": "f7bea9401fddadad20a98b285f0f5ccbd90b18284c9c33c0e461a22c98219088",
+    "verification/review717r/oracle.cjs": "1e9d1b780e37a5b193a49fada439b72f7b8aac0ec1e85e670b89e13ca14ac353",
+    "verification/review717r/report.py": "a9aa64e07969bca07c4ca64b08abc9d3f2ae0b233c055b74c45edc77f334fa67",
+    "verification/review717r/results.json": "529b29e564ce567c8d530e54c109c3f789823df8f3a861378c5a3c62b5ad05eb",
+    "verification/review717r/vectors.py": "dc7c6c537d9bb6e565728fcd5733ee6e05f2351e35e0b214bea8661f37d0edaa",
+    "verification/review717r/wire.py": "85fb96f7571307855aea1310e826c4382cebc41ba7aadd08dc394a16ae7da840"
+  },
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "errors": 0,
+  "exclusions": [
+    "new-domain real signatures",
+    "full application source-policy validation",
+    "physical time trust",
+    "two-stream BFT/custody refinement",
+    "whole repository tests",
+    "live networking",
+    "native-host performance",
+    "physical archive restore"
+  ],
+  "failed": 0,
+  "final_git_state": "index unchanged/empty; only named unstaged R files and Q notice",
+  "final_head": "768f0d460eab1def068a14ba5666e9e7aa625ba0",
+  "final_status": [
+    "M docs/milestone-7-review-journal-capacity-and-clock-decision.md",
+    "?? docs/milestone-7-review-journal-wire-and-closure-contract.md",
+    "?? tests/fixtures/review717r_v1/schema.json",
+    "?? tests/fixtures/review717r_v1/vectors.json",
+    "?? tests/test_milestone_7_task_7_17r_wire_closure.py",
+    "?? verification/review717r/__init__.py",
+    "?? verification/review717r/audit.py",
+    "?? verification/review717r/evidence.py",
+    "?? verification/review717r/model.py",
+    "?? verification/review717r/oracle.cjs",
+    "?? verification/review717r/report.py",
+    "?? verification/review717r/results.json",
+    "?? verification/review717r/validation.json",
+    "?? verification/review717r/vectors.py",
+    "?? verification/review717r/wire.py"
+  ],
+  "independent_oracle": {
+    "batch": true,
+    "closure_pages": 3,
+    "hash": "node:crypto SHA-256",
+    "independent_encoder": true,
+    "signatures_generated": 0,
+    "time_preimage": true,
+    "vectors": 17,
+    "vote_fold": true
+  },
+  "initial_git_state": "clean index and complete worktree including untracked files",
+  "initial_head": "768f0d460eab1def068a14ba5666e9e7aa625ba0",
+  "node": "v22.17.0",
+  "preserved_P_Q": {
+    "tests/fixtures/review717p_v1/cases.json": "09e8802ba07ecec03d0810e40bc0cbe42ff24b984db5054ff1c3020f3cff010a",
+    "tests/test_milestone_7_task_7_17p_review_journal.py": "13d01f26e7138c8cd77dfddba8d2da96c6f1d8741eb17a4feeab5f3f6dd49a65",
+    "tests/test_milestone_7_task_7_17q_capacity_clock.py": "586901861158edeee075568233ac1e28466bd83f350499e94e208c968b618209",
+    "verification/review717p/__init__.py": "cbb7893a2c0cc5da4d050e892eec9c151e0dbe9a7f0b257b82f198ebfd21a304",
+    "verification/review717p/audit.py": "f1a41bb68712bc92d532c0d23ba76eaf478fbb12088c647eae7b693054956467",
+    "verification/review717p/check.py": "f8206ff3e8d661f4605c6e9f3ac769bedc59d0104b42bf4a6dff2cb086287221",
+    "verification/review717p/model.py": "20c9307865c69877c0f4a7a237964b477302dca0131d3cf0b306051f6762e8ba",
+    "verification/review717p/negative-control-traces.json": "7ba94576553b97f11cf103cb0d5333152f2bf130c33a1891d4c0248faeb93a3f",
+    "verification/review717p/oracle.py": "cecc9808c756e414acef67873b20d3a9903997bac86ea047fbb37707f98a0fb6",
+    "verification/review717p/results.json": "5220c7fc310c02097b134cc1887e1e3bf449ca5703d59ab9b1181533833fbc83",
+    "verification/review717p/validation.json": "92b3ed5d02ef9fd4e0ea686de9c62f40469eda4b67f4241927c7eb5e9d617758",
+    "verification/review717p/workload.py": "402d64d26fde4852b31df428ed98a58ea6c08dc7744e545a15c037243e231566",
+    "verification/review717q/__init__.py": "7b4c5325df484dc391709f8914b3afa95a158d77ba4a39d417aeb123d974e3df",
+    "verification/review717q/audit.py": "00c5007d921c21d97b10bfdc9054ca98f3f5d649dfa9412c7201643dfcc8afe4",
+    "verification/review717q/capacity.py": "47d072cbbb88c6075aeb23290ac770371be13d070e8753535cf929d96bfedba6",
+    "verification/review717q/clock.py": "ced0ec85fcbba3eb7902fa3407b1c24a1ba75e416256221213773370ff4a741b",
+    "verification/review717q/inputs.json": "f4df8378833ae3c01434df9cd17f9decc86fd874dadebd5c39b4a2e6643c8375",
+    "verification/review717q/results.json": "8d1c3ea6a46e8e26953f55f1c91b41400646e03b494895844725063c50249a24",
+    "verification/review717q/validation.json": "466eff966846c5f759ab90e5fafb91a55db1b5c2dc3e142d54c164085553e88c",
+    "verification/review717q/workload.py": "54daeb91aedc4857b2401bfcf59f501afd56f7e115da3fd3f67228021ce72489"
+  },
+  "python": "3.13.5",
+  "readiness": {
+    "crypto_prototype": "BLOCKED",
+    "isolated_byte_closure": "READY_FOR_REVIEW",
+    "production_journal": "BLOCKED",
+    "public_testnet": "BLOCKED",
+    "reviewer_history_717": "BLOCKED"
+  },
+  "scope": "specification and trusted-fact isolated experiments only",
+  "signing_performed": false,
+  "skipped": 0,
+  "suites": [
+    {
+      "inventory_sha256": "164e08e95d387080db12ae91659a971fe3ab337477505aeb8981e0111edc9f3a",
+      "junit": "temp/task717r-release-final.xml",
+      "junit_sha256": "5e1a8b295918dac19c3c053715497a662cf811221a5b3fd355d23544fc966a7e",
+      "modules": {
+        "tests.test_milestone_7_task_7_17p_review_journal": 80,
+        "tests.test_milestone_7_task_7_17q_capacity_clock": 40,
+        "tests.test_milestone_7_task_7_17r_wire_closure": 84
+      },
+      "outcomes": {
+        "passed": 204
+      },
+      "total": 204
+    }
+  ],
+  "task": "7.17R",
+  "timed_out": 0,
+  "total_passed": 204
+}

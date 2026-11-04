@@ -1,0 +1,40 @@
+{
+  "argv": [
+    "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+    "-B",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp",
+    "C:\\Users\\mattk\\ZoidbergChain\\temp\\task723-tests-42b3380195a449ecb7b202c4c786989e\\pytest",
+    "-k",
+    "not test_public_upload_local_failure_is_503_and_persists_nothing",
+    "benchmarks/task723_v1/test_study.py",
+    "tests/test_milestone_7_task_7_10c_v3.py",
+    "tests/test_milestone_7_task_7_6_decoder.py",
+    "tests/test_milestone_7_task_7_12_image_admission.py"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 16.068475200096145,
+  "counts": {
+    "passed": 289,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0
+  },
+  "status": "PASS",
+  "log_tail": [
+    "........................................................................ [ 24%]",
+    "........................................................................ [ 49%]",
+    "........................................................................ [ 74%]",
+    "........................................................................ [ 99%]",
+    ".                                                                        [100%]",
+    "289 passed, 1 deselected in 15.37s"
+  ],
+  "excluded_ids": [
+    "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing"
+  ],
+  "exclusion_reason": "Live API module initialization/production-style networking is outside isolated benchmark scope; retain existing Task 7.22 classification. No historical assertion changed."
+}

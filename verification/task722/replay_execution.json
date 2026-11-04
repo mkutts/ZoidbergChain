@@ -1,0 +1,198 @@
+[
+  {
+    "name": "historical_corpus",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "scripts/milestone_7_task_7_3_corpus.py",
+      "--verify"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 17.673072600038722,
+    "log_tail": [
+      "        \"maximum_bytes\": 802666",
+      "      },",
+      "      \"image/jpeg\": {",
+      "        \"bytes\": 2500693,",
+      "        \"count\": 7,",
+      "        \"maximum_bytes\": 1530684",
+      "      },",
+      "      \"image/png\": {",
+      "        \"bytes\": 1795174,",
+      "        \"count\": 7,",
+      "        \"maximum_bytes\": 1772761",
+      "      },",
+      "      \"image/webp\": {",
+      "        \"bytes\": 904502,",
+      "        \"count\": 7,",
+      "        \"maximum_bytes\": 625250",
+      "      }",
+      "    },",
+      "    \"excluded_by_encoded_media_limit_count\": 5,",
+      "    \"excluded_by_original_media_limit_count\": 5,",
+      "    \"image_count\": 27,",
+      "    \"maximum_bytes\": 1772761,",
+      "    \"p50_bytes\": 10474,",
+      "    \"p95_bytes\": 1530684,",
+      "    \"p99_bytes\": 1772761,",
+      "    \"requires_block_overhead_measurement\": true",
+      "  },",
+      "  \"verification_scope\": \"source identity, order, schema and pinned encoder environment; historical admission observations are not replayed\",",
+      "  \"verified\": true",
+      "}"
+    ]
+  },
+  {
+    "name": "historical_codec",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "scripts/milestone_7_task_7_4_benchmark.py",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\codec.json"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 14.83782529993914,
+    "log_tail": [
+      "wrote C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\codec.json (252 per-sample rows)"
+    ]
+  },
+  {
+    "name": "historical_composition",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "scripts/milestone_7_task_7_7_block_composition.py",
+      "--skip-sqlite",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\composition.json"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 23.368314600083977,
+    "log_tail": [
+      "wrote C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\composition.json (180 per-block rows)"
+    ]
+  },
+  {
+    "name": "historical_economics",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "scripts/milestone_7_task_7_8_node_economics.py",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\economics.json",
+      "--csv",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\economics.csv"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 0.196155299898237,
+    "log_tail": [
+      "wrote C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\economics.json and C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\economics.csv"
+    ]
+  },
+  {
+    "name": "production_like",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "benchmarks/task720_v1/measure.py",
+      "--output",
+      "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45\\replay720"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 159.95048010000028,
+    "log_tail": [
+      "Record verified: production-like json-12",
+      "Record verified: production-like json-128",
+      "Record verified: production-like json-650",
+      "Record verified: production-like source-small",
+      "Record verified: production-like source-module",
+      "Record verified: production-like source-suite",
+      "Record verified: production-like entropy-text",
+      "Record verified: production-like png-tiny",
+      "Record verified: production-like png-small",
+      "Record verified: production-like png-medium",
+      "Record verified: production-like png-near-active",
+      "Record verified: production-like png-near-v3",
+      "Record verified: production-like jpeg-tiny",
+      "Record verified: production-like jpeg-small",
+      "Record verified: production-like jpeg-medium",
+      "Record verified: production-like jpeg-near-active",
+      "Record verified: production-like jpeg-near-v3",
+      "Record verified: production-like webp-tiny",
+      "Record verified: production-like webp-small",
+      "Record verified: production-like webp-medium",
+      "Record verified: production-like webp-near-active",
+      "Record verified: production-like webp-near-v3",
+      "Record verified: production-like webp-animated",
+      "Record verified: production-like gif-tiny",
+      "Record verified: production-like gif-small",
+      "Record verified: production-like gif-medium",
+      "Record verified: production-like gif-near-active",
+      "Record verified: production-like gif-near-v3",
+      "Record verified: production-like gif-animated",
+      "Completed: 70 canonical records; 8 sensitivity records; 238 codec rows"
+    ]
+  },
+  {
+    "name": "bridge_recovery",
+    "argv": [
+      "C:\\Users\\mattk\\ZoidbergChain\\.venv\\Scripts\\python.exe",
+      "-B",
+      "verification/task721/exercise.py",
+      "C:\\Users\\mattk\\ZoidbergChain\\verification\\task722\\bridge_recovery.json"
+    ],
+    "cwd": "C:\\Users\\mattk\\ZoidbergChain",
+    "scratch": "C:\\Users\\mattk\\ZoidbergChain\\temp\\task722-fdf8778b85214841806408081ed95b45",
+    "timeout_seconds": 600,
+    "exit": 0,
+    "elapsed_seconds": 525.2379687000066,
+    "log_tail": [
+      "Application/format complete: gif-photo-small",
+      "Application/format complete: gif-text-medium",
+      "Application/format complete: gif-mixed-large",
+      "Application/format complete: narrative-tiny",
+      "Application/format complete: narrative-small",
+      "Application/format complete: narrative-medium",
+      "Application/format complete: narrative-max",
+      "Application/format complete: json-1",
+      "Application/format complete: json-12",
+      "Application/format complete: json-128",
+      "Application/format complete: json-650",
+      "Application/format complete: source-small",
+      "Application/format complete: source-module",
+      "Application/format complete: source-suite",
+      "Application/format complete: entropy-text",
+      "Application/format complete: png-tiny",
+      "Application/format complete: png-small",
+      "Application/format complete: png-near-active",
+      "Application/format complete: jpeg-tiny",
+      "Application/format complete: jpeg-small",
+      "Application/format complete: jpeg-near-active",
+      "Application/format complete: webp-tiny",
+      "Application/format complete: webp-small",
+      "Application/format complete: webp-medium",
+      "Application/format complete: webp-near-active",
+      "Application/format complete: webp-animated",
+      "Application/format complete: gif-tiny",
+      "Application/format complete: gif-small",
+      "Application/format complete: gif-near-active",
+      "Application/format complete: gif-animated"
+    ]
+  }
+]

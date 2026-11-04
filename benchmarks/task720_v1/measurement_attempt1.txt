@@ -1,0 +1,25 @@
+Generated production-like corpus: 34 11520716
+Codec completed: identity-1
+Codec completed: zstd-3
+Codec completed: zstd-6
+Codec completed: zstd-9
+Codec completed: brotli-4
+Codec completed: brotli-6
+Codec completed: zlib-6
+Traceback (most recent call last):
+  File "C:\Users\mattk\ZoidbergChain\benchmarks\task720_v1\measure.py", line 353, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\mattk\ZoidbergChain\benchmarks\task720_v1\measure.py", line 288, in main
+    codec_result=codec_rows(samples,config); save(out,'codecs.json',codec_result)
+  File "C:\Users\mattk\ZoidbergChain\benchmarks\task720_v1\measure.py", line 111, in codec_rows
+    groups[candidate['id']][category]=dict(objects=len(selected),
+                                      ~~~~^^^^^^^^^^^^^^^^^^^^^^^
+        original_bytes=sum(r['original_bytes'] for r in selected),encoded_bytes=sum(r['encoded_bytes'] for r in selected),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        **{field:distribution([r[field] for r in selected], 'min' if 'savings' in field else 'max') for field in
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ('savings_percent','descriptor_savings_percent','original_bytes','encoded_bytes','descriptor_bytes','encode_ns_median','decode_ns_median')})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: dict() got multiple values for keyword argument 'original_bytes'

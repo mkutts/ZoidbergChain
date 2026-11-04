@@ -1,0 +1,75 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- C:\Users\mattk\ZoidbergChain\.venv\Scripts\python.exe
+rootdir: C:\Users\mattk\ZoidbergChain
+configfile: pyproject.toml
+plugins: anyio-4.14.0, cov-6.2.1
+collecting ... collected 1 item
+
+tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing Timeout (0:00:10)!
+Thread 0x0000a1f8 (most recent call first):
+  File "C:\Python313\Lib\socket.py", line 295 in accept
+  File "C:\Python313\Lib\socket.py", line 627 in _fallback_socketpair
+  File "C:\Python313\Lib\asyncio\proactor_events.py", line 784 in _make_self_pipe
+  File "C:\Python313\Lib\asyncio\proactor_events.py", line 637 in __init__
+  File "C:\Python313\Lib\asyncio\windows_events.py", line 316 in __init__
+  File "C:\Python313\Lib\asyncio\events.py", line 734 in new_event_loop
+  File "C:\Python313\Lib\asyncio\events.py", line 837 in new_event_loop
+  File "C:\Python313\Lib\asyncio\runners.py", line 137 in _lazy_init
+  File "C:\Python313\Lib\asyncio\runners.py", line 58 in __enter__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2431 in run
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\anyio\_core\_eventloop.py", line 83 in run
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\anyio\from_thread.py", line 536 in run_blocking_portal
+  File "C:\Python313\Lib\threading.py", line 994 in run
+  File "C:\Python313\Lib\threading.py", line 1043 in _bootstrap_inner
+  File "C:\Python313\Lib\threading.py", line 1014 in _bootstrap
+
+Thread 0x00009788 (most recent call first):
+  File "C:\Python313\Lib\threading.py", line 359 in wait
+  File "C:\Python313\Lib\concurrent\futures\_base.py", line 451 in result
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\anyio\from_thread.py", line 548 in start_blocking_portal
+  File "C:\Python313\Lib\contextlib.py", line 141 in __enter__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\starlette\testclient.py", line 426 in _portal_factory
+  File "C:\Python313\Lib\contextlib.py", line 141 in __enter__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\starlette\testclient.py", line 351 in handle_request
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\httpx2\_client.py", line 1018 in _send_single_request
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\httpx2\_client.py", line 985 in _send_handling_redirects
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\httpx2\_client.py", line 950 in _send_handling_auth
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\httpx2\_client.py", line 922 in send
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\httpx2\_client.py", line 795 in request
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\starlette\testclient.py", line 454 in request
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\httpx2\_client.py", line 1146 in post
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\starlette\testclient.py", line 555 in post
+  File "C:\Users\mattk\ZoidbergChain\tests\test_milestone_7_task_7_12_image_admission.py", line 182 in test_public_upload_local_failure_is_503_and_persists_nothing
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\python.py", line 157 in pytest_pyfunc_call
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\python.py", line 1671 in runtest
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\runner.py", line 178 in pytest_runtest_call
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\runner.py", line 246 in <lambda>
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\runner.py", line 344 in from_call
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\runner.py", line 245 in call_and_report
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\runner.py", line 136 in runtestprotocol
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\runner.py", line 117 in pytest_runtest_protocol
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\main.py", line 367 in pytest_runtestloop
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\main.py", line 343 in _main
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\main.py", line 289 in wrap_session
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\main.py", line 336 in pytest_cmdline_main
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_callers.py", line 121 in _multicall
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_manager.py", line 120 in _hookexec
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pluggy\_hooks.py", line 512 in __call__
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\config\__init__.py", line 175 in main
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\_pytest\config\__init__.py", line 201 in console_main
+  File "C:\Users\mattk\ZoidbergChain\.venv\Lib\site-packages\pytest\__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main
+ERROR: The user name or password is incorrect.

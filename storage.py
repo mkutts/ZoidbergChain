@@ -184,6 +184,71 @@ class StorageUniquenessError(RuntimeError):
     """Durable canonical state attempted to reuse an immutable claim."""
 
 
+class FinalityStateConflictError(StaleCanonicalHeadError):
+    """A local persistence operation would discard or contradict finality."""
+
+
+def _preserve_finality(durable, replacement, *, allow_vote_reorg=False):
+    """Guard every document writer under its existing transaction/OS lock.
+
+    No new wire fields or authority policy: the first retained QC is immutable,
+    and votes are a union by canonical signed message. Only the explicitly
+    guarded reorg command may discard votes on a detached, unfinalized branch.
+    """
+    chain = replacement.get("chain", []) or []
+    targets = {block.get("index"): block.get("hash") for block in chain}
+    proofs = {}
+    for record in durable.get("finalized_blocks", []) or []:
+        height = record["block_height"]
+        if height in proofs:
+            raise FinalityStateConflictError("Duplicate durable finalized height.")
+        proofs[height] = record
+    for record in replacement.get("finalized_blocks", []) or []:
+        height = record["block_height"]
+        prior = proofs.get(height)
+        if prior is not None and prior["block_hash"] != record["block_hash"]:
+            raise FinalityStateConflictError("Cannot replace an equal-height finalized block.")
+        # Signature/authority validation remains at the existing finality
+        # service boundary. Storage guards identity/ancestry, not a new policy.
+        # A compatible alternative QC is not a new decision or proof rewrite.
+        proofs.setdefault(height, record)
+    if proofs:
+        boundary = max(proofs)
+        if len(chain) <= boundary:
+            raise FinalityStateConflictError("Replacement omits finalized ancestry.")
+        for height, block in enumerate(chain[:boundary + 1]):
+            if block.get("index") != height or (height and block.get("previous_hash") != chain[height - 1].get("hash")):
+                raise FinalityStateConflictError("Finalized ancestry is incomplete or incompatible.")
+        for height, record in proofs.items():
+            if targets.get(height) != record["block_hash"]:
+                raise FinalityStateConflictError("Replacement contradicts a finalized target.")
+        old_proofs = durable.get("finalized_blocks", []) or []
+        if old_proofs:
+            old_boundary = max(record["block_height"] for record in old_proofs)
+            old_chain = durable.get("chain", []) or []
+            if [(b.get("index"), b.get("hash"), b.get("previous_hash")) for b in old_chain[:old_boundary + 1]] != [
+                (b.get("index"), b.get("hash"), b.get("previous_hash")) for b in chain[:old_boundary + 1]
+            ]:
+                raise FinalityStateConflictError("Cannot replace finalized ancestry.")
+    votes = {}
+    for record in (durable.get("finality_attestations", []) or []) + (replacement.get("finality_attestations", []) or []):
+        if targets.get(record["block_height"]) != record["block_hash"]:
+            if allow_vote_reorg:
+                continue
+            raise FinalityStateConflictError("Save would discard a finality vote; use guarded canonical reorganization.")
+        identity = record["message"]
+        existing = votes.get(identity)
+        if existing is None:
+            votes[identity] = record
+        elif {k: v for k, v in existing.items() if k != "signature"} != {k: v for k, v in record.items() if k != "signature"}:
+            raise FinalityStateConflictError("Conflicting fields for a retained signed finality message.")
+    replacement["finality_attestations"] = sorted(
+        votes.values(), key=lambda v: (v["block_height"], v["block_hash"], v["validator_address"], v["signature"])
+    )
+    replacement["finalized_blocks"] = [proofs[h] for h in sorted(proofs)]
+    return replacement
+
+
 def _normalized_claim_value(value: Any) -> str:
     return str(value or "").strip().lower()
 
@@ -705,7 +770,7 @@ class StorageBackend(ABC):
 
     def atomic_update_blockchain_document(
         self, mutate, *, outbox_records=None, received_peer_message=None,
-        copy_document: bool = True,
+        copy_document: bool = True, allow_vote_reorg: bool = False,
     ):
         """Durably replace a document from a freshly locked/transactional read.
 
@@ -1276,7 +1341,12 @@ class JSONStorageBackend(StorageBackend):
         return document
 
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
+        with self._commit_lock():
+            self._save_blockchain_document_locked(document, self._load_or_new_blockchain_document())
+
+    def _save_blockchain_document_locked(self, document, durable, *, allow_vote_reorg=False):
         document = self._normalize_blockchain_document(document)
+        _preserve_finality(durable, document, allow_vote_reorg=allow_vote_reorg)
         canonical_document_claims(document)
         backup_path = _backup_path_for(self.blockchain_file)
         create_backup = False
@@ -1300,6 +1370,7 @@ class JSONStorageBackend(StorageBackend):
             create_backup_from_existing=create_backup,
         )
         self._blockchain_recovered_from_backup = False
+        return document
 
     @contextmanager
     def _commit_lock(self):
@@ -1354,20 +1425,21 @@ class JSONStorageBackend(StorageBackend):
                 return document
             _verify_expected_canonical_head(document, expected_head)
             replacement = mutate(deepcopy(document))
-            self.save_blockchain_document(replacement)
+            replacement = self._save_blockchain_document_locked(replacement, document)
             return replacement
 
     def atomic_update_blockchain_document(
         self, mutate, *, outbox_records=None, received_peer_message=None,
-        copy_document: bool = True,
+        copy_document: bool = True, allow_vote_reorg: bool = False,
     ):
         with self._commit_lock():
+            durable = self._load_or_new_blockchain_document()
             replacement = self._normalize_blockchain_document(
-                mutate(deepcopy(self._load_or_new_blockchain_document()))
+                mutate(deepcopy(durable))
             )
             # JSON remains a development compatibility backend. It cannot
             # provide relational outbox or durable message-dedup guarantees.
-            self.save_blockchain_document(replacement)
+            replacement = self._save_blockchain_document_locked(replacement, durable, allow_vote_reorg=allow_vote_reorg)
             return replacement
 
     def load_peers(self):
@@ -1427,6 +1499,7 @@ class SQLiteStorageBackend(StorageBackend):
             if os.path.exists(candidate):
                 os.remove(candidate)
 
+    @contextmanager
     def _connect(self):
         connection = sqlite3.connect(self.sqlite_db_path)
         # Concurrent request handlers must wait through a legitimate durable
@@ -1434,8 +1507,19 @@ class SQLiteStorageBackend(StorageBackend):
         # user-visible false failure.  This changes neither lock ownership nor
         # the commit-before-ack rule; it only gives the serialized writer a
         # bounded, operationally useful wait window.
-        connection.execute("PRAGMA busy_timeout = 30000")
-        return connection
+        try:
+            connection.execute("PRAGMA busy_timeout = 30000")
+            # Refuse an unexpected journal rather than converting an existing
+            # database or using an affected WAL runtime. No persistent migration.
+            if connection.execute("PRAGMA journal_mode").fetchone()[0] != "delete":
+                raise RuntimeError("Active SQLite storage requires DELETE journal mode; no automatic mode conversion.")
+            connection.execute("PRAGMA synchronous = EXTRA")
+            if connection.execute("PRAGMA synchronous").fetchone()[0] != 3:
+                raise RuntimeError("SQLite EXTRA synchronization is unavailable.")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     @staticmethod
     def _insert_durable_vote_record(connection, record: dict[str, Any], *, lifecycle_state: str) -> dict[str, Any]:
@@ -2640,6 +2724,9 @@ class SQLiteStorageBackend(StorageBackend):
                 )
                 """
             )
+            existing_sections = {row[0] for row in connection.execute("SELECT section_name FROM storage_sections")}
+            if ("finalized_blocks" in existing_sections) != ("finality_attestations" in existing_sections):
+                raise StorageCorruptionError("Incomplete finality storage sections; refusing automatic initialization.")
             for section_name in _STORAGE_SECTIONS:
                 connection.execute(
                     """
@@ -2949,7 +3036,16 @@ class SQLiteStorageBackend(StorageBackend):
         return normalized if previous_transactions is not None else cls._load_native_transaction_records(connection, strict=True)
 
     @staticmethod
-    def _save_sections_to_connection(connection, sections: dict[str, Any]) -> None:
+    def _save_sections_to_connection(connection, sections: dict[str, Any], *, allow_vote_reorg=False) -> None:
+        if not connection.in_transaction:
+            raise RuntimeError("Document writes require an explicit write transaction.")
+        durable = {
+            name: _json_loads_or_default(raw, [], strict=True, label=f"SQLite section {name}")
+            for name, raw in connection.execute(
+                "SELECT section_name,json_data FROM storage_sections WHERE section_name IN ('chain','finality_attestations','finalized_blocks')"
+            ).fetchall()
+        }
+        _preserve_finality(durable, sections, allow_vote_reorg=allow_vote_reorg)
         for section_name in _STORAGE_SECTIONS:
             if section_name == "native_transactions":
                 # SQLite loads this section exclusively from its normalized
@@ -3051,18 +3147,7 @@ class SQLiteStorageBackend(StorageBackend):
         return document
 
     def save_blockchain_document(self, document: dict[str, Any]) -> None:
-        current_document = self._load_sections()
-        merged_document = {
-            section_name: deepcopy(
-                document.get(section_name, current_document.get(section_name, _default_section_value(section_name)))
-            )
-            for section_name in _STORAGE_SECTIONS
-        }
-        if "admission_activation" in document:
-            merged_document["admission_activation"] = deepcopy(document["admission_activation"])
-        elif "admission_activation" in current_document:
-            merged_document["admission_activation"] = deepcopy(current_document["admission_activation"])
-        self._save_sections(merged_document)
+        self.atomic_update_blockchain_document(lambda current: {**current, **deepcopy(document)})
 
     def atomic_commit_blockchain_document(self, expected_head: dict[str, Any], mutate, replay=None):
         # BEGIN IMMEDIATE obtains SQLite's reserved write lock before reading
@@ -3094,7 +3179,7 @@ class SQLiteStorageBackend(StorageBackend):
 
     def atomic_update_blockchain_document(
         self, mutate, *, outbox_records=None, received_peer_message=None,
-        copy_document: bool = True,
+        copy_document: bool = True, allow_vote_reorg: bool = False,
     ):
         # BEGIN IMMEDIATE serializes competing admissions before they inspect
         # pending balance and nonce reservations.  Returning from this method
@@ -3146,7 +3231,7 @@ class SQLiteStorageBackend(StorageBackend):
                 self._insert_received_native_transaction_message(
                     connection, received_peer_message
                 )
-            self._save_sections_to_connection(connection, replacement)
+            self._save_sections_to_connection(connection, replacement, allow_vote_reorg=allow_vote_reorg)
             return replacement
 
     @property

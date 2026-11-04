@@ -1,0 +1,138 @@
+{
+  "collected": [
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_frozen_records_hashes_and_coverage",
+      "line": 29
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[historical36]",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[production34]",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[meme58]",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[balanced41]",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[native_index_control]",
+      "line": 50
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_backup_workspace_and_process_recovery",
+      "line": 71
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_transfer_octets_add_up_and_unknown_packets_remain_unknown",
+      "line": 85
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_economics_independent_arithmetic_and_delta_attribution",
+      "line": 102
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_real_streaming_backup_restore_and_corrupt_commitment[block-identity.json]",
+      "line": 125
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_real_streaming_backup_restore_and_corrupt_commitment[block-zstd.json]",
+      "line": 125
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_model_a_recovery_does_not_claim_finality",
+      "line": 151
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_real_loopback_transfer_and_invalid_block_control",
+      "line": 157
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_frozen_records_hashes_and_coverage",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[historical36]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[production34]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[meme58]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[balanced41]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_page_and_index_accounting[native_index_control]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_backup_workspace_and_process_recovery",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_transfer_octets_add_up_and_unknown_packets_remain_unknown",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_economics_independent_arithmetic_and_delta_attribution",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_real_streaming_backup_restore_and_corrupt_commitment[block-identity.json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_real_streaming_backup_restore_and_corrupt_commitment[block-zstd.json]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_model_a_recovery_does_not_claim_finality",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "verification/task725/test_measurements.py::test_real_loopback_transfer_and_invalid_block_control",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

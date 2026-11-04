@@ -33,7 +33,7 @@ def _record(block, index, *, reason=None, status=None):
                                                         else "PROBATIONARY_REVIEWER")}}
 
 
-def _minted_node(isolated_data_dir, backend_name, monkeypatch):
+def _minted_node(isolated_data_dir, backend_name, monkeypatch, *, finalize_media=True):
     from blockchain import Blockchain
     from storage import JSONStorageBackend, SQLiteStorageBackend
     from tests.test_milestone_6_task_6_6_admission import _signed_votes
@@ -60,7 +60,8 @@ def _minted_node(isolated_data_dir, backend_name, monkeypatch):
     node.evaluate_submission_operation(submission.submission_id)
     node.commit_certified_submission(submission.submission_id, validate_meme=False)
     block = node.get_protocol_v1_block_for_submission(submission.submission_id)
-    _finalize(node, validators, block.index)
+    if finalize_media:
+        _finalize(node, validators, block.index)
     return node, block, kwargs
 
 
@@ -195,12 +196,9 @@ def test_finalized_dispute_immutable_restart_and_conflict(isolated_data_dir, mon
 
 
 def test_unfinalized_media_rejected(isolated_data_dir, monkeypatch):
-    node, block, _ = _minted_node(isolated_data_dir, "json", monkeypatch)
-    def remove_finality(document):
-        document["finalized_blocks"] = [item for item in document["finalized_blocks"]
-                                         if item["block_height"] != block.index]
-        return document
-    node.storage.atomic_update_blockchain_document(remove_finality)
+    # Construct an unfinalized block; a committed QC can no longer be erased.
+    node, block, _ = _minted_node(isolated_data_dir, "json", monkeypatch, finalize_media=False)
+    assert node.get_finality_evidence(block.hash) is None
     with pytest.raises(ValueError, match="not finalized"):
         node.record_post_mint_dispute_operation(_record(block, 1))
 

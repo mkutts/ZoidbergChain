@@ -1,0 +1,538 @@
+{
+  "layers": {
+    "binary_plus_descriptor_nonpayload_vs_identity": {
+      "counterexamples": [],
+      "satisfied": 78
+    },
+    "complete_descriptor_vs_identity": {
+      "counterexamples": [],
+      "satisfied": 78
+    },
+    "complete_media_member_vs_identity": {
+      "counterexamples": [],
+      "satisfied": 78
+    },
+    "complete_record_vs_identity": {
+      "counterexamples": [],
+      "satisfied": 78
+    },
+    "complete_record_vs_raw_original": {
+      "counterexamples": [
+        {
+          "id": "text-caption-small",
+          "population": "historical"
+        },
+        {
+          "id": "text-story-medium",
+          "population": "historical"
+        },
+        {
+          "id": "text-audit-log-large",
+          "population": "historical"
+        },
+        {
+          "id": "text-json-pretty",
+          "population": "historical"
+        },
+        {
+          "id": "text-json-minified",
+          "population": "historical"
+        },
+        {
+          "id": "text-json-peer-snapshot-large",
+          "population": "historical"
+        },
+        {
+          "id": "text-source-code",
+          "population": "historical"
+        },
+        {
+          "id": "text-source-admission-model",
+          "population": "historical"
+        },
+        {
+          "id": "text-source-snapshot-cli",
+          "population": "historical"
+        },
+        {
+          "id": "jpeg-flat-small",
+          "population": "historical"
+        },
+        {
+          "id": "jpeg-text-poster",
+          "population": "historical"
+        },
+        {
+          "id": "jpeg-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "png-flat-small",
+          "population": "historical"
+        },
+        {
+          "id": "png-illustrated-medium",
+          "population": "historical"
+        },
+        {
+          "id": "png-text-poster",
+          "population": "historical"
+        },
+        {
+          "id": "png-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "png-photo-small",
+          "population": "historical"
+        },
+        {
+          "id": "png-mixed-medium",
+          "population": "historical"
+        },
+        {
+          "id": "png-text-large",
+          "population": "historical"
+        },
+        {
+          "id": "webp-flat-small",
+          "population": "historical"
+        },
+        {
+          "id": "webp-illustrated-medium",
+          "population": "historical"
+        },
+        {
+          "id": "webp-photo-like",
+          "population": "historical"
+        },
+        {
+          "id": "webp-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "webp-photo-small",
+          "population": "historical"
+        },
+        {
+          "id": "webp-mixed-medium",
+          "population": "historical"
+        },
+        {
+          "id": "webp-text-large",
+          "population": "historical"
+        },
+        {
+          "id": "gif-flat-small",
+          "population": "historical"
+        },
+        {
+          "id": "gif-animated-illustrated",
+          "population": "historical"
+        },
+        {
+          "id": "gif-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "gif-photo-small",
+          "population": "historical"
+        },
+        {
+          "id": "gif-text-medium",
+          "population": "historical"
+        },
+        {
+          "id": "gif-mixed-large",
+          "population": "historical"
+        },
+        {
+          "id": "narrative-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "narrative-small",
+          "population": "production-like"
+        },
+        {
+          "id": "narrative-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "json-1",
+          "population": "production-like"
+        },
+        {
+          "id": "json-12",
+          "population": "production-like"
+        },
+        {
+          "id": "json-128",
+          "population": "production-like"
+        },
+        {
+          "id": "source-small",
+          "population": "production-like"
+        },
+        {
+          "id": "source-module",
+          "population": "production-like"
+        },
+        {
+          "id": "source-suite",
+          "population": "production-like"
+        },
+        {
+          "id": "entropy-text",
+          "population": "production-like"
+        },
+        {
+          "id": "png-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "png-small",
+          "population": "production-like"
+        },
+        {
+          "id": "png-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "png-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "png-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-small",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-small",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-animated",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-small",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-animated",
+          "population": "production-like"
+        },
+        {
+          "id": "narrative-tiny",
+          "population": "ten-votes"
+        },
+        {
+          "id": "narrative-tiny",
+          "population": "long-metadata"
+        },
+        {
+          "id": "narrative-medium",
+          "population": "long-metadata"
+        },
+        {
+          "id": "png-small",
+          "population": "ten-votes"
+        },
+        {
+          "id": "png-small",
+          "population": "long-metadata"
+        },
+        {
+          "id": "png-near-v3",
+          "population": "ten-votes"
+        },
+        {
+          "id": "png-near-v3",
+          "population": "long-metadata"
+        }
+      ],
+      "satisfied": 7
+    },
+    "encoded_payload_vs_original": {
+      "counterexamples": [],
+      "satisfied": 78
+    },
+    "serialized_media_vs_raw_original": {
+      "counterexamples": [
+        {
+          "id": "text-caption-small",
+          "population": "historical"
+        },
+        {
+          "id": "text-story-medium",
+          "population": "historical"
+        },
+        {
+          "id": "text-json-pretty",
+          "population": "historical"
+        },
+        {
+          "id": "text-source-code",
+          "population": "historical"
+        },
+        {
+          "id": "text-source-admission-model",
+          "population": "historical"
+        },
+        {
+          "id": "text-source-snapshot-cli",
+          "population": "historical"
+        },
+        {
+          "id": "jpeg-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "png-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "png-photo-small",
+          "population": "historical"
+        },
+        {
+          "id": "webp-flat-small",
+          "population": "historical"
+        },
+        {
+          "id": "webp-illustrated-medium",
+          "population": "historical"
+        },
+        {
+          "id": "webp-photo-like",
+          "population": "historical"
+        },
+        {
+          "id": "webp-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "webp-photo-small",
+          "population": "historical"
+        },
+        {
+          "id": "webp-mixed-medium",
+          "population": "historical"
+        },
+        {
+          "id": "webp-text-large",
+          "population": "historical"
+        },
+        {
+          "id": "gif-flat-small",
+          "population": "historical"
+        },
+        {
+          "id": "gif-animated-illustrated",
+          "population": "historical"
+        },
+        {
+          "id": "gif-noise-capacity",
+          "population": "historical"
+        },
+        {
+          "id": "gif-photo-small",
+          "population": "historical"
+        },
+        {
+          "id": "gif-text-medium",
+          "population": "historical"
+        },
+        {
+          "id": "gif-mixed-large",
+          "population": "historical"
+        },
+        {
+          "id": "narrative-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "json-1",
+          "population": "production-like"
+        },
+        {
+          "id": "source-small",
+          "population": "production-like"
+        },
+        {
+          "id": "entropy-text",
+          "population": "production-like"
+        },
+        {
+          "id": "png-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "png-small",
+          "population": "production-like"
+        },
+        {
+          "id": "png-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "png-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "png-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-small",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "jpeg-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-small",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "webp-animated",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-tiny",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-small",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-medium",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-near-active",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-near-v3",
+          "population": "production-like"
+        },
+        {
+          "id": "gif-animated",
+          "population": "production-like"
+        },
+        {
+          "id": "narrative-tiny",
+          "population": "ten-votes"
+        },
+        {
+          "id": "narrative-tiny",
+          "population": "long-metadata"
+        },
+        {
+          "id": "png-small",
+          "population": "ten-votes"
+        },
+        {
+          "id": "png-small",
+          "population": "long-metadata"
+        },
+        {
+          "id": "png-near-v3",
+          "population": "ten-votes"
+        },
+        {
+          "id": "png-near-v3",
+          "population": "long-metadata"
+        }
+      ],
+      "satisfied": 24
+    }
+  },
+  "physical_allocation": "NOT VERIFIED: no monotonic allocator/storage guarantee is implemented",
+  "population": "70 primary plus 8 sensitivity records",
+  "records": 78,
+  "universal_raw_counterexample": "producer_counterexample.json: corpus-only inequality is not a universal guarantee"
+}

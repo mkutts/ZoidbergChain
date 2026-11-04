@@ -1,0 +1,9 @@
+{
+  "codec_nontiming_differences": [],
+  "codec_rows": 252,
+  "composition_exact_excluding_environment_and_sqlite": true,
+  "economics_csv_byte_exact": true,
+  "economics_json_exact": true,
+  "historical_composition_sqlite_replay": "BLOCKED: historical WAL request conflicts with active DELETE-only safety gate; no bypass",
+  "storage_exact_excluding_environment": true
+}

@@ -1,0 +1,195 @@
+{
+  "active_policy": {
+    "activation": {
+      "activation_height": null,
+      "status": "inactive_owner_decision_required"
+    },
+    "consensus_protocol": {
+      "allowed_media_types": [
+        {
+          "animation_capable": true,
+          "category": "image",
+          "media_type": "gif",
+          "mime_type": "image/gif"
+        },
+        {
+          "animation_capable": false,
+          "category": "image",
+          "media_type": "jpeg",
+          "mime_type": "image/jpeg"
+        },
+        {
+          "animation_capable": false,
+          "category": "text",
+          "media_type": "plain_utf8_text",
+          "mime_type": "text/plain"
+        },
+        {
+          "animation_capable": false,
+          "category": "image",
+          "media_type": "png",
+          "mime_type": "image/png"
+        },
+        {
+          "animation_capable": true,
+          "category": "image",
+          "media_type": "webp",
+          "mime_type": "image/webp"
+        }
+      ],
+      "byte_limits": {
+        "accepted_image_bytes": 262144,
+        "accepted_plain_text_bytes_after_canonicalization": 262144,
+        "canonical_serialized_non_genesis_block_bytes": 524288
+      },
+      "container_and_active_content": {
+        "archives": "reject",
+        "complete_container_parse_required": true,
+        "embedded_active_content": "reject",
+        "executables": "reject",
+        "invalid_frame_tables": "reject",
+        "parser_warnings": "reject",
+        "polyglots": "reject",
+        "scripts": "reject",
+        "unexpected_trailing_payload": "reject",
+        "unsupported_metadata": "reject"
+      },
+      "failure_policy": "fail_closed",
+      "image_structure": {
+        "animation_within_limits": "provisionally_allowed_pending_activation_owner_decision",
+        "decoded_color_model": "convertible_to_rgb_or_rgba_by_pinned_decoder",
+        "every_frame_must_validate": true,
+        "maximum_aggregate_decoded_pixels": 16777216,
+        "maximum_frame_count": 60,
+        "maximum_height_pixels": 4096,
+        "maximum_width_pixels": 4096,
+        "minimum_height_pixels": 1,
+        "minimum_width_pixels": 1
+      },
+      "metadata_limits": {
+        "caption_unicode_scalars": 1000,
+        "caption_utf8_bytes": 4096,
+        "sanitized_display_filename_ascii_bytes": 255,
+        "submission_text_unicode_scalars": 4096,
+        "submission_text_utf8_bytes": 16384
+      },
+      "peer_limits": {
+        "chain_page_blocks": 64,
+        "chain_page_encoded_response_bytes": 16777216,
+        "decoded_media_uses_applicable_accepted_media_limit": true,
+        "encoded_media_length_check_before_base64_decode": true
+      },
+      "text_canonicalization": "normalize_crlf_and_cr_to_lf_then_trim_outer_whitespace_utf8",
+      "type_authority": {
+        "authoritative_source": "complete_detected_and_validated_media_bytes",
+        "declared_mime_authoritative": false,
+        "declared_mime_mismatch": "reject",
+        "filename_extension_authoritative": false
+      }
+    },
+    "content_category_policy": {
+      "required_categories_not_yet_normatively_defined": [
+        "asserted_rights_absent",
+        "child_sexual_abuse_material",
+        "credible_threats",
+        "exposed_authentication_secrets",
+        "malware_or_exploit_payloads",
+        "material_illegal_in_deployment_jurisdiction",
+        "non_consensual_intimate_imagery",
+        "targeted_private_identifying_information"
+      ],
+      "status": "owner_decision_required_fail_closed_before_public_minting"
+    },
+    "deferred_enforcement": [
+      "task_6_3_complete_type_detection_and_decode_hardening",
+      "task_6_4_signed_submitter_attestation",
+      "task_6_5_separate_safety_voting_and_certificate_binding",
+      "task_6_6_plus_quarantine_reporting_disputes_serving_and_activation"
+    ],
+    "local_defense_only": {
+      "defaults": {
+        "multipart_request_body_bytes": 5308416,
+        "ocr_wall_time_seconds": 5,
+        "staged_uploaded_payload_bytes": 5242880,
+        "structural_decode_wall_time_seconds": 2,
+        "text_upload_json_body_bytes": 327680,
+        "worker_memory_bytes": 268435456
+      },
+      "override_rule": "local_values_may_only_tighten_admission_or_resource_defenses",
+      "timeout_or_resource_termination": "reject_local_admission_never_consensus_pass",
+      "worker_isolation": {
+        "cpu_quota_required": true,
+        "empty_working_directory": true,
+        "hard_wall_clock_timeout_required": true,
+        "inherit_secrets": false,
+        "memory_quota_required": true,
+        "network_access": false,
+        "outside_node_api_process": true
+      }
+    },
+    "network_id": "zoidberg-public-testnet-v1",
+    "owner_decisions": [
+      "activation_height_and_in_flight_submission_treatment",
+      "animated_gif_webp_support_at_activation",
+      "denylist_ownership_distribution_and_activation",
+      "isolated_worker_operations_and_incident_response",
+      "permanent_publication_and_rights_attestation_text",
+      "prohibited_content_policy_jurisdiction_and_appeals",
+      "raw_media_access_after_presentation_suppression",
+      "rejected_temporary_byte_retention",
+      "safety_review_authority_quorum_and_welfare",
+      "safe_preview_encoding_and_animation_review"
+    ],
+    "policy_id": "zoidberg-public-testnet-v1/media-admission/1",
+    "policy_kind": "media_admission",
+    "policy_version": 1,
+    "protocol_version": 1,
+    "reason_codes": [
+      "ACCEPTED_POLICY_METADATA",
+      "DECLARED_MIME_MISMATCH",
+      "DISALLOWED_ANIMATION",
+      "DISALLOWED_ARCHIVE",
+      "EXCEEDS_ACCEPTED_MEDIA_BYTE_LIMIT",
+      "EXCEEDS_BLOCK_BYTE_LIMIT",
+      "EXCEEDS_DIMENSION_LIMIT",
+      "EXCEEDS_FRAME_LIMIT",
+      "EXCEEDS_PIXEL_LIMIT",
+      "EXCEEDS_REQUEST_BYTE_LIMIT",
+      "EXCEEDS_STAGED_UPLOAD_BYTE_LIMIT",
+      "EXCEEDS_TEXT_BYTE_LIMIT",
+      "EXECUTABLE_OR_SCRIPT",
+      "INVALID_POLICY_INPUT",
+      "MALFORMED_MEDIA",
+      "PROHIBITED_CONTENT_POLICY_UNRESOLVED",
+      "RESOURCE_LIMIT_TERMINATED",
+      "UNKNOWN_POLICY_VERSION",
+      "UNSUPPORTED_MEDIA_TYPE",
+      "UNSUPPORTED_METADATA"
+    ],
+    "rule_scopes": {
+      "consensus_protocol": "consensus_protocol",
+      "local_defense": "local_defense_only"
+    },
+    "semantic_version": "1.0.0"
+  },
+  "inactive_v3": {
+    "analytic_bound": 3058797,
+    "complete": 3145728,
+    "encoded": 2097152,
+    "original_image": 2097152,
+    "original_text": 262144
+  },
+  "primary_population": "All semantic and boundary samples; text-expansion-control excluded ONLY as predeclared diagnostic",
+  "strict_decoder": {
+    "max_blocks": 64,
+    "max_original": 2097152,
+    "max_window": 262144,
+    "native_arena": 1048576
+  },
+  "worker_limits": {
+    "cpu_seconds": 5.0,
+    "memory_bytes": 134217728,
+    "startup_seconds": 5.0,
+    "wall_seconds": 10.0
+  }
+}

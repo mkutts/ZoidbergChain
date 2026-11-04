@@ -1,0 +1,18 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing",
+      "line": 174
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_12_image_admission.py::test_public_upload_local_failure_is_503_and_persists_nothing",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}

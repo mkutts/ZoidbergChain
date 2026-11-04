@@ -1,0 +1,2015 @@
+{
+  "task": "7.17K",
+  "scope": "isolated local test pins, static N4/f1/q3/epoch0, crypto core only",
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "head": "0e1bd2c04a256cb790f005a0ad010225695fa28c",
+  "python": "3.13.5",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "genesis_authentication": {
+    "outcome": "INCOMPLETE_AUTHORITY",
+    "detail": "G2_SERIALIZATION_AND_RELEASE_AUTHENTICATION_UNSPECIFIED; membership authorized only by independent local test fixture pins",
+    "fixture_membership_authenticated": true,
+    "signatures_valid": false,
+    "quorum_structure_valid": false,
+    "genesis_authenticated": false,
+    "block_parent_identity_authenticated": false,
+    "full_finalized_ancestry_verified": false,
+    "complete_consensus_execution_verified": false,
+    "signature_checks": 0,
+    "distinct_signers": 0,
+    "proof_id": null
+  },
+  "historical_verification": {
+    "outcome": "INCOMPLETE_PROPOSAL_OR_ANCESTRY_DATA",
+    "detail": "missing_canonical_application_block; missing_parent_reference_and_prefix; G2_authentication_unspecified; combined_application_hash_and_policy_unfrozen; full_finalized_ancestry_unverified",
+    "fixture_membership_authenticated": true,
+    "signatures_valid": true,
+    "quorum_structure_valid": true,
+    "genesis_authenticated": false,
+    "block_parent_identity_authenticated": false,
+    "full_finalized_ancestry_verified": false,
+    "complete_consensus_execution_verified": false,
+    "signature_checks": 4,
+    "distinct_signers": 3,
+    "proof_id": "e872d640fd2ce9991e9e54f25bc204a07d92644442a96c80ddeeaacc3dc15895"
+  },
+  "apparent_conflict": {
+    "outcome": "CONFLICTING_AUTHENTICATED_TEST_QUORUMS",
+    "detail": "retain_both_test_QCs; block_validity_and_finality_not_established",
+    "fixture_membership_authenticated": true,
+    "signatures_valid": true,
+    "quorum_structure_valid": true,
+    "genesis_authenticated": false,
+    "block_parent_identity_authenticated": false,
+    "full_finalized_ancestry_verified": false,
+    "complete_consensus_execution_verified": false,
+    "signature_checks": 8,
+    "distinct_signers": 3,
+    "proof_id": null
+  },
+  "manifest": {
+    "bytes": 552,
+    "maximum_bytes": 603,
+    "commitment": "6fb37df7e489c39287ea827d08f32467f84116d1e8758304d86672a6fd935518",
+    "agreement_bytes": 892
+  },
+  "cache": {
+    "file_bytes": 1852,
+    "database_bytes": 0,
+    "authority": "none; disposable cache rechecked against independent pins"
+  },
+  "observations": {
+    "pv": {
+      "bytes": 3334,
+      "digest": "d5313ae807328192574bc79c53d7fa26b1b3b26ce8f6262a82b7b98d7466d581",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_pv_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 3,
+        "distinct_signers": 3,
+        "proof_id": "d5313ae807328192574bc79c53d7fa26b1b3b26ce8f6262a82b7b98d7466d581"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 35.6891,
+        "minimum": 34.4745,
+        "maximum": 37.0674
+      },
+      "peak_python_traced_bytes": 36561
+    },
+    "q4-x": {
+      "bytes": 4300,
+      "digest": "e872d640fd2ce9991e9e54f25bc204a07d92644442a96c80ddeeaacc3dc15895",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_q4_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 4,
+        "distinct_signers": 3,
+        "proof_id": "e872d640fd2ce9991e9e54f25bc204a07d92644442a96c80ddeeaacc3dc15895"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 48.951,
+        "minimum": 47.5443,
+        "maximum": 50.9249
+      },
+      "peak_python_traced_bytes": 40385
+    },
+    "q4-y": {
+      "bytes": 4300,
+      "digest": "454a7d341eb07906fd3ff74f170a6f7ad7cafef75d5232ed1f46a15fbd1988c5",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_q4_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 4,
+        "distinct_signers": 3,
+        "proof_id": "454a7d341eb07906fd3ff74f170a6f7ad7cafef75d5232ed1f46a15fbd1988c5"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 49.5827,
+        "minimum": 48.9202,
+        "maximum": 50.9824
+      },
+      "peak_python_traced_bytes": 40483
+    },
+    "q4-x-four": {
+      "bytes": 5225,
+      "digest": "82a4f1a91a95755a64729cf945bd6897a9a89855258baaaffaf5424deb07c302",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_q4_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 5,
+        "distinct_signers": 4,
+        "proof_id": "82a4f1a91a95755a64729cf945bd6897a9a89855258baaaffaf5424deb07c302"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 61.4478,
+        "minimum": 60.5476,
+        "maximum": 62.4564
+      },
+      "peak_python_traced_bytes": 43661
+    },
+    "max-pv-3": {
+      "bytes": 3583,
+      "digest": "a0a8fc76bf07e707ce7fc3850f9a38fe688e0e961e0f12004ed31aecf38dcf91",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_pv_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 3,
+        "distinct_signers": 3,
+        "proof_id": "a0a8fc76bf07e707ce7fc3850f9a38fe688e0e961e0f12004ed31aecf38dcf91"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 36.8285,
+        "minimum": 35.9791,
+        "maximum": 37.8871
+      },
+      "peak_python_traced_bytes": 37213
+    },
+    "max-pv-4": {
+      "bytes": 4581,
+      "digest": "9ff37cb1e713a448e6ac39e86d81ded9291530cc8d4bdfdabc50775c1a681451",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_pv_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 4,
+        "distinct_signers": 4,
+        "proof_id": "9ff37cb1e713a448e6ac39e86d81ded9291530cc8d4bdfdabc50775c1a681451"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 47.7596,
+        "minimum": 45.991,
+        "maximum": 49.4159
+      },
+      "peak_python_traced_bytes": 40826
+    },
+    "max-q4-3": {
+      "bytes": 4632,
+      "digest": "294ea34b92f6a605f5956364a4ac3ad7e8c0a2a20f22a378151b97cbdc7dbd5e",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_q4_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 4,
+        "distinct_signers": 3,
+        "proof_id": "294ea34b92f6a605f5956364a4ac3ad7e8c0a2a20f22a378151b97cbdc7dbd5e"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 50.9451,
+        "minimum": 49.3263,
+        "maximum": 53.3404
+      },
+      "peak_python_traced_bytes": 41720
+    },
+    "max-q4-4": {
+      "bytes": 5632,
+      "digest": "1c9ad8805e0ee26e4eeeafebb179d5375b16d75566ff7f5e4964a90730b25fe5",
+      "verification": {
+        "outcome": "VALID_AUTHENTICATED_TEST_QUORUM_PROOF",
+        "detail": "canonical_q4_crypto_core; G2/application/ancestry/execution_unverified",
+        "fixture_membership_authenticated": true,
+        "signatures_valid": true,
+        "quorum_structure_valid": true,
+        "genesis_authenticated": false,
+        "block_parent_identity_authenticated": false,
+        "full_finalized_ancestry_verified": false,
+        "complete_consensus_execution_verified": false,
+        "signature_checks": 5,
+        "distinct_signers": 4,
+        "proof_id": "1c9ad8805e0ee26e4eeeafebb179d5375b16d75566ff7f5e4964a90730b25fe5"
+      },
+      "milliseconds": {
+        "iterations": 15,
+        "median": 61.3608,
+        "minimum": 59.0913,
+        "maximum": 63.6311
+      },
+      "peak_python_traced_bytes": 44946
+    }
+  },
+  "independent_frozen_javascript_oracle": {
+    "cases": 21,
+    "proofs": 5,
+    "sha256": "all match",
+    "keccak": "all match",
+    "full_key_recovery": "all match",
+    "context_mutations": 8,
+    "maximum_widths": "all match",
+    "high_s": "same message/key",
+    "duplicate_mixed_bad_signature": "rejected",
+    "same_height_conflict": "detected",
+    "scope": "certificate crypto core only; no application/genesis validation"
+  },
+  "regressions": [
+    {
+      "path": "temp/task717k-focused.xml",
+      "tests": 113,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "testcase_seconds": 4.755,
+      "by_module": {
+        "tests.test_milestone_7_task_7_17k_validator_authority": 113
+      },
+      "cases": [
+        {
+          "name": "test_manifest_frozen_commitment_and_all_authoring_orders",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[unknown]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[missing]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[bool]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[float]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[str-int]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[epoch]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[version]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[membership-version]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[profile]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[protocol]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[domain]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[fault-budget]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[quorum]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[count]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[order]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[duplicate-key]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[unicode]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[short-network]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[long-network]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[bad-network]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[null-keys]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[duplicate-json]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[whitespace]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[exponent]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[negative-zero]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[depth]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[oversize]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[bom]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_adversarial_schema[escape]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[041111111111111111111111111111111111111111111111111111111111111111]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[0x021111111111111111111111111111111111111111111111111111111111111111]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[02ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[020000000000000000000000000000000000000000000000000000000000000000]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[001111111111111111111111111111111111111111111111111111111111111111]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[None]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[123]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_bad_public_key_representations[0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_duplicate_identity_collision_defense",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_claimed_context[network_id-peer-test]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_claimed_context[genesis_hash-2222222222222222222222222222222222222222222222222222222222222222]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_claimed_context[validator_set_commitment-2222222222222222222222222222222222222222222222222222222222222222]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_claimed_context[agreement_profile_digest-2222222222222222222222222222222222222222222222222222222222222222]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_self_declared_peer_genesis_and_roster_cannot_authorize",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_only_test_networks_and_static_epoch",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[proposal]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[prevote]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[precommit]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[nil-prevote]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[nil-precommit]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[round-one-prevote]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_authenticated_messages[justified-proposal]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_quorum_proofs[pv]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_quorum_proofs[q4-x]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_quorum_proofs[q4-y]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_quorum_proofs[q4-x-four]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_insufficient_quorum_even_with_valid_signatures[0]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_insufficient_quorum_even_with_valid_signatures[1]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_insufficient_quorum_even_with_valid_signatures[2]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[duplicate]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[high-s-duplicate]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[contradictory]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[unordered]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[unauthorized]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[mixed-round]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[mixed-epoch]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[wrong-phase]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[nil]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[tamper]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[bad-v]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[network]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[genesis]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[protocol]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[profile]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[set]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[parent]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[height]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[hash]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[wrong-proposer]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[proposal-round]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[extra-roster]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[unknown]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[oversize]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[depth]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[too-many]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[bad-commitment]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[bool-commitment]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[wrong-proof-version]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_adversarial_quorum[duplicate-json]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_nil_and_phase_semantics",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_missing_signed_proposal_is_incomplete[absent]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_missing_signed_proposal_is_incomplete[null]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_equivocation_does_not_rewrite_authority_or_existing_qc",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_registered_id_requires_exact_full_key_and_high_s_has_no_extra_weight",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_conflicting_apparent_certificates_require_both_authentic_proofs",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_history_and_parent_boundary",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_cache_reopen_in_fresh_process_and_independent_pins",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[truncated]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[oversize]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[missing]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[genesis]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[roster]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[commitment]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[unknown]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[epoch]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_local_cache_fails_closed[duplicate]",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_storage_and_resource_failures_are_not_invalidity",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_cache_recomputed_self_consistency_cannot_replace_independent_membership",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_cache_replace_failure_preserves_previous_file",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_signer_gate_replay_and_h1_r0_nonregression",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_max_width_valid_signed_quorums",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        },
+        {
+          "name": "test_isolation_and_frozen_contract_files_unchanged",
+          "module": "tests.test_milestone_7_task_7_17k_validator_authority",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "path": "temp/task717k-regression.xml",
+      "tests": 223,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "testcase_seconds": 85.069,
+      "by_module": {
+        "tests.blockchain.test_protocol_v1_lifecycle_finality": 5,
+        "tests.blockchain.test_task_3_5_validator_quorum_finality": 12,
+        "tests.blockchain.test_task_3_6_public_finality_status": 3,
+        "tests.test_milestone_7_task_7_17e_finality_durability": 36,
+        "tests.test_milestone_7_task_7_17h_tendermint_model": 42,
+        "tests.test_milestone_7_task_7_17j_durable_signer": 125
+      },
+      "cases": [
+        {
+          "name": "test_frozen_signing_vectors[proposal]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[prevote]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[precommit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[nil-prevote]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[nil-precommit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[round-one-prevote]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[justified-proposal]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[network-b]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[genesis-b]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[set-b]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[conflicting-prevote]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[conflicting-proposal]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[precommit-key-2]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[precommit-key-3]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[precommit-key-4]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[conflicting-precommit-key-1]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[conflicting-precommit-key-2]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[conflicting-precommit-key-3]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[prevote-key-2]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[prevote-key-3]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_frozen_signing_vectors[prevote-key-4]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_five_frozen_proof_objects[pv]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_five_frozen_proof_objects[q4-x]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_five_frozen_proof_objects[q4-y]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_five_frozen_proof_objects[q4-x-four]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_five_frozen_proof_objects[re]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_independent_javascript_oracle_is_the_frozen_contract_source",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[duplicate]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[whitespace]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[float]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[bool]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[missing]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[extra]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[null]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[negative-zero]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[exponent]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[unicode]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[escape]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[bom]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[depth]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[oversize]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[version]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[purpose]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[network]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[genesis]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[epoch]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[set]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[profile]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[identity]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[parent]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_closed_canonical_rejections[integer-overflow]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_high_s_and_no_fallback",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_proposal_and_durable_identical_retry",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_lock_pv_and_recovery",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_nil_vote_paths_and_missing_data",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_authenticated_evidence_required[duplicate]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_authenticated_evidence_required[signature]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_authenticated_evidence_required[mixed]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_authenticated_evidence_required[few]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_authenticated_evidence_required[nil]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_authenticated_evidence_required[other-value]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_unavailable_agreement_context[round]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_unavailable_agreement_context[height]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_unavailable_agreement_context[unjustified]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_unavailable_agreement_context[identity]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_concurrent_identical_and_conflicting_connections",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[before_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[after_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[after_sign]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[before_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[after_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[before_release]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[after_publication]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_real_process_crash_windows[during_lock_update]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_crash_preserves_committed_lock_and_valid_pair[after_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_crash_preserves_committed_lock_and_valid_pair[after_sign]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_crash_preserves_committed_lock_and_valid_pair[after_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_exclusive_owner_processes_and_reacquisition",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_two_process_signing_attempts[False]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_two_process_signing_attempts[True]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_ambiguous_commit_acknowledgement[after_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_ambiguous_commit_acknowledgement[after_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_busy_and_unavailable_until_recovery",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[io-before_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[io-before_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[full-before_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[full-before_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[commit-denied-before_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[commit-denied-before_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[commit-busy-before_reservation_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_storage_faults_before_commit[commit-busy-before_signature_commit]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[blob]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[head]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[slot]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[outbox]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[event]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[state]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[missing-db]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[wrong-genesis]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_tamper_and_missing_store_refuse[wal]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_stale_backup_and_joint_rollback_limit",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_crypto_failure_distinct_from_sqlite",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_semantic_tampering_even_with_recomputed_hashes",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_missing_support_source_and_foreign_keys",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_height_and_round_transitions_are_gated_without_writes",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_witness_failure_and_generation_revocation",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_same_key_namespace_switch_and_missing_witness_refused",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_proposal_nil_and_boundaries",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_local_witness_joint_rollback_cannot_downgrade_live_owner",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_pending_reservation_blocks_successor_and_uses_retained_evidence",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_signed_retry_never_invokes_key_and_does_not_mutate_history",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_mutated_parsed_fixture_cannot_authorize_validity",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_rollback_failure_still_closes_connection_and_releases_writer",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_restored_authority_context_cannot_be_rebound[network]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_restored_authority_context_cannot_be_rebound[genesis]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_restored_authority_context_cannot_be_rebound[set]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_restored_authority_context_cannot_be_rebound[profile]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_requires_exact_static_authority[unsorted]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_requires_exact_static_authority[duplicate]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_requires_exact_static_authority[point]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_requires_exact_static_authority[bool]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_manifest_requires_exact_static_authority[extra]",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_missing_witness_and_physical_corruption_do_not_bootstrap",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_no_active_runtime_imports_or_model_fixture_changes",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_sqlite_configuration_and_initialization_refusal",
+          "module": "tests.test_milestone_7_task_7_17j_durable_signer",
+          "passed": true
+        },
+        {
+          "name": "test_all_adversarial_scenarios_and_expected_progress",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_hidden_commit_retains_lock_across_nil_and_intact_restart",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_different_locks_are_reachable_and_later_justification_switches",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_byzantine_proposer_equivocation_preserves_honest_slots",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_valid_value_learning_after_nil_precommit_is_not_lock",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_actual_valid_round_proof_needed",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_stale_justification_cannot_override_newer_different_lock",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_equal_lock_round_is_accepted_by_line_29",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_late_old_round_decision_after_advance",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_abstract_validity_component_rejected[protocol]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_abstract_validity_component_rejected[canonical]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_abstract_validity_component_rejected[original]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_abstract_validity_component_rejected[admission]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_abstract_validity_component_rejected[transactions]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_abstract_validity_component_rejected[resources]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_correct_parent_height_and_unknown_data_are_distinct",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation0]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation1]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation2]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation3]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation4]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation5]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation6]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation7]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_wrong_context_unauthorized_or_forged_message_cannot_count[mutation8]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_duplicate_and_equivocated_byzantine_messages_count_one_identity",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_one_byzantine_cannot_force_round_catchup_by_multiple_phases",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_quorum_of_nil_precommits_does_not_decide",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_qc_alone_cannot_decide_contents[unknown_proposal]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_qc_alone_cannot_decide_contents[incomplete_data]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_qc_alone_cannot_decide_contents[decoder_unavailable]",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_stale_timers_do_not_sign_or_advance",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_once_guards_and_timer_arming",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_two_consecutive_heights_use_decided_parent_and_reset_lock",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_fault_budget_and_collision_free_identifier_assumptions",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_checker_detects_mutated_proofs_and_decisions",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_checker_detects_honest_double_vote_and_unlock",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_bfs_counts_deterministically_and_exposes_cutoffs",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_bfs_detects_invalid_initial_state",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_negative_controls_are_not_correct_reference_executions",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_all_schedules_replay_and_tamper_is_detected",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_retained_results_match_sources_and_all_trace_prefixes_replay",
+          "module": "tests.test_milestone_7_task_7_17h_tendermint_model",
+          "passed": true
+        },
+        {
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-json]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[False-sqlite]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-json]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_concurrent_distinct_votes_and_exact_retries_are_a_durable_union[True-sqlite]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_alternate_valid_signature_is_one_logical_vote",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[json]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_stale_facade_low_level_save_and_callback_cannot_erase_votes_or_proof[sqlite]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-json]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[False-sqlite]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-json]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_conflicting_equal_height_or_higher_ancestry_is_rejected[True-sqlite]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_failed_write_and_duplicate_retry_never_publish_uncommitted_finality",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_commit_succeeded_but_response_failed_rereads_durable_outcome",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_unknown_outcome_and_failed_reload_withholds_finality_queries",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_failed_chain_validation_cannot_republish_available_finality_during_recovery",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_busy_is_operational_and_leaves_no_partial_state",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_real_sqlite_full_rolls_back_vote_and_certificate",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-denied]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_actual_sqlite_commit_failure_keeps_cache_and_database_unpromoted[commit-busy]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_conflicting_vote_invalid_batch_and_forged_duplicate_do_not_overwrite",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_settings_connection_ownership_and_nested_begin",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_stale_refresh_cannot_regress_committed_cache",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_gapped_finality_and_guarded_unfinalized_reorg_preserve_existing_semantics",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[json]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_corrupt_real_facade_recovery_fails_closed_and_repeated_reload_recovers[sqlite]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_stale_truncation_cannot_discard_a_nonfinalized_vote",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_stale_real_facade_save_refreshes_derived_report_finality_head",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_missing_one_finality_section_is_not_reinitialized",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_real_facade_load_outage_is_operational_not_invalid_evidence[failure0]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_real_facade_load_outage_is_operational_not_invalid_evidence[failure1]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_reorg_and_finality_race_in_both_commit_orders[finality]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_reorg_and_finality_race_in_both_commit_orders[reorg]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_separate_process_vote_writers[False]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_separate_process_vote_writers[True]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_actual_process_termination_before_and_after_commit[before_commit]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_actual_process_termination_before_and_after_commit[after_commit_before_publish]",
+          "module": "tests.test_milestone_7_task_7_17e_finality_durability",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[1-1]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[2-2]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[3-2]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[4-3]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[5-4]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[6-4]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_quorum_is_ceiling_of_two_thirds[7-5]",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_validator_configuration_normalizes_duplicates_and_rejects_malformed_entries",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_quorum_finality_is_authoritative_durable_and_idempotent",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_attestation_rejects_unknown_bad_domain_bad_signature_and_noncanonical_target",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_equivocation_is_detected_and_never_counts_for_both_hashes",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_finalized_anchor_cannot_be_replaced_by_a_conflicting_chain",
+          "module": "tests.blockchain.test_task_3_5_validator_quorum_finality",
+          "passed": true
+        },
+        {
+          "name": "test_public_status_distinguishes_accepted_confirmation_and_quorum_finality",
+          "module": "tests.blockchain.test_task_3_6_public_finality_status",
+          "passed": true
+        },
+        {
+          "name": "test_confirmation_depth_does_not_finalize_without_validator_quorum",
+          "module": "tests.blockchain.test_task_3_6_public_finality_status",
+          "passed": true
+        },
+        {
+          "name": "test_public_finality_status_survives_reload",
+          "module": "tests.blockchain.test_task_3_6_public_finality_status",
+          "passed": true
+        },
+        {
+          "name": "test_protocol_v1_lifecycle_happy_path_depth_confirms_without_quorum_finality",
+          "module": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "passed": true
+        },
+        {
+          "name": "test_invalid_protocol_v1_candidate_block_does_not_mutate_chain_or_rewards",
+          "module": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "passed": true
+        },
+        {
+          "name": "test_protocol_v1_duplicate_mint_after_restart_keeps_single_creator_reward[_json_backend]",
+          "module": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "passed": true
+        },
+        {
+          "name": "test_protocol_v1_duplicate_mint_after_restart_keeps_single_creator_reward[_sqlite_backend]",
+          "module": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "passed": true
+        },
+        {
+          "name": "test_reconcile_submission_canonical_state_restores_mint_eligible_status_after_block_disappears",
+          "module": "tests.blockchain.test_protocol_v1_lifecycle_finality",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "isolated_bft717j/wire.py": "1218ae736c833ee7e1f4231458d312375bd87c52a094227a951fa5e99edd7aa7",
+    "isolated_bft717k/__init__.py": "e7ed3e29e51b8e0508943e3db85d9d30ec7b7f82930fc38196cd7a9cad8b165c",
+    "isolated_bft717k/authority.py": "4a4004f2bac26aa3ad7f65a101fd396aa1ceff2de32195b349f86838c5e57f97",
+    "isolated_bft717k/manifest.py": "55651c4534ad1c631e7bea970c6e276e2a643322f97c41f176a403e4f6716846",
+    "isolated_bft717k/outcomes.py": "243ccdb2b376db891fb884c6b5ed99626d2baade9e530b31f4ecc576a43e3d03",
+    "isolated_bft717k/signer_fixture.py": "4f5407231bdd1ad312023281d5b26bbe99939da6fef7bb5a7fe1c1ae7328136e",
+    "isolated_bft717k/verifier.py": "5024ac8bee03ce9bfb822640f14e72c7b181cb8b20ec67994bb6a290aa447645",
+    "tests/fixtures/bft717j/vectors.json": "e9f5e0301ce31d329e6262193f124656766a2352f216f68079df7f3025c85e85",
+    "tests/test_milestone_7_task_7_17j_durable_signer.py": "be5ec79ad83dff5b56dfb4728c1a7fb1bed9256b7c4bb2b92eb7599e422c2848",
+    "tests/test_milestone_7_task_7_17k_validator_authority.py": "11f9b3e189a225ff2edafe0748a64b5e247f3e1c777c1ceab1c7faa9b5955693",
+    "verification/bft717j/oracle.cjs": "ca3d079472dc7f4f9dd5a91d77d0b907d1083bee46ac0fdf761ad4102c24eb1f",
+    "verification/bft717k/__init__.py": "0cd2522f5d816c70abe0471b689eb7303d46abf243bb84fb1ffb21bc57705649",
+    "verification/bft717k/fixtures.py": "b312cea61f3347a6037efb6e2405c082f13875340c8f2630026d66d2ac088228",
+    "verification/bft717k/measure.py": "f805c79c9aa88085a14e8caf33a98551ac19fc1282c8488158181ef5cd6be301"
+  },
+  "limitations": [
+    "No G2 identity/serialization/release authentication",
+    "No authenticated application block/parent or finalized prefix",
+    "No complete agreement execution or safety proof",
+    "Timing includes fixture context revalidation/parsing/signature recovery; no network/storage in verifier",
+    "Tracemalloc reports Python allocations, not process RSS or all native crypto memory",
+    "Signature_checks is entry authentication attempts; valid fixtures perform exactly one recovery per entry",
+    "Cache file size excludes filesystem allocation; no authority database exists",
+    "Not full-node throughput, multi-host performance or public-testnet economics"
+  ]
+}

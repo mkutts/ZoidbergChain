@@ -1,0 +1,361 @@
+{
+  "accepted": 65,
+  "history": {
+    "fixture_admissibility": {
+      "decisive": 4,
+      "denominator": 4,
+      "established": 1,
+      "negative": 1,
+      "numerator": 3,
+      "outcome": 1,
+      "positive": 3,
+      "total": 5,
+      "unsure": 1
+    },
+    "fixture_count": 10,
+    "fixture_fold": "08b6da4048a35aac0dbe56e416e234085aaefefdc1bdef09eec5802fcb732403",
+    "fixture_originality": {
+      "decisive": 4,
+      "denominator": 4,
+      "established": 1,
+      "negative": 1,
+      "numerator": 3,
+      "outcome": 1,
+      "positive": 3,
+      "total": 5,
+      "unsure": 1
+    },
+    "missing": [
+      "journal-aware_G2_amendment",
+      "source_and_eligibility_policy_validation",
+      "full_application_validity",
+      "physical_clock_trust",
+      "agreement_execution"
+    ],
+    "pending_verified_not_counted": 1,
+    "verification": {
+      "agreement_execution_verified": false,
+      "complete_finalized_history": false,
+      "identity": "",
+      "outcome": "INCOMPLETE_HISTORY",
+      "physical_time_trusted": false,
+      "quorum_structure_valid": true,
+      "signatures_valid": true,
+      "test_membership_authenticated": true
+    }
+  },
+  "outcomes": [
+    {
+      "name": "open",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-1-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-1-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-1-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "proposal-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-1-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-1-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-1-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-start-reference-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-start-reference-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-start-reference-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-2-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-2-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-2-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "proposal-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-2-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-2-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-2-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-0-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-0-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-0-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-0-3",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-0-4",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-1-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-1-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-1-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-1-3",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "vote-1-4",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-3-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-3-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-3-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "proposal-3",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-3-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-3-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-3-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-close-reference-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-close-reference-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-close-reference-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-4-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-4-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "time-4-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "proposal-4",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-4-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-4-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "precommit-4-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "choice-0-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "choice-0-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "choice-0-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "choice-1-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "choice-1-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "choice-1-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "pending-not-finalized",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "signed-wrong-network",
+      "outcome": "REJECT",
+      "reason": "signing_context"
+    },
+    {
+      "name": "signed-wrong-genesis",
+      "outcome": "REJECT",
+      "reason": "signing_context"
+    },
+    {
+      "name": "signed-wrong-instance",
+      "outcome": "REJECT",
+      "reason": "signing_context"
+    },
+    {
+      "name": "signed-wrong-sid",
+      "outcome": "REJECT",
+      "reason": "user_binding"
+    },
+    {
+      "name": "signed-wrong-submission",
+      "outcome": "REJECT",
+      "reason": "user_binding"
+    },
+    {
+      "name": "signed-wrong-dimension",
+      "outcome": "REJECT",
+      "reason": "user_binding"
+    },
+    {
+      "name": "wrong-user-purpose",
+      "outcome": "REJECT",
+      "reason": "signature_key"
+    },
+    {
+      "name": "prevote-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "prevote-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "prevote-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "nil-prevote-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "nil-prevote-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "nil-prevote-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "nil-step-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "nil-step-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "justified-proposal",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "round-one-precommit-0",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "round-one-precommit-1",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "round-one-precommit-2",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "unauthorized-validator",
+      "outcome": "REJECT",
+      "reason": "signature_key"
+    },
+    {
+      "name": "contradictory-precommit",
+      "outcome": "ACCEPT_SIGNATURE_ONLY"
+    },
+    {
+      "name": "personal-wrapped-validator",
+      "outcome": "REJECT",
+      "reason": "signature_key"
+    },
+    {
+      "name": "media-domain-validator",
+      "outcome": "REJECT",
+      "reason": "signature_key"
+    }
+  ],
+  "records": 75,
+  "rejected": 10
+}

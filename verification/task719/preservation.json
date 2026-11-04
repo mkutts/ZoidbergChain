@@ -1,0 +1,25 @@
+{
+  "branch": "Compression-State-Bloat-and-Node-Economics",
+  "corpus_before_after_equal": true,
+  "final_status": " M scripts/milestone_7_task_7_3_corpus.py\n M scripts/milestone_7_task_7_4_benchmark.py\n M scripts/milestone_7_task_7_4a_image_evaluation.py\n M scripts/milestone_7_task_7_7_block_composition.py\n?? docs/milestone-7-reproducibility-and-regression-triage.md\n?? verification/task719/adaptive_roundtrip_metadata.json\n?? verification/task719/api_api_case.txt\n?? verification/task719/api_control_api_case.txt\n?? verification/task719/api_control_api_case_outcomes.json\n?? verification/task719/api_control_execution.json\n?? verification/task719/api_control_loopback.txt\n?? verification/task719/api_execution.json\n?? verification/task719/api_loopback.txt\n?? verification/task719/api_probe.py\n?? verification/task719/baseline_codec.txt\n?? verification/task719/baseline_composition.txt\n?? verification/task719/baseline_corpus.txt\n?? verification/task719/baseline_execution.json\n?? verification/task719/baseline_manifest_differences.txt\n?? verification/task719/baseline_measurements.txt\n?? verification/task719/baseline_measurements_outcomes.json\n?? verification/task719/before.json\n?? verification/task719/checks.py\n?? verification/task719/checksums.sha256\n?? verification/task719/codec.json\n?? verification/task719/comparisons.json\n?? verification/task719/composition_followup_comparisons.txt\n?? verification/task719/composition_followup_composition_no_sqlite.txt\n?? verification/task719/composition_followup_execution.json\n?? verification/task719/composition_no_sqlite.json\n?? verification/task719/diagnostic-runner-note.json\n?? verification/task719/economics.csv\n?? verification/task719/economics.json\n?? verification/task719/five_failure_triage.json\n?? verification/task719/inventory_collect_deselection.txt\n?? verification/task719/inventory_collect_deselection_outcomes.json\n?? verification/task719/inventory_collect_original_skips.txt\n?? verification/task719/inventory_collect_original_skips_outcomes.json\n?? verification/task719/inventory_execution.json\n?? verification/task719/manifest_differences.json\n?? verification/task719/original_skip_deselection_inventory.json\n?? verification/task719/preservation.json\n?? verification/task719/pytest_evidence.py\n?? verification/task719/reproduce_adaptive_roundtrip_metadata.txt\n?? verification/task719/reproduce_codec.txt\n?? verification/task719/reproduce_comparisons.txt\n?? verification/task719/reproduce_composition.txt\n?? verification/task719/reproduce_corpus.txt\n?? verification/task719/reproduce_economics.txt\n?? verification/task719/reproduce_execution.json\n?? verification/task719/reproduce_storage.txt\n?? verification/task719/run.py\n?? verification/task719/source_versions.json\n?? verification/task719/storage.json\n?? verification/task719/summarize.py\n?? verification/task719/summary.json\n?? verification/task719/test_reproduction_guards.py\n?? verification/task719/tests_codec.txt\n?? verification/task719/tests_codec_outcomes.json\n?? verification/task719/tests_execution.json\n?? verification/task719/tests_format_storage.txt\n?? verification/task719/tests_format_storage_outcomes.json\n?? verification/task719/tests_measurements.txt\n?? verification/task719/tests_measurements_outcomes.json\n?? verification/task719/tests_wrapper_guards.txt\n?? verification/task719/tests_wrapper_guards_outcomes.json\n",
+  "head": "2b80161980722e680eb4f5234613230d8048d940",
+  "index_diff": "",
+  "tracked_changes": {
+    "scripts/milestone_7_task_7_3_corpus.py": {
+      "after": "545ec2b53b139b494cbb3007812564d01686cb0f90351143aabf4966165d7993",
+      "before": "6fe5694e3a23a1982e4d6e5652494888ac66c934cb2411b3113ba6e3dd3d6b2d"
+    },
+    "scripts/milestone_7_task_7_4_benchmark.py": {
+      "after": "2418ac867843cdbc1847d69c3627f8b67453cc69964234cf289c9cc8bd18f6ed",
+      "before": "6d95ce2d81db3a854db4d938965392f3cc2888f17a68cc0b94d9c8e11b2b74b6"
+    },
+    "scripts/milestone_7_task_7_4a_image_evaluation.py": {
+      "after": "c06d164093c26fabc75d269ca77e0a85769b12c653d9f183f3b25062d45f2387",
+      "before": "2fba5763bcbd44a518460387f9768b9a9d27b0da0db3f6619c1e2e6c9cf40f36"
+    },
+    "scripts/milestone_7_task_7_7_block_composition.py": {
+      "after": "f98c58546fe8d5840281ac799b74bf58c70fd8e3f99ef365bee3c286643a31dc",
+      "before": "9ff1794bf2cb2758c6148586e50987fdb64694e73349d8578e61ee044c7ff84f"
+    }
+  }
+}

@@ -1,0 +1,79 @@
+Generated production-like corpus: 34 11521163
+Codec completed: identity-1
+Codec completed: zstd-3
+Codec completed: zstd-6
+Codec completed: zstd-9
+Codec completed: brotli-4
+Codec completed: brotli-6
+Codec completed: zlib-6
+Record verified: historical text-caption-small
+Record verified: historical text-story-medium
+Record verified: historical text-audit-log-large
+Record verified: historical text-json-pretty
+Record verified: historical text-json-minified
+Record verified: historical text-json-peer-snapshot-large
+Record verified: historical text-source-code
+Record verified: historical text-source-admission-model
+Record verified: historical text-source-snapshot-cli
+Record verified: historical jpeg-flat-small
+Record verified: historical jpeg-text-poster
+Record verified: historical jpeg-photo-like
+Record verified: historical jpeg-noise-capacity
+Record verified: historical jpeg-photo-small
+Record verified: historical jpeg-mixed-medium
+Record verified: historical jpeg-text-large
+Record verified: historical png-flat-small
+Record verified: historical png-illustrated-medium
+Record verified: historical png-text-poster
+Record verified: historical png-noise-capacity
+Record verified: historical png-photo-small
+Record verified: historical png-mixed-medium
+Record verified: historical png-text-large
+Record verified: historical webp-flat-small
+Record verified: historical webp-illustrated-medium
+Record verified: historical webp-photo-like
+Record verified: historical webp-noise-capacity
+Record verified: historical webp-photo-small
+Record verified: historical webp-mixed-medium
+Record verified: historical webp-text-large
+Record verified: historical gif-flat-small
+Record verified: historical gif-animated-illustrated
+Record verified: historical gif-noise-capacity
+Record verified: historical gif-photo-small
+Record verified: historical gif-text-medium
+Record verified: historical gif-mixed-large
+Record verified: production-like narrative-tiny
+Record verified: production-like narrative-small
+Record verified: production-like narrative-medium
+Record verified: production-like narrative-max
+Record verified: production-like json-1
+Record verified: production-like json-12
+Record verified: production-like json-128
+Record verified: production-like json-650
+Record verified: production-like source-small
+Record verified: production-like source-module
+Record verified: production-like source-suite
+Record verified: production-like entropy-text
+Record verified: production-like png-tiny
+Record verified: production-like png-small
+Record verified: production-like png-medium
+Record verified: production-like png-near-active
+Record verified: production-like png-near-v3
+Record verified: production-like jpeg-tiny
+Record verified: production-like jpeg-small
+Record verified: production-like jpeg-medium
+Record verified: production-like jpeg-near-active
+Record verified: production-like jpeg-near-v3
+Record verified: production-like webp-tiny
+Record verified: production-like webp-small
+Record verified: production-like webp-medium
+Record verified: production-like webp-near-active
+Record verified: production-like webp-near-v3
+Record verified: production-like webp-animated
+Record verified: production-like gif-tiny
+Record verified: production-like gif-small
+Record verified: production-like gif-medium
+Record verified: production-like gif-near-active
+Record verified: production-like gif-near-v3
+Record verified: production-like gif-animated
+Completed: 70 canonical records; 8 sensitivity records; 238 codec rows

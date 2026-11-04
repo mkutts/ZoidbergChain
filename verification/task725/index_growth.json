@@ -1,0 +1,281 @@
+{
+  "fixed_roots": "Empty secondary index roots are fixed initialization, not linear per-block cost.",
+  "method": "Exact arithmetic from equivalent per-count SQLite observations. Secondary aggregate file allocation is separate from full-minus-minimal schema footprint and endpoint per-index DROP-page accounting.",
+  "populations": {
+    "balanced41": [
+      {
+        "blocks": 0,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 0,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 1,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 1,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 5,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 5,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 41,
+        "full_minus_minimal_file_bytes": 69632,
+        "full_minus_no_secondary_file_bytes": 32768,
+        "full_minus_no_secondary_live_page_bytes": 32768,
+        "secondary_entries_per_block_index": 41,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 82,
+        "full_minus_minimal_file_bytes": 94208,
+        "full_minus_no_secondary_file_bytes": 49152,
+        "full_minus_no_secondary_live_page_bytes": 49152,
+        "secondary_entries_per_block_index": 82,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 164,
+        "full_minus_minimal_file_bytes": 143360,
+        "full_minus_no_secondary_file_bytes": 81920,
+        "full_minus_no_secondary_live_page_bytes": 81920,
+        "secondary_entries_per_block_index": 164,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 328,
+        "full_minus_minimal_file_bytes": 249856,
+        "full_minus_no_secondary_file_bytes": 143360,
+        "full_minus_no_secondary_live_page_bytes": 143360,
+        "secondary_entries_per_block_index": 328,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 656,
+        "full_minus_minimal_file_bytes": 466944,
+        "full_minus_no_secondary_file_bytes": 274432,
+        "full_minus_no_secondary_live_page_bytes": 274432,
+        "secondary_entries_per_block_index": 656,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 1312,
+        "full_minus_minimal_file_bytes": 901120,
+        "full_minus_no_secondary_file_bytes": 548864,
+        "full_minus_no_secondary_live_page_bytes": 548864,
+        "secondary_entries_per_block_index": 1312,
+        "transaction_entries": 0
+      }
+    ],
+    "historical36": [
+      {
+        "blocks": 0,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 0,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 1,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 1,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 5,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 5,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 36,
+        "full_minus_minimal_file_bytes": 65536,
+        "full_minus_no_secondary_file_bytes": 32768,
+        "full_minus_no_secondary_live_page_bytes": 32768,
+        "secondary_entries_per_block_index": 36,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 72,
+        "full_minus_minimal_file_bytes": 90112,
+        "full_minus_no_secondary_file_bytes": 49152,
+        "full_minus_no_secondary_live_page_bytes": 49152,
+        "secondary_entries_per_block_index": 72,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 144,
+        "full_minus_minimal_file_bytes": 135168,
+        "full_minus_no_secondary_file_bytes": 77824,
+        "full_minus_no_secondary_live_page_bytes": 77824,
+        "secondary_entries_per_block_index": 144,
+        "transaction_entries": 0
+      }
+    ],
+    "meme58": [
+      {
+        "blocks": 0,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 0,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 1,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 1,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 5,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 5,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 56,
+        "full_minus_minimal_file_bytes": 69632,
+        "full_minus_no_secondary_file_bytes": 32768,
+        "full_minus_no_secondary_live_page_bytes": 32768,
+        "secondary_entries_per_block_index": 56,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 112,
+        "full_minus_minimal_file_bytes": 118784,
+        "full_minus_no_secondary_file_bytes": 65536,
+        "full_minus_no_secondary_live_page_bytes": 65536,
+        "secondary_entries_per_block_index": 112,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 224,
+        "full_minus_minimal_file_bytes": 180224,
+        "full_minus_no_secondary_file_bytes": 102400,
+        "full_minus_no_secondary_live_page_bytes": 102400,
+        "secondary_entries_per_block_index": 224,
+        "transaction_entries": 0
+      }
+    ],
+    "native_index_control": [
+      {
+        "blocks": 0,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 0,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 1,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 1,
+        "transaction_entries": 1
+      },
+      {
+        "blocks": 2,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 2,
+        "transaction_entries": 2
+      },
+      {
+        "blocks": 4,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 4,
+        "transaction_entries": 4
+      },
+      {
+        "blocks": 5,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 5,
+        "transaction_entries": 5
+      },
+      {
+        "blocks": 32,
+        "full_minus_minimal_file_bytes": 81920,
+        "full_minus_no_secondary_file_bytes": 40960,
+        "full_minus_no_secondary_live_page_bytes": 40960,
+        "secondary_entries_per_block_index": 32,
+        "transaction_entries": 32
+      }
+    ],
+    "production34": [
+      {
+        "blocks": 0,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 0,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 1,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 1,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 5,
+        "full_minus_minimal_file_bytes": 40960,
+        "full_minus_no_secondary_file_bytes": 16384,
+        "full_minus_no_secondary_live_page_bytes": 16384,
+        "secondary_entries_per_block_index": 5,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 34,
+        "full_minus_minimal_file_bytes": 65536,
+        "full_minus_no_secondary_file_bytes": 32768,
+        "full_minus_no_secondary_live_page_bytes": 32768,
+        "secondary_entries_per_block_index": 34,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 68,
+        "full_minus_minimal_file_bytes": 90112,
+        "full_minus_no_secondary_file_bytes": 49152,
+        "full_minus_no_secondary_live_page_bytes": 49152,
+        "secondary_entries_per_block_index": 68,
+        "transaction_entries": 0
+      },
+      {
+        "blocks": 136,
+        "full_minus_minimal_file_bytes": 131072,
+        "full_minus_no_secondary_file_bytes": 69632,
+        "full_minus_no_secondary_live_page_bytes": 69632,
+        "secondary_entries_per_block_index": 136,
+        "transaction_entries": 0
+      }
+    ]
+  },
+  "version": 1
+}

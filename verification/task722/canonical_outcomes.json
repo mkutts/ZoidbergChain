@@ -1,0 +1,3248 @@
+{
+  "collected": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_frozen_inventory_and_published_oracles",
+      "line": 32
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[identity]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[zstd]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-message]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-aggregate]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-unicode]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-unicode-aggregate]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-high-s]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-identity]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-zstd]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-high-s]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-5-7]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-1-3]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-0-1]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-1-1]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-15-16]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-unreduced]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-zero-alias]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-zero-votes]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-negative]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-float]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-bool]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-too-large]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-unsupported]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-pad-bits]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-oversize-text]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-size-bool]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-unknown]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-base64-whitespace]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-checksum]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-hash]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-missing-memo]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-wrong-network]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-old-version]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-legacy-signature]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-unsigned]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-wrong-genesis]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-tampered-signature]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-double-reward]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-reward-signature]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-reward-recipient]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-genesis-reward]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-vote-order]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-status-tamper]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-evidence-extra]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-attestation-signature]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-summary-tamper]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-native-duplicate]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-text-caption]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-circular-finality]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-bool-version]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-duplicate]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-surrogate]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-negative-zero]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-nan]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-unicode-escape]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-bom]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-depth]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[unicode]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[finality]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[finality-proof]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-zero-votes]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-all-unsure]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-defined-zero]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-one-third]",
+      "line": 85
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_encodings_commit_differently_and_reconstruct_without_encoder",
+      "line": 95
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_producer_uses_full_descriptor_size_and_default_profile",
+      "line": 113
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[timeout]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[oom]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[crash]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[cancelled]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[saturated]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[cleanup_failure]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[unsupported_platform]",
+      "line": 126
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_closed_worker_and_no_decoder_injection",
+      "line": 136
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_producer_falls_back_to_verified_identity_for_encoder_failure[None]",
+      "line": 144
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_producer_falls_back_to_verified_identity_for_encoder_failure[broken frame]",
+      "line": 144
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_compressed_producer_local_failure_is_not_masked",
+      "line": 151
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_signature_variant_same_id_different_aggregate_and_block_and_duplicate_rejected",
+      "line": 163
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_explicit_trusted_context[changes0]",
+      "line": 173
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_explicit_trusted_context[changes1]",
+      "line": 173
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_explicit_trusted_context[changes2]",
+      "line": 173
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_unicode_j_vs_native_a_and_missing_null",
+      "line": 179
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_all_ratio_inputs_and_pairwise_comparisons",
+      "line": 194
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[01]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[+1]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[-0]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1.0_0]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1e0]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[NaN]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[Infinity]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1.0000001]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[True]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1.0_1]",
+      "line": 210
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_time_and_signature_boundaries",
+      "line": 216
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_closed_schemas_all_required_fields_and_unknown_fields",
+      "line": 240
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_typed_booleans_and_vote_snapshot_restrictions",
+      "line": 268
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_size_formula_complete_limit_and_child_budgets",
+      "line": 285
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_portable_canonical_preimages_without_crypto_dependencies",
+      "line": 312
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_original_and_encoded_size_boundaries[text/plain-262144]",
+      "line": 329
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_original_and_encoded_size_boundaries[image/png-2097152]",
+      "line": 329
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_text_canonicality_controls_and_no_silent_repair",
+      "line": 343
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_json_scalar_depth_and_wire_canonicality",
+      "line": 353
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_finality_uses_trusted_external_context_and_cannot_rewrite_record",
+      "line": 368
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_active_runtime_does_not_import_isolated_package",
+      "line": 385
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path0-zoidberg-signing-other-v2-bb46f35d4d03946220e5427aa800d0947260b06c1093cfeeb405e9bc6711d4e7]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path1-1-8540d7ac175fdee3667841c07c33c506f7c3e4424e647dc0efdac71a11f9cf0e]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path2-1-e3642ab311b8e334120c35fd964700c6cf2da30b41a3826313feb331654a2999]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path3-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-cb35653050fa50bcbb4c7a8ffeaac0479a4cc6caac38b3fa21f88a23549f2a31]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path4-meme_mining_reward-12d023aed3372fe39a3b0bbcfb68314aa2342c7e57a18a9e88f060d4e849d609]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path5-zoidbergchain/finality-attestation/v2-73405126a94a1d6239017af1a5f40019577b0b300ccaa7ea039baced051ef396]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path6-finality-attestation-721dd317f136a21d0ef38655616b8691099e9d625b706e52d2eac11a5e155795]",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_nonce_memo_and_record_count_limits",
+      "line": 413
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_complete_record_at_max_image_and_caption_size_with_real_signatures",
+      "line": 469
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_complete_record_at_max_text_size",
+      "line": 495
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_ten_signed_transfers_and_intrinsic_nonce_order",
+      "line": 504
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[JPEG-image/jpeg]",
+      "line": 155
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[PNG-image/png]",
+      "line": 155
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[WEBP-image/webp]",
+      "line": 155
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[GIF-image/gif]",
+      "line": 155
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[None-text/plain]",
+      "line": 155
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_certificate_is_incomplete_not_relabelled",
+      "line": 179
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_complete_descriptor_choice_and_original_identity[a-identity]",
+      "line": 190
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_complete_descriptor_choice_and_original_identity[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-zstd]",
+      "line": 190
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_identity_fallback_and_duplicate_original_across_encodings",
+      "line": 203
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[malformed]",
+      "line": 230
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[truncated]",
+      "line": 230
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[oversize-text]",
+      "line": 230
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[oversize-image]",
+      "line": 230
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[mime-mismatch]",
+      "line": 230
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[unsupported]",
+      "line": 230
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[attestation]",
+      "line": 242
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[votes]",
+      "line": 242
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[technical_evidence]",
+      "line": 242
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[creator_wallet]",
+      "line": 242
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[content_hash]",
+      "line": 242
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[prepare-unavailable]",
+      "line": 251
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[prepare-crash]",
+      "line": 251
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[prepare-timeout]",
+      "line": 251
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[construct-unavailable]",
+      "line": 251
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[construct-crash]",
+      "line": 251
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[construct-timeout]",
+      "line": 251
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_decoder_unavailable",
+      "line": 268
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_technical_worker_failures_are_local[False]",
+      "line": 276
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_technical_worker_failures_are_local[True]",
+      "line": 276
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[hash]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[payload]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[null_image_field]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[missing_image_field]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[extra]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[attestation]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[votes]",
+      "line": 290
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_unissued_and_mutated_prepared_inputs",
+      "line": 313
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_identity_reservation_at_approved_caps",
+      "line": 324
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[null_certificate]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[null_state]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[null_transactions]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[too_many]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[unsigned]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[oversize_transaction]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[insufficient_reward]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[wrong_reviewer]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[insufficient_balance]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[nonce]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[header_extra]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[header_null]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[caption_on_text]",
+      "line": 336
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_state_is_incomplete[reviewers]",
+      "line": 373
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_state_is_incomplete[ledger]",
+      "line": 373
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_exact_final_byte_gate_and_optional_transaction_independence",
+      "line": 385
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_test_only_configuration_and_no_active_imports",
+      "line": 407
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_actual_application_upload_attestation_review_to_offline_bridge",
+      "line": 416
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_dependency_outage_stays_local[claim]",
+      "line": 448
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_dependency_outage_stays_local[application_reviewer]",
+      "line": 448
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_dependency_outage_stays_local[v2_reviewer]",
+      "line": 448
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_application_evidence_is_incomplete",
+      "line": 468
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_descriptor_is_invalid_canonical[hash]",
+      "line": 479
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_descriptor_is_invalid_canonical[payload]",
+      "line": 479
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_current_image_policy_is_not_relaxed",
+      "line": 494
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_maximal_text_identity_and_ten_native_records",
+      "line": 509
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_preserves_accepted_text_bytes_after_application_normalization",
+      "line": 536
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_codec_process_failures_reach_adapter_as_local[unavailable]",
+      "line": 561
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_codec_process_failures_reach_adapter_as_local[crash]",
+      "line": 561
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_codec_process_failures_reach_adapter_as_local[hang]",
+      "line": 561
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_golden_certificate_and_independent_preimages",
+      "line": 70
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_input_order_determinism_and_detached_results",
+      "line": 119
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_assemble_closed_evidence_from_real_signed_inputs",
+      "line": 132
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[legacy]",
+      "line": 146
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[extra-key]",
+      "line": 146
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[signature]",
+      "line": 146
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[wrong-dimension]",
+      "line": 146
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[missing-key]",
+      "line": 146
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[oversize]",
+      "line": 146
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[quorum-originality]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[quorum-admissibility]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[established-originality]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[established-admissibility]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[all-unsure-originality]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[all-unsure-admissibility]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[zero-originality]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[zero-admissibility]",
+      "line": 176
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_unsure_counts_in_quorum_but_not_denominator",
+      "line": 199
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[duplicate]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[contradictory]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[dimension]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[hash]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[submission]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[signature]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[attestation-signature]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[network]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[protocol]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[nonce]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[malformed]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[oversize]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[legacy-vote]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[legacy-attestation]",
+      "line": 217
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[missing-vote]",
+      "line": 262
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[status]",
+      "line": 262
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[ineligible]",
+      "line": 262
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[negative]",
+      "line": 262
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[self-vote]",
+      "line": 262
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[order]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[tally]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[digest]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[legacy]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[whitespace]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[duplicate-key]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[oversize]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[ratio-field]",
+      "line": 293
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[missing-frozen_votes]",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[missing-reviewer_decision]",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[raises-frozen_votes]",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[raises-reviewer_decision]",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[bad-contract-frozen_votes]",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[bad-contract-reviewer_decision]",
+      "line": 323
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_inputs_are_not_null_or_legacy_substitution",
+      "line": 344
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_issued_bridge_and_context_reverification",
+      "line": 360
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_issued_bridge_byte_budget_and_optional_selection",
+      "line": 383
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_same_certification_across_identity_and_zstd",
+      "line": 406
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_incorrect_or_noncanonical_block_summaries_reject[ratio0]",
+      "line": 432
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_incorrect_or_noncanonical_block_summaries_reject[ratio1]",
+      "line": 432
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_incorrect_or_noncanonical_block_summaries_reject[ratio2]",
+      "line": 432
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_max_text_and_ten_transactions_preserve_issued_evidence",
+      "line": 441
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_test_only_and_nonactivation",
+      "line": 470
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_authenticated_dual_review_and_read_only_snapshot",
+      "line": 194
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[eligible-flag]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[forged-status]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[unsigned]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[missing-submission]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[signature]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[reference]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[quota]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[missing-reference]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[policy]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[identity]",
+      "line": 209
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[eligibility]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[status]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[signature]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[dimension]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[submission]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[media]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[network]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[protocol]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[signing-version]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[duplicate]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[malleated-duplicate]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[nonce-duplicate]",
+      "line": 254
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[quorum-originality]",
+      "line": 296
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[quorum-admissibility]",
+      "line": 296
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[established-originality]",
+      "line": 296
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[established-admissibility]",
+      "line": 296
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[unsure-only-originality]",
+      "line": 296
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[unsure-only-admissibility]",
+      "line": 296
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-journal]",
+      "line": 316
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-selection]",
+      "line": 316
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-finality]",
+      "line": 316
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-submission]",
+      "line": 316
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-certificate]",
+      "line": 316
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-network]",
+      "line": 316
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[journal-genesis]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[journal-network]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[chain-genesis]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[chain-network]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[reorg]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[contradictory-finality]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[stored-media]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[stored-creator]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[certificate-mutation]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[minted]",
+      "line": 340
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[original]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[submission]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[certificate]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[attestation_nonce]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[attestation_message]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[attestation_signature]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[review]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[vote_nonce]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[vote_message]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[vote_signature]",
+      "line": 374
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_conflicting_certificates_for_original_share_a_claim",
+      "line": 392
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_current_reputation_label_is_not_historical_authority",
+      "line": 417
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[active]",
+      "line": 443
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[expired]",
+      "line": 443
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[forged-duration]",
+      "line": 443
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[forged-offense]",
+      "line": 443
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[missing-offense]",
+      "line": 443
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_future_penalty_cannot_change_past_status",
+      "line": 461
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_unbacked_negative_transition_is_incomplete[False]",
+      "line": 470
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_unbacked_negative_transition_is_incomplete[True]",
+      "line": 470
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_two_historical_dimensions_charge_one_participation",
+      "line": 484
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_history_snapshot_is_one_read_transaction",
+      "line": 506
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_read_only_proposals_detect_changed_history_revision",
+      "line": 520
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[unavailable]",
+      "line": 532
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[corrupt]",
+      "line": 532
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[bad-journal]",
+      "line": 532
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[journal-error]",
+      "line": 532
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[replay-error]",
+      "line": 532
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_selection_is_complete_and_journal_not_caller_supplied",
+      "line": 555
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_concurrent_preflight_does_not_claim_durable_replay_protection",
+      "line": 563
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_identity_zstd_share_certificate_and_replay_claims",
+      "line": 592
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_no_active_registration_or_schema_changes",
+      "line": 611
+    }
+  ],
+  "deselected": [],
+  "reports": [
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_frozen_inventory_and_published_oracles",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[identity]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[zstd]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-message]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-aggregate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-unicode]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-unicode-aggregate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-high-s]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-identity]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-zstd]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-high-s]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-5-7]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-1-3]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-0-1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-1-1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-15-16]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-unreduced]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-zero-alias]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-zero-votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-negative]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-float]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-bool]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[ratio-bad-too-large]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-unsupported]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-pad-bits]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-oversize-text]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-size-bool]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-unknown]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-base64-whitespace]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-checksum]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[media-bad-hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-missing-memo]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-wrong-network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-old-version]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-legacy-signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-unsigned]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-wrong-genesis]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[native-bad-tampered-signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-double-reward]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-reward-signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-reward-recipient]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-genesis-reward]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-vote-order]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-status-tamper]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-evidence-extra]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-attestation-signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-summary-tamper]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-native-duplicate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-text-caption]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-circular-finality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[block-bad-bool-version]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-duplicate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-surrogate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-negative-zero]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-nan]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-unicode-escape]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-bom]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[json-bad-depth]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[unicode]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[finality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[finality-proof]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-zero-votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-all-unsure]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-defined-zero]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_versioned_golden_vectors[tally-one-third]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_encodings_commit_differently_and_reconstruct_without_encoder",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_producer_uses_full_descriptor_size_and_default_profile",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[timeout]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[oom]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[crash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[cancelled]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[saturated]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[cleanup_failure]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_local_failure_propagates_and_producer_withholds_descriptor[unsupported_platform]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_closed_worker_and_no_decoder_injection",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_producer_falls_back_to_verified_identity_for_encoder_failure[None]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_producer_falls_back_to_verified_identity_for_encoder_failure[broken frame]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_compressed_producer_local_failure_is_not_masked",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_signature_variant_same_id_different_aggregate_and_block_and_duplicate_rejected",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_explicit_trusted_context[changes0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_explicit_trusted_context[changes1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_explicit_trusted_context[changes2]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_unicode_j_vs_native_a_and_missing_null",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_all_ratio_inputs_and_pairwise_comparisons",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[01]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[+1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[-0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1.0_0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1e0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[NaN]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[Infinity]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1.0000001]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[True]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_negatives[1.0_1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_decimal_time_and_signature_boundaries",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_closed_schemas_all_required_fields_and_unknown_fields",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_typed_booleans_and_vote_snapshot_restrictions",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_size_formula_complete_limit_and_child_budgets",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_portable_canonical_preimages_without_crypto_dependencies",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_original_and_encoded_size_boundaries[text/plain-262144]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_original_and_encoded_size_boundaries[image/png-2097152]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_text_canonicality_controls_and_no_silent_repair",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_json_scalar_depth_and_wire_canonicality",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_finality_uses_trusted_external_context_and_cannot_rewrite_record",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_active_runtime_does_not_import_isolated_package",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path0-zoidberg-signing-other-v2-bb46f35d4d03946220e5427aa800d0947260b06c1093cfeeb405e9bc6711d4e7]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path1-1-8540d7ac175fdee3667841c07c33c506f7c3e4424e647dc0efdac71a11f9cf0e]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path2-1-e3642ab311b8e334120c35fd964700c6cf2da30b41a3826313feb331654a2999]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path3-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-cb35653050fa50bcbb4c7a8ffeaac0479a4cc6caac38b3fa21f88a23549f2a31]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path4-meme_mining_reward-12d023aed3372fe39a3b0bbcfb68314aa2342c7e57a18a9e88f060d4e849d609]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path5-zoidbergchain/finality-attestation/v2-73405126a94a1d6239017af1a5f40019577b0b300ccaa7ea039baced051ef396]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_published_domain_mutation_preimages_reject_signature_replay[path6-finality-attestation-721dd317f136a21d0ef38655616b8691099e9d625b706e52d2eac11a5e155795]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_nonce_memo_and_record_count_limits",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_complete_record_at_max_image_and_caption_size_with_real_signatures",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_complete_record_at_max_text_size",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_10c_v3.py::test_ten_signed_transfers_and_intrinsic_nonce_order",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[JPEG-image/jpeg]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[PNG-image/png]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[WEBP-image/webp]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[GIF-image/gif]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_admission_to_candidate[None-text/plain]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_certificate_is_incomplete_not_relabelled",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_complete_descriptor_choice_and_original_identity[a-identity]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_complete_descriptor_choice_and_original_identity[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-zstd]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_identity_fallback_and_duplicate_original_across_encodings",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[malformed]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[truncated]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[oversize-text]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[oversize-image]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[mime-mismatch]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_handmade_validated_result_cannot_assert_admission[unsupported]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[attestation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[technical_evidence]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[creator_wallet]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_application_admission_rejected[content_hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[prepare-unavailable]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[prepare-crash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[prepare-timeout]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[construct-unavailable]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[construct-crash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_codec_local_failures_preserved[construct-timeout]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_decoder_unavailable",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_technical_worker_failures_are_local[False]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_technical_worker_failures_are_local[True]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[payload]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[null_image_field]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[missing_image_field]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[extra]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[attestation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_bad_v2_evidence_is_invalid_canonical[votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_unissued_and_mutated_prepared_inputs",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_identity_reservation_at_approved_caps",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[null_certificate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[null_state]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[null_transactions]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[too_many]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[unsigned]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[oversize_transaction]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[insufficient_reward]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[wrong_reviewer]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[insufficient_balance]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[nonce]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[header_extra]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[header_null]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_closed_construction_and_state_limits[caption_on_text]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_state_is_incomplete[reviewers]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_state_is_incomplete[ledger]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_exact_final_byte_gate_and_optional_transaction_independence",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_test_only_configuration_and_no_active_imports",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_actual_application_upload_attestation_review_to_offline_bridge",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_dependency_outage_stays_local[claim]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_dependency_outage_stays_local[application_reviewer]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_dependency_outage_stays_local[v2_reviewer]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_missing_application_evidence_is_incomplete",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_descriptor_is_invalid_canonical[hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_tampered_descriptor_is_invalid_canonical[payload]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_current_image_policy_is_not_relaxed",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_maximal_text_identity_and_ten_native_records",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_preserves_accepted_text_bytes_after_application_normalization",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_codec_process_failures_reach_adapter_as_local[unavailable]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_codec_process_failures_reach_adapter_as_local[crash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_13_admission.py::test_real_codec_process_failures_reach_adapter_as_local[hang]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_golden_certificate_and_independent_preimages",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_input_order_determinism_and_detached_results",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_assemble_closed_evidence_from_real_signed_inputs",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[legacy]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[extra-key]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[wrong-dimension]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[missing-key]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_vote_assembly_cannot_upgrade_or_repair_invalid_signed_bytes[oversize]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[quorum-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[quorum-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[established-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[established-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[all-unsure-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[all-unsure-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[zero-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_independent_incomplete_reviews[zero-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_unsure_counts_in_quorum_but_not_denominator",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[duplicate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[contradictory]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[dimension]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[hash]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[submission]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[attestation-signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[protocol]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[nonce]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[malformed]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[oversize]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[legacy-vote]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_invalid_sources_rejected[legacy-attestation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[missing-vote]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[status]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[ineligible]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[negative]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_frozen_selection_and_authority_cannot_be_forged[self-vote]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[order]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[tally]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[digest]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[legacy]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[whitespace]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[duplicate-key]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[oversize]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_certificate_verification_is_strict[ratio-field]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[missing-frozen_votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[missing-reviewer_decision]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[raises-frozen_votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[raises-reviewer_decision]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[bad-contract-frozen_votes]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_and_operational_authority_are_distinct[bad-contract-reviewer_decision]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_missing_inputs_are_not_null_or_legacy_substitution",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_issued_bridge_and_context_reverification",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_issued_bridge_byte_budget_and_optional_selection",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_same_certification_across_identity_and_zstd",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_incorrect_or_noncanonical_block_summaries_reject[ratio0]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_incorrect_or_noncanonical_block_summaries_reject[ratio1]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_incorrect_or_noncanonical_block_summaries_reject[ratio2]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_max_text_and_ten_transactions_preserve_issued_evidence",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_14_issuance.py::test_test_only_and_nonactivation",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_authenticated_dual_review_and_read_only_snapshot",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[eligible-flag]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[forged-status]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[unsigned]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[missing-submission]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[reference]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[quota]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[missing-reference]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[policy]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_bad_or_missing_historical_participation[identity]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[eligibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[status]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[dimension]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[submission]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[media]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[protocol]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[signing-version]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[duplicate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[malleated-duplicate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_forged_selected_evidence[nonce-duplicate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[quorum-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[quorum-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[established-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[established-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[unsure-only-originality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_quorum_and_qualification_remain_independent[unsure-only-admissibility]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-journal]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-selection]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-finality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-submission]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-certificate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_missing_authoritative_history_is_explicit[no-network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[journal-genesis]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[journal-network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[chain-genesis]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[chain-network]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[reorg]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[contradictory-finality]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[stored-media]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[stored-creator]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[certificate-mutation]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_context_and_contradictory_history_reject[minted]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[original]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[submission]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[certificate]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[attestation_nonce]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[attestation_message]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[attestation_signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[review]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[vote_nonce]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[vote_message]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_persisted_replay_preflight_rejects_each_claim[vote_signature]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_conflicting_certificates_for_original_share_a_claim",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_current_reputation_label_is_not_historical_authority",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[active]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[expired]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[forged-duration]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[forged-offense]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_reputation_is_reproduced_from_signed_offenses[missing-offense]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_future_penalty_cannot_change_past_status",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_unbacked_negative_transition_is_incomplete[False]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_unbacked_negative_transition_is_incomplete[True]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_two_historical_dimensions_charge_one_participation",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_history_snapshot_is_one_read_transaction",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_read_only_proposals_detect_changed_history_revision",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[unavailable]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[corrupt]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[bad-journal]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[journal-error]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_storage_failures_fail_closed[replay-error]",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_selection_is_complete_and_journal_not_caller_supplied",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_concurrent_preflight_does_not_claim_durable_replay_protection",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_identity_zstd_share_certificate_and_replay_claims",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    },
+    {
+      "nodeid": "tests/test_milestone_7_task_7_15_history.py::test_no_active_registration_or_schema_changes",
+      "when": "call",
+      "outcome": "passed",
+      "detail": null
+    }
+  ],
+  "exitstatus": 0
+}
